@@ -329,7 +329,7 @@ Database Queries (only when needed):
 
 ```bash
 # Clone and start all microservices
-git clone https://github.com/yourusername/ft_transcendence.git
+git clone https://github.com/SirAlabar/ft_transcendence.git
 cd ft_transcendence
 docker-compose up --build
 
