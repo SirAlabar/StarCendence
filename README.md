@@ -396,4 +396,21 @@ open https://localhost
 ```
 
 ---
-**Team:** hluiz, joao-pol, isilva-t
+## 🧑‍💻 Team
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/SirAlabar">
+        <img src="https://github.com/SirAlabar.png" width="80" height="80" style="border-radius: 50%;" alt="hluiz"><br>
+        <sub><b>hluiz</b></sub><br>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/therappha">
+        <img src="https://github.com/therappha.png" width="80" height="80" style="border-radius: 50%;" alt="isilva-t"><br>
+        <sub><b>isilva-t</b></sub><br>
+      </a>
+    </td>
+  </tr>
+</table>
