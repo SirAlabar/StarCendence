@@ -407,9 +407,15 @@ open https://localhost
       </a>
     </td>
     <td align="center">
+      <a href="https://github.com/melaniereis">
+        <img src="https://github.com/melaniereis.png" width="80" height="80" style="border-radius: 50%;" alt="hluiz"><br>
+        <sub><b>meferraz</b></sub><br>
+      </a>
+    </td>
+    <td align="center">
       <a href="https://github.com/therappha">
         <img src="https://github.com/therappha.png" width="80" height="80" style="border-radius: 50%;" alt="isilva-t"><br>
-        <sub><b>isilva-t</b></sub><br>
+        <sub><b>rafaelfe</b></sub><br>
       </a>
     </td>
   </tr>
