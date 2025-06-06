@@ -31,7 +31,7 @@
 ```
 Frontend (TypeScript + Tailwind + Babylon.js)
     ↓
-API Gateway (Nginx).
+API Gateway (Nginx)
     ↓
 ┌─────────────────────────────────────────────────┐
 │              Microservices                      │
