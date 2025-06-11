@@ -1,0 +1,1 @@
+//  Global rankings component
