@@ -170,22 +170,8 @@ frontend/                       # TypeScript + Vite + Babylon.js
 │       ├── en.json             # English translations
 │       ├── fr.json             # French translations
 │       └── es.json             # Spanish translations
-└── tests/                      # Frontend tests
-    ├── setup.ts                # Test environment setup
-    ├── utils/                  # Test utilities
-    │   ├── testHelpers.ts      # Test helper functions
-    │   └── mockData.ts         # Mock data for tests
-    ├── components/             # Component tests
-    │   ├── auth.test.ts        # Authentication component tests
-    │   ├── game.test.ts        # Game component tests
-    │   └── chat.test.ts        # Chat component tests
-    ├── services/               # Service tests
-    │   ├── authService.test.ts # Auth service tests
-    │   └── gameService.test.ts # Game service tests
-    └── integration/            # Integration tests
-        ├── gameFlow.test.ts    # End-to-end game flow tests
-        └── userJourney.test.ts # User journey tests
-```
+└── 
+
 
 **Total Frontend Files**: ~125 files  
 **Key Technologies**: TypeScript, Vite, Tailwind CSS, Babylon.js  
