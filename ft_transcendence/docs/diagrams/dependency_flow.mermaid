@@ -1,0 +1,143 @@
+---
+config:
+  theme: neo-dark
+  layout: dagre
+  look: neo
+---
+flowchart TD
+    subgraph Week1["🔧 FOUNDATION - Week 1"]
+        DOCKER["🐳 Docker Setup"]
+        TS["📝 TypeScript Base"]
+        TAILWIND["🎨 Tailwind CSS<br/>Minor Module"]
+        PONG_3D["🎆 3D Pong + Local MP<br/>Major Module"]
+        TOURNAMENT["🏆 Tournament System"]
+    end
+    
+    subgraph Week2["⚡ BACKEND CORE - Week 2"]
+        FASTIFY["⚡ Fastify Backend<br/>Major Module"]
+        MICROSERVICES["🏗️ Microservices Architecture<br/>Major Module"]
+        SQLITE["💾 SQLite Database<br/>Minor Module"]
+        USER_MGMT["👤 User Management<br/>Major Module"]
+    end
+    
+    subgraph Week3["🔐 AUTH & SECURITY - Week 3"]
+        JWT_2FA["🔐 JWT + 2FA<br/>Major Module"]
+        GOOGLE_AUTH["🔑 Google OAuth<br/>Major Module"]
+        WEBSOCKET["🔌 WebSocket Foundation"]
+        REMOTE_PLAYERS["🌐 Remote Players<br/>Major Module"]
+    end
+    
+    subgraph Week4["🎮 REAL-TIME FEATURES - Week 4"]
+        LIVE_CHAT["💬 Live Chat<br/>Major Module"]
+        MULTI_PLAYERS["👥 Multiple Players<br/>Major Module"]
+        LOCAL_MP["⌨️ Local Multiplayer<br/>Same Keyboard"]
+        AI_OPPONENT["🤖 AI Opponent<br/>Major Module"]
+    end
+    
+    subgraph Week5["🏎️ ADVANCED GAMES - Week 5"]
+        RACER_GAME["🏎️ Star Wars Racer<br/>Major Module"]
+        BABYLON["🌟 Advanced 3D Babylon.js<br/>Major Module"]
+        CUSTOMIZATION["⚙️ Game Customization<br/>Minor Module"]
+        STATS_DASH["📊 Stats Dashboard<br/>Minor Module"]
+    end
+    
+    subgraph Week6["🌍 COMPATIBILITY & MONITORING - Week 6"]
+        DEVICES["📱 All Devices<br/>Minor Module"]
+        BROWSERS["🌍 Browser Support<br/>Minor Module"]
+        GRAFANA["📈 Prometheus/Grafana<br/>Minor Module"]
+        TESTING["🧪 Integration Testing"]
+    end
+    
+    %% Foundation Dependencies
+    DOCKER --> TS
+    TS --> TAILWIND
+    TAILWIND --> PONG_3D
+    PONG_3D --> TOURNAMENT
+    
+    %% Backend Core Dependencies
+    TOURNAMENT --> FASTIFY
+    FASTIFY --> MICROSERVICES
+    MICROSERVICES --> SQLITE
+    SQLITE --> USER_MGMT
+    
+    %% Auth & Security Dependencies
+    USER_MGMT --> JWT_2FA
+    JWT_2FA --> GOOGLE_AUTH
+    USER_MGMT --> WEBSOCKET
+    WEBSOCKET --> REMOTE_PLAYERS
+    
+    %% Real-time Features Dependencies
+    REMOTE_PLAYERS --> LIVE_CHAT
+    REMOTE_PLAYERS --> MULTI_PLAYERS
+    LIVE_CHAT --> LOCAL_MP
+    MULTI_PLAYERS --> AI_OPPONENT
+    
+    %% Advanced Games Dependencies
+    AI_OPPONENT --> RACER_GAME
+    PONG_3D --> BABYLON
+    RACER_GAME --> BABYLON
+    RACER_GAME --> CUSTOMIZATION
+    USER_MGMT --> STATS_DASH
+    
+    %% Compatibility & Monitoring Dependencies
+    CUSTOMIZATION --> DEVICES
+    TAILWIND --> DEVICES
+    DEVICES --> BROWSERS
+    MICROSERVICES --> GRAFANA
+    BROWSERS --> TESTING
+    GRAFANA --> TESTING
+    
+    %% Cross-week Dependencies
+    FASTIFY -.-> GRAFANA
+    WEBSOCKET -.-> GRAFANA
+    CUSTOMIZATION -.-> AI_OPPONENT
+    SQLITE -.-> STATS_DASH
+    
+    %% Service Dependencies
+    MICROSERVICES -.-> REMOTE_PLAYERS
+    MICROSERVICES -.-> LIVE_CHAT
+    MICROSERVICES -.-> AI_OPPONENT
+    
+    %% Critical Path Highlights
+    DOCKER -.-> FASTIFY
+    USER_MGMT -.-> LIVE_CHAT
+    REMOTE_PLAYERS -.-> MULTI_PLAYERS
+    
+    %% Styling by week
+    DOCKER:::week1
+    TS:::week1
+    TAILWIND:::week1
+    PONG_3D:::week1
+    TOURNAMENT:::week1
+    
+    FASTIFY:::week2
+    MICROSERVICES:::week2
+    SQLITE:::week2
+    USER_MGMT:::week2
+    
+    JWT_2FA:::week3
+    GOOGLE_AUTH:::week3
+    WEBSOCKET:::week3
+    REMOTE_PLAYERS:::week3
+    
+    LIVE_CHAT:::week4
+    MULTI_PLAYERS:::week4
+    LOCAL_MP:::week4
+    AI_OPPONENT:::week4
+    
+    RACER_GAME:::week5
+    BABYLON:::week5
+    CUSTOMIZATION:::week5
+    STATS_DASH:::week5
+    
+    DEVICES:::week6
+    BROWSERS:::week6
+    GRAFANA:::week6
+    TESTING:::week6
+    
+    classDef week1 fill:#000000,stroke:#00f5ff,stroke-width:3px,color:#ffffff
+    classDef week2 fill:#000000,stroke:#39ff14,stroke-width:3px,color:#ffffff
+    classDef week3 fill:#000000,stroke:#b967db,stroke-width:3px,color:#ffffff
+    classDef week4 fill:#000000,stroke:#ff0080,stroke-width:3px,color:#ffffff
+    classDef week5 fill:#000000,stroke:#00ffbf,stroke-width:3px,color:#ffffff
+    classDef week6 fill:#000000,stroke:#ffd700,stroke-width:3px,color:#ffffff

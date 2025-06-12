@@ -1,0 +1,137 @@
+---
+config:
+  theme: neo-dark
+  layout: dagre
+  look: neo
+---
+graph TB
+    subgraph Score["🏆 Module Strategy Overview"]
+        COMPLETION["✅ 100% Completion<br/>7 Major Modules Required"]
+        BONUS["🎯 Bonus Modules<br/>4 Extra Major + 7 Minor"]
+        TOTAL["📊 Total Strategy<br/>11 Major + 7 Minor Modules"]
+    end
+    
+    subgraph Core["🔧 Core Technologies"]
+        FASTIFY_TECH["⚡ Fastify + Node.js"]
+        BABYLON_TECH["🎆 Babylon.js 3D Engine"]
+        SQLITE_TECH["💾 SQLite Database"]
+        TAILWIND_TECH["🎨 Tailwind CSS Framework"]
+        MICROSERVICES_TECH["🏗️ Microservices Architecture"]
+    end
+    
+    subgraph Major["🎯 Major Modules"]
+        BACKEND["⚡ Fastify Backend<br/>Major Module"]
+        MICROSERVICES_MOD["🏗️ Backend as Microservices<br/>Major Module"]
+        USER_MGMT["👤 Standard User Management<br/>Major Module"]
+        GOOGLE_AUTH["🔑 Google Sign-in<br/>Major Module"]
+        REMOTE_PLAYERS["🌐 Remote Players<br/>Major Module"]
+        MULTIPLE_PLAYERS["👥 Multiple Players<br/>Major Module"]
+        SECOND_GAME["🏎️ Star Wars Racer + Matchmaking<br/>Major Module"]
+        LIVE_CHAT["💬 Live Chat<br/>Major Module"]
+        AI_OPPONENT["🤖 AI Opponent<br/>Major Module"]
+        JWT_2FA["🔐 2FA + JWT<br/>Major Module"]
+        ADVANCED_3D["🎆 Advanced 3D Babylon.js<br/>Major Module"]
+    end
+    
+    subgraph Minor["⭐ Minor Modules"]
+        TAILWIND_MOD["🎨 Tailwind CSS<br/>Minor Module"]
+        SQLITE_MOD["💾 SQLite Database<br/>Minor Module"]
+        CUSTOMIZATION["⚙️ Game Customization<br/>Minor Module"]
+        STATS_DASH["📊 Stats Dashboards<br/>Minor Module"]
+        ALL_DEVICES["📱 All Devices Support<br/>Minor Module"]
+        BROWSER_COMPAT["🌍 Browser Compatibility<br/>Minor Module"]
+        MONITORING["📈 Prometheus/Grafana<br/>Minor Module"]
+    end
+    
+    subgraph Games["🎮 Game Features"]
+        PONG_3D["🏓 3D Pong Game<br/>+ Local Multiplayer (Same Keyboard)"]
+        STAR_RACER["🏎️ Star Wars Pod Racing<br/>Advanced 3D Experience"]
+        POWER_UPS["⚡ Power-ups System<br/>Game Enhancements"]
+        TOURNAMENTS["🏆 Tournament System<br/>Competition Management"]
+        LOCAL_MP["⌨️ Local Multiplayer<br/>Same Keyboard Support"]
+    end
+    
+    subgraph Infrastructure["🛠️ System Infrastructure"]
+        AUTH_SERVICE["🔐 Auth Service"]
+        GAME_SERVICE["🎮 Game Service"]
+        CHAT_SERVICE["💬 Chat Service"]
+        USER_SERVICE["👤 User Service"]
+        WS_SERVICE["🌐 WebSocket Service"]
+    end
+    
+    %% Core Technology Connections
+    FASTIFY_TECH --> BACKEND
+    FASTIFY_TECH --> MICROSERVICES_MOD
+    BABYLON_TECH --> ADVANCED_3D
+    SQLITE_TECH --> SQLITE_MOD
+    TAILWIND_TECH --> TAILWIND_MOD
+    MICROSERVICES_TECH --> MICROSERVICES_MOD
+    
+    %% Major Module Dependencies
+    BACKEND --> USER_MGMT
+    BACKEND --> REMOTE_PLAYERS
+    BACKEND --> MULTIPLE_PLAYERS
+    BACKEND --> SECOND_GAME
+    BACKEND --> LIVE_CHAT
+    
+    MICROSERVICES_MOD --> AUTH_SERVICE
+    MICROSERVICES_MOD --> GAME_SERVICE
+    MICROSERVICES_MOD --> CHAT_SERVICE
+    MICROSERVICES_MOD --> USER_SERVICE
+    MICROSERVICES_MOD --> WS_SERVICE
+    
+    USER_MGMT --> GOOGLE_AUTH
+    USER_MGMT --> JWT_2FA
+    REMOTE_PLAYERS --> MULTIPLE_PLAYERS
+    REMOTE_PLAYERS --> LIVE_CHAT
+    ADVANCED_3D --> AI_OPPONENT
+    SECOND_GAME --> AI_OPPONENT
+    
+    %% Minor Module Dependencies
+    SQLITE_MOD --> USER_MGMT
+    SQLITE_MOD --> SECOND_GAME
+    SQLITE_MOD --> STATS_DASH
+    TAILWIND_MOD --> ALL_DEVICES
+    TAILWIND_MOD --> BROWSER_COMPAT
+    CUSTOMIZATION --> AI_OPPONENT
+    STATS_DASH --> USER_MGMT
+    MONITORING --> MICROSERVICES_MOD
+    
+    %% Game Feature Connections
+    ADVANCED_3D --> PONG_3D
+    ADVANCED_3D --> STAR_RACER
+    SECOND_GAME --> STAR_RACER
+    SECOND_GAME --> TOURNAMENTS
+    CUSTOMIZATION --> POWER_UPS
+    MULTIPLE_PLAYERS --> LOCAL_MP
+    PONG_3D --> LOCAL_MP
+    
+    %% Service Connections
+    USER_MGMT --> AUTH_SERVICE
+    USER_MGMT --> USER_SERVICE
+    REMOTE_PLAYERS --> WS_SERVICE
+    MULTIPLE_PLAYERS --> WS_SERVICE
+    LIVE_CHAT --> CHAT_SERVICE
+    SECOND_GAME --> GAME_SERVICE
+    AI_OPPONENT --> GAME_SERVICE
+    
+    %% Strategy Overview
+    COMPLETION --> Major
+    BONUS --> Major
+    BONUS --> Minor
+    TOTAL --> COMPLETION
+    TOTAL --> BONUS
+    
+    classDef scoreStyle fill:#000000,stroke:#fbbf24,stroke-width:3px,color:#ffffff,font-weight:bold
+    classDef coreStyle fill:#000000,stroke:#00f5ff,stroke-width:3px,color:#ffffff,font-weight:bold
+    classDef majorStyle fill:#000000,stroke:#39ff14,stroke-width:3px,color:#ffffff,font-weight:bold
+    classDef minorStyle fill:#000000,stroke:#b967db,stroke-width:3px,color:#ffffff,font-weight:bold
+    classDef gameStyle fill:#000000,stroke:#ff0080,stroke-width:3px,color:#ffffff,font-weight:bold
+    classDef infraStyle fill:#000000,stroke:#ffd700,stroke-width:3px,color:#ffffff,font-weight:bold
+    
+    class Score,COMPLETION,BONUS,TOTAL scoreStyle
+    class FASTIFY_TECH,BABYLON_TECH,SQLITE_TECH,TAILWIND_TECH,MICROSERVICES_TECH coreStyle
+    class BACKEND,MICROSERVICES_MOD,USER_MGMT,GOOGLE_AUTH,REMOTE_PLAYERS,MULTIPLE_PLAYERS,SECOND_GAME,LIVE_CHAT,AI_OPPONENT,JWT_2FA,ADVANCED_3D majorStyle
+    class TAILWIND_MOD,SQLITE_MOD,CUSTOMIZATION,STATS_DASH,ALL_DEVICES,BROWSER_COMPAT,MONITORING minorStyle
+    class PONG_3D,STAR_RACER,POWER_UPS,TOURNAMENTS,LOCAL_MP gameStyle
+    class AUTH_SERVICE,GAME_SERVICE,CHAT_SERVICE,USER_SERVICE,WS_SERVICE infraStyle

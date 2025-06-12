@@ -1,0 +1,158 @@
+graph TB
+    subgraph Frontend["🎨 Frontend Layer"]
+        UI[TypeScript + Tailwind CSS<br/>📱 Minor Module]
+        PONG3D[3D Pong + Local Multiplayer<br/>🎆 Major Module]
+        RACER[Star Wars Racer Game<br/>🏎️ Major Module]
+        CHAT[Live Chat Interface<br/>💬 Major Module]
+        DASH[Stats Dashboard<br/>📊 Minor Module]
+    end
+    
+    subgraph Authentication["🔐 Authentication Layer"]
+        JWT[JWT + 2FA Security<br/>🔐 Major Module]
+        GOOGLE[Google OAuth<br/>🔑 Major Module]
+        AUTH[Auth Middleware]
+    end
+    
+    subgraph Microservices["⚡ Backend Microservices"]
+        direction TB
+        FASTIFY[Fastify Framework<br/>⚡ Major Module]
+        
+        subgraph Services["🏗️ Microservices Architecture - Major Module"]
+            AUTH_SRV[Auth Service<br/>:3001]
+            GAME_SRV[Game Service<br/>:3002]
+            CHAT_SRV[Chat Service<br/>:3003]
+            USER_SRV[User Service<br/>:3004]
+            WS_SRV[WebSocket Service<br/>:3005]
+        end
+        
+        USER_MGMT[Standard User Management<br/>👤 Major Module]
+        GAME_ENGINE[Game Engine + AI<br/>🤖 Major Module]
+        MULTIPLAYER[Remote + Multiple Players<br/>🌐👥 Major Modules]
+    end
+    
+    subgraph Realtime["🌐 Real-time Communication"]
+        WS[WebSocket Server]
+        REMOTE[Remote Players<br/>🌐 Major Module]
+        MULTI[Multiple Players<br/>👥 Major Module]
+        LOCAL[Local Multiplayer<br/>⌨️ Same Keyboard]
+        CHAT_RT[Real-time Chat]
+    end
+    
+    subgraph Data["💾 Data Layer"]
+        SQLITE[SQLite Database<br/>💾 Minor Module]
+        REDIS[Redis Cache + PubSub]
+        USER_DB[User Profiles & Friends]
+        GAME_DB[Games & Tournaments]
+        STATS_DB[Statistics & History]
+        CHAT_DB[Messages & Rooms]
+    end
+    
+    subgraph Customization["⚙️ Game Features"]
+        POWER_UPS[Game Customization<br/>⚙️ Minor Module]
+        AI_OPPONENT[AI Opponents<br/>🤖 Major Module]
+        TOURNAMENTS[Tournament System]
+        MATCHMAKING[Matchmaking Engine]
+    end
+    
+    subgraph Monitoring["📈 DevOps & Monitoring"]
+        PROMETHEUS[Prometheus Metrics<br/>📈 Minor Module]
+        GRAFANA[Grafana Dashboards]
+        ALERTS[Alert Manager]
+        DOCKER[Docker Containers]
+    end
+    
+    subgraph Compatibility["🌍 Cross-Platform Support"]
+        DEVICES[All Devices Support<br/>📱 Minor Module]
+        BROWSERS[Browser Compatibility<br/>🌍 Minor Module]
+        RESPONSIVE[Responsive Design]
+    end
+    
+    %% Frontend to Authentication
+    UI --> AUTH
+    PONG3D --> AUTH
+    RACER --> AUTH
+    CHAT --> AUTH
+    
+    %% Authentication to Services
+    JWT --> AUTH_SRV
+    GOOGLE --> AUTH_SRV
+    AUTH --> Services
+    
+    %% Frontend to Services
+    UI --> FASTIFY
+    PONG3D --> GAME_SRV
+    RACER --> GAME_SRV
+    CHAT --> CHAT_SRV
+    DASH --> USER_SRV
+    
+    %% Microservices Internal
+    FASTIFY --> Services
+    AUTH_SRV --> USER_MGMT
+    GAME_SRV --> GAME_ENGINE
+    CHAT_SRV --> CHAT_RT
+    USER_SRV --> USER_MGMT
+    WS_SRV --> MULTIPLAYER
+    
+    %% Real-time Layer
+    WS_SRV --> WS
+    WS --> REMOTE
+    WS --> MULTI
+    WS --> LOCAL
+    WS --> CHAT_RT
+    MULTIPLAYER --> REMOTE
+    MULTIPLAYER --> MULTI
+    
+    %% Data Connections
+    Services --> SQLITE
+    Services --> REDIS
+    USER_MGMT --> USER_DB
+    GAME_ENGINE --> GAME_DB
+    CHAT_RT --> CHAT_DB
+    DASH --> STATS_DB
+    
+    %% Game Features
+    GAME_ENGINE --> POWER_UPS
+    GAME_ENGINE --> AI_OPPONENT
+    GAME_ENGINE --> TOURNAMENTS
+    GAME_ENGINE --> MATCHMAKING
+    POWER_UPS --> AI_OPPONENT
+    
+    %% Monitoring
+    Services -.-> PROMETHEUS
+    WS -.-> PROMETHEUS
+    PROMETHEUS --> GRAFANA
+    GRAFANA --> ALERTS
+    
+    %% Compatibility
+    UI --> DEVICES
+    UI --> BROWSERS
+    DEVICES --> RESPONSIVE
+    BROWSERS --> RESPONSIVE
+    
+    %% Docker Infrastructure
+    DOCKER --> Services
+    DOCKER --> SQLITE
+    DOCKER --> REDIS
+    DOCKER --> PROMETHEUS
+    
+    %% Styling
+    classDef majorModule fill:#e8f5e8,stroke:#2e7d32,stroke-width:3px,color:#1b5e20,font-weight:bold
+    classDef minorModule fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1,font-weight:bold
+    classDef infrastructure fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#4a148c
+    classDef services fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#bf360c
+    classDef realtime fill:#f1f8e9,stroke:#689f38,stroke-width:2px,color:#33691e
+    
+    %% Apply styles to Major Modules
+    class FASTIFY,USER_MGMT,GOOGLE,REMOTE,MULTI,RACER,CHAT,AI_OPPONENT,JWT,PONG3D majorModule
+    
+    %% Apply styles to Minor Modules  
+    class UI,SQLITE,POWER_UPS,DASH,DEVICES,BROWSERS,PROMETHEUS minorModule
+    
+    %% Apply styles to infrastructure
+    class AUTH,WS,REDIS,USER_DB,GAME_DB,STATS_DB,CHAT_DB,GRAFANA,ALERTS,DOCKER infrastructure
+    
+    %% Apply styles to services
+    class Services,AUTH_SRV,GAME_SRV,CHAT_SRV,USER_SRV,WS_SRV services
+    
+    %% Apply styles to real-time
+    class LOCAL,CHAT_RT,TOURNAMENTS,MATCHMAKING,RESPONSIVE realtime
