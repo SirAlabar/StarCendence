@@ -15,7 +15,7 @@
 
 ## 🎮 **Features (Modules)**
 
-### **Major Modules (110 points - 11 modules)**
+### **Major Modules (11 modules)**
 - **⚡ Fastify Backend** - High-performance server framework
 - **🏗️ Backend as Microservices** - Distributed architecture
 - **👤 Standard User Management** - Auth + profiles + friends
@@ -28,7 +28,7 @@
 - **🔐 2FA + JWT** - Advanced security
 - **🎆 Advanced 3D Babylon.js** - 3D graphics engine
 
-### **Minor Modules (35 points - 7 modules)**
+### **Minor Modules (7 modules)**
 - **🎨 Tailwind CSS** - Styling framework
 - **💾 SQLite Database** - Data persistence
 - **⚙️ Game Customization** - Power-ups and variations
