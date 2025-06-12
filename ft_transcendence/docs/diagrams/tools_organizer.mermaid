@@ -1,0 +1,154 @@
+---
+config:
+  theme: neo-dark
+  layout: dagre
+  look: neo
+  themeVariables:
+    background: '#000000'
+  flowchart:
+    padding: 20
+    nodeSpacing: 50
+    rankSpacing: 80
+    curve: basis
+---
+graph TD
+    subgraph Tech["🔧 Core Technologies"]
+        FASTIFY["⚡ Fastify + Node.js<br/>Backend Framework"]
+        BABYLON["🎆 Babylon.js<br/>3D Graphics Engine"]
+        SQLITE["💾 SQLite Database<br/>Data Storage"]
+        TAILWIND["🎨 Tailwind CSS<br/>Styling Framework"]
+        WEBSOCKET["🔌 WebSocket<br/>Real-time Communication"]
+        REDIS["⚡ Redis<br/>Cache + PubSub"]
+    end
+    
+    subgraph MajorModules["🎯 Major Modules"]
+        BACKEND["⚡ Fastify Backend<br/>Major Module"]
+        MICROSERVICES["🏗️ Backend as Microservices<br/>Major Module"]
+        USER_MGMT["👤 Standard User Management<br/>Major Module"]
+        GOOGLE_AUTH["🔑 Google Sign-in<br/>Major Module"]
+        REMOTE_PLAY["🌐 Remote Players<br/>Major Module"]
+        MULTI_PLAY["👥 Multiple Players<br/>Major Module"]
+    end
+    
+    subgraph MajorModules2["🎯 Major Modules (continued)"]
+        SECOND_GAME["🏎️ Star Wars Racer + Matchmaking<br/>Major Module"]
+        LIVE_CHAT["💬 Live Chat<br/>Major Module"]
+        AI_OPPONENT["🤖 AI Opponent<br/>Major Module"]
+        TFA_JWT["🔐 2FA + JWT<br/>Major Module"]
+        ADVANCED_3D["🎆 Advanced 3D Babylon.js<br/>Major Module"]
+    end
+    
+    subgraph MinorModules["⭐ Minor Modules"]
+        TAILWIND_MOD["🎨 Tailwind CSS<br/>Minor Module"]
+        SQLITE_MOD["💾 SQLite Database<br/>Minor Module"]
+        CUSTOMIZATION["⚙️ Game Customization<br/>Minor Module"]
+        STATS_DASH["📊 Stats Dashboard<br/>Minor Module"]
+        DEVICE_SUPPORT["📱 All Devices Support<br/>Minor Module"]
+        BROWSER_COMPAT["🌍 Browser Compatibility<br/>Minor Module"]
+        MONITORING["📈 Prometheus/Grafana<br/>Minor Module"]
+    end
+    
+    subgraph GameComponents["🎮 Game Components"]
+        PONG_3D["🏓 3D Pong Game<br/>+ Local Multiplayer (Same Keyboard)"]
+        STAR_RACER["🏎️ Star Wars Racer<br/>Pod Racing Experience"]
+        POWER_UPS["⚡ Power-ups System<br/>Game Enhancements"]
+        GAME_ENGINE["🎯 Game Engine Core<br/>Shared Mechanics"]
+        LOCAL_MP["⌨️ Local Multiplayer<br/>Same Keyboard Support"]
+    end
+    
+    subgraph Services["🏗️ Microservices Architecture"]
+        AUTH_SERVICE["🔐 Auth Service<br/>Port 3001"]
+        GAME_SERVICE["🎮 Game Service<br/>Port 3002"]
+        CHAT_SERVICE["💬 Chat Service<br/>Port 3003"]
+        USER_SERVICE["👤 User Service<br/>Port 3004"]
+        WS_SERVICE["🌐 WebSocket Service<br/>Port 3005"]
+    end
+    
+    subgraph Infrastructure["🛠️ Infrastructure"]
+        DOCKER["🐳 Docker Containers"]
+        NGINX["🌐 Nginx Reverse Proxy"]
+        PROMETHEUS_TECH["📊 Prometheus Monitoring"]
+        GRAFANA_TECH["📈 Grafana Dashboards"]
+    end
+    
+    %% Technology to Module Connections
+    FASTIFY --> BACKEND
+    FASTIFY --> MICROSERVICES
+    BABYLON --> ADVANCED_3D
+    SQLITE --> SQLITE_MOD
+    TAILWIND --> TAILWIND_MOD
+    WEBSOCKET --> REMOTE_PLAY
+    WEBSOCKET --> LIVE_CHAT
+    REDIS --> MICROSERVICES
+    
+    %% Major Module Dependencies
+    BACKEND --> USER_MGMT
+    BACKEND --> SECOND_GAME
+    BACKEND --> MICROSERVICES
+    USER_MGMT --> GOOGLE_AUTH
+    USER_MGMT --> TFA_JWT
+    REMOTE_PLAY --> MULTI_PLAY
+    REMOTE_PLAY --> LIVE_CHAT
+    ADVANCED_3D --> PONG_3D
+    ADVANCED_3D --> STAR_RACER
+    SECOND_GAME --> STAR_RACER
+    AI_OPPONENT --> PONG_3D
+    AI_OPPONENT --> STAR_RACER
+    
+    %% Minor Module Dependencies
+    SQLITE_MOD --> USER_MGMT
+    SQLITE_MOD --> SECOND_GAME
+    SQLITE_MOD --> STATS_DASH
+    TAILWIND_MOD --> DEVICE_SUPPORT
+    TAILWIND_MOD --> BROWSER_COMPAT
+    CUSTOMIZATION --> POWER_UPS
+    CUSTOMIZATION --> AI_OPPONENT
+    STATS_DASH --> USER_MGMT
+    MONITORING --> PROMETHEUS_TECH
+    MONITORING --> GRAFANA_TECH
+    
+    %% Game Components
+    POWER_UPS --> GAME_ENGINE
+    PONG_3D --> LOCAL_MP
+    PONG_3D --> GAME_ENGINE
+    STAR_RACER --> GAME_ENGINE
+    
+    %% Microservices
+    MICROSERVICES --> AUTH_SERVICE
+    MICROSERVICES --> GAME_SERVICE
+    MICROSERVICES --> CHAT_SERVICE
+    MICROSERVICES --> USER_SERVICE
+    MICROSERVICES --> WS_SERVICE
+    
+    %% Infrastructure
+    DOCKER --> AUTH_SERVICE
+    DOCKER --> GAME_SERVICE
+    DOCKER --> CHAT_SERVICE
+    DOCKER --> USER_SERVICE
+    DOCKER --> WS_SERVICE
+    NGINX --> DOCKER
+    PROMETHEUS_TECH --> MONITORING
+    GRAFANA_TECH --> MONITORING
+    
+    %% Cross-connections
+    USER_MGMT --> AUTH_SERVICE
+    USER_MGMT --> USER_SERVICE
+    REMOTE_PLAY --> WS_SERVICE
+    MULTI_PLAY --> WS_SERVICE
+    LIVE_CHAT --> CHAT_SERVICE
+    SECOND_GAME --> GAME_SERVICE
+    AI_OPPONENT --> GAME_SERVICE
+    
+    classDef techStyle fill:#000000,stroke:#00f5ff,stroke-width:3px,color:#ffffff,font-size:14px
+    classDef majorStyle fill:#000000,stroke:#39ff14,stroke-width:3px,color:#ffffff,font-size:14px
+    classDef minorStyle fill:#000000,stroke:#b967db,stroke-width:3px,color:#ffffff,font-size:14px
+    classDef gameStyle fill:#000000,stroke:#ff0080,stroke-width:3px,color:#ffffff,font-size:14px
+    classDef serviceStyle fill:#000000,stroke:#00ffbf,stroke-width:3px,color:#ffffff,font-size:14px
+    classDef infraStyle fill:#000000,stroke:#ffd700,stroke-width:3px,color:#ffffff,font-size:14px
+    
+    class FASTIFY,BABYLON,SQLITE,TAILWIND,WEBSOCKET,REDIS techStyle
+    class BACKEND,MICROSERVICES,USER_MGMT,GOOGLE_AUTH,REMOTE_PLAY,MULTI_PLAY,SECOND_GAME,LIVE_CHAT,AI_OPPONENT,TFA_JWT,ADVANCED_3D majorStyle
+    class TAILWIND_MOD,SQLITE_MOD,CUSTOMIZATION,STATS_DASH,DEVICE_SUPPORT,BROWSER_COMPAT,MONITORING minorStyle
+    class PONG_3D,STAR_RACER,POWER_UPS,GAME_ENGINE,LOCAL_MP gameStyle
+    class AUTH_SERVICE,GAME_SERVICE,CHAT_SERVICE,USER_SERVICE,WS_SERVICE serviceStyle
+    class DOCKER,NGINX,PROMETHEUS_TECH,GRAFANA_TECH infraStyle

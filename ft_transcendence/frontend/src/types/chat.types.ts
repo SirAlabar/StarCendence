@@ -1,0 +1,1 @@
+//  Chat type definitions

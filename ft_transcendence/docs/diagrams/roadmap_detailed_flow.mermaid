@@ -1,0 +1,132 @@
+---
+config:
+  theme: neo-dark
+  layout: dagre
+  look: neo
+---
+flowchart TD
+    subgraph Month1["📅 MONTH 1: JULY 2025 - Foundation"]
+        direction TB
+        DOCKER["🐳 Docker Environment Setup<br/>Day 1"]
+        TS["📝 TypeScript Base<br/>Days 1-5"]
+        TAILWIND["🎨 Tailwind CSS Integration<br/>Days 6-10"]
+        PONG_BASE["🏓 Basic 3D Pong<br/>Days 11-20"]
+        LOCAL_MP["⌨️ Local Multiplayer<br/>Days 21-25"]
+        TOURNAMENT_BASE["🏆 Tournament System<br/>Days 26-31"]
+    end
+    
+    subgraph Month2["📅 MONTH 2: AUGUST 2025 - Backend"]
+        direction TB
+        FASTIFY["⚡ Fastify Server<br/>Days 1-5"]
+        MICROSERVICES["🏗️ Microservices Arch<br/>Days 6-20"]
+        SQLITE["💾 SQLite Database<br/>Days 21-25"]
+        USER_MGMT["👤 User Management<br/>Days 26-31"]
+    end
+    
+    subgraph Month3["📅 MONTH 3: SEPT 2025 - Security"]
+        direction TB
+        API_DESIGN["🔗 API Design<br/>Days 1-5"]
+        JWT["🔐 JWT Token System<br/>Days 6-13"]
+        TFA["🔒 Two-Factor Auth<br/>Days 14-20"]
+        GOOGLE_AUTH["🔑 Google OAuth<br/>Days 21-27"]
+        SECURITY["🛡️ Security Middleware<br/>Days 28-30"]
+    end
+    
+    subgraph Month4["📅 MONTH 4: OCT 2025 - Real-time"]
+        direction TB
+        WS_AUTH["🔐 WebSocket Auth<br/>Days 1-6"]
+        WS_FOUNDATION["🌐 WebSocket Server<br/>Days 7-14"]
+        REMOTE_PLAYERS["🌍 Remote Players<br/>Days 15-22"]
+        AI_START["🤖 AI Development Start<br/>Days 23-31"]
+    end
+    
+    subgraph Month5["📅 MONTH 5: NOV 2025 - Advanced Features"]
+        direction TB
+        MULTI_PLAYERS["👥 Multiple Players<br/>Days 1-8"]
+        LIVE_CHAT["💬 Live Chat<br/>Days 9-18"]
+        RACER_GAME["🏎️ Star Wars Racer<br/>Days 19-30"]
+    end
+    
+    subgraph Month6["📅 MONTH 6: DEC 2025 - Polish & Deploy"]
+        direction TB
+        BABYLON_3D["🎆 Advanced 3D<br/>Days 1-10"]
+        CUSTOMIZATION["⚙️ Game Customization<br/>Days 11-15"]
+        STATS_DASH["📊 Stats Dashboard<br/>Days 16-20"]
+        MONITORING["📈 Prometheus/Grafana<br/>Days 21-25"]
+        POLISH["🌍 Cross-Platform Polish<br/>Days 26-30"]
+        DEPLOY["🚀 Production Deploy<br/>Day 31"]
+    end
+    
+    subgraph Parallel["🔄 PARALLEL DEVELOPMENT"]
+        direction TB
+        AI_DEV["🤖 AI Opponent<br/>Oct-Dec (3 months)"]
+        TESTING["🧪 Testing Suite<br/>Nov-Dec (2 months)"]
+        PERFORMANCE["⚡ Performance Opt<br/>Dec (1 month)"]
+    end
+    
+    %% Month 1 Flow
+    DOCKER --> TS
+    TS --> TAILWIND
+    TAILWIND --> PONG_BASE
+    PONG_BASE --> LOCAL_MP
+    LOCAL_MP --> TOURNAMENT_BASE
+    
+    %% Month 2 Flow
+    TOURNAMENT_BASE --> FASTIFY
+    FASTIFY --> MICROSERVICES
+    MICROSERVICES --> SQLITE
+    SQLITE --> USER_MGMT
+    
+    %% Month 3 Flow
+    USER_MGMT --> API_DESIGN
+    API_DESIGN --> JWT
+    JWT --> TFA
+    TFA --> GOOGLE_AUTH
+    GOOGLE_AUTH --> SECURITY
+    
+    %% Month 4 Flow
+    SECURITY --> WS_AUTH
+    WS_AUTH --> WS_FOUNDATION
+    WS_FOUNDATION --> REMOTE_PLAYERS
+    REMOTE_PLAYERS --> AI_START
+    
+    %% Month 5 Flow
+    AI_START --> MULTI_PLAYERS
+    MULTI_PLAYERS --> LIVE_CHAT
+    LIVE_CHAT --> RACER_GAME
+    
+    %% Month 6 Flow
+    RACER_GAME --> BABYLON_3D
+    BABYLON_3D --> CUSTOMIZATION
+    CUSTOMIZATION --> STATS_DASH
+    STATS_DASH --> MONITORING
+    MONITORING --> POLISH
+    POLISH --> DEPLOY
+    
+    %% Parallel Development
+    AI_START -.-> AI_DEV
+    MULTI_PLAYERS -.-> TESTING
+    STATS_DASH -.-> PERFORMANCE
+    
+    %% Cross-month dependencies
+    PONG_BASE -.-> BABYLON_3D
+    MICROSERVICES -.-> MONITORING
+    USER_MGMT -.-> STATS_DASH
+    
+    %% Styling
+    classDef month1 fill:#000000,stroke:#00f5ff,stroke-width:3px,color:#ffffff
+    classDef month2 fill:#000000,stroke:#39ff14,stroke-width:3px,color:#ffffff
+    classDef month3 fill:#000000,stroke:#b967db,stroke-width:3px,color:#ffffff
+    classDef month4 fill:#000000,stroke:#ff0080,stroke-width:3px,color:#ffffff
+    classDef month5 fill:#000000,stroke:#00ffbf,stroke-width:3px,color:#ffffff
+    classDef month6 fill:#000000,stroke:#ffd700,stroke-width:3px,color:#ffffff
+    classDef parallel fill:#000000,stroke:#ff6b35,stroke-width:3px,color:#ffffff
+    
+    %% Apply styles
+    class DOCKER,TS,TAILWIND,PONG_BASE,LOCAL_MP,TOURNAMENT_BASE month1
+    class FASTIFY,MICROSERVICES,SQLITE,USER_MGMT month2
+    class API_DESIGN,JWT,TFA,GOOGLE_AUTH,SECURITY month3
+    class WS_AUTH,WS_FOUNDATION,REMOTE_PLAYERS,AI_START month4
+    class MULTI_PLAYERS,LIVE_CHAT,RACER_GAME month5
+    class BABYLON_3D,CUSTOMIZATION,STATS_DASH,MONITORING,POLISH,DEPLOY month6
+    class AI_DEV,TESTING,PERFORMANCE parallel

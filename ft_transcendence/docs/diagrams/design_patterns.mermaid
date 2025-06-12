@@ -1,0 +1,196 @@
+---
+config:
+  theme: neo-dark
+  layout: dagre
+  look: neo
+---
+graph TB
+    subgraph CreationalPatterns["🏭 CREATIONAL PATTERNS"]
+        SINGLETON[Singleton Pattern<br/>📦 Single Instance Management]
+        FACTORY[Factory Pattern<br/>🎭 Object Creation]
+        BUILDER[Builder Pattern<br/>🔧 Complex Object Construction]
+    end
+    
+    subgraph StructuralPatterns["🧱 STRUCTURAL PATTERNS"]
+        DECORATOR[Decorator Pattern<br/>✨ Feature Enhancement]
+        COMPONENT[Component Pattern<br/>🧩 Entity Composition]
+        REPOSITORY[Repository Pattern<br/>📚 Data Abstraction]
+        MICROSERVICES_PATTERN[Microservices Pattern<br/>🏗️ Service Architecture]
+    end
+    
+    subgraph BehavioralPatterns["🔄 BEHAVIORAL PATTERNS"]
+        OBSERVER[Observer Pattern<br/>👁️ Event Notification]
+        STATE[State Pattern<br/>⚡ State Management]
+        COMMAND[Command Pattern<br/>📝 Action Encapsulation]
+        STRATEGY[Strategy Pattern<br/>🎯 Algorithm Selection]
+        MEDIATOR[Mediator Pattern<br/>🤝 Communication Hub]
+        TEMPLATE[Template Method<br/>📋 Algorithm Structure]
+        CHAIN[Chain of Responsibility<br/>⛓️ Request Processing]
+        PUBSUB[Publisher/Subscriber<br/>📡 Event Broadcasting]
+    end
+    
+    subgraph MajorModules["🎯 MAJOR MODULES"]
+        FASTIFY_BACKEND[⚡ Fastify Backend<br/>Major Module]
+        MICROSERVICES_ARCH[🏗️ Microservices Architecture<br/>Major Module]
+        USER_MANAGEMENT[👤 User Management<br/>Major Module]
+        GOOGLE_OAUTH[🔑 Google OAuth<br/>Major Module]
+        REMOTE_PLAYERS[🌐 Remote Players<br/>Major Module]
+        MULTIPLE_PLAYERS[👥 Multiple Players<br/>Major Module]
+        STAR_WARS_RACER[🏎️ Star Wars Racer<br/>Major Module]
+        LIVE_CHAT[💬 Live Chat<br/>Major Module]
+        AI_OPPONENT[🤖 AI Opponent<br/>Major Module]
+        JWT_2FA[🔐 JWT + 2FA<br/>Major Module]
+        BABYLON_3D[🎆 Advanced 3D Babylon.js<br/>Major Module]
+    end
+    
+    subgraph MinorModules["⭐ MINOR MODULES"]
+        TAILWIND_CSS[🎨 Tailwind CSS<br/>Minor Module]
+        SQLITE_DB[💾 SQLite Database<br/>Minor Module]
+        GAME_CUSTOMIZATION[⚙️ Game Customization<br/>Minor Module]
+        STATS_DASHBOARD[📊 Stats Dashboard<br/>Minor Module]
+        ALL_DEVICES[📱 All Devices<br/>Minor Module]
+        BROWSER_COMPAT[🌍 Browser Compatibility<br/>Minor Module]
+        MONITORING[📈 Prometheus/Grafana<br/>Minor Module]
+    end
+    
+    subgraph GameComponents["🎮 GAME COMPONENTS"]
+        PONG_3D[🏓 3D Pong + Local MP<br/>Same Keyboard Support]
+        RACER_GAME[🏎️ Pod Racing Game<br/>Advanced Physics]
+        GAME_ENGINE[🎯 Game Engine<br/>Core Logic]
+        AI_SYSTEM[🤖 AI System<br/>Intelligent Opponents]
+        CHAT_SYSTEM[💬 Chat System<br/>Real-time Messaging]
+        AUTH_SYSTEM[🔐 Auth System<br/>Security Layer]
+        WS_SYSTEM[🌐 WebSocket System<br/>Real-time Communication]
+    end
+    
+    subgraph Services["🏗️ MICROSERVICES"]
+        AUTH_SERVICE[🔐 Auth Service<br/>Port 3001]
+        GAME_SERVICE[🎮 Game Service<br/>Port 3002]
+        CHAT_SERVICE[💬 Chat Service<br/>Port 3003]
+        USER_SERVICE[👤 User Service<br/>Port 3004]
+        WEBSOCKET_SERVICE[🌐 WebSocket Service<br/>Port 3005]
+    end
+    
+    %% CREATIONAL PATTERNS CONNECTIONS
+    SINGLETON --> AUTH_SERVICE
+    SINGLETON --> SQLITE_DB
+    SINGLETON --> MONITORING
+    
+    FACTORY --> BABYLON_3D
+    FACTORY --> GAME_ENGINE
+    FACTORY --> AI_SYSTEM
+    
+    BUILDER --> GAME_ENGINE
+    BUILDER --> MICROSERVICES_ARCH
+    BUILDER --> SQLITE_DB
+    
+    %% STRUCTURAL PATTERNS CONNECTIONS
+    DECORATOR --> FASTIFY_BACKEND
+    DECORATOR --> MONITORING
+    
+    COMPONENT --> BABYLON_3D
+    COMPONENT --> GAME_ENGINE
+    COMPONENT --> PONG_3D
+    COMPONENT --> RACER_GAME
+    
+    REPOSITORY --> SQLITE_DB
+    REPOSITORY --> USER_MANAGEMENT
+    REPOSITORY --> STATS_DASHBOARD
+    
+    MICROSERVICES_PATTERN --> MICROSERVICES_ARCH
+    MICROSERVICES_PATTERN --> AUTH_SERVICE
+    MICROSERVICES_PATTERN --> GAME_SERVICE
+    MICROSERVICES_PATTERN --> CHAT_SERVICE
+    MICROSERVICES_PATTERN --> USER_SERVICE
+    MICROSERVICES_PATTERN --> WEBSOCKET_SERVICE
+    
+    %% BEHAVIORAL PATTERNS CONNECTIONS
+    OBSERVER --> WEBSOCKET_SERVICE
+    OBSERVER --> GAME_ENGINE
+    OBSERVER --> CHAT_SYSTEM
+    OBSERVER --> MONITORING
+    
+    STATE --> BABYLON_3D
+    STATE --> GAME_ENGINE
+    STATE --> WS_SYSTEM
+    
+    COMMAND --> GAME_ENGINE
+    COMMAND --> WEBSOCKET_SERVICE
+    COMMAND --> REMOTE_PLAYERS
+    COMMAND --> MULTIPLE_PLAYERS
+    
+    STRATEGY --> AI_OPPONENT
+    STRATEGY --> AI_SYSTEM
+    STRATEGY --> AUTH_SYSTEM
+    STRATEGY --> JWT_2FA
+    
+    MEDIATOR --> FASTIFY_BACKEND
+    MEDIATOR --> GAME_ENGINE
+    MEDIATOR --> CHAT_SYSTEM
+    MEDIATOR --> MICROSERVICES_ARCH
+    
+    TEMPLATE --> GAME_ENGINE
+    TEMPLATE --> MONITORING
+    
+    CHAIN --> FASTIFY_BACKEND
+    CHAIN --> AUTH_SYSTEM
+    CHAIN --> JWT_2FA
+    
+    PUBSUB --> WEBSOCKET_SERVICE
+    PUBSUB --> CHAT_SYSTEM
+    PUBSUB --> LIVE_CHAT
+    
+    %% MAJOR MODULE INTERCONNECTIONS
+    FASTIFY_BACKEND --> MICROSERVICES_ARCH
+    MICROSERVICES_ARCH --> USER_MANAGEMENT
+    USER_MANAGEMENT --> GOOGLE_OAUTH
+    USER_MANAGEMENT --> JWT_2FA
+    REMOTE_PLAYERS --> MULTIPLE_PLAYERS
+    REMOTE_PLAYERS --> LIVE_CHAT
+    BABYLON_3D --> AI_OPPONENT
+    STAR_WARS_RACER --> AI_OPPONENT
+    
+    %% MINOR MODULE CONNECTIONS
+    SQLITE_DB --> USER_MANAGEMENT
+    SQLITE_DB --> STAR_WARS_RACER
+    SQLITE_DB --> STATS_DASHBOARD
+    TAILWIND_CSS --> ALL_DEVICES
+    TAILWIND_CSS --> BROWSER_COMPAT
+    GAME_CUSTOMIZATION --> AI_OPPONENT
+    MONITORING --> MICROSERVICES_ARCH
+    
+    %% GAME COMPONENT CONNECTIONS
+    BABYLON_3D --> PONG_3D
+    BABYLON_3D --> RACER_GAME
+    STAR_WARS_RACER --> RACER_GAME
+    AI_OPPONENT --> AI_SYSTEM
+    LIVE_CHAT --> CHAT_SYSTEM
+    USER_MANAGEMENT --> AUTH_SYSTEM
+    REMOTE_PLAYERS --> WS_SYSTEM
+    MULTIPLE_PLAYERS --> WS_SYSTEM
+    
+    %% SERVICE CONNECTIONS
+    USER_MANAGEMENT --> AUTH_SERVICE
+    USER_MANAGEMENT --> USER_SERVICE
+    REMOTE_PLAYERS --> WEBSOCKET_SERVICE
+    MULTIPLE_PLAYERS --> WEBSOCKET_SERVICE
+    LIVE_CHAT --> CHAT_SERVICE
+    STAR_WARS_RACER --> GAME_SERVICE
+    AI_OPPONENT --> GAME_SERVICE
+    
+    %% STYLING
+    classDef creationalStyle fill:#000000,stroke:#2e7d32,stroke-width:3px,color:#ffffff
+    classDef structuralStyle fill:#000000,stroke:#1565c0,stroke-width:3px,color:#ffffff
+    classDef behavioralStyle fill:#000000,stroke:#ef6c00,stroke-width:3px,color:#ffffff
+    classDef majorStyle fill:#000000,stroke:#39ff14,stroke-width:3px,color:#ffffff
+    classDef minorStyle fill:#000000,stroke:#b967db,stroke-width:3px,color:#ffffff
+    classDef gameStyle fill:#000000,stroke:#ff0080,stroke-width:3px,color:#ffffff
+    classDef serviceStyle fill:#000000,stroke:#ffd700,stroke-width:3px,color:#ffffff
+    
+    class SINGLETON,FACTORY,BUILDER creationalStyle
+    class DECORATOR,COMPONENT,REPOSITORY,MICROSERVICES_PATTERN structuralStyle
+    class OBSERVER,STATE,COMMAND,STRATEGY,MEDIATOR,TEMPLATE,CHAIN,PUBSUB behavioralStyle
+    class FASTIFY_BACKEND,MICROSERVICES_ARCH,USER_MANAGEMENT,GOOGLE_OAUTH,REMOTE_PLAYERS,MULTIPLE_PLAYERS,STAR_WARS_RACER,LIVE_CHAT,AI_OPPONENT,JWT_2FA,BABYLON_3D majorStyle
+    class TAILWIND_CSS,SQLITE_DB,GAME_CUSTOMIZATION,STATS_DASHBOARD,ALL_DEVICES,BROWSER_COMPAT,MONITORING minorStyle
+    class PONG_3D,RACER_GAME,GAME_ENGINE,AI_SYSTEM,CHAT_SYSTEM,AUTH_SYSTEM,WS_SYSTEM gameStyle
+    class AUTH_SERVICE,GAME_SERVICE,CHAT_SERVICE,USER_SERVICE,WEBSOCKET_SERVICE serviceStyle
