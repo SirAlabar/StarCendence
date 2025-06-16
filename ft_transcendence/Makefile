@@ -50,9 +50,9 @@ define show_logo
 	@printf "$(CYAN)              \`. \`.                       ,'\`\`\`\`\`.  ;  ;\`$(DEFAULT)\n"
 	@printf "$(CYAN)                \`._\`.        __________   \`.      \\'__/\`$(DEFAULT)\n"
 	@printf "$(CYAN)                   \`-:._____/______/___/____\`.     \\  \`$(DEFAULT)\n"
-	@printf "$(CYAN)                               |       \`._    \`.    \\$(DEFAULT)\n"
+	@printf "$(CYAN)                               |       \`._    \`.    \\ \n"
 	@printf "$(CYAN)                               \`._________\`-.   \`.   \`.___$(DEFAULT)\n"
-	@printf "$(CYAN)                                             ft  \`------'\`$(DEFAULT)\n"
+	@printf "$(CYAN)                                                 \`------'\`$(DEFAULT)\n"
 	@printf "$(YELLOW)        ft_transcendence - The Ultimate Pong Experience$(DEFAULT)\n\n"
 endef
 

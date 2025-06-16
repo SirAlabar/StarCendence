@@ -1,5 +1,4 @@
 # Setup with SSL support
-
 FROM nginx:alpine
 
 # Install additional packages for SSL and security
@@ -12,9 +11,7 @@ RUN apk add --no-cache \
 RUN mkdir -p /run/secrets \
     && chmod 750 /run/secrets
 
-# Create nginx user and set permissions
-RUN addgroup -g 101 -S nginx \
-    && adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
+# nginx user already exists in nginx:alpine base image, so we skip user creation
 
 # Remove default nginx configuration
 RUN rm /etc/nginx/conf.d/default.conf

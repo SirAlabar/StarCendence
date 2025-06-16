@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   # Reverse Proxy (HTTP redirect + HTTPS)
@@ -14,12 +13,12 @@ services:
       - frontend_dist:/var/www/html
     networks:
       - transcendence_network
-    depends_on:
-      - auth-service
-      - game-service
-      - chat-service
-      - user-service
-      - websocket-service
+    # depends_on:
+      # - auth-service
+      # - game-service
+      # - chat-service
+      # - user-service
+      # - websocket-service
     secrets:
       - ssl_certificate
       - ssl_private_key
@@ -39,93 +38,93 @@ services:
       - transcendence_network
     restart: always
 
-  # Auth Microservice
-  auth-service:
-    container_name: transcendence_auth
-    build:
-      context: ./services/auth
-      dockerfile: Dockerfile
-    volumes:
-      - auth_data:/app/data
-    networks:
-      - transcendence_network
-    secrets:
-      - jwt_secret
-      - google_client_id
-      - google_client_secret
-    env_file:
-      - .env
-    depends_on:
-      - redis
-    restart: always
+  # # Auth Microservice
+  # auth-service:
+  #   container_name: transcendence_auth
+  #   build:
+  #     context: ./services/auth
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - auth_data:/app/data
+  #   networks:
+  #     - transcendence_network
+  #   secrets:
+  #     - jwt_secret
+  #     - google_client_id
+  #     - google_client_secret
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - redis
+  #   restart: always
 
-  # Game Microservice  
-  game-service:
-    container_name: transcendence_game
-    build:
-      context: ./services/game
-      dockerfile: Dockerfile
-    volumes:
-      - game_data:/app/data
-    networks:
-      - transcendence_network
-    env_file:
-      - .env
-    depends_on:
-      - redis
-    restart: always
+  # # Game Microservice  
+  # game-service:
+  #   container_name: transcendence_game
+  #   build:
+  #     context: ./services/game
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - game_data:/app/data
+  #   networks:
+  #     - transcendence_network
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - redis
+  #   restart: always
 
-  # Chat Microservice
-  chat-service:
-    container_name: transcendence_chat
-    build:
-      context: ./services/chat
-      dockerfile: Dockerfile
-    volumes:
-      - chat_data:/app/data
-    networks:
-      - transcendence_network
-    env_file:
-      - .env
-    depends_on:
-      - redis
-    restart: always
+  # # Chat Microservice
+  # chat-service:
+  #   container_name: transcendence_chat
+  #   build:
+  #     context: ./services/chat
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - chat_data:/app/data
+  #   networks:
+  #     - transcendence_network
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - redis
+  #   restart: always
 
-  # User Microservice
-  user-service:
-    container_name: transcendence_user
-    build:
-      context: ./services/user
-      dockerfile: Dockerfile
-    volumes:
-      - user_data:/app/data
-    networks:
-      - transcendence_network
-    env_file:
-      - .env
-    depends_on:
-      - redis
-    restart: always
+  # # User Microservice
+  # user-service:
+  #   container_name: transcendence_user
+  #   build:
+  #     context: ./services/user
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - user_data:/app/data
+  #   networks:
+  #     - transcendence_network
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - redis
+  #   restart: always
 
-  # WebSocket Microservice
-  websocket-service:
-    container_name: transcendence_websocket
-    build:
-      context: ./services/websocket
-      dockerfile: Dockerfile
-    networks:
-      - transcendence_network
-    env_file:
-      - .env
-    depends_on:
-      - redis
-    restart: always
+  # # WebSocket Microservice
+  # websocket-service:
+  #   container_name: transcendence_websocket
+  #   build:
+  #     context: ./services/websocket
+  #     dockerfile: Dockerfile
+  #   networks:
+  #     - transcendence_network
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - redis
+  #   restart: always
 
   # Redis Cache
   redis:
     container_name: transcendence_redis
     build:
-      context: ./services/redis
+      context: ./infrastructure/redis
       dockerfile: Dockerfile
     volumes:
       - redis_data:/data
@@ -150,33 +149,33 @@ volumes:
       device: ${HOME}/data/frontend
       o: bind
 
-  auth_data:
-    driver: local
-    driver_opts:
-      type: none
-      device: ${HOME}/data/auth
-      o: bind
+  # auth_data:
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     device: ${HOME}/data/auth
+  #     o: bind
 
-  game_data:
-    driver: local
-    driver_opts:
-      type: none
-      device: ${HOME}/data/game
-      o: bind
+  # game_data:
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     device: ${HOME}/data/game
+  #     o: bind
 
-  chat_data:
-    driver: local
-    driver_opts:
-      type: none
-      device: ${HOME}/data/chat
-      o: bind
+  # chat_data:
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     device: ${HOME}/data/chat
+  #     o: bind
 
-  user_data:
-    driver: local
-    driver_opts:
-      type: none
-      device: ${HOME}/data/user
-      o: bind
+  # user_data:
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     device: ${HOME}/data/user
+  #     o: bind
 
 networks:
   transcendence_network:
