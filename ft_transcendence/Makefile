@@ -111,6 +111,8 @@ setup:
 	@printf "$(BLUE)🚀 Setting up ft_transcendence infrastructure...$(DEFAULT)\n\n"
 	@printf "$(CYAN)Creating directories...$(DEFAULT)\n"
 	@mkdir -p $(DATA_DIR) $(NGINX_DIR)/logs $(NGINX_DIR)/certs $(REDIS_DIR) $(PUBLIC_DIR) $(SERVICES_DIR) $(LOGS_DIR)
+	@printf "$(CYAN)Creating Docker volume directories...$(DEFAULT)\n"
+	@mkdir -p $(HOME)/data/frontend $(HOME)/data/redis $(HOME)/data/auth $(HOME)/data/game $(HOME)/data/chat $(HOME)/data/user
 	@printf "$(CYAN)Setting up environment...$(DEFAULT)\n"
 	@if [ ! -f $(ENV_FILE) ]; then cp $(ENV_FILE).example $(ENV_FILE) 2>/dev/null || touch $(ENV_FILE); fi
 	@printf "$(CYAN)Creating databases...$(DEFAULT)\n"
@@ -168,6 +170,12 @@ rebuild:
 	@printf "$(GREEN)🔨 Force rebuilding containers...$(DEFAULT)\n"
 	@$(DOCKER_COMPOSE) build --no-cache
 	@printf "$(GREEN)✅ Rebuild complete!$(DEFAULT)\n"
+
+.PHONY: re
+re: clean setup
+	@printf "$(GREEN)♻️  Complete rebuild finished!$(DEFAULT)\n"
+	@printf "$(YELLOW)🌐 Access: https://localhost$(DEFAULT)\n"
+	@printf "$(YELLOW)📊 Redis: localhost:6379$(DEFAULT)\n"
 
 ################################################################################
 #                             DATABASE RULES                                   #

@@ -1,12 +1,6 @@
 //  Application entry point
 
-import './style.css'
-
-// Type definitions for global variables
-declare global {
-  const __APP_VERSION__: string
-  const __BUILD_TIME__: string
-}
+import './css/style.css'
 
 /**
  * ft_transcendence - Main Application Entry Point

@@ -1,11 +1,20 @@
-# Frontend container for ft_transcendence - minimal and correct
+# Frontend container for ft_transcendence - clean build approach
 FROM node:lts
 
 # Set working directory
 WORKDIR /app
 
-# Install Vite globally
-RUN npm install -g vite@latest
+# Copy package files first (better Docker layer caching)
+COPY package.json ./
 
-# Build ft_transcendence frontend and exit
-ENTRYPOINT ["/bin/sh", "-c", "npm install --non-interactive && exec npm run build"]
+# Install dependencies  
+RUN npm install
+
+# Copy all source files
+COPY . .
+
+# Build the project at Docker build time (creates /app/dist/)
+RUN npm run build
+
+# Copy built files to volume mount point and exit gracefully
+CMD ["echo", "Frontend ready"]
