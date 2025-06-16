@@ -10,6 +10,11 @@
 *.p12
 *.pfx
 
+#Secrets
+secrets/
+*.pem
+*.key
+
 # SSL certificates  
 ssl/
 certificates/
