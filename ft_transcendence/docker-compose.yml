@@ -26,18 +26,6 @@ services:
       - .env
     restart: always
 
-  # Frontend Build
-  frontend:
-    container_name: transcendence_frontend
-    build: 
-      context: ./frontend
-      dockerfile: Dockerfile
-    volumes:
-      - frontend_dist:/app/dist
-    networks:
-      - transcendence_network
-    restart: always
-
   # # Auth Microservice
   # auth-service:
   #   container_name: transcendence_auth

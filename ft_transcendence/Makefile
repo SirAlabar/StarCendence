@@ -68,7 +68,7 @@ help:
 	@printf "$(BLUE)🏓 ft_transcendence Development Commands$(DEFAULT)\n\n"
 	@printf "$(YELLOW)🚀 Setup & Start:$(DEFAULT)\n"
 	@printf "  $(GREEN)make setup$(DEFAULT)        - Initialize project (first time)\n"
-	@printf "  $(GREEN)make start$(DEFAULT)        - Start infrastructure (nginx + redis + frontend)\n"
+	@printf "  $(GREEN)make start$(DEFAULT)        - Start infrastructure (nginx + redis)\n"
 	@printf "  $(GREEN)make stop$(DEFAULT)         - Stop all services\n"
 	@printf "  $(GREEN)make restart$(DEFAULT)      - Restart all services\n\n"
 	@printf "$(YELLOW)🛠️  Development:$(DEFAULT)\n"
@@ -87,9 +87,7 @@ help:
 	@printf "$(YELLOW)🔧 Utilities:$(DEFAULT)\n"
 	@printf "  $(GREEN)make shell-nginx$(DEFAULT)  - Enter nginx container\n"
 	@printf "  $(GREEN)make shell-redis$(DEFAULT)  - Enter redis container\n"
-	@printf "  $(GREEN)make shell-frontend$(DEFAULT) - Enter frontend container\n\n"
 	@printf "$(CYAN)🌐 Access Points:$(DEFAULT)\n"
-	@printf "  Frontend:     $(YELLOW)http://localhost$(DEFAULT)\n"
 	@printf "  Redis:        $(YELLOW)localhost:6379$(DEFAULT)\n"
 	@printf "  Health:       $(YELLOW)http://localhost/health$(DEFAULT)\n\n"
 
@@ -164,7 +162,7 @@ restart: stop start
 .PHONY: dev
 dev: start
 	@printf "$(GREEN)🛠️  Development mode started!$(DEFAULT)\n"
-	@printf "$(YELLOW)📂 Edit files in frontend/ to see changes$(DEFAULT)\n"
+	@printf "$(YELLOW)📂 Build frontend: cd frontend && npm run build && cp -r dist/* ${HOME}/data/frontend/$(DEFAULT)\n"
 	@printf "$(YELLOW)🔍 Watching logs (Ctrl+C to exit)...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory logs
 
@@ -234,10 +232,6 @@ shell-nginx:
 .PHONY: shell-redis
 shell-redis:
 	@$(DOCKER_COMPOSE) exec redis redis-cli
-
-.PHONY: shell-frontend
-shell-frontend:
-	@$(DOCKER_COMPOSE) exec frontend sh
 
 ################################################################################
 #                              CLEANUP RULES                                   #
