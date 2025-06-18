@@ -4,7 +4,7 @@ services:
   nginx:
     container_name: transcendence_nginx
     build:
-      context: ./nginx
+      context: ./infrastructure/nginx
       dockerfile: Dockerfile
     ports:
       - "80:80"    # HTTP → HTTPS redirect
@@ -184,10 +184,10 @@ networks:
 secrets:
   jwt_secret:
     file: ../secrets/jwt_secret.txt
-  google_client_id:
-    file: ../secrets/google_client_id.txt
-  google_client_secret:
-    file: ../secrets/google_client_secret.txt
+  # google_client_id:
+  #   file: ../secrets/google_client_id.txt
+  # google_client_secret:
+  #   file: ../secrets/google_client_secret.txt
   ssl_certificate:
     file: ../secrets/ssl_certificate.pem
   ssl_private_key:
