@@ -1,5 +1,19 @@
 
 services:
+
+  # Frontend Builder
+  frontend-builder:
+    container_name: transcendence_frontend_builder
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - frontend_dist:/app/dist
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=https://starcendence.dev
+      - VITE_WS_URL=wss://starcendence.dev/ws
+
   # Reverse Proxy (HTTP redirect + HTTPS)
   nginx:
     container_name: transcendence_nginx
@@ -7,24 +21,35 @@ services:
       context: ./infrastructure/nginx
       dockerfile: Dockerfile
     ports:
-      - "80:80"    # HTTP → HTTPS redirect
-      - "443:443"  # HTTPS main traffic
+      - "80:80"
+      - "443:443"
     volumes:
       - frontend_dist:/var/www/html
     networks:
       - transcendence_network
-    # depends_on:
-      # - auth-service
-      # - game-service
-      # - chat-service
-      # - user-service
-      # - websocket-service
     secrets:
       - ssl_certificate
       - ssl_private_key
     env_file:
       - .env
-    restart: always
+    restart: unless-stopped
+    depends_on:
+      - frontend-builder
+
+  # Cloudflare Tunnel (cloudflare profile)
+  cloudflared:
+    container_name: transcendence_cloudflared
+    image: cloudflare/cloudflared:latest
+    command: tunnel --origincert /run/secrets/cloudflare_origin_cert --credentials-file /run/secrets/cloudflare_tunnel_credentials --url http://nginx:80 run ft_transcendence
+    secrets:
+      - cloudflare_tunnel_credentials
+      - cloudflare_origin_cert
+    networks:
+      - transcendence_network
+    restart: unless-stopped
+    depends_on:
+      - nginx
+    profiles: ["tunnel"]
 
   # # Auth Microservice
   # auth-service:
@@ -180,3 +205,9 @@ secrets:
     file: ../secrets/ssl_certificate.pem
   ssl_private_key:
     file: ../secrets/ssl_private_key.key
+  cloudflare_tunnel_token:
+    file: ../secrets/cloudflare_tunnel_token.txt
+  cloudflare_tunnel_credentials:
+    file: ../secrets/cloudflare_tunnel_credentials.json
+  cloudflare_origin_cert:
+    file: ../secrets/cloudflare_origin_cert.pem

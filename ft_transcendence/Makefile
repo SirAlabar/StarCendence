@@ -20,14 +20,14 @@ PURPLE  = \033[1;35m
 CYAN    = \033[1;36m
 WHITE   = \033[1;37m
 
-# FIXED: Correct directories that actually exist in project
+# Directories
 INFRASTRUCTURE_DIR = infrastructure
 SERVICES_DIR = servicesD
 FRONTEND_DIR = frontend
 SHARED_DIR = shared
 TESTS_DIR = tests
 
-# FIXED: Docker volume directories (these are the actual bind mount targets)
+# Docker volume directories
 DOCKER_DATA_DIR = $(HOME)/data
 FRONTEND_VOLUME = $(DOCKER_DATA_DIR)/frontend
 REDIS_VOLUME = $(DOCKER_DATA_DIR)/redis
@@ -103,19 +103,21 @@ setup:
 	@$(MAKE) --no-print-directory create-volumes
 	@printf "$(CYAN)Setting up environment...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory setup-env
+	@printf "$(CYAN)Building frontend...$(DEFAULT)\n"
+	@$(MAKE) --no-print-directory front
 	@printf "$(CYAN)Building containers...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) build
+	@$(DOCKER_COMPOSE) build nginx redis
 	@printf "$(CYAN)Starting services...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) up -d
+	@$(DOCKER_COMPOSE) up -d nginx redis
 	@printf "$(CYAN)Waiting for services...$(DEFAULT)\n"
 	@sleep 3
 	@printf "$(CYAN)Health check...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory health-quiet
 	@printf "$(GREEN)🎉 ft_transcendence is ready!$(DEFAULT)\n"
 	@printf "$(YELLOW)🌐 Access: http://localhost$(DEFAULT)\n"
+	@printf "$(YELLOW)🚀 Start tunnel: make tunnel$(DEFAULT)\n"
 	@printf "$(YELLOW)📊 Redis: localhost:6379$(DEFAULT)\n\n"
 
-# FIXED: Only create directories that are actually needed for Docker volumes
 .PHONY: create-volumes
 create-volumes:
 	@printf "$(CYAN)Creating Docker bind mount directories...$(DEFAULT)\n"
@@ -125,7 +127,6 @@ create-volumes:
 	@printf "  - $(FRONTEND_VOLUME)\n"
 	@printf "  - $(REDIS_VOLUME)\n"
 
-# FIXED: Simple environment setup
 .PHONY: setup-env
 setup-env:
 	@if [ ! -f $(ENV_FILE) ]; then \
@@ -138,6 +139,30 @@ setup-env:
 		printf "$(YELLOW)⚠️  .env file already exists$(DEFAULT)\n"; \
 	fi
 
+.PHONY: front
+front:
+	@printf "$(GREEN)🎨 Building frontend...$(DEFAULT)\n"
+	@$(DOCKER_COMPOSE) up --build frontend-builder
+	@$(DOCKER_COMPOSE) down frontend-builder
+	@printf "$(GREEN)✅ Frontend built and deployed!$(DEFAULT)\n"
+
+.PHONY: tunnel
+tunnel:
+	@printf "$(GREEN)🌐 Starting Cloudflare tunnel...$(DEFAULT)\n"
+	@$(DOCKER_COMPOSE) --profile tunnel up -d cloudflared
+	@printf "$(GREEN)✅ Tunnel started!$(DEFAULT)\n"
+	@printf "$(YELLOW)🌐 Domain: https://starcendence.dev$(DEFAULT)\n"
+
+.PHONY: logs-tunnel
+logs-tunnel:
+	@$(DOCKER_COMPOSE) --profile tunnel logs -f cloudflared
+
+.PHONY: stop-tunnel
+stop-tunnel:
+	@printf "$(YELLOW)🛑 Stopping tunnel...$(DEFAULT)\n"
+	@$(DOCKER_COMPOSE) --profile tunnel down cloudflared
+	@printf "$(GREEN)✅ Tunnel stopped!$(DEFAULT)\n"
+
 ################################################################################
 #                            INFRASTRUCTURE RULES                              #
 ################################################################################
@@ -145,7 +170,7 @@ setup-env:
 .PHONY: start
 start:
 	@printf "$(GREEN)🔥 Starting ft_transcendence infrastructure...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) up -d
+	@$(DOCKER_COMPOSE) up -d nginx redis
 	@printf "$(GREEN)✅ Infrastructure started!$(DEFAULT)\n"
 	@printf "$(YELLOW)🌐 Access: http://localhost$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory health
@@ -154,6 +179,7 @@ start:
 stop:
 	@printf "$(YELLOW)🛑 Stopping ft_transcendence infrastructure...$(DEFAULT)\n"
 	@$(DOCKER_COMPOSE) down
+	@$(DOCKER_COMPOSE) --profile tunnel down
 	@printf "$(GREEN)✅ Infrastructure stopped!$(DEFAULT)\n"
 
 .PHONY: restart
@@ -251,7 +277,8 @@ fclean:
 	@$(DOCKER_COMPOSE) down -v --remove-orphans
 	@$(DOCKER) system prune -af
 	@$(DOCKER) volume prune -f
-	@rm -rf $(DOCKER_DATA_DIR)/frontend/* $(DOCKER_DATA_DIR)/redis/*
+	@printf "$(CYAN)Removing data directories...$(DEFAULT)\n"
+	@sudo rm -rf $(DOCKER_DATA_DIR)/frontend/* $(DOCKER_DATA_DIR)/redis/* 2>/dev/null || true
 	@printf "$(GREEN)✅ Nuclear cleanup complete!$(DEFAULT)\n"
 
 .PHONY: prune
