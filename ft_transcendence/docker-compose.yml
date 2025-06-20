@@ -1,0 +1,213 @@
+
+services:
+
+  # Frontend Builder
+  frontend-builder:
+    container_name: transcendence_frontend_builder
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - frontend_dist:/app/dist
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=https://starcendence.dev
+      - VITE_WS_URL=wss://starcendence.dev/ws
+
+  # Reverse Proxy (HTTP redirect + HTTPS)
+  nginx:
+    container_name: transcendence_nginx
+    build:
+      context: ./infrastructure/nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - frontend_dist:/var/www/html
+    networks:
+      - transcendence_network
+    secrets:
+      - ssl_certificate
+      - ssl_private_key
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - frontend-builder
+
+  # Cloudflare Tunnel (cloudflare profile)
+  cloudflared:
+    container_name: transcendence_cloudflared
+    image: cloudflare/cloudflared:latest
+    command: tunnel --origincert /run/secrets/cloudflare_origin_cert --credentials-file /run/secrets/cloudflare_tunnel_credentials --url http://nginx:80 run ft_transcendence
+    secrets:
+      - cloudflare_tunnel_credentials
+      - cloudflare_origin_cert
+    networks:
+      - transcendence_network
+    restart: unless-stopped
+    depends_on:
+      - nginx
+    profiles: ["tunnel"]
+
+  # # Auth Microservice
+  # auth-service:
+  #   container_name: transcendence_auth
+  #   build:
+  #     context: ./services/auth
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - auth_data:/app/data
+  #   networks:
+  #     - transcendence_network
+  #   secrets:
+  #     - jwt_secret
+  #     - google_client_id
+  #     - google_client_secret
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - redis
+  #   restart: always
+
+  # # Game Microservice  
+  # game-service:
+  #   container_name: transcendence_game
+  #   build:
+  #     context: ./services/game
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - game_data:/app/data
+  #   networks:
+  #     - transcendence_network
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - redis
+  #   restart: always
+
+  # # Chat Microservice
+  # chat-service:
+  #   container_name: transcendence_chat
+  #   build:
+  #     context: ./services/chat
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - chat_data:/app/data
+  #   networks:
+  #     - transcendence_network
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - redis
+  #   restart: always
+
+  # # User Microservice
+  # user-service:
+  #   container_name: transcendence_user
+  #   build:
+  #     context: ./services/user
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - user_data:/app/data
+  #   networks:
+  #     - transcendence_network
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - redis
+  #   restart: always
+
+  # # WebSocket Microservice
+  # websocket-service:
+  #   container_name: transcendence_websocket
+  #   build:
+  #     context: ./services/websocket
+  #     dockerfile: Dockerfile
+  #   networks:
+  #     - transcendence_network
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - redis
+  #   restart: always
+
+  # Redis Cache
+  redis:
+    container_name: transcendence_redis
+    build:
+      context: ./infrastructure/redis
+      dockerfile: Dockerfile
+    volumes:
+      - redis_data:/data
+    networks:
+      - transcendence_network
+    env_file:
+      - .env
+    restart: always
+
+volumes:
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOME}/data/redis
+      o: bind
+
+  frontend_dist:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOME}/data/frontend
+      o: bind
+
+  # auth_data:
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     device: ${HOME}/data/auth
+  #     o: bind
+
+  # game_data:
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     device: ${HOME}/data/game
+  #     o: bind
+
+  # chat_data:
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     device: ${HOME}/data/chat
+  #     o: bind
+
+  # user_data:
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     device: ${HOME}/data/user
+  #     o: bind
+
+networks:
+  transcendence_network:
+    driver: bridge
+
+secrets:
+  jwt_secret:
+    file: ../secrets/jwt_secret.txt
+  # google_client_id:
+  #   file: ../secrets/google_client_id.txt
+  # google_client_secret:
+  #   file: ../secrets/google_client_secret.txt
+  ssl_certificate:
+    file: ../secrets/ssl_certificate.pem
+  ssl_private_key:
+    file: ../secrets/ssl_private_key.key
+  cloudflare_tunnel_token:
+    file: ../secrets/cloudflare_tunnel_token.txt
+  cloudflare_tunnel_credentials:
+    file: ../secrets/cloudflare_tunnel_credentials.json
+  cloudflare_origin_cert:
+    file: ../secrets/cloudflare_origin_cert.pem
