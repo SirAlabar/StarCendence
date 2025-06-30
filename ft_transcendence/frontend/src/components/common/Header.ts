@@ -1,12 +1,14 @@
 import { BaseComponent, tw } from '../BaseComponent';
 
-interface NavItem {
+interface NavItem 
+{
     label: string;
     href: string;
     primary?: boolean;
 }
 
-export class Header extends BaseComponent {
+export class Header extends BaseComponent 
+{
     private navItems: NavItem[] = [
         { label: 'Main', href: '#hero' },
         { label: 'Team', href: '#team' },
@@ -17,95 +19,135 @@ export class Header extends BaseComponent {
         { label: 'Login', href: '/login', primary: true }
     ];
 
-    render(): string {
+    render(): string 
+    {
         return `
-            <header class="sticky top-0 z-10 backdrop-blur-md bg-gray-900/70 border-b border-purple-500/20">
-                <section class="mx-auto flex max-w-4xl items-center justify-between p-4">
+            <header class="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-gray-900/20 border-b border-white/10 shadow-lg">
+                <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
                     ${this.renderLogo()}
                     ${this.renderNavigation()}
-                </section>
+                </nav>
                 ${this.renderMobileMenu()}
             </header>
         `;
     }
 
-    private renderLogo(): string {
+    private renderLogo(): string 
+    {
         return `
-            <h1 class="text-3xl font-medium">
-                <a href="#hero" class="text-cyan-400 hover:text-purple-400 transition-colors font-game">
-                    42 Transcendence
-                </a>
+            <h1 class="text-3xl font-bold font-game text-cyan-400 hover:text-purple-400 transition-colors duration-300">
+                <a href="#hero">42 Transcendence</a>
             </h1>
         `;
     }
 
-    private renderNavigation(): string {
+    private renderNavigation(): string 
+    {
         return `
-            <div>
+            <div class="flex items-center">
+                <!-- Mobile hamburger button -->
                 ${this.renderHamburgerButton()}
-                <nav class="hidden space-x-4 text-lg md:block" aria-label="main">
+                
+                <!-- Desktop navigation -->
+                <nav class="hidden md:flex items-center space-x-2" aria-label="main">
                     ${this.navItems.map(item => this.renderNavItem(item)).join('')}
                 </nav>
             </div>
         `;
     }
 
-    private renderNavItem(item: NavItem): string {
-        const baseClasses = `
-            ${tw.bg.gradient} 
-            ${tw.px(4)} ${tw.py(2)} 
-            ${tw.rounded.lg} 
-            ${tw.hover.opacity} 
-            ${tw.transition}
-            font-medium
-        `;
-        
+    private renderNavItem(item: NavItem): string 
+    {
         return `
-            <a href="${item.href}" class="${baseClasses}">
+            <a href="${item.href}" class="
+                px-4 py-2 mx-1 
+                text-white/90 text-lg font-medium
+                bg-gray-500/20 backdrop-blur-sm
+                border border-transparent
+                rounded-lg
+                transition-all duration-300 ease-in-out
+                hover:bg-gray-500/30 
+                hover:border-white/50 
+                hover:shadow-lg 
+                hover:shadow-white/20
+                hover:text-white
+                no-underline
+            ">
                 ${item.label}
             </a>
         `;
     }
 
-    private renderHamburgerButton(): string {
+    private renderHamburgerButton(): string 
+    {
         return `
-            <button id="hamburger-button" class="relative h-8 w-8 cursor-pointer text-3xl md:hidden">
-                <div class="absolute top-4 -mt-0.5 h-1 w-8 rounded bg-white transition-all duration-500 before:absolute before:h-1 before:w-8 before:-translate-x-4 before:-translate-y-3 before:rounded before:bg-white before:transition-all before:duration-500 before:content-[''] after:absolute after:h-1 after:w-8 after:-translate-x-4 after:translate-y-3 after:rounded after:bg-white after:transition-all after:duration-500 after:content-['']"></div>
+            <button id="hamburger-button" class="
+                md:hidden p-2 rounded-lg
+                bg-white/10 backdrop-blur-sm
+                border border-white/20
+                text-white
+                hover:bg-white/20
+                transition-all duration-300
+            ">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
             </button>
         `;
     }
 
-    private renderMobileMenu(): string {
+    private renderMobileMenu(): string 
+    {
         return `
-            <section id="mobile-menu" class="absolute top-full left-0 right-0 hidden w-full origin-top bg-black/90 backdrop-blur-md">
-                <nav class="flex flex-col items-center py-8" aria-label="mobile">
-                    ${this.navItems.map(item => `
-                        <a href="${item.href}" class="${tw.bg.gradient} ${tw.px(6)} ${tw.py(3)} ${tw.m(2)} ${tw.rounded.lg} ${tw.hover.opacity} ${tw.transition} text-lg font-medium">
-                            ${item.label}
-                        </a>
-                    `).join('')}
+            <div id="mobile-menu" class="
+                hidden md:hidden 
+                backdrop-blur-lg bg-gray-900/30 
+                border-t border-white/10
+            ">
+                <nav class="flex flex-col space-y-2 p-4" aria-label="mobile">
+                    ${this.navItems.map(item => this.renderMobileNavItem(item)).join('')}
                 </nav>
-            </section>
+            </div>
         `;
     }
 
-    protected afterMount(): void {
-        this.setupMobileMenu();
+    private renderMobileNavItem(item: NavItem): string 
+    {
+        return `
+            <a href="${item.href}" class="
+                block py-3 px-4 text-center
+                text-white text-lg font-medium
+                bg-gray-500/20 backdrop-blur-sm
+                border border-white/10
+                rounded-lg
+                transition-all duration-300
+                hover:bg-gray-500/30 
+                hover:border-white/50 
+                hover:shadow-lg 
+                hover:shadow-white/20
+                no-underline
+            ">
+                ${item.label}
+            </a>
+        `;
     }
 
-    private setupMobileMenu(): void {
-        const hamburger = document.getElementById('hamburger-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        
-        hamburger?.addEventListener('click', () => {
-            mobileMenu?.classList.toggle('hidden');
-        });
+    protected afterMount(): void 
+    {
+        this.setupHamburgerMenu();
+    }
 
-        // Close mobile menu when clicking on links
-        mobileMenu?.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
-                mobileMenu.classList.add('hidden');
+    private setupHamburgerMenu(): void 
+    {
+        const hamburgerButton = document.getElementById('hamburger-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (hamburgerButton && mobileMenu) 
+        {
+            hamburgerButton.addEventListener('click', () => 
+            {
+                mobileMenu.classList.toggle('hidden');
             });
-        });
+        }
     }
 }
