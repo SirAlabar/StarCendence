@@ -1,17 +1,19 @@
-// frontend/src/components/home/Hero.ts
 import { BaseComponent, tw } from '../BaseComponent';
 
-export class Hero extends BaseComponent {
-    render(): string {
+export class Hero extends BaseComponent 
+{
+    render(): string 
+    {
         return `
-            <section id="hero" class="section-min-height flex scroll-mt-40 flex-col-reverse items-center justify-center gap-8 p-6 sm:flex-row">
+            <section id="hero" class="min-h-screen pt-20 flex scroll-mt-40 flex-col-reverse items-center justify-center gap-8 p-6 sm:flex-row">
                 ${this.renderContent()}
                 ${this.renderGamePreview()}
             </section>
         `;
     }
 
-    private renderContent(): string {
+    private renderContent(): string 
+    {
         return `
             <article class="sm:w-1/2">
                 <h2 class="max-w-md text-center text-4xl font-bold font-game text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-400 sm:text-left sm:text-5xl">
@@ -26,7 +28,8 @@ export class Hero extends BaseComponent {
         `;
     }
 
-    private renderButtons(): string {
+    private renderButtons(): string 
+    {
         return `
             <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center sm:justify-start">
                 <button class="${tw.bg.gradient} px-8 py-4 rounded-lg font-bold text-lg text-black hover:scale-105 transition-transform">
@@ -39,7 +42,8 @@ export class Hero extends BaseComponent {
         `;
     }
 
-    private renderGamePreview(): string {
+    private renderGamePreview(): string 
+    {
         return `
             <div class="sm:w-1/2">
                 <div class="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-3xl p-8 border border-gray-600">
@@ -55,4 +59,3 @@ export class Hero extends BaseComponent {
         `;
     }
 }
-

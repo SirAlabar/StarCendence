@@ -1,9 +1,11 @@
 import { BaseComponent } from '../BaseComponent';
 
-export class About extends BaseComponent {
-    render(): string {
+export class About extends BaseComponent 
+{
+    render(): string 
+    {
         return `
-            <section id="about" class="section-min-height flex items-center justify-center scroll-mt-20 p-6">
+            <section id="about" class="min-h-screen flex items-center justify-center scroll-mt-20 p-6">
                 <div class="w-full">
                     <h2 class="mb-12 text-center text-4xl font-bold font-game text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-cyan-400 sm:text-5xl">
                         About 42 Transcendence
@@ -18,7 +20,8 @@ export class About extends BaseComponent {
         `;
     }
 
-    private renderProjectInfo(): string {
+    private renderProjectInfo(): string 
+    {
         return `
             <div class="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl p-8 border border-gray-600">
                 <h3 class="text-2xl font-bold text-cyan-400 mb-4 font-game">🎯 Project Mission</h3>
@@ -31,7 +34,8 @@ export class About extends BaseComponent {
         `;
     }
 
-    private renderTechStack(): string {
+    private renderTechStack(): string 
+    {
         const technologies = ['TypeScript', 'Babylon.js', 'Fastify', 'Redis', 'SQLite', 'Docker'];
         
         return `

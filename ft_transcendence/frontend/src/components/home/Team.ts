@@ -1,49 +1,52 @@
 import { BaseComponent, tw } from '../BaseComponent';
 
-interface TeamMember {
+interface TeamMember 
+{
     role: string;
     description: string;
     technologies: string[];
-    emoji: string;
     accentColor: 'cyan' | 'purple' | 'pink';
+    githubUrl: string;
 }
 
-export class Team extends BaseComponent {
+export class Team extends BaseComponent 
+{
     private teamMembers: TeamMember[] = [
         {
             role: 'DEV 1',
-            description: 'DEV ',
-            technologies: ['1', '2', '3', '4'],
-            emoji: '👨‍💻',
-            accentColor: 'cyan'
+            description: 'SirAlabar - Developer',
+            technologies: ['TypeScript', 'React', 'Node.js', 'Docker'],
+            accentColor: 'cyan',
+            githubUrl: 'https://avatars.githubusercontent.com/u/150078628?v=4'
         },
         {
             role: 'DEV 2',
-            description: 'DEV ',
-            technologies: ['1', '2', '3', '4'],
-            emoji: '⚡',
-            accentColor: 'purple'
+            description: 'Frontend Developer',
+            technologies: ['Vue.js', 'CSS', 'JavaScript', 'Webpack'],
+            accentColor: 'purple',
+            githubUrl: 'https://github.com/octocat.png'
         },
         {
             role: 'DEV 3',
-            description: 'DEV ',
-            technologies: ['1', '2', '3', '4'],
-            emoji: '🎮',
-            accentColor: 'pink'
+            description: 'Game Developer',
+            technologies: ['Babylon.js', '3D Graphics', 'WebGL', 'Physics'],
+            accentColor: 'pink',
+            githubUrl: 'https://github.com/octocat.png'
         },
         {
             role: 'DEV 4',
-            description: 'DEV 1',
-            technologies: ['1', '2', '3', '4'],
-            emoji: '🛡️',
-            accentColor: 'cyan'
+            description: 'Backend Developer',
+            technologies: ['Fastify', 'PostgreSQL', 'Redis', 'Docker'],
+            accentColor: 'cyan',
+            githubUrl: 'https://github.com/octocat.png'
         }
     ];
 
-    render(): string {
+    render(): string 
+    {
         return `
             <section id="team" class="min-h-screen flex items-center justify-center scroll-mt-20 p-6">
-                <div class="w-full">
+                <div class="w-full h-full flex flex-col justify-center">
                     ${this.renderTitle()}
                     ${this.renderTeamGrid()}
                 </div>
@@ -51,7 +54,8 @@ export class Team extends BaseComponent {
         `;
     }
 
-    private renderTitle(): string {
+    private renderTitle(): string 
+    {
         return `
             <h2 class="mb-12 text-center text-4xl font-bold font-game text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-cyan-400 sm:text-5xl">
                 Meet Our Team
@@ -59,19 +63,19 @@ export class Team extends BaseComponent {
         `;
     }
 
-    private renderTeamGrid(): string {
+    private renderTeamGrid(): string 
+    {
         return `
-            <div class="mx-auto flex flex-col gap-12 max-w-4xl">
+            <div class="flex-1 grid grid-cols-2 gap-6 max-w-4xl mx-auto">
                 ${this.teamMembers.map(member => this.renderTeamMember(member)).join('')}
             </div>
         `;
     }
 
-    private renderTeamMember(member: TeamMember): string {
-        const accentColorClass = this.getAccentColorClass(member.accentColor);
-        
+    private renderTeamMember(member: TeamMember): string 
+    {
         return `
-            <div class="flex items-center bg-gradient-to-r from-gray-800/80 to-gray-900/80 rounded-2xl p-8 border border-gray-600 hover:border-${member.accentColor}-400 transition-all duration-300 relative">
+            <div class="flex flex-col items-center justify-center bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl p-6 border border-gray-600 hover:border-${member.accentColor}-400 transition-all duration-300 relative">
                 ${this.renderMemberBadge(member.accentColor)}
                 ${this.renderMemberAvatar(member)}
                 ${this.renderMemberInfo(member)}
@@ -79,26 +83,34 @@ export class Team extends BaseComponent {
         `;
     }
 
-    private renderMemberBadge(color: string): string {
+    private renderMemberBadge(color: string): string 
+    {
         return `
             <div class="absolute top-6 right-6 text-sm text-${color}-400 font-game">
-                42 Transcendence
+                🖥️
             </div>
         `;
     }
 
-    private renderMemberAvatar(member: TeamMember): string {
+    private renderMemberAvatar(member: TeamMember): string 
+    {
         return `
-            <div class="w-32 h-32 rounded-full bg-gradient-to-br from-purple-500/30 to-cyan-400/30 flex items-center justify-center text-5xl mr-8 flex-shrink-0">
-                ${member.emoji}
+            <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-${member.accentColor}-400/50 mb-4 hover:border-${member.accentColor}-400 transition-colors duration-300">
+                <img 
+                    src="${member.githubUrl}" 
+                    alt="${member.role} Profile Picture" 
+                    class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    onerror="this.src='https://github.com/octocat.png'"
+                >
             </div>
         `;
     }
 
-    private renderMemberInfo(member: TeamMember): string {
+    private renderMemberInfo(member: TeamMember): string 
+    {
         return `
-            <div class="flex-1">
-                <h3 class="text-3xl font-bold text-white font-game mb-2">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold text-white font-game mb-2">
                     ${member.role}
                 </h3>
                 <p class="text-gray-400 text-lg mb-4">
@@ -111,7 +123,8 @@ export class Team extends BaseComponent {
         `;
     }
 
-    private getAccentColorClass(color: 'cyan' | 'purple' | 'pink'): string {
+    private getAccentColorClass(color: 'cyan' | 'purple' | 'pink'): string 
+    {
         const colorMap = {
             cyan: 'text-cyan-400 border-cyan-400',
             purple: 'text-purple-400 border-purple-400',

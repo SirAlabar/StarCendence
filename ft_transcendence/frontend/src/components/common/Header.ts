@@ -43,14 +43,17 @@ export class Header extends BaseComponent
 
     private renderNavigation(): string 
     {
+        console.log('Navigation items:', this.navItems); // Add this line
+        
         return `
             <div class="flex items-center">
-                <!-- Mobile hamburger button -->
                 ${this.renderHamburgerButton()}
-                
-                <!-- Desktop navigation -->
-                <nav class="hidden md:flex items-center space-x-2" aria-label="main">
-                    ${this.navItems.map(item => this.renderNavItem(item)).join('')}
+
+                <nav class="flex items-center space-x-2" aria-label="main">
+                    ${this.navItems.map(item => {
+                        console.log('Rendering item:', item); // Add this line
+                        return this.renderNavItem(item);
+                    }).join('')}
                 </nav>
             </div>
         `;
@@ -58,7 +61,7 @@ export class Header extends BaseComponent
 
     private renderNavItem(item: NavItem): string 
     {
-        return `
+        const result = `
             <a href="${item.href}" class="
                 px-4 py-2 mx-1 
                 text-white/90 text-lg font-medium
@@ -76,6 +79,9 @@ export class Header extends BaseComponent
                 ${item.label}
             </a>
         `;
+        
+        console.log('Rendered nav item HTML:', result); // Add this line
+        return result;
     }
 
     private renderHamburgerButton(): string 
