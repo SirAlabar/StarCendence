@@ -36,24 +36,19 @@ export class Header extends BaseComponent
     {
         return `
             <h1 class="text-3xl font-bold font-game text-cyan-400 hover:text-purple-400 transition-colors duration-300">
-                <a href="#hero">42 Transcendence</a>
+                <a href="/" data-link>42 Transcendence</a>
             </h1>
         `;
     }
 
     private renderNavigation(): string 
     {
-        console.log('Navigation items:', this.navItems); // Add this line
-        
         return `
             <div class="flex items-center">
                 ${this.renderHamburgerButton()}
 
                 <nav class="flex items-center space-x-2" aria-label="main">
-                    ${this.navItems.map(item => {
-                        console.log('Rendering item:', item); // Add this line
-                        return this.renderNavItem(item);
-                    }).join('')}
+                    ${this.navItems.map(item => this.renderNavItem(item)).join('')}
                 </nav>
             </div>
         `;
@@ -61,8 +56,10 @@ export class Header extends BaseComponent
 
     private renderNavItem(item: NavItem): string 
     {
-        const result = `
-            <a href="${item.href}" class="
+        const isRouteLink = item.href.startsWith('/');
+        
+        return `
+            <a href="${item.href}"${isRouteLink ? ' data-link' : ''} class="
                 px-4 py-2 mx-1 
                 text-white/90 text-lg font-medium
                 bg-gray-500/20 backdrop-blur-sm
@@ -79,9 +76,6 @@ export class Header extends BaseComponent
                 ${item.label}
             </a>
         `;
-        
-        console.log('Rendered nav item HTML:', result); // Add this line
-        return result;
     }
 
     private renderHamburgerButton(): string 
@@ -105,55 +99,18 @@ export class Header extends BaseComponent
     private renderMobileMenu(): string 
     {
         return `
-            <div id="mobile-menu" class="
-                hidden md:hidden 
-                backdrop-blur-lg bg-gray-900/30 
-                border-t border-white/10
-            ">
-                <nav class="flex flex-col space-y-2 p-4" aria-label="mobile">
-                    ${this.navItems.map(item => this.renderMobileNavItem(item)).join('')}
+            <div id="mobile-menu" class="hidden md:hidden bg-gray-900/95 backdrop-blur border-t border-white/10">
+                <nav class="px-6 py-4">
+                    ${this.navItems.map(item => {
+                        const dataLink = item.href.startsWith('/') ? 'data-link' : '';
+                        return `
+                            <a href="${item.href}" ${dataLink} class="block py-2 text-white/90 hover:text-white transition-colors">
+                                ${item.label}
+                            </a>
+                        `;
+                    }).join('')}
                 </nav>
             </div>
         `;
-    }
-
-    private renderMobileNavItem(item: NavItem): string 
-    {
-        return `
-            <a href="${item.href}" class="
-                block py-3 px-4 text-center
-                text-white text-lg font-medium
-                bg-gray-500/20 backdrop-blur-sm
-                border border-white/10
-                rounded-lg
-                transition-all duration-300
-                hover:bg-gray-500/30 
-                hover:border-white/50 
-                hover:shadow-lg 
-                hover:shadow-white/20
-                no-underline
-            ">
-                ${item.label}
-            </a>
-        `;
-    }
-
-    protected afterMount(): void 
-    {
-        this.setupHamburgerMenu();
-    }
-
-    private setupHamburgerMenu(): void 
-    {
-        const hamburgerButton = document.getElementById('hamburger-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-
-        if (hamburgerButton && mobileMenu) 
-        {
-            hamburgerButton.addEventListener('click', () => 
-            {
-                mobileMenu.classList.toggle('hidden');
-            });
-        }
     }
 }
