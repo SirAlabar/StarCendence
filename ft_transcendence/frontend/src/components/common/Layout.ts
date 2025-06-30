@@ -1,4 +1,4 @@
-import { BaseComponent, tw } from '../BaseComponent';
+import { BaseComponent } from '../BaseComponent';
 
 export class Layout extends BaseComponent 
 {

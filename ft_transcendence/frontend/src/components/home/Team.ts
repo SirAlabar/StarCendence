@@ -1,4 +1,4 @@
-import { BaseComponent, tw } from '../BaseComponent';
+import { BaseComponent } from '../BaseComponent';
 
 interface TeamMember 
 {
@@ -121,15 +121,5 @@ export class Team extends BaseComponent
                 </div>
             </div>
         `;
-    }
-
-    private getAccentColorClass(color: 'cyan' | 'purple' | 'pink'): string 
-    {
-        const colorMap = {
-            cyan: 'text-cyan-400 border-cyan-400',
-            purple: 'text-purple-400 border-purple-400',
-            pink: 'text-pink-400 border-pink-400'
-        };
-        return colorMap[color];
     }
 }

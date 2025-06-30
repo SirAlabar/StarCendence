@@ -42,7 +42,7 @@ export class App
         if (!this.container) return;
 
         // Mount the main layout first
-        this.layout.mount(this.container.selector || '#app');
+        this.layout.mount('#app');
 
         // Mount header
         this.header.mount('#header-mount');
