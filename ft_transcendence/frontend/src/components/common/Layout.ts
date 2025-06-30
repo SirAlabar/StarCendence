@@ -23,6 +23,27 @@ export class Layout extends BaseComponent
         `;
     }
 
+    // Page-level section wrapper - handles 100vh, alignment, spacing
+    renderPageSection(id: string, content: string, addPadding: boolean = true): string 
+    {
+        const paddingClass = addPadding ? 'pt-20' : '';
+        return `
+            <section id="${id}" class="min-h-screen flex items-center justify-center scroll-mt-20 p-6 ${paddingClass}">
+                <div class="w-full max-w-7xl mx-auto">
+                    ${content}
+                </div>
+            </section>
+        `;
+    }
+
+    // Section separator
+    renderSectionSeparator(): string 
+    {
+        return `
+            <hr class="mx-auto w-1/2 h-0.5 bg-gradient-to-r from-purple-500 to-cyan-400 border-0 my-12" />
+        `;
+    }
+
     private renderBackground(): string 
     {
         return `
@@ -40,7 +61,7 @@ export class Layout extends BaseComponent
                 <div class="mx-auto max-w-4xl p-6">
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                         <div class="text-gray-400 text-sm">
-                            © 2024 42 Transcendence. Built with ❤️ at 42 School.
+                            © 2025 42 Transcendence. Built with ❤️ at 42 School.
                         </div>
                         <div class="flex gap-4 text-sm">
                             <a href="#" class="text-cyan-400 hover:text-purple-400 transition-colors">Privacy</a>

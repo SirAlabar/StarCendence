@@ -5,18 +5,29 @@ export class About extends BaseComponent
     render(): string 
     {
         return `
-            <section id="about" class="min-h-screen flex items-center justify-center scroll-mt-20 p-6">
-                <div class="w-full">
-                    <h2 class="mb-12 text-center text-4xl font-bold font-game text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-cyan-400 sm:text-5xl">
-                        About 42 Transcendence
-                    </h2>
-                    
-                    <div class="mx-auto max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        ${this.renderProjectInfo()}
-                        ${this.renderTechStack()}
-                    </div>
-                </div>
-            </section>
+            <div class="text-center">
+                ${this.renderTitle()}
+                ${this.renderContent()}
+            </div>
+        `;
+    }
+
+    private renderTitle(): string 
+    {
+        return `
+            <h2 class="mb-12 text-4xl font-bold font-game text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-cyan-400 sm:text-5xl">
+                About 42 Transcendence
+            </h2>
+        `;
+    }
+
+    private renderContent(): string 
+    {
+        return `
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                ${this.renderProjectInfo()}
+                ${this.renderTechStack()}
+            </div>
         `;
     }
 

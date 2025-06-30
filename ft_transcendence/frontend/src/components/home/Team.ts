@@ -45,12 +45,10 @@ export class Team extends BaseComponent
     render(): string 
     {
         return `
-            <section id="team" class="min-h-screen flex items-center justify-center scroll-mt-20 p-6">
-                <div class="w-full h-full flex flex-col justify-center">
-                    ${this.renderTitle()}
-                    ${this.renderTeamGrid()}
-                </div>
-            </section>
+            <div class="w-full h-full flex flex-col justify-center">
+                ${this.renderTitle()}
+                ${this.renderTeamGrid()}
+            </div>
         `;
     }
 

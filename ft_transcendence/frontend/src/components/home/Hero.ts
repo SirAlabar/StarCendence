@@ -5,10 +5,10 @@ export class Hero extends BaseComponent
     render(): string 
     {
         return `
-            <section id="hero" class="min-h-screen pt-20 flex scroll-mt-40 flex-col-reverse items-center justify-center gap-8 p-6 sm:flex-row">
+            <div class="flex flex-col-reverse items-center justify-center gap-8 sm:flex-row">
                 ${this.renderContent()}
                 ${this.renderGamePreview()}
-            </section>
+            </div>
         `;
     }
 

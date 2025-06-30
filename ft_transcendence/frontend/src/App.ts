@@ -47,7 +47,7 @@ export class App
         // Mount header
         this.header.mount('#header-mount');
 
-        // Mount main content sections
+        // Mount main content sections using Layout's renderPageSection
         this.renderMainContent();
     }
 
@@ -56,36 +56,16 @@ export class App
         const contentMount = document.querySelector('#content-mount');
         if (!contentMount) return;
 
+        // Use Layout to wrap each page component with proper styling
         contentMount.innerHTML = `
-            <div class="mx-auto max-w-4xl">
-                <!-- Hero Section -->
-                <div id="hero-mount"></div>
-                
-                <!-- Separator -->
-                <hr class="mx-auto w-1/2 h-0.5 bg-gradient-to-r from-purple-500 to-cyan-400 border-0 my-12" />
-                
-                <!-- Team Section -->
-                <div id="team-mount"></div>
-                
-                <!-- Separator -->
-                <hr class="mx-auto w-1/2 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-500 border-0 my-12" />
-                
-                <!-- Features Section -->
-                <div id="features-mount"></div>
-                
-                <!-- Separator -->
-                <hr class="mx-auto w-1/2 h-0.5 bg-gradient-to-r from-pink-400 to-cyan-400 border-0 my-12" />
-                
-                <!-- About Section -->
-                <div id="about-mount"></div>
-            </div>
+            ${this.layout.renderPageSection('hero', this.hero.render(), true)}
+            ${this.layout.renderSectionSeparator()}
+            ${this.layout.renderPageSection('team', this.team.render(), false)}
+            ${this.layout.renderSectionSeparator()}
+            ${this.layout.renderPageSection('features', this.features.render(), false)}
+            ${this.layout.renderSectionSeparator()}
+            ${this.layout.renderPageSection('about', this.about.render(), false)}
         `;
-
-        // Mount individual components
-        this.hero.mount('#hero-mount');
-        this.team.mount('#team-mount');
-        this.features.mount('#features-mount');
-        this.about.mount('#about-mount');
     }
 
     private setupEventListeners(): void 
@@ -101,31 +81,5 @@ export class App
                 section?.scrollIntoView({ behavior: 'smooth' });
             }
         });
-
-        // Add scroll-based animations
-        this.setupScrollAnimations();
-    }
-
-    private setupScrollAnimations(): void 
-    {
-        const observer = new IntersectionObserver((entries) => 
-        {
-            entries.forEach(entry => 
-            {
-                if (entry.isIntersecting) 
-                {
-                    entry.target.classList.add('animate-fadeIn');
-                }
-            });
-        }, { threshold: 0.1 });
-
-        // Observe all main sections
-        setTimeout(() => 
-        {
-            document.querySelectorAll('section').forEach(section => 
-            {
-                observer.observe(section);
-            });
-        }, 100);
     }
 }
