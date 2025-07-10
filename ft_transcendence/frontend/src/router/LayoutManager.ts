@@ -13,8 +13,6 @@ export function initLayoutManager(): void
 // Render default layout
 export function renderDefault(component: BaseComponent, headerHtml: string): void 
 {
-    const app = document.querySelector('#app')!;
-    
     const headerMount = document.querySelector('#header-mount');
     const contentMount = document.querySelector('#content-mount');
     

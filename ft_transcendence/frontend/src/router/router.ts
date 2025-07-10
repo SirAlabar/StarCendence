@@ -300,7 +300,7 @@ function handleLinkClick(e: Event): void
     }
 }
 
-function handlePopState(e: PopStateEvent): void 
+function handlePopState(_e: PopStateEvent): void 
 {
     if (!routerState.isNavigating) 
     {
