@@ -1,90 +1,149 @@
-// router/router.ts - Fixed TypeScript errors
-
 import { renderDefault, renderGame, renderAuth, showLoading, hideLoading, show404 } from './LayoutManager';
-import { getHeaderHtml, setupGameHeaderEvents } from './HeaderManager';
+import { getHeaderHtml, setupGameHeaderEvents, resetGameEventListeners } from './HeaderManager';
 
-// Module-level variables
-let currentRoute: any = null;
+// Singleton state - only one instance allowed
+class RouterState 
+{
+    private static instance: RouterState;
+    
+    public currentRoute: any = null;
+    public isInitialized = false;
+    public isNavigating = false;
+    
+    // Store event listeners for cleanup
+    private clickListener: ((e: Event) => void) | null = null;
+    private popstateListener: ((e: PopStateEvent) => void) | null = null;
+    
+    private constructor() {}
+    
+    static getInstance(): RouterState 
+    {
+        if (!RouterState.instance) 
+        {
+            RouterState.instance = new RouterState();
+        }
+        return RouterState.instance;
+    }
+    
+    cleanup() 
+    {
+        if (this.clickListener) 
+        {
+            document.removeEventListener('click', this.clickListener);
+            this.clickListener = null;
+        }
+        if (this.popstateListener) 
+        {
+            window.removeEventListener('popstate', this.popstateListener);
+            this.popstateListener = null;
+        }
+    }
+    
+    setEventListeners(clickListener: (e: Event) => void, popstateListener: (e: PopStateEvent) => void) 
+    {
+        this.cleanup();
+        this.clickListener = clickListener;
+        this.popstateListener = popstateListener;
+        document.addEventListener('click', clickListener);
+        window.addEventListener('popstate', popstateListener);
+    }
+}
 
-// Route configuration (like your routes object)
-const routeConfig: Record<string, any> = {
-    '/': { 
+// Route configuration
+const routeConfig: Record<string, any> = 
+{
+    '/': 
+    { 
         component: () => import('../pages/LandingPage'),
         title: 'Home - Transcendence',
         layout: 'default',
         headerType: 'default'
     },
-    '/games': { 
+    '/games': 
+    { 
         component: () => import('../pages/GamesPage'),
         title: 'Games - Transcendence',
         layout: 'default',
         headerType: 'default'
     },
-    '/pod-racer': { 
+    '/pod-racer': 
+    { 
         component: () => import('../pages/PodRacerPage'),
         title: 'Pod Racer - Transcendence',
         layout: 'game',
         headerType: 'game'
     },
-    '/pong': { 
+    '/pong': 
+    { 
         component: () => import('../pages/PongPage'),
         title: '3D Pong - Transcendence',
         layout: 'game',
         headerType: 'game'
     },
-    '/login': { 
+    '/login': 
+    { 
         component: () => import('../pages/LoginPage'),
         title: 'Login - Transcendence',
         layout: 'auth',
         headerType: 'minimal'
     },
-    '/register': { 
+    '/register': 
+    { 
         component: () => import('../pages/RegisterPage'),
         title: 'Register - Transcendence',
         layout: 'auth',
         headerType: 'minimal'
     },
-    '/dashboard': { 
+    '/dashboard': 
+    { 
         component: () => import('../pages/DashboardPage'),
         title: 'Dashboard - Transcendence',
         layout: 'default',
         headerType: 'default',
         requiresAuth: true
     },
-    '/tournament': { 
+    '/tournament': 
+    { 
         component: () => import('../pages/TournamentPage'),
         title: 'Tournament - Transcendence',
         layout: 'default',
         headerType: 'default',
         requiresAuth: true
     },
-    '/leaderboard': { 
+    '/leaderboard': 
+    { 
         component: () => import('../pages/LeaderboardPage'),
         title: 'Leaderboard - Transcendence',
         layout: 'default',
         headerType: 'default'
     },
-    '/profile': { 
+    '/profile': 
+    { 
         component: () => import('../pages/ProfilePage'),
         title: 'Profile - Transcendence',
         layout: 'default',
         headerType: 'default',
         requiresAuth: true
     },
-    '/settings': { 
+    '/settings': 
+    { 
         component: () => import('../pages/SettingsPage'),
         title: 'Settings - Transcendence',
         layout: 'default',
         headerType: 'default',
         requiresAuth: true
     },
-    '/404': { 
+    '/404': 
+    { 
         component: () => import('../pages/NotFoundPage'),
         title: 'Page Not Found - Transcendence',
         layout: 'default',
         headerType: 'default'
     }
 };
+
+// Get singleton instance
+const routerState = RouterState.getInstance();
 
 // Function to get current path
 function getCurrentPath(): string 
@@ -101,63 +160,90 @@ function parseRoute(path: string): any
 // Check if user is authenticated
 function isAuthenticated(): boolean 
 {
-    // TODO: Implement proper authentication check
     return localStorage.getItem('auth_token') !== null;
 }
 
 // Main navigation function
 export async function navigateTo(path: string): Promise<void> 
 {
-    // Ensure path starts with /
+    // Prevent navigation loops
+    if (routerState.isNavigating) 
+    {
+        return;
+    }
+
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
     
-    // Get route info
+    // Prevent duplicate navigation
+    if (routerState.currentRoute && routerState.currentRoute.path === cleanPath) 
+    {
+        return;
+    }
+
+    routerState.isNavigating = true;
+
     const route = parseRoute(cleanPath);
     
     // Check authentication
     if (route.requiresAuth && !isAuthenticated()) 
     {
-        navigateTo('/login');
-        return;
+        if (cleanPath !== '/login' && cleanPath !== '/register') 
+        {
+            routerState.isNavigating = false;
+            return navigateTo('/login');
+        }
     }
     
     // Update page title
     document.title = route.title;
     
-    // Update URL in browser
-    window.history.pushState({ path: cleanPath }, '', cleanPath);
+    // Update URL in browser - only if different from current
+    if (window.location.pathname !== cleanPath) 
+    {
+        window.history.pushState({ path: cleanPath }, '', cleanPath);
+    }
     
     // Scroll to top
-    scrollToTop();
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     
     try 
     {
         showLoading();
         
+        // Dynamic import and component instantiation
         const moduleImport = await route.component();
         const ComponentClass = moduleImport.default || moduleImport;
         const component = new ComponentClass();
         
+        // Reset game event listeners if switching away from game
+        if (routerState.currentRoute?.headerType === 'game' && route.headerType !== 'game') 
+        {
+            resetGameEventListeners();
+        }
+        
         const headerHtml = getHeaderHtml(route.headerType);
+        
         renderWithLayout(component, route.layout, headerHtml);
-        setupGameHeaderEvents();
         
-        currentRoute = route;
-        updateActiveNavLinks();
+        // Setup events after DOM is ready
+        requestAnimationFrame(() => 
+        {
+            setupGameHeaderEvents();
+            updateActiveNavLinks();
+        });
         
-        // Return resolved promise
-        return Promise.resolve();
+        routerState.currentRoute = { ...route, path: cleanPath };
         
     } 
     catch (error) 
     {
-        console.error('Error loading route:', error);
+        console.error('Error during navigation:', error);
         show404();
-        return Promise.reject(error);
     } 
     finally 
     {
         hideLoading();
+        routerState.isNavigating = false;
     }
 }
 
@@ -174,37 +260,6 @@ function renderWithLayout(component: any, layoutType: string, headerHtml: string
             break;
         default:
             renderDefault(component, headerHtml);
-    }
-}
-
-// Scroll to top function
-function scrollToTop(): void 
-{
-    // Method 1: Modern browsers
-    if (window.scrollTo) 
-    {
-        window.scrollTo({
-            top: 0,
-            left: 0,
-            behavior: 'smooth'
-        });
-    }
-    
-    // Method 2: Fallback for older browsers
-    try 
-    {
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-    } 
-    catch (error) 
-    {
-        console.warn("Scroll to top failed:", error);
-    }
-    
-    // Method 3: Additional fallback
-    if (document.scrollingElement) 
-    {
-        document.scrollingElement.scrollTop = 0;
     }
 }
 
@@ -227,70 +282,83 @@ function updateActiveNavLinks(): void
     });
 }
 
-// Initialize function
-export function initRouter(): void 
-{
-    // Make router globally available
-    (window as any).navigateTo = navigateTo;
-    
-    // Handle clicks on links
-// In your initRouter() function, replace the click handler:
-document.addEventListener('click', (e) => 
+// Event handlers
+function handleLinkClick(e: Event): void 
 {
     const target = e.target as HTMLElement;
-    const link = target?.closest('a') as HTMLAnchorElement;
+    const link = target?.closest('a[data-link]') as HTMLAnchorElement;
     
-    if (!link) return;
-    
-    const href = link.getAttribute('href');
-    
-    // Handle route links (with data-link)
-    if (link.hasAttribute('data-link')) 
+    if (link) 
     {
         e.preventDefault();
-        if (href) 
+        e.stopPropagation();
+        const href = link.getAttribute('href');
+        if (href && !routerState.isNavigating) 
         {
             navigateTo(href);
         }
     }
-    // Handle cross-page hash links
-    else if (href?.startsWith('#') && window.location.pathname !== '/') 
-    {
-        e.preventDefault();
-        // Navigate to landing page, then scroll to section
-        navigateTo('/').then(() => {
-            setTimeout(() => {
-                const section = document.querySelector(href);
-                section?.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
-        });
-    }
-    // Let normal hash links work on same page
-    else if (href?.startsWith('#')) 
-    {
-        // Let browser handle normal hash navigation
-    }
-});
-    
-    // Handle back/forward buttons
-    window.addEventListener('popstate', () => 
+}
+
+function handlePopState(e: PopStateEvent): void 
+{
+    if (!routerState.isNavigating) 
     {
         const path = getCurrentPath();
         navigateTo(path);
-    });
-    
-    // Navigate to initial route
-    const initialPath = getCurrentPath();
-    navigateTo(initialPath);
+    }
 }
 
-// Helper functions
+// Initialize router
+export function initRouter(): void 
+{
+    // Prevent double initialization
+    if (routerState.isInitialized) 
+    {
+        return;
+    }
+    
+    routerState.isInitialized = true;
+    
+    // Make router globally available
+    (window as any).navigateTo = navigateTo;
+    
+    // Setup event listeners with cleanup
+    routerState.setEventListeners(handleLinkClick, handlePopState);
+    
+    // Load initial page only if no content exists
+    const currentPath = getCurrentPath();
+    
+    const existingContent = document.querySelector('[data-route-content]');
+    
+    if (!existingContent) 
+    {
+        setTimeout(() => 
+        {
+            if (!routerState.currentRoute) 
+            {
+                navigateTo(currentPath);
+            }
+        }, 100);
+    }
+}
+
+// Helper functions for external use
 export function getCurrentRoute(): any 
 {
-    return currentRoute;
+    return routerState.currentRoute;
 }
 
 export function addRoute(path: string, config: any): void 
 {
     routeConfig[path] = config;
+}
+
+// Cleanup function for hot reloading/testing
+export function destroyRouter(): void 
+{
+    routerState.cleanup();
+    routerState.isInitialized = false;
+    routerState.currentRoute = null;
+    routerState.isNavigating = false;
 }

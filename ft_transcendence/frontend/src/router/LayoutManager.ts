@@ -13,26 +13,37 @@ export function initLayoutManager(): void
 // Render default layout
 export function renderDefault(component: BaseComponent, headerHtml: string): void 
 {
-    // Use your existing Layout pattern exactly
-    layout.mount('#app');
+    const app = document.querySelector('#app')!;
+    
+    const headerMount = document.querySelector('#header-mount');
+    const contentMount = document.querySelector('#content-mount');
+    
+    // Only mount layout if the structure doesn't exist
+    if (!headerMount || !contentMount) 
+    {
+        layout.mount('#app');
+    }
     
     // Mount header to the existing #header-mount slot
-    const headerMount = document.querySelector('#header-mount');
-    if (headerMount) 
+    const headerMountAfter = document.querySelector('#header-mount');
+    if (headerMountAfter) 
     {
-        headerMount.innerHTML = headerHtml;
+        headerMountAfter.innerHTML = headerHtml;
     }
 
     // Mount content to existing #content-mount slot
-    const contentMount = document.querySelector('#content-mount');
-    if (contentMount) 
+    const contentMountAfter = document.querySelector('#content-mount');
+    if (contentMountAfter) 
     {
+        contentMountAfter.setAttribute('data-route-content', 'true');
+        
         // Use Layout's renderPageSection like your App.ts does
-        contentMount.innerHTML = layout.renderPageSection(
+        const pageContent = layout.renderPageSection(
             'page-content', 
             component.render(), 
             true
         );
+        contentMountAfter.innerHTML = pageContent;
     }
 
     // Call component mount if it exists
@@ -45,17 +56,21 @@ export function renderDefault(component: BaseComponent, headerHtml: string): voi
 // Render game layout (fullscreen)
 export function renderGame(component: BaseComponent, headerHtml: string): void 
 {
-    // Create custom game layout (fullscreen)
     const app = document.querySelector('#app')!;
     
-    app.innerHTML = `
-        <div class="h-screen overflow-hidden bg-black">
-            <div id="game-header-mount"></div>
-            <main class="h-full">
-                <div id="game-content" class="h-full"></div>
-            </main>
-        </div>
-    `;
+    // Only create game layout if it doesn't exist
+    if (!document.querySelector('#game-header-mount')) 
+    {
+        // Create custom game layout (fullscreen)
+        app.innerHTML = `
+            <div class="h-screen overflow-hidden bg-black" data-route-content="true">
+                <div id="game-header-mount"></div>
+                <main class="h-full">
+                    <div id="game-content" class="h-full"></div>
+                </main>
+            </div>
+        `;
+    }
 
     // Mount header
     const headerMount = document.querySelector('#game-header-mount');
@@ -70,17 +85,21 @@ export function renderGame(component: BaseComponent, headerHtml: string): void
 // Render auth layout (centered)
 export function renderAuth(component: BaseComponent, headerHtml: string): void 
 {
-    // Create custom auth layout (centered)
     const app = document.querySelector('#app')!;
     
-    app.innerHTML = `
-        <div class="min-h-screen bg-gradient-to-br from-gray-900 to-purple-900">
-            <div id="auth-header-mount"></div>
-            <main class="min-h-screen flex items-center justify-center">
-                <div id="auth-content" class="w-full max-w-md"></div>
-            </main>
-        </div>
-    `;
+    // Only create auth layout if it doesn't exist
+    if (!document.querySelector('#auth-header-mount')) 
+    {
+        // Create custom auth layout (centered)
+        app.innerHTML = `
+            <div class="min-h-screen bg-gradient-to-br from-gray-900 to-purple-900" data-route-content="true">
+                <div id="auth-header-mount"></div>
+                <main class="min-h-screen flex items-center justify-center">
+                    <div id="auth-content" class="w-full max-w-md"></div>
+                </main>
+            </div>
+        `;
+    }
 
     // Mount header
     const headerMount = document.querySelector('#auth-header-mount');
@@ -97,7 +116,7 @@ export function renderNone(component: BaseComponent): void
 {
     const app = document.querySelector('#app')!;
     
-    app.innerHTML = '<div id="no-layout-content" class="h-screen"></div>';
+    app.innerHTML = '<div id="no-layout-content" class="h-screen" data-route-content="true"></div>';
     
     mountComponent(component, '#no-layout-content');
 }
@@ -108,7 +127,6 @@ function mountComponent(component: BaseComponent, selector: string): void
     const container = document.querySelector(selector);
     if (!container) 
     {
-        console.error(`Container not found: ${selector}`);
         return;
     }
 
@@ -153,7 +171,7 @@ export function show404(): void
     const app = document.querySelector('#app')!;
     
     app.innerHTML = `
-        <div class="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div class="min-h-screen bg-gray-900 flex items-center justify-center" data-route-content="true">
             <div class="text-center">
                 <h1 class="text-6xl font-bold text-red-500 mb-4">404</h1>
                 <p class="text-xl text-gray-300 mb-8">Page not found</p>
