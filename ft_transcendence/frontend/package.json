@@ -12,9 +12,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@babylonjs/core": "^6.0.0",
-    "@babylonjs/materials": "^6.0.0",
-    "@babylonjs/loaders": "^6.0.0"
+    "@babylonjs/core": "^8.21.0",
+    "@babylonjs/materials": "^8.21.0",
+    "@babylonjs/loaders": "^8.21.0"
   },
   "devDependencies": {
     "@types/node": "^20.5.0",
