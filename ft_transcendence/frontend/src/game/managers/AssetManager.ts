@@ -1,5 +1,4 @@
-// Simple and efficient 3D assets loading
-// Based on working SceneLoader approach from GameCanvas.ts
+// 3D assets loading
 
 import { 
   Scene,
