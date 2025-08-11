@@ -27,7 +27,7 @@ const POLAR_PASS_CONFIG: RacerSceneConfig = {
   trackFilename: 'polar_pass.glb',
   enableFog: true,
   fogColor: new Color3(0.7, 0.8, 0.9),
-  fogDensity: 0.01
+  fogDensity: 0.002
 };
 
 export class RacerScene 
@@ -130,7 +130,7 @@ export class RacerScene
     this.track.position = Vector3.Zero();
     this.track.rotation = Vector3.Zero();
     
-    this.track.scaling = new Vector3(1, 1, 1);
+    this.track.scaling = new Vector3(6, 6, 6);
 
     console.log(`Track positioned: ${this.track.name}`);
     console.log(`Track bounds:`, this.track.getBoundingInfo());
@@ -154,7 +154,7 @@ export class RacerScene
     {
       this.scene.fogMode = Scene.FOGMODE_EXP;
       this.scene.fogColor = this.config.fogColor;
-      this.scene.fogDensity = this.config.fogDensity || 0.01;
+      this.scene.fogDensity = this.config.fogDensity || 0.002;
       console.log('✅ Racing fog configured for polar atmosphere');
     }
 
@@ -262,13 +262,6 @@ export class RacerScene
   // Dispose resources
   public dispose(): void 
   {
-    console.log('Disposing RacerScene...');
-    
-    if (this.assetManager) 
-    {
-      this.assetManager.dispose();
-    }
-
     this.track = null;
     this.isLoaded = false;
   }

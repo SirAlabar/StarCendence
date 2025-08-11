@@ -2,9 +2,9 @@
 
 import { 
   Scene,
-  SceneLoader,
   AbstractMesh,
-  Texture
+  Texture,
+  AssetsManager as BabylonAssetsManager
 } from '@babylonjs/core';
 
 // Asset configuration interfaces
@@ -48,6 +48,7 @@ export interface AssetLoadingCallbacks
 export class AssetManager 
 {
   private scene: Scene;
+  private babylonAssetsManager: BabylonAssetsManager;
   private loadedAssets: Map<string, any> = new Map();
   private callbacks: AssetLoadingCallbacks = {};
   private assetsToLoad: AssetConfig[] = [];
@@ -55,7 +56,8 @@ export class AssetManager
   constructor(scene: Scene) 
   {
     this.scene = scene;
-    console.log('AssetManager initialized');
+    this.babylonAssetsManager = new BabylonAssetsManager(this.scene);
+    console.log('AssetManager initialized (using Babylon.js AssetsManager)');
   }
 
   // Add assets to load
@@ -83,7 +85,7 @@ export class AssetManager
     return this;
   }
 
-  // Load all assets
+  // Load all assets using Babylon.js AssetsManager
   public async load(): Promise<Map<string, any>> 
   {
     if (this.assetsToLoad.length === 0) 
@@ -92,102 +94,126 @@ export class AssetManager
       return this.loadedAssets;
     }
 
-    console.log(`Loading ${this.assetsToLoad.length} assets...`);
+    console.log(`Loading ${this.assetsToLoad.length} assets using Babylon.js AssetsManager...`);
     
-    const errors: string[] = [];
-    let completed = 0;
-
-    for (const config of this.assetsToLoad) 
+    return new Promise((resolve, reject) => 
     {
-      try 
+      const errors: string[] = [];
+      
+      // Add tasks to Babylon AssetsManager
+      this.assetsToLoad.forEach(config => 
       {
-        this.reportProgress(completed, this.assetsToLoad.length, config.id);
-
         if (config.type === 'mesh') 
         {
           const meshConfig = config as MeshAssetConfig;
-          const result = await SceneLoader.ImportMeshAsync(
+          const meshTask = this.babylonAssetsManager.addMeshTask(
+            config.id,
             meshConfig.meshNames || '',
             config.path,
-            config.filename,
-            this.scene
+            config.filename
           );
 
-          this.loadedAssets.set(config.id, {
-            type: 'mesh',
-            meshes: result.meshes,
-            particleSystems: result.particleSystems,
-            skeletons: result.skeletons,
-            animationGroups: result.animationGroups
-          });
+          meshTask.onSuccess = (task) => 
+          {
+            this.loadedAssets.set(config.id, {
+              type: 'mesh',
+              meshes: task.loadedMeshes,
+              particleSystems: task.loadedParticleSystems,
+              skeletons: task.loadedSkeletons,
+              animationGroups: task.loadedAnimationGroups
+            });
+            console.log(`✅ Loaded mesh: ${config.id}`);
+          };
+
+          meshTask.onError = (_task, message, exception) => 
+          {
+            const error = `${config.id}: ${message || exception}`;
+            errors.push(error);
+            console.error(`❌ Failed to load mesh: ${error}`);
+          };
         }
         else if (config.type === 'texture') 
         {
-          const texture = new Texture(config.path + config.filename, this.scene);
-          
-          // Wait for texture to load
-          await new Promise<void>((resolve) => {
-            if (texture.isReady()) 
-            {
-              resolve();
-            } 
-            else 
-            {
-              texture.onLoadObservable.add(() => resolve());
-            }
-          });
+          const textureTask = this.babylonAssetsManager.addTextureTask(
+            config.id,
+            config.path + config.filename
+          );
 
-          this.loadedAssets.set(config.id, {
-            type: 'texture',
-            texture
-          });
+          textureTask.onSuccess = (_task) => 
+          {
+            this.loadedAssets.set(config.id, {
+              type: 'texture',
+              texture: _task.texture
+            });
+            console.log(`✅ Loaded texture: ${config.id}`);
+          };
+
+          textureTask.onError = (_task, message, exception) => 
+          {
+            const error = `${config.id}: ${message || exception}`;
+            errors.push(error);
+            console.error(`❌ Failed to load texture: ${error}`);
+          };
+        }
+      });
+
+      // Progress tracking
+      this.babylonAssetsManager.onProgress = (remainingCount, totalCount, lastFinishedTask) => 
+      {
+        const loaded = totalCount - remainingCount;
+        const progress: LoadingProgress = {
+          loaded,
+          total: totalCount,
+          percentage: Math.round((loaded / totalCount) * 100),
+          currentAsset: lastFinishedTask?.name || 'Unknown'
+        };
+
+        if (this.callbacks.onProgress) 
+        {
+          this.callbacks.onProgress(progress);
+        }
+      };
+
+      // Finish callback
+      this.babylonAssetsManager.onFinish = (tasks) => 
+      {
+        const successful = this.loadedAssets.size;
+        const failed = errors.length;
+
+        console.log(`Loading complete: ${successful} success, ${failed} failed`);
+        console.log(`Completed tasks: ${tasks.length}`);
+
+        // Call callbacks
+        if (errors.length > 0 && this.callbacks.onError) 
+        {
+          this.callbacks.onError(errors);
         }
 
-        console.log(`✅ Loaded: ${config.id}`);
-      } 
-      catch (error) 
-      {
-        console.error(`❌ Failed: ${config.id}`, error);
-        errors.push(`${config.id}: ${error}`);
-      }
+        if (this.callbacks.onSuccess) 
+        {
+          this.callbacks.onSuccess(this.loadedAssets);
+        }
 
-      completed++;
-      this.reportProgress(completed, this.assetsToLoad.length, config.id);
-    }
+        if (this.callbacks.onFinish) 
+        {
+          this.callbacks.onFinish(successful, failed);
+        }
 
-    // Call callbacks
-    if (errors.length > 0 && this.callbacks.onError) 
-    {
-      this.callbacks.onError(errors);
-    }
+        // Reject only if ALL assets failed to load
+        if (successful === 0 && failed > 0) 
+        {
+          reject(new Error(`All ${failed} assets failed to load: ${errors.join('; ')}`));
+        } 
+        else 
+        {
+          // Resolve with partial or complete success
+          resolve(this.loadedAssets);
+        }
+      };
 
-    if (this.callbacks.onSuccess) 
-    {
-      this.callbacks.onSuccess(this.loadedAssets);
-    }
-
-    if (this.callbacks.onFinish) 
-    {
-      this.callbacks.onFinish(this.assetsToLoad.length - errors.length, errors.length);
-    }
-
-    console.log(`Loading complete: ${this.assetsToLoad.length - errors.length} success, ${errors.length} failed`);
-    return this.loadedAssets;
-  }
-
-  private reportProgress(completed: number, total: number, currentAsset: string): void 
-  {
-    const progress: LoadingProgress = {
-      loaded: completed,
-      total,
-      percentage: Math.round((completed / total) * 100),
-      currentAsset
-    };
-
-    if (this.callbacks.onProgress) 
-    {
-      this.callbacks.onProgress(progress);
-    }
+      // Start loading
+      this.babylonAssetsManager.load();
+    });
   }
 
   // Get loaded assets
@@ -255,5 +281,10 @@ export class AssetManager
       path: path.endsWith('/') ? path : path + '/',
       filename
     };
+  }
+
+  public getBabylonAssetsManager(): BabylonAssetsManager 
+  {
+    return this.babylonAssetsManager;
   }
 }
