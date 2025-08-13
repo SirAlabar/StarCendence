@@ -255,7 +255,7 @@ function renderWithLayout(component: any, layoutType: string, headerHtml: string
     switch (layoutType)
     {
         case 'game':
-            renderGame(component, headerHtml);
+            renderGame(component);
             break;
         case 'auth':
             renderAuth(component, headerHtml);
