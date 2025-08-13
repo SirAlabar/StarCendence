@@ -48,7 +48,12 @@ export class RacerScene
   constructor(gameCanvas: GameCanvas, config: RacerSceneConfig = POLAR_PASS_CONFIG) 
   {
     this.gameCanvas = gameCanvas;
-    this.scene = gameCanvas.getScene();
+    const scene = gameCanvas.getScene();
+    if (!scene) 
+    {
+      throw new Error('Cannot create RacerScene: GameCanvas scene not initialized');
+    }
+    this.scene = scene;
     this.config = config;
     this.assetManager = new AssetManager(this.scene);
     

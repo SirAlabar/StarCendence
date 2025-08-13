@@ -1,5 +1,3 @@
-// frontend/src/pages/PodRacerPage.ts
-// Fixed Pod Racer Page - Pod selection FIRST, then 3D loading
 
 import { BaseComponent } from '../components/BaseComponent';
 import { GameCanvas } from '../components/game/GameCanvas';
@@ -29,27 +27,47 @@ export default class PodRacerPage extends BaseComponent
                     ></canvas>
                 </div>
 
-                <!-- Simple UI (Initially Hidden) -->
+                <!-- Game UI (Initially Hidden) -->
                 <div id="gameUI" class="absolute inset-0 pointer-events-none" style="display: none;">
                     
                     <!-- Top Info -->
                     <div class="absolute top-4 left-4 pointer-events-auto">
                         <div class="bg-black/50 backdrop-blur rounded-lg p-4">
                             <h2 class="text-white font-bold text-lg mb-2">🏎️ Pod Racer</h2>
-                            <div class="text-gray-300 text-sm">
+                            <div class="text-gray-300 text-sm space-y-1">
                                 <div id="trackInfo">Track: Polar Pass</div>
                                 <div id="podInfo">Pod: ${this.selectedPodConfig.name}</div>
+                                <div id="cameraInfo">Camera: Racing</div>
+                                <div class="text-xs text-purple-300 mt-2 border-t border-gray-600 pt-2">
+                                    <div>F1: Switch Camera</div>
+                                    <div>WASD: Move (Free Mode)</div>
+                                    <div>Mouse: Look Around</div>
+                                    <div>Scroll: Zoom/Speed</div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Camera Mode Indicator -->
+                    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 pointer-events-auto">
+                        <div id="cameraModeIndicator" class="bg-purple-600/80 backdrop-blur text-white px-4 py-2 rounded-lg">
+                            <span id="currentCameraMode">Racing Camera</span>
+                        </div>
+                    </div>
                     <!-- Buttons -->
                     <div class="absolute top-4 right-4 pointer-events-auto space-x-2">
                         <button 
-                            onclick="podRacerPage.showPodSelection()" 
-                            class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+                            id="toggleDevelopmentMode"
+                            onclick="podRacerPage.toggleDevelopmentMode()" 
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
                         >
-                            Change Pod
+                            Dev Mode: OFF
+                        </button>
+                        <button 
+                            onclick="podRacerPage.resetCamera()" 
+                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                        >
+                            Reset Camera
                         </button>
                         <button 
                             onclick="navigateTo('/games')" 
@@ -57,6 +75,16 @@ export default class PodRacerPage extends BaseComponent
                         >
                             Back
                         </button>
+                    </div>
+
+                    <!-- Performance Info (Bottom Right) -->
+                    <div class="absolute bottom-4 right-4 pointer-events-auto">
+                        <div class="bg-black/50 backdrop-blur rounded-lg p-3 border border-gray-500/30">
+                            <div class="text-gray-300 text-xs space-y-1">
+                                <div>FPS: <span id="fpsCounter">60</span></div>
+                                <div>Meshes: <span id="meshCounter">0</span></div>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
@@ -71,6 +99,9 @@ export default class PodRacerPage extends BaseComponent
                         <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-400 mb-4"></div>
                         <h3 class="text-white text-xl font-bold mb-2">Loading Race</h3>
                         <p class="text-gray-300" id="loadingMessage">Preparing 3D scene...</p>
+                        <div class="mt-4 w-64 bg-gray-700 rounded-full h-2">
+                            <div id="loadingProgress" class="bg-purple-400 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -143,23 +174,60 @@ export default class PodRacerPage extends BaseComponent
             console.log('🎮 Starting 3D scene with selected pod...');
             
             // Step 1: Create canvas
-            this.updateLoadingMessage('Creating 3D scene...');
+            this.updateLoadingMessage('Creating 3D scene...', 10);
             this.gameCanvas = new GameCanvas('gameCanvas');
+            
+            // Step 2: Initialize camera and input managers (NEW!)
+            this.updateLoadingMessage('Setting up camera controls...', 20);
+            this.gameCanvas.initializeManagers(false); // Start in racing mode
+            
+            // Step 3: Start render loop
             this.gameCanvas.startRenderLoop();
 
-            // Step 2: Load track
-            this.updateLoadingMessage('Loading racing track...');
+            // Step 4: Load track
+            this.updateLoadingMessage('Loading racing track...', 30);
             this.racerScene = new RacerScene(this.gameCanvas);
+            
+            // Set up loading callbacks for track
+            this.racerScene.onLoadingProgress = (percentage, asset) => 
+            {
+                this.updateLoadingMessage(`Loading ${asset}...`, 30 + (percentage * 0.4)); // 30% + 40% for track
+            };
+
+            this.racerScene.onTrackLoaded = (track) => 
+            {
+                console.log('🏁 Racing track loaded:', track.name);
+                
+                // Set track bounds for camera system (NEW!)
+                if (this.gameCanvas) 
+                {
+                    this.gameCanvas.setTrackBounds(this.racerScene!.getTrackBounds());
+                }
+                
+                // Update track info
+                const trackInfo = document.getElementById('trackInfo');
+                if (trackInfo) 
+                {
+                    const trackBounds = this.racerScene!.getTrackBounds();
+                    trackInfo.textContent = `Track: Polar Pass (${Math.round(trackBounds.size.x)}x${Math.round(trackBounds.size.z)}m)`;
+                }
+            };
+
             await this.racerScene.loadTrack();
 
-            // Step 3: Load selected pod
-            this.updateLoadingMessage(`Loading ${this.selectedPodConfig.name}...`);
+            // Step 5: Load selected pod
+            this.updateLoadingMessage(`Loading ${this.selectedPodConfig.name}...`, 70);
             await this.loadPod();
 
-            // Step 4: Show game
+            // Step 6: Show game
+            this.updateLoadingMessage('Racing scene ready!', 100);
             this.showGame();
             
-            console.log('✅ 3D Pod Racer ready!');
+            // Step 7: Start additional features (NEW!)
+            this.startPerformanceMonitoring();
+            this.updateCameraUI();
+            
+            console.log('✅ 3D Pod Racer ready with camera controls!');
             
         } 
         catch (error) 
@@ -186,7 +254,7 @@ export default class PodRacerPage extends BaseComponent
             }
 
             // Create new pod with selected config
-            this.playerPod = new RacerPod(this.gameCanvas.getScene(), this.selectedPodConfig);
+            this.playerPod = new RacerPod(this.gameCanvas.getScene()!, this.selectedPodConfig);
             
             // Load the model
             await this.playerPod.loadModel();
@@ -214,7 +282,130 @@ export default class PodRacerPage extends BaseComponent
         }
     }
 
-    // UI State Management
+    // ===== NEW CAMERA MANAGEMENT METHODS =====
+
+    public toggleDevelopmentMode(): void 
+    {
+        if (!this.gameCanvas)
+        {
+            return;
+        }
+        
+        // Get current development state and toggle it
+        const currentMode = this.gameCanvas.getCurrentCameraMode();
+        const isDevelopment = currentMode === 'free';
+        
+        this.gameCanvas.setDevelopmentMode(!isDevelopment);
+        this.updateDevelopmentModeUI(!isDevelopment);
+        
+        console.log(`🎮 Development mode: ${!isDevelopment ? 'ON' : 'OFF'}`);
+    }
+
+    public resetCamera(): void 
+    {
+        if (!this.gameCanvas)
+        {
+            return;
+        }
+        
+        // Get current camera mode and reset it
+        const currentMode = this.gameCanvas.getCurrentCameraMode();
+        if (currentMode) 
+        {
+            this.gameCanvas.switchCameraMode(currentMode);
+        }
+        console.log('📹 Camera reset to default position');
+    }
+
+    private updateDevelopmentModeUI(isDevelopment: boolean): void 
+    {
+        const toggleButton = document.getElementById('toggleDevelopmentMode');
+        if (toggleButton) 
+        {
+            toggleButton.textContent = `Dev Mode: ${isDevelopment ? 'ON' : 'OFF'}`;
+            if (isDevelopment)
+            {
+                toggleButton.className = 'bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700';
+            }
+            else
+            {
+                toggleButton.className = 'bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700';
+            }
+        }
+    }
+
+    private updateCameraUI(): void 
+    {
+        if (!this.gameCanvas)
+        {
+            return;
+        }
+
+        const currentMode = this.gameCanvas.getCurrentCameraMode();
+        
+        // Update camera info
+        const cameraInfo = document.getElementById('cameraInfo');
+        const cameraModeIndicator = document.getElementById('currentCameraMode');
+        
+        if (currentMode) 
+        {
+            const modeNames = 
+            {
+                'racing': 'Racing Camera',
+                'free': 'Free Camera', 
+                'player': 'Player Camera'
+            };
+            
+            const modeName = modeNames[currentMode] || 'Unknown Camera';
+            
+            if (cameraInfo) 
+            {
+                cameraInfo.textContent = `Camera: ${modeName}`;
+            }
+            
+            if (cameraModeIndicator) 
+            {
+                cameraModeIndicator.textContent = modeName;
+            }
+        }
+        
+        // Update development mode UI
+        const isDevelopment = currentMode === 'free';
+        this.updateDevelopmentModeUI(isDevelopment);
+    }
+
+    private startPerformanceMonitoring(): void 
+    {
+        const updatePerformance = () => 
+        {
+            if (!this.gameCanvas)
+            {
+                return;
+            }
+            
+            const perfInfo = this.gameCanvas.getPerformanceInfo();
+            
+            const fpsCounter = document.getElementById('fpsCounter');
+            const meshCounter = document.getElementById('meshCounter');
+            
+            if (fpsCounter) 
+            {
+                fpsCounter.textContent = Math.round(perfInfo.fps).toString();
+            }
+            
+            if (meshCounter) 
+            {
+                meshCounter.textContent = perfInfo.meshCount.toString();
+            }
+        };
+        
+        // Update performance info every second
+        setInterval(updatePerformance, 1000);
+        updatePerformance(); // Initial update
+    }
+
+    // ===== ORIGINAL UI STATE MANAGEMENT (UNCHANGED) =====
+
     private showLoading(): void 
     {
         // Hide everything
@@ -249,7 +440,14 @@ export default class PodRacerPage extends BaseComponent
         const element = document.getElementById(id);
         if (element) 
         {
-            element.style.display = element.id === 'gameCanvasContainer' ? 'block' : 'flex';
+            if (element.id === 'gameCanvasContainer')
+            {
+                element.style.display = 'block';
+            }
+            else
+            {
+                element.style.display = 'flex';
+            }
         }
     }
 
@@ -262,14 +460,31 @@ export default class PodRacerPage extends BaseComponent
         }
     }
 
-    private updateLoadingMessage(message: string): void 
+    private updateLoadingMessage(message: string, progress?: number): void 
     {
         const element = document.getElementById('loadingMessage');
         if (element) 
         {
             element.textContent = message;
         }
-        console.log(`🔄 ${message}`);
+        
+        if (progress !== undefined) 
+        {
+            const progressElement = document.getElementById('loadingProgress');
+            if (progressElement) 
+            {
+                progressElement.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+            }
+        }
+        
+        if (progress)
+        {
+            console.log(`📥 ${message} (${progress}%)`);
+        }
+        else
+        {
+            console.log(`📥 ${message}`);
+        }
     }
 
     private showError(message: string): void 
@@ -295,9 +510,12 @@ export default class PodRacerPage extends BaseComponent
         }
     }
 
-    // Cleanup
+    // ===== ORIGINAL CLEANUP (UNCHANGED) =====
+
     dispose(): void 
     {
+        console.log('🗑️ Disposing PodRacerPage...');
+        
         if (this.playerPod) 
         {
             this.playerPod.dispose();
@@ -326,5 +544,7 @@ export default class PodRacerPage extends BaseComponent
         {
             delete (window as any).podRacerPage;
         }
+        
+        console.log('✅ PodRacerPage disposed');
     }
 }

@@ -1,5 +1,4 @@
-// frontend/src/components/game/GameCanvas.ts
-// Generic 3D Rendering Component - Reusable for all games
+// Complete 3D Rendering Component
 
 import { 
   Engine, 
@@ -13,6 +12,10 @@ import {
   Color3,
   Camera
 } from '@babylonjs/core';
+
+// Import the managers
+import { InputManager, InputCallbacks } from '../../game/managers/InputManager';
+import { CameraManager, CameraMode } from '../../game/managers/CameraManager';
 
 // Configuration interfaces
 export interface CameraConfig 
@@ -31,13 +34,16 @@ export interface GameCanvasConfig
   camera?: CameraConfig;
   
   // Lighting configuration
-  lighting?: {
-    ambient?: {
+  lighting?: 
+  {
+    ambient?: 
+    {
       intensity?: number;
       color?: Color3;
       direction?: Vector3;
     };
-    directional?: {
+    directional?: 
+    {
       intensity?: number;
       color?: Color3;
       direction?: Vector3;
@@ -45,14 +51,16 @@ export interface GameCanvasConfig
   };
   
   // Engine configuration
-  engine?: {
+  engine?: 
+  {
     antialias?: boolean;
     powerPreference?: 'default' | 'high-performance' | 'low-power';
     preserveDrawingBuffer?: boolean;
   };
   
   // Performance configuration
-  performance?: {
+  performance?: 
+  {
     skipPointerPicking?: boolean;
     hardwareScaling?: number;
     targetFPS?: number;
@@ -60,33 +68,39 @@ export interface GameCanvasConfig
 }
 
 // Default configuration
-const DEFAULT_CONFIG: GameCanvasConfig = {
-  camera: {
+const DEFAULT_CONFIG: Required<GameCanvasConfig> = 
+{
+  camera: 
+  {
     type: 'arcRotate',
-    position: new Vector3(0, 5, -10),
     target: Vector3.Zero(),
     radius: 10,
     alpha: -Math.PI / 2,
     beta: Math.PI / 3
   },
-  lighting: {
-    ambient: {
-      intensity: 0.4,
-      color: new Color3(1, 1, 1),
-      direction: new Vector3(0, 1, 0)
+  lighting: 
+  {
+    ambient: 
+    {
+      intensity: 0.7,
+      color: Color3.White(),
+      direction: Vector3.Up()
     },
-    directional: {
-      intensity: 0.6,
-      color: new Color3(1, 0.95, 0.8),
+    directional: 
+    {
+      intensity: 1.0,
+      color: Color3.White(),
       direction: new Vector3(-1, -1, -1)
     }
   },
-  engine: {
+  engine: 
+  {
     antialias: true,
     powerPreference: 'high-performance',
-    preserveDrawingBuffer: true
+    preserveDrawingBuffer: false
   },
-  performance: {
+  performance: 
+  {
     skipPointerPicking: true,
     hardwareScaling: 1.0,
     targetFPS: 60
@@ -95,61 +109,93 @@ const DEFAULT_CONFIG: GameCanvasConfig = {
 
 export class GameCanvas 
 {
-  private canvas: HTMLCanvasElement;
-  private engine: Engine;
-  private scene: Scene;
-  private camera: Camera;
-  private isDisposed: boolean = false;
-  private config: GameCanvasConfig;
-  private renderLoop: number | null = null;
+  // Core Babylon.js components
+  private canvas: HTMLCanvasElement | null = null;
+  private engine: Engine | null = null;
+  private scene: Scene | null = null;
+  private camera: Camera | null = null;
+  
+  // Lighting
+  private ambientLight: HemisphericLight | null = null;
+  private directionalLight: DirectionalLight | null = null;
+  
+  // Configuration
+  private config: Required<GameCanvasConfig>;
+  
+  // Managers
+  private inputManager: InputManager | null = null;
+  private cameraManager: CameraManager | null = null;
+  
+  // State
+  private isRenderLoopRunning: boolean = false;
 
-  constructor(canvasId: string, config: Partial<GameCanvasConfig> = {}) 
+  constructor(canvasId: string, config?: Partial<GameCanvasConfig>) 
   {
-    // Merge config with defaults
-    this.config = this.mergeConfig(DEFAULT_CONFIG, config);
+    // Merge provided config with defaults
+    this.config = this.mergeConfig(config || {});
     
     // Get canvas element
-    const canvasElement = document.getElementById(canvasId);
-    if (!canvasElement) 
+    this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+    if (!this.canvas) 
     {
-      throw new Error(`Canvas with id '${canvasId}' not found`);
+      throw new Error(`Canvas element with id '${canvasId}' not found`);
     }
-    this.canvas = canvasElement as HTMLCanvasElement;
-
-    // Initialize Babylon.js engine
-    this.engine = this.createEngine();
-    this.scene = new Scene(this.engine);
     
-    // Setup scene components
-    this.setupPerformanceOptimizations();
-    this.camera = this.setupCamera();
-    this.setupLighting();
-    
-    // Handle window resize
-    window.addEventListener('resize', this.handleResize.bind(this));
-    
-    console.log('GameCanvas initialized - ready for game integration');
+    console.log('🎮 GameCanvas constructor initialized');
+    this.initializeBabylonJS();
   }
 
-  private mergeConfig(defaultConfig: GameCanvasConfig, userConfig: Partial<GameCanvasConfig>): GameCanvasConfig 
+  // ===== CORE BABYLON.JS SETUP =====
+
+  private initializeBabylonJS(): void 
+  {
+    try 
+    {
+      // Initialize engine
+      this.engine = this.createEngine();
+      
+      // Initialize scene
+      this.scene = new Scene(this.engine);
+      
+      // Setup camera
+      this.camera = this.setupCamera();
+      
+      // Setup lighting
+      this.setupLighting();
+      
+      // Setup performance optimizations
+      this.setupPerformanceOptimizations();
+      
+      console.log('🎮 ✅ Babylon.js initialized successfully');
+    } 
+    catch (error) 
+    {
+      console.error('🎮 ❌ Failed to initialize Babylon.js:', error);
+      throw error;
+    }
+  }
+
+  private mergeConfig(userConfig: Partial<GameCanvasConfig>): Required<GameCanvasConfig> 
   {
     return {
-      camera: { 
-        ...defaultConfig.camera!, 
-        ...userConfig.camera
-      },
+      camera: { ...DEFAULT_CONFIG.camera, ...userConfig.camera },
       lighting: {
-        ambient: { ...defaultConfig.lighting?.ambient, ...userConfig.lighting?.ambient },
-        directional: { ...defaultConfig.lighting?.directional, ...userConfig.lighting?.directional }
+        ambient: { ...DEFAULT_CONFIG.lighting.ambient, ...userConfig.lighting?.ambient },
+        directional: { ...DEFAULT_CONFIG.lighting.directional, ...userConfig.lighting?.directional }
       },
-      engine: { ...defaultConfig.engine, ...userConfig.engine },
-      performance: { ...defaultConfig.performance, ...userConfig.performance }
+      engine: { ...DEFAULT_CONFIG.engine, ...userConfig.engine },
+      performance: { ...DEFAULT_CONFIG.performance, ...userConfig.performance }
     };
   }
 
   private createEngine(): Engine 
   {
-    const engineConfig = this.config.engine!;
+    if (!this.canvas)
+    {
+      throw new Error('Canvas not available');
+    }
+    
+    const engineConfig = this.config.engine;
     
     return new Engine(this.canvas, engineConfig.antialias, {
       preserveDrawingBuffer: engineConfig.preserveDrawingBuffer,
@@ -162,7 +208,12 @@ export class GameCanvas
 
   private setupPerformanceOptimizations(): void 
   {
-    const perfConfig = this.config.performance!;
+    if (!this.scene)
+    {
+      return;
+    }
+    
+    const perfConfig = this.config.performance;
     
     // Scene optimizations
     if (perfConfig.skipPointerPicking) 
@@ -173,7 +224,7 @@ export class GameCanvas
     }
     
     // Hardware scaling
-    if (perfConfig.hardwareScaling) 
+    if (perfConfig.hardwareScaling && this.engine) 
     {
       this.engine.setHardwareScalingLevel(perfConfig.hardwareScaling);
     }
@@ -187,7 +238,12 @@ export class GameCanvas
 
   private setupCamera(): Camera 
   {
-    const camConfig = this.config.camera!;
+    if (!this.scene)
+    {
+      throw new Error('Scene not available');
+    }
+    
+    const camConfig = this.config.camera;
     let camera: Camera;
 
     switch (camConfig.type) 
@@ -241,6 +297,10 @@ export class GameCanvas
 
   private setupLighting(): void 
   {
+    if (!this.scene) 
+    {
+      return;
+    }
     const lightConfig = this.config.lighting!;
     
     // Hemisphere light (ambient lighting)
@@ -268,78 +328,208 @@ export class GameCanvas
     }
   }
 
-  private handleResize(): void 
-  {
-    if (!this.isDisposed) 
-    {
-      this.engine.resize();
-    }
-  }
+  // ===== MANAGER INTEGRATION =====
 
-  // Start the render loop
-  public startRenderLoop(): void 
+  public initializeManagers(developmentMode: boolean = false): void 
   {
-    if (this.renderLoop)
-    { 
-      return; // Already started
+    if (!this.canvas) 
+    {
+      console.warn('Canvas not available, cannot initialize managers');
+      return;
     }
+
+    // Initialize CameraManager
+    this.cameraManager = new CameraManager(this);
     
-    const targetFPS = this.config.performance?.targetFPS || 60;
-    const frameTime = 1000 / targetFPS;
-    let lastTime = 0;
-
-    const renderFrame = (currentTime: number) => 
-    {
-      if (this.isDisposed)
-      {
-         return;
+    // Initialize InputManager with callbacks
+    this.inputManager = new InputManager();
+    
+    const inputCallbacks: InputCallbacks = {
+      onMovement: (direction) => {
+        if (this.cameraManager)
+        {
+          this.cameraManager.handleMovement(direction);
+        }
+      },
+      onMouseLook: (deltaX, deltaY) => {
+        if (this.cameraManager)
+        {
+          this.cameraManager.handleMouseLook(deltaX, deltaY);
+        }
+      },
+      onMouseWheel: (delta) => {
+        if (this.cameraManager)
+        {
+          this.cameraManager.handleMouseWheel(delta);
+        }
+      },
+      onCameraSwitch: () => {
+        if (this.cameraManager)
+        {
+          this.cameraManager.cycleCameraMode();
+        }
+        this.updateCameraUI();
       }
-
-      // Frame rate limiting
-      if (currentTime - lastTime >= frameTime) 
-      {
-        this.scene.render();
-        lastTime = currentTime;
-      }
-
-      this.renderLoop = requestAnimationFrame(renderFrame);
     };
 
-    this.renderLoop = requestAnimationFrame(renderFrame);
-    console.log(`Render loop started - Target FPS: ${targetFPS}`);
+    this.inputManager.initialize(this.canvas, inputCallbacks);
+
+    // Start with appropriate camera mode
+    if (developmentMode)
+    {
+      this.cameraManager.switchToMode(CameraMode.FREE);
+    }
+    else
+    {
+      this.cameraManager.switchToMode(CameraMode.RACING);
+    }
+
+    console.log(`🎮 Managers initialized (Development: ${developmentMode})`);
+    this.updateCameraUI();
   }
 
-  // Stop the render loop
+  // ===== RENDER LOOP =====
+
+  public startRenderLoop(): void 
+  {
+    if (!this.engine || !this.scene) 
+    {
+      console.error('Engine or scene not initialized');
+      return;
+    }
+
+    if (this.isRenderLoopRunning) 
+    {
+      console.warn('Render loop already running');
+      return;
+    }
+
+    this.engine.runRenderLoop(() => {
+      // Update input system
+      if (this.inputManager)
+      {
+        this.inputManager.update();
+      }
+      
+      // Render scene
+      if (this.scene)
+      {
+        this.scene.render();
+      }
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      if (this.engine)
+      {
+        this.engine.resize();
+      }
+    });
+
+    this.isRenderLoopRunning = true;
+    console.log('🎮 Enhanced render loop started with input updates');
+  }
+
   public stopRenderLoop(): void 
   {
-    if (this.renderLoop) 
+    if (this.engine)
     {
-      cancelAnimationFrame(this.renderLoop);
-      this.renderLoop = null;
-      console.log('Render loop stopped');
+      this.engine.stopRenderLoop();
+    }
+    this.isRenderLoopRunning = false;
+    console.log('🎮 Render loop stopped');
+  }
+
+  // ===== CAMERA MANAGEMENT =====
+
+  public reconfigureCamera(newCameraConfig: Partial<CameraConfig>): void 
+  {
+    this.config.camera = { 
+      ...this.config.camera, 
+      ...newCameraConfig
+    };
+    
+    // Dispose old camera
+    if (this.camera)
+    {
+      this.camera.dispose();
+    }
+    
+    // Create new camera
+    this.camera = this.setupCamera();
+  }
+
+  public setTrackBounds(bounds: { min: Vector3; max: Vector3; size: Vector3 }): void 
+  {
+    if (this.cameraManager)
+    {
+      this.cameraManager.setTrackBounds(bounds);
     }
   }
 
-  // Get the Babylon.js scene - Games use this to add content
-  public getScene(): Scene 
-  {
-    return this.scene;
-  }
-
-  // Get the camera - Games can customize or switch cameras
-  public getCamera(): Camera 
+  public getActiveCamera(): Camera | null 
   {
     return this.camera;
   }
 
-  // Get the engine - For advanced game engine features
-  public getEngine(): Engine 
+  public switchCameraMode(mode: CameraMode): void 
+  {
+    if (this.cameraManager)
+    {
+      this.cameraManager.switchToMode(mode);
+    }
+    this.updateCameraUI();
+  }
+
+  public getCurrentCameraMode(): CameraMode | null 
+  {
+    if (this.cameraManager)
+    {
+      return this.cameraManager.getCurrentMode();
+    }
+    return null;
+  }
+
+  public setDevelopmentMode(enabled: boolean): void 
+  {
+    if (enabled && this.cameraManager) 
+    {
+      this.cameraManager.switchToMode(CameraMode.FREE);
+    } 
+    else if (!enabled && this.cameraManager) 
+    {
+      this.cameraManager.switchToMode(CameraMode.RACING);
+    }
+    
+    this.updateCameraUI();
+    console.log(`🎮 Development mode: ${enabled ? 'ON' : 'OFF'}`);
+  }
+
+  // ===== SCENE ACCESS =====
+
+  public getScene(): Scene | null 
+  {
+    return this.scene;
+  }
+
+  public getEngine(): Engine | null 
   {
     return this.engine;
   }
 
-  // Update loading state - Games control when loading is shown/hidden
-  public setLoadingState(isLoading: boolean, message?: string): void 
+  public getCanvas(): HTMLCanvasElement | null 
+  {
+    return this.canvas;
+  }
+
+  public getCamera(): Camera | null 
+  {
+    return this.camera;
+  }
+
+  // ===== LOADING OVERLAY =====
+
+  public showLoadingOverlay(isLoading: boolean, message?: string): void 
   {
     const overlay = document.getElementById('gameLoadingOverlay');
     if (overlay) 
@@ -364,43 +554,70 @@ export class GameCanvas
         overlay.style.opacity = '0';
         overlay.style.transition = 'opacity 0.5s ease-out';
         
-        setTimeout(() => 
-        {
+        setTimeout(() => {
           overlay.style.display = 'none';
         }, 500);
       }
     }
   }
 
-  // Reconfigure camera
-  public reconfigureCamera(newCameraConfig: Partial<CameraConfig>): void 
+  public setLoadingState(isLoading: boolean, message?: string): void 
   {
-    this.config.camera = { 
-      ...this.config.camera!, 
-      ...newCameraConfig
-    };
-    
-    // Dispose old camera
-    this.camera.dispose();
-    
-    // Create new camera
-    this.camera = this.setupCamera();
+    this.showLoadingOverlay(isLoading, message);
   }
 
-  // Update performance settings
+  // ===== PERFORMANCE =====
+
   public updatePerformance(perfConfig: GameCanvasConfig['performance']): void 
   {
     this.config.performance = { ...this.config.performance, ...perfConfig };
     this.setupPerformanceOptimizations();
   }
 
-  // Get performance info
   public getPerformanceInfo(): { fps: number; meshCount: number } 
   {
+    const fps = this.engine ? this.engine.getFps() : 0;
+    const meshCount = this.scene ? this.scene.meshes.length : 0;
+    
     return {
-      fps: this.engine.getFps(),
-      meshCount: this.scene.meshes.length
+      fps: fps,
+      meshCount: meshCount
     };
+  }
+
+  // ===== UI UPDATES =====
+
+  private updateCameraUI(): void 
+  {
+    if (!this.cameraManager)
+    {
+      return;
+    }
+
+    const currentMode = this.cameraManager.getCurrentMode();
+    const modeInfo = this.cameraManager.getModeInfo(currentMode);
+    
+    // Update UI element if it exists
+    const cameraInfo = document.getElementById('cameraInfo');
+    if (cameraInfo && modeInfo) 
+    {
+      cameraInfo.textContent = `Camera: ${modeInfo.name}`;
+    }
+
+    // Update track info to include camera controls
+    const trackInfo = document.getElementById('trackInfo');
+    if (trackInfo) 
+    {
+      const currentText = trackInfo.textContent || '';
+      if (!currentText.includes('F1')) 
+      {
+        const modeInfoName = modeInfo ? modeInfo.name : 'Unknown';
+        trackInfo.innerHTML = `
+          ${currentText}<br>
+          <span class="text-xs text-purple-300">F1: Switch Camera (${modeInfoName})</span>
+        `;
+      }
+    }
   }
 
   // ===== UI RENDERING =====
@@ -433,32 +650,54 @@ export class GameCanvas
 
   public mount(_containerId?: string): void 
   {
-    console.log('GameCanvas mounted - Ready for game engine integration');
+    // This is called after the HTML is inserted into the DOM
+    // Babylon.js initialization happens in constructor
+    console.log('🎮 GameCanvas mounted to DOM');
   }
 
   // ===== CLEANUP =====
 
   public dispose(): void 
   {
-    this.isDisposed = true;
-    
-    console.log('GameCanvas disposing...');
+    console.log('🎮 Disposing GameCanvas and managers...');
     
     // Stop render loop
     this.stopRenderLoop();
     
+    // Dispose managers
+    if (this.inputManager)
+    {
+      this.inputManager.dispose();
+    }
+    if (this.cameraManager)
+    {
+      this.cameraManager.dispose();
+    }
+    this.inputManager = null;
+    this.cameraManager = null;
+
     // Dispose Babylon.js resources
-    if (this.scene) 
+    if (this.ambientLight)
+    {
+      this.ambientLight.dispose();
+    }
+    if (this.directionalLight)
+    {
+      this.directionalLight.dispose();
+    }
+    if (this.camera)
+    {
+      this.camera.dispose();
+    }
+    if (this.scene)
     {
       this.scene.dispose();
     }
-    
-    if (this.engine) 
+    if (this.engine)
     {
       this.engine.dispose();
     }
     
-    // Remove event listeners
-    window.removeEventListener('resize', this.handleResize.bind(this));
+    console.log('✅ GameCanvas disposed');
   }
 }
