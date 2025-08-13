@@ -34,7 +34,7 @@ export function renderDefault(component: BaseComponent, headerHtml: string): voi
     if (contentMountAfter) 
     {
         contentMountAfter.setAttribute('data-route-content', 'true');
-        
+        contentMountAfter.className = 'pt-20';
         // Use Layout's renderPageSection like your App.ts does
         const pageContent = layout.renderPageSection(
             'page-content', 
@@ -68,13 +68,6 @@ export function renderGame(component: BaseComponent): void
             </div>
         `;
     }
-
-    // // Mount header
-    // const headerMount = document.querySelector('#game-header-mount');
-    // if (headerMount) 
-    // {
-    //     headerMount.innerHTML = headerHtml;
-    // }
 
     mountComponent(component, '#game-content');
 }

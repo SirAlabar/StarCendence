@@ -227,6 +227,9 @@ export async function navigateTo(path: string): Promise<void>
 
         renderWithLayout(component, route.layout, headerHtml);
 
+        // Scroll to top
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+
         // Setup events after DOM is ready
         requestAnimationFrame(() =>
         {
