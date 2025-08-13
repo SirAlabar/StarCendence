@@ -120,7 +120,7 @@ private setupMesh(): void
   this.rootNode = new TransformNode(`pod_${this.config.id}`, this.scene);
   
   if (meshes.length === 1) {
-    // Single mesh - just use it directly
+    // Single mesh
     this.mesh = meshes[0];
     this.mesh.parent = this.rootNode;
     
@@ -131,9 +131,9 @@ private setupMesh(): void
     this.mesh.rotationQuaternion = null;
     
   } else {
-    // Multiple meshes - merge them into one
+    // Multiple meshes
     import('@babylonjs/core').then(({ Mesh }) => {
-      console.log(`🔄 Merging ${meshes.length} meshes into single object...`);
+      console.log(`🔄 Merging ${meshes.length} meshes...`);
       
       // Reset all mesh transforms first
       meshes.forEach(mesh => {
@@ -143,20 +143,38 @@ private setupMesh(): void
         mesh.rotationQuaternion = null;
       });
       
-      // Cast AbstractMesh[] to Mesh[] for merging
-      const concreteMeshes = meshes.filter(mesh => mesh instanceof Mesh) as any[];
-      
-      // Merge all meshes into one
-      this.mesh = Mesh.MergeMeshes(concreteMeshes, true, true, undefined, false, true);
-      
-      if (this.mesh) {
-        this.mesh.name = `merged_${this.config.id}`;
-        this.mesh.parent = this.rootNode;
-        console.log(`✅ Merged into single mesh: ${this.mesh.name}`);
-      } else {
-        console.warn('Failed to merge meshes, using first mesh');
+      try {
+        // Filter valid meshes
+        const validMeshes = meshes.filter(mesh => {
+          if (!(mesh instanceof Mesh)) return false;
+          const positions = mesh.getVerticesData('position');
+          return positions && positions.length > 0;
+        }) as any[];
+        
+        console.log(`📋 Found ${validMeshes.length} valid meshes for merging`);
+        
+        if (validMeshes.length > 1) {
+          // Use 32-bit indices for large meshes
+          this.mesh = Mesh.MergeMeshes(validMeshes, true, true, undefined, false, false);
+          
+          if (this.mesh) {
+            this.mesh.name = `merged_${this.config.id}`;
+            this.mesh.parent = this.rootNode;
+            console.log(`✅ Successfully merged ${validMeshes.length} meshes`);
+          } else {
+            throw new Error('Merge returned null');
+          }
+        } else {
+          throw new Error('Not enough valid meshes to merge');
+        }
+      } catch (error) {
+        console.warn(`⚠️ Merge failed: ${error}, using parent approach`);
+        // Fallback: parent all meshes to root
+        meshes.forEach(mesh => {
+          mesh.parent = this.rootNode;
+        });
         this.mesh = meshes[0];
-        this.mesh.parent = this.rootNode;
+        console.log(`📎 Parented ${meshes.length} meshes to root node`);
       }
     });
   }
@@ -166,7 +184,7 @@ private setupMesh(): void
   this.rootNode.rotation = Vector3.Zero();
   this.rootNode.scaling = new Vector3(1, 1, 1);
   
-  console.log(`✅ Pod setup complete: ${this.config.name} (merged into single object)`);
+  console.log(`✅ Pod setup complete: ${this.config.name}`);
 }
 
 

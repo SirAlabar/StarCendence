@@ -130,7 +130,7 @@ export class RacerScene
     this.track.position = Vector3.Zero();
     this.track.rotation = Vector3.Zero();
     
-    this.track.scaling = new Vector3(6, 6, 6);
+    this.track.scaling = new Vector3(8, 8, 8);
 
     console.log(`Track positioned: ${this.track.name}`);
     console.log(`Track bounds:`, this.track.getBoundingInfo());
