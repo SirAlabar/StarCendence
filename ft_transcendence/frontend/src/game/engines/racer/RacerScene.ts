@@ -95,7 +95,6 @@ export class RacerScene
           console.log('✅ Track loaded successfully!');
           this.setupTrack();
           this.setupRacingEnvironment();
-          this.positionCameraForRacing();
           
           // Hide loading state
           this.gameCanvas.setLoadingState(false);
@@ -173,33 +172,6 @@ export class RacerScene
     console.log('✅ Racing environment configured (using GameCanvas foundation)');
   }
 
-  // Position camera for racing (uses GameCanvas camera system)
-  private positionCameraForRacing(): void 
-  {
-    if (!this.track) return;
-
-    // Get track bounds to position camera appropriately
-    const boundingInfo = this.track.getBoundingInfo();
-    const trackCenter = boundingInfo.boundingBox.center;
-    const trackSize = boundingInfo.boundingBox.maximum.subtract(boundingInfo.boundingBox.minimum);
-
-    console.log('Track center:', trackCenter);
-    console.log('Track size:', trackSize);
-
-    // Use GameCanvas camera reconfiguration for racing view
-    const cameraDistance = Math.max(trackSize.x, trackSize.z) * 0.8;
-    
-    this.gameCanvas.reconfigureCamera({
-      type: 'arcRotate',
-      target: trackCenter,
-      radius: cameraDistance,
-      alpha: -Math.PI / 2,
-      beta: Math.PI / 4
-    });
-
-    console.log('✅ Camera positioned for racing (using GameCanvas camera system)');
-  }
-
   // Get track information
   public getTrack(): AbstractMesh | null 
   {
@@ -267,6 +239,13 @@ export class RacerScene
   // Dispose resources
   public dispose(): void 
   {
+    console.log('Disposing RacerScene...');
+    
+    if (this.assetManager) 
+    {
+      this.assetManager.dispose();
+    }
+
     this.track = null;
     this.isLoaded = false;
   }

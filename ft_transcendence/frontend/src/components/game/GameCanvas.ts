@@ -3,9 +3,6 @@
 import { 
   Engine, 
   Scene, 
-  ArcRotateCamera, 
-  FreeCamera,
-  UniversalCamera,
   HemisphericLight, 
   DirectionalLight,
   Vector3, 
@@ -18,22 +15,9 @@ import { InputManager, InputCallbacks } from '../../game/managers/InputManager';
 import { CameraManager, CameraMode } from '../../game/managers/CameraManager';
 import { RacerPod } from '../../game/engines/racer/RacerPods';
 
-// Configuration interfaces
-export interface CameraConfig 
-{
-  type: 'arcRotate' | 'free' | 'universal';
-  position?: Vector3;
-  target?: Vector3;
-  radius?: number; // For ArcRotate camera
-  alpha?: number;  // For ArcRotate camera  
-  beta?: number;   // For ArcRotate camera
-}
-
+// Simplified configuration (no camera config - CameraManager handles it)
 export interface GameCanvasConfig 
 {
-  // Camera configuration
-  camera?: CameraConfig;
-  
   // Lighting configuration
   lighting?: 
   {
@@ -68,17 +52,9 @@ export interface GameCanvasConfig
   };
 }
 
-// Default configuration
+// Default configuration (no camera config)
 const DEFAULT_CONFIG: Required<GameCanvasConfig> = 
 {
-  camera: 
-  {
-    type: 'arcRotate',
-    target: Vector3.Zero(),
-    radius: 10,
-    alpha: -Math.PI / 2,
-    beta: Math.PI / 3
-  },
   lighting: 
   {
     ambient: 
@@ -114,7 +90,6 @@ export class GameCanvas
   private canvas: HTMLCanvasElement | null = null;
   private engine: Engine | null = null;
   private scene: Scene | null = null;
-  private camera: Camera | null = null;
   
   // Lighting
   private ambientLight: HemisphericLight | null = null;
@@ -138,12 +113,20 @@ export class GameCanvas
     // Merge provided config with defaults
     this.config = this.mergeConfig(config || {});
     
-    // Get canvas element
-    this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
-    if (!this.canvas) 
+    // Get canvas element with proper type checking
+    const canvasElement = document.getElementById(canvasId);
+    if (!canvasElement) 
     {
       throw new Error(`Canvas element with id '${canvasId}' not found`);
     }
+    
+    // Check if it's actually a canvas element
+    if (!(canvasElement instanceof HTMLCanvasElement)) 
+    {
+      throw new Error(`Element with id '${canvasId}' is not a canvas element`);
+    }
+    
+    this.canvas = canvasElement;
     
     console.log('🎮 GameCanvas constructor initialized');
     this.initializeBabylonJS();
@@ -161,10 +144,7 @@ export class GameCanvas
       // Initialize scene
       this.scene = new Scene(this.engine);
       
-      // Setup camera
-      this.camera = this.setupCamera();
-      
-      // Setup lighting
+      // Setup lighting (cameras handled by CameraManager)
       this.setupLighting();
       
       // Setup performance optimizations
@@ -182,7 +162,6 @@ export class GameCanvas
   private mergeConfig(userConfig: Partial<GameCanvasConfig>): Required<GameCanvasConfig> 
   {
     return {
-      camera: { ...DEFAULT_CONFIG.camera, ...userConfig.camera },
       lighting: {
         ambient: { ...DEFAULT_CONFIG.lighting.ambient, ...userConfig.lighting?.ambient },
         directional: { ...DEFAULT_CONFIG.lighting.directional, ...userConfig.lighting?.directional }
@@ -238,65 +217,6 @@ export class GameCanvas
     {
       this.scene.headphone = true;
     }
-  }
-
-  private setupCamera(): Camera 
-  {
-    if (!this.scene)
-    {
-      throw new Error('Scene not available');
-    }
-    
-    const camConfig = this.config.camera;
-    let camera: Camera;
-
-    switch (camConfig.type) 
-    {
-      case 'free':
-        camera = new FreeCamera('freeCamera', camConfig.position || Vector3.Zero(), this.scene);
-        if (camConfig.target) 
-        {
-          (camera as FreeCamera).setTarget(camConfig.target);
-        }
-        break;
-        
-      case 'universal':
-        camera = new UniversalCamera('universalCamera', camConfig.position || Vector3.Zero(), this.scene);
-        if (camConfig.target) 
-        {
-          (camera as UniversalCamera).setTarget(camConfig.target);
-        }
-        break;
-        
-      case 'arcRotate':
-      default:
-        camera = new ArcRotateCamera(
-          'arcRotateCamera',
-          camConfig.alpha || -Math.PI / 2,
-          camConfig.beta || Math.PI / 3,
-          camConfig.radius || 10,
-          camConfig.target || Vector3.Zero(),
-          this.scene
-        );
-        
-        // Set camera limits for ArcRotate
-        const arcCamera = camera as ArcRotateCamera;
-        arcCamera.lowerRadiusLimit = 3;
-        arcCamera.upperRadiusLimit = 25;
-        arcCamera.lowerBetaLimit = 0.1;
-        arcCamera.upperBetaLimit = Math.PI / 2;
-        
-        // Performance optimizations
-        arcCamera.useBouncingBehavior = false;
-        arcCamera.useAutoRotationBehavior = false;
-        arcCamera.useFramingBehavior = false;
-        break;
-    }
-
-    // Attach camera controls
-    camera.attachControl(this.canvas, true);
-    
-    return camera;
   }
 
   private setupLighting(): void 
@@ -377,7 +297,7 @@ export class GameCanvas
       return;
     }
 
-    // Initialize CameraManager
+    // Initialize CameraManager (creates all cameras)
     this.cameraManager = new CameraManager(this);
     
     // Set player pod if available
@@ -386,7 +306,7 @@ export class GameCanvas
       this.cameraManager.setPlayerPod(this.playerPod);
     }
     
-    // Initialize InputManager with enhanced callbacks
+    // Initialize InputManager with simplified callbacks
     this.inputManager = new InputManager();
     
     const inputCallbacks: InputCallbacks = {
@@ -396,12 +316,7 @@ export class GameCanvas
           this.cameraManager.handleMovement(direction);
         }
       },
-      onMouseLook: (deltaX, deltaY) => {
-        if (this.cameraManager)
-        {
-          this.cameraManager.handleMouseLook(deltaX, deltaY);
-        }
-      },
+      // onMouseLook removed - Babylon.js handles it automatically
       onMouseWheel: (delta) => {
         if (this.cameraManager)
         {
@@ -414,14 +329,8 @@ export class GameCanvas
           this.cameraManager.cycleCameraMode();
         }
         this.updateCameraUI();
-      },
-      onPodMovement: (direction) => {
-        // Alternative pod movement callback (not currently used)
-        if (this.playerPod) 
-        {
-          this.playerPod.move(direction);
-        }
       }
+      // onPodMovement removed - handled by CameraManager.handleMovement
     };
 
     this.inputManager.initialize(this.canvas, inputCallbacks);
@@ -463,11 +372,8 @@ export class GameCanvas
         this.inputManager.update();
       }
       
-      // Update camera system (handles player camera following)
-      if (this.cameraManager)
-      {
-        this.cameraManager.update();
-      }
+      // Camera updates handled automatically by Babylon.js
+      // No manual camera update needed
       
       // Render scene
       if (this.scene)
@@ -485,7 +391,7 @@ export class GameCanvas
     });
 
     this.isRenderLoopRunning = true;
-    console.log('🎮 Enhanced render loop started with pod movement support');
+    console.log('🎮 Enhanced render loop started with Babylon.js camera system');
   }
 
   public stopRenderLoop(): void 
@@ -500,23 +406,6 @@ export class GameCanvas
 
   // ===== CAMERA MANAGEMENT =====
 
-  public reconfigureCamera(newCameraConfig: Partial<CameraConfig>): void 
-  {
-    this.config.camera = { 
-      ...this.config.camera, 
-      ...newCameraConfig
-    };
-    
-    // Dispose old camera
-    if (this.camera)
-    {
-      this.camera.dispose();
-    }
-    
-    // Create new camera
-    this.camera = this.setupCamera();
-  }
-
   public setTrackBounds(bounds: { min: Vector3; max: Vector3; size: Vector3 }): void 
   {
     if (this.cameraManager)
@@ -527,7 +416,11 @@ export class GameCanvas
 
   public getActiveCamera(): Camera | null 
   {
-    return this.camera;
+    if (this.cameraManager) 
+    {
+      return this.cameraManager.getActiveCamera();
+    }
+    return this.scene?.activeCamera || null;
   }
 
   public switchCameraMode(mode: CameraMode): void 
@@ -591,9 +484,10 @@ export class GameCanvas
     return this.canvas;
   }
 
+  // Legacy support - returns CameraManager's active camera
   public getCamera(): Camera | null 
   {
-    return this.camera;
+    return this.getActiveCamera();
   }
 
   // ===== LOADING OVERLAY =====
@@ -664,7 +558,7 @@ export class GameCanvas
     }
 
     const currentMode = this.cameraManager.getCurrentMode();
-    const modeInfo = this.cameraManager.getModeInfo(currentMode);
+    const modeInfo = this.cameraManager.getCameraInfo(currentMode);
     
     // Update UI element if it exists
     const cameraInfo = document.getElementById('cameraInfo');
@@ -701,7 +595,7 @@ export class GameCanvas
       case CameraMode.FREE:
         return 'WASD: Move Camera | Mouse: Look Around | Scroll: Speed';
       case CameraMode.PLAYER:
-        return 'WASD: Move Pod | Mouse: Steer Pod | Scroll: Pod Speed';
+        return 'WASD: Move Pod | Mouse: Camera Control | Scroll: Zoom';
       default:
         return '';
     }
@@ -774,10 +668,6 @@ export class GameCanvas
     if (this.directionalLight)
     {
       this.directionalLight.dispose();
-    }
-    if (this.camera)
-    {
-      this.camera.dispose();
     }
     if (this.scene)
     {
