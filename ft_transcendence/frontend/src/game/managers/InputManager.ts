@@ -1,4 +1,4 @@
-// User input handling
+// User input handling with Pod Movement Support
 
 export interface InputState 
 {
@@ -30,6 +30,7 @@ export interface InputCallbacks
   onMouseLook?: (deltaX: number, deltaY: number) => void;
   onMouseWheel?: (delta: number) => void;
   onCameraSwitch?: () => void;
+  onPodMovement?: (direction: { x: number; y: number; z: number }) => void;
 }
 
 export class InputManager 
@@ -73,7 +74,7 @@ export class InputManager
     this.setupEventListeners();
     this.isActive = true;
     
-    console.log('🎮 InputManager initialized');
+    console.log('🎮 InputManager initialized with pod movement support');
   }
 
   // Setup all event listeners
@@ -241,7 +242,7 @@ export class InputManager
     event.preventDefault();
   }
 
-  // Update movement
+  // Update movement - now supports both camera and pod movement
   public update(): void 
   {
     if (!this.isActive) return;
@@ -259,14 +260,44 @@ export class InputManager
     // Send movement if any key is pressed
     if (direction.x !== 0 || direction.y !== 0 || direction.z !== 0) 
     {
+      // Send to main movement callback (will be routed by CameraManager)
       this.callbacks.onMovement?.(direction);
     }
+  }
+
+  // Direct pod movement callback (alternative method - not currently used)
+  public triggerPodMovement(direction: { x: number; y: number; z: number }): void 
+  {
+    this.callbacks.onPodMovement?.(direction);
   }
 
   // Get current input state
   public getInputState(): Readonly<InputState> 
   {
     return this.inputState;
+  }
+
+  // Check if movement keys are currently pressed
+  public isMovementActive(): boolean 
+  {
+    return this.inputState.forward || this.inputState.backward || 
+           this.inputState.left || this.inputState.right || 
+           this.inputState.up || this.inputState.down;
+  }
+
+  // Get current movement direction
+  public getCurrentMovementDirection(): { x: number; y: number; z: number } 
+  {
+    const direction = { x: 0, y: 0, z: 0 };
+    
+    if (this.inputState.forward) direction.z += this.movementSpeed;
+    if (this.inputState.backward) direction.z -= this.movementSpeed;
+    if (this.inputState.left) direction.x -= this.movementSpeed;
+    if (this.inputState.right) direction.x += this.movementSpeed;
+    if (this.inputState.up) direction.y += this.movementSpeed;
+    if (this.inputState.down) direction.y -= this.movementSpeed;
+    
+    return direction;
   }
 
   // Settings
@@ -278,6 +309,16 @@ export class InputManager
   public setMouseSensitivity(sensitivity: number): void 
   {
     this.mouseSensitivity = sensitivity;
+  }
+
+  public getMovementSpeed(): number 
+  {
+    return this.movementSpeed;
+  }
+
+  public getMouseSensitivity(): number 
+  {
+    return this.mouseSensitivity;
   }
 
   // Enable/disable input handling

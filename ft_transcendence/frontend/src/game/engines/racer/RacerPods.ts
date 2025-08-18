@@ -1,4 +1,4 @@
-// Simple Pod Entity
+// Simple Pod Entity with Movement
 
 import { 
   Scene,
@@ -17,6 +17,13 @@ export class RacerPod
   private rootNode: TransformNode | null = null;
   private mesh: AbstractMesh | null = null;
   private isLoaded: boolean = false;
+  
+  // Movement state
+  private position: Vector3 = Vector3.Zero();
+  private rotation: Vector3 = Vector3.Zero();
+  private velocity: Vector3 = Vector3.Zero();
+  private moveSpeed: number = 0.5;
+  private rotationSpeed: number = 0.03;
   
   // Callbacks
   public onLoaded?: (pod: RacerPod) => void;
@@ -174,7 +181,7 @@ private setupMesh(): void
           mesh.parent = this.rootNode;
         });
         this.mesh = meshes[0];
-        console.log(`📎 Parented ${meshes.length} meshes to root node`);
+        console.log(`🔗 Parented ${meshes.length} meshes to root node`);
       }
     });
   }
@@ -184,10 +191,12 @@ private setupMesh(): void
   this.rootNode.rotation = Vector3.Zero();
   this.rootNode.scaling = new Vector3(1, 1, 1);
   
+  // Initialize position state
+  this.position = this.rootNode.position.clone();
+  this.rotation = this.rootNode.rotation.clone();
+  
   console.log(`✅ Pod setup complete: ${this.config.name}`);
 }
-
-
 
   private createFallbackPod(): void 
   {
@@ -207,6 +216,10 @@ private setupMesh(): void
       material.diffuseColor = new Color3(0.5, 0.3, 0.8); // Purple
       this.mesh.material = material;
       
+      // Initialize position state
+      this.position = this.rootNode.position.clone();
+      this.rotation = this.rootNode.rotation.clone();
+      
       this.isLoaded = true;
       if (this.onLoaded) 
       {
@@ -215,20 +228,146 @@ private setupMesh(): void
     });
   }
 
-  // Set pod position
+  // ===== MOVEMENT METHODS =====
+
+  // Move pod based on input direction
+  public move(direction: { x: number; y: number; z: number }): void 
+  {
+    if (!this.rootNode) return;
+
+    // Create movement vector
+    const moveVector = new Vector3(direction.x, direction.y, direction.z);
+    moveVector.scaleInPlace(this.moveSpeed);
+
+    // Apply movement relative to pod's current rotation
+    const rotationMatrix = this.rootNode.getWorldMatrix().getRotationMatrix();
+    const localMovement = Vector3.TransformCoordinates(moveVector, rotationMatrix);
+
+    // Update position
+    this.position.addInPlace(localMovement);
+    this.rootNode.position = this.position.clone();
+
+    // Update velocity for future physics integration
+    this.velocity = localMovement;
+  }
+
+  // Rotate pod based on input
+  public rotate(deltaX: number, deltaY: number): void 
+  {
+    if (!this.rootNode) return;
+
+    // Apply rotation
+    this.rotation.y += deltaX * this.rotationSpeed; // Yaw (left/right)
+    this.rotation.x += deltaY * this.rotationSpeed; // Pitch (up/down)
+
+    // Clamp pitch rotation
+    this.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, this.rotation.x));
+
+    // Apply to root node
+    this.rootNode.rotation = this.rotation.clone();
+  }
+
+  // Set pod position directly
   public setPosition(position: Vector3): void 
   {
+    this.position = position.clone();
     if (this.rootNode) 
     {
-      this.rootNode.position = position.clone();
+      this.rootNode.position = this.position.clone();
+    }
+  }
+
+  // Set pod rotation directly
+  public setRotation(rotation: Vector3): void 
+  {
+    this.rotation = rotation.clone();
+    if (this.rootNode) 
+    {
+      this.rootNode.rotation = this.rotation.clone();
     }
   }
 
   // Get pod position
   public getPosition(): Vector3 
   {
-    return this.rootNode?.position.clone() || Vector3.Zero();
+    return this.position.clone();
   }
+
+  // Get pod rotation
+  public getRotation(): Vector3 
+  {
+    return this.rotation.clone();
+  }
+
+  // Get forward direction vector
+  public getForwardDirection(): Vector3 
+  {
+    if (!this.rootNode) return new Vector3(0, 0, -1);
+    
+    // Get forward direction based on current rotation
+    const forward = new Vector3(0, 0, -1);
+    const rotationMatrix = this.rootNode.getWorldMatrix().getRotationMatrix();
+    return Vector3.TransformNormal(forward, rotationMatrix).normalize();
+  }
+
+  // Get camera target position (behind the pod for 3rd person view)
+  public getCameraTargetPosition(): Vector3 
+  {
+    if (!this.rootNode) return Vector3.Zero();
+
+    const forward = this.getForwardDirection();
+    const backward = forward.scale(-1);
+    
+    // Position camera behind and above the pod
+    const cameraOffset = backward.scale(8).add(new Vector3(0, 3, 0));
+    return this.position.add(cameraOffset);
+  }
+
+  // Get camera look-at position (slightly ahead of pod)
+  public getCameraLookAtPosition(): Vector3 
+  {
+    if (!this.rootNode) return Vector3.Zero();
+
+    const forward = this.getForwardDirection();
+    // Look slightly ahead of the pod
+    return this.position.add(forward.scale(2)).add(new Vector3(0, 1, 0));
+  }
+
+  // Get current velocity
+  public getVelocity(): Vector3 
+  {
+    return this.velocity.clone();
+  }
+
+  // Set velocity directly (for future physics integration)
+  public setVelocity(velocity: Vector3): void 
+  {
+    this.velocity = velocity.clone();
+  }
+
+  // ===== MOVEMENT SETTINGS =====
+
+  public setMoveSpeed(speed: number): void 
+  {
+    this.moveSpeed = Math.max(0.1, Math.min(2.0, speed));
+  }
+
+  public setRotationSpeed(speed: number): void 
+  {
+    this.rotationSpeed = Math.max(0.01, Math.min(0.1, speed));
+  }
+
+  public getMoveSpeed(): number 
+  {
+    return this.moveSpeed;
+  }
+
+  public getRotationSpeed(): number 
+  {
+    return this.rotationSpeed;
+  }
+
+  // ===== EXISTING METHODS =====
 
   // Get root node for camera targeting
   public getRootNode(): TransformNode | null 

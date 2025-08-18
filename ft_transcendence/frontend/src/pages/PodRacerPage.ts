@@ -237,50 +237,178 @@ export default class PodRacerPage extends BaseComponent
         }
     }
 
-    private async loadPod(): Promise<void> 
+    // private async loadPod(): Promise<void> 
+    // {
+    //     if (!this.gameCanvas || !this.racerScene) 
+    //     {
+    //         return;
+    //     }
+
+    //     try 
+    //     {
+    //         // Remove old pod if exists
+    //         if (this.playerPod) 
+    //         {
+    //             this.playerPod.dispose();
+    //             this.playerPod = null;
+    //         }
+
+    //         // Create new pod with selected config
+    //         this.playerPod = new RacerPod(this.gameCanvas.getScene()!, this.selectedPodConfig);
+            
+    //         // Set up the onLoaded callback loading
+    //         this.playerPod.onLoaded = (pod) => {
+    //             console.log(`🏁 Pod loaded callback: ${pod.getConfig().name}`);
+                
+    //             // Position at track start
+    //             const startPos = this.racerScene!.getStartingPositions(1)[0];
+    //             if (startPos) 
+    //             {
+    //                 pod.setPosition(startPos);
+    //                 console.log(`🏁 Pod positioned at: ${startPos.toString()}`);
+    //             }
+
+    //             // connect to GameCanvas
+    //             this.gameCanvas!.setPlayerPod(pod);
+    //             this.gameCanvas!.enablePlayerMode();
+                
+    //             console.log(`✅ Pod connected and player mode enabled!`);
+    //         };
+            
+    //         // Load the model
+    //         await this.playerPod.loadModel();
+            
+    //     } 
+    //     catch (error) 
+    //     {
+    //         console.error('❌ Pod loading failed:', error);
+    //     }
+    // }
+    // Enhanced loadPod() method with detailed debugging
+private async loadPod(): Promise<void> 
+{
+    console.log('🔍 DEBUG: Starting loadPod() method');
+    
+    if (!this.gameCanvas || !this.racerScene) 
     {
-        if (!this.gameCanvas || !this.racerScene) 
+        console.error('🔍 DEBUG: Missing dependencies - gameCanvas:', !!this.gameCanvas, 'racerScene:', !!this.racerScene);
+        return;
+    }
+
+    try 
+    {
+        // Remove old pod if exists
+        if (this.playerPod) 
         {
-            return;
+            console.log('🔍 DEBUG: Disposing existing pod');
+            this.playerPod.dispose();
+            this.playerPod = null;
         }
 
-        try 
-        {
-            // Remove old pod if exists
-            if (this.playerPod) 
-            {
-                this.playerPod.dispose();
-                this.playerPod = null;
-            }
-
-            // Create new pod with selected config
-            this.playerPod = new RacerPod(this.gameCanvas.getScene()!, this.selectedPodConfig);
-            
-            // Load the model
-            await this.playerPod.loadModel();
+        console.log('🔍 DEBUG: Creating new pod with config:', this.selectedPodConfig.name);
+        
+        // Create new pod with selected config
+        this.playerPod = new RacerPod(this.gameCanvas.getScene()!, this.selectedPodConfig);
+        
+        console.log('🔍 DEBUG: Pod instance created:', !!this.playerPod);
+        
+        // Set up the onLoaded callback BEFORE loading
+        this.playerPod.onLoaded = (pod) => {
+            console.log('🔍 DEBUG: Pod onLoaded callback triggered');
+            console.log('🔍 DEBUG: Pod ready state:', pod.isReady());
+            console.log('🔍 DEBUG: Pod root node:', !!pod.getRootNode());
             
             // Position at track start
-            const startPos = this.racerScene.getStartingPositions(1)[0];
+            const startPos = this.racerScene!.getStartingPositions(1)[0];
+            console.log('🔍 DEBUG: Starting position:', startPos);
+            
             if (startPos) 
             {
-                this.playerPod.setPosition(startPos);
+                pod.setPosition(startPos);
+                console.log('🔍 DEBUG: Pod positioned at:', pod.getPosition());
             }
 
-            // Focus camera on pod
-            const camera = this.gameCanvas.getCamera();
-            if (camera && this.playerPod.getRootNode()) 
-            {
-                (camera as any).setTarget(this.playerPod.getPosition());
+            // Debug GameCanvas state
+            console.log('🔍 DEBUG: GameCanvas state check:');
+            console.log('  - GameCanvas exists:', !!this.gameCanvas);
+            console.log('  - Current camera mode:', this.gameCanvas?.getCurrentCameraMode());
+            console.log('  - Active camera:', !!this.gameCanvas?.getActiveCamera());
+            console.log('  - Scene exists:', !!this.gameCanvas?.getScene());
+
+            // Check CameraManager state
+            const cameraManager = (this.gameCanvas as any).cameraManager;
+            console.log('🔍 DEBUG: CameraManager state:');
+            console.log('  - CameraManager exists:', !!cameraManager);
+            if (cameraManager) {
+                console.log('  - Current mode:', cameraManager.getCurrentMode());
+                console.log('  - Available modes:', cameraManager.getAvailableModes());
             }
 
-            console.log(`✅ Pod loaded: ${this.selectedPodConfig.name}`);
+            // NOW connect to GameCanvas AFTER everything is ready
+            console.log('🔍 DEBUG: Connecting pod to GameCanvas...');
             
-        } 
-        catch (error) 
-        {
-            console.error('❌ Pod loading failed:', error);
+            try {
+                this.gameCanvas!.setPlayerPod(pod);
+                console.log('🔍 DEBUG: setPlayerPod() completed successfully');
+                
+                // Check if pod was set
+                const playerPod = this.gameCanvas!.getPlayerPod();
+                console.log('🔍 DEBUG: GameCanvas player pod after set:', !!playerPod);
+                console.log('🔍 DEBUG: Pod config name:', playerPod?.getConfig().name);
+                
+                this.gameCanvas!.enablePlayerMode();
+                console.log('🔍 DEBUG: enablePlayerMode() completed successfully');
+                
+                // Final state check
+                console.log('🔍 DEBUG: Final camera mode:', this.gameCanvas?.getCurrentCameraMode());
+                
+                console.log('✅ Pod connected and player mode enabled!');
+                
+            } catch (error) {
+                console.error('🔍 DEBUG: Error during pod connection:', error);
+            }
+        };
+        
+        this.playerPod.onLoadingError = (error) => {
+            console.error('🔍 DEBUG: Pod loading error:', error);
+        };
+        
+        console.log('🔍 DEBUG: Starting pod model loading...');
+        
+        // Load the model (this will trigger onLoaded when complete)
+        await this.playerPod.loadModel();
+        
+        console.log('🔍 DEBUG: loadModel() completed (but onLoaded callback may still be pending)');
+        
+    } 
+    catch (error) 
+    {
+        console.error('🔍 DEBUG: Exception in loadPod():', error);
+    }
+}
+
+    // Also add this debugging method to your PodRacerPage class:
+    public debugGameState(): void 
+    {
+        console.log('🔍 DEBUG: Complete Game State:');
+        console.log('  - this.gameCanvas:', !!this.gameCanvas);
+        console.log('  - this.racerScene:', !!this.racerScene);
+        console.log('  - this.playerPod:', !!this.playerPod);
+        console.log('  - this.selectedPodConfig:', this.selectedPodConfig.name);
+        
+        if (this.gameCanvas) {
+            console.log('  - GameCanvas player pod:', !!this.gameCanvas.getPlayerPod());
+            console.log('  - GameCanvas camera mode:', this.gameCanvas.getCurrentCameraMode());
+            console.log('  - GameCanvas active camera:', !!this.gameCanvas.getActiveCamera());
+        }
+        
+        if (this.playerPod) {
+            console.log('  - Player pod ready:', this.playerPod.isReady());
+            console.log('  - Player pod position:', this.playerPod.getPosition());
+            console.log('  - Player pod root node:', !!this.playerPod.getRootNode());
         }
     }
+
 
     // ===== NEW CAMERA MANAGEMENT METHODS =====
 

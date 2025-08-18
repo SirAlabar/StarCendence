@@ -1,4 +1,4 @@
-// Complete 3D Rendering Component
+// Complete 3D Rendering Component with Player Pod Integration
 
 import { 
   Engine, 
@@ -16,6 +16,7 @@ import {
 // Import the managers
 import { InputManager, InputCallbacks } from '../../game/managers/InputManager';
 import { CameraManager, CameraMode } from '../../game/managers/CameraManager';
+import { RacerPod } from '../../game/engines/racer/RacerPods';
 
 // Configuration interfaces
 export interface CameraConfig 
@@ -125,6 +126,9 @@ export class GameCanvas
   // Managers
   private inputManager: InputManager | null = null;
   private cameraManager: CameraManager | null = null;
+  
+  // Player pod integration
+  private playerPod: RacerPod | null = null;
   
   // State
   private isRenderLoopRunning: boolean = false;
@@ -328,6 +332,41 @@ export class GameCanvas
     }
   }
 
+  // ===== PLAYER POD INTEGRATION =====
+
+  // Set the player pod for camera following and movement
+  public setPlayerPod(pod: RacerPod): void 
+  {
+    this.playerPod = pod;
+    
+    // Connect pod to camera manager
+    if (this.cameraManager) 
+    {
+      this.cameraManager.setPlayerPod(pod);
+    }
+    
+    console.log(`🎮 Player pod set: ${pod.getConfig().name}`);
+  }
+
+  // Get the current player pod
+  public getPlayerPod(): RacerPod | null 
+  {
+    return this.playerPod;
+  }
+
+  // Remove player pod
+  public clearPlayerPod(): void 
+  {
+    this.playerPod = null;
+    
+    if (this.cameraManager) 
+    {
+      this.cameraManager.setPlayerPod(null);
+    }
+    
+    console.log('🎮 Player pod cleared');
+  }
+
   // ===== MANAGER INTEGRATION =====
 
   public initializeManagers(developmentMode: boolean = false): void 
@@ -341,7 +380,13 @@ export class GameCanvas
     // Initialize CameraManager
     this.cameraManager = new CameraManager(this);
     
-    // Initialize InputManager with callbacks
+    // Set player pod if available
+    if (this.playerPod) 
+    {
+      this.cameraManager.setPlayerPod(this.playerPod);
+    }
+    
+    // Initialize InputManager with enhanced callbacks
     this.inputManager = new InputManager();
     
     const inputCallbacks: InputCallbacks = {
@@ -369,6 +414,13 @@ export class GameCanvas
           this.cameraManager.cycleCameraMode();
         }
         this.updateCameraUI();
+      },
+      onPodMovement: (direction) => {
+        // Alternative pod movement callback (not currently used)
+        if (this.playerPod) 
+        {
+          this.playerPod.move(direction);
+        }
       }
     };
 
@@ -411,6 +463,12 @@ export class GameCanvas
         this.inputManager.update();
       }
       
+      // Update camera system (handles player camera following)
+      if (this.cameraManager)
+      {
+        this.cameraManager.update();
+      }
+      
       // Render scene
       if (this.scene)
       {
@@ -427,7 +485,7 @@ export class GameCanvas
     });
 
     this.isRenderLoopRunning = true;
-    console.log('🎮 Enhanced render loop started with input updates');
+    console.log('🎮 Enhanced render loop started with pod movement support');
   }
 
   public stopRenderLoop(): void 
@@ -503,6 +561,17 @@ export class GameCanvas
     
     this.updateCameraUI();
     console.log(`🎮 Development mode: ${enabled ? 'ON' : 'OFF'}`);
+  }
+
+  // Switch to player camera mode
+  public enablePlayerMode(): void 
+  {
+    if (this.cameraManager) 
+    {
+      this.cameraManager.switchToMode(CameraMode.PLAYER);
+    }
+    this.updateCameraUI();
+    console.log('🎮 Player camera mode enabled');
   }
 
   // ===== SCENE ACCESS =====
@@ -612,11 +681,29 @@ export class GameCanvas
       if (!currentText.includes('F1')) 
       {
         const modeInfoName = modeInfo ? modeInfo.name : 'Unknown';
+        const controlsText = this.getControlsText(currentMode);
+        
         trackInfo.innerHTML = `
           ${currentText}<br>
-          <span class="text-xs text-purple-300">F1: Switch Camera (${modeInfoName})</span>
+          <span class="text-xs text-purple-300">F1: Switch Camera (${modeInfoName})</span><br>
+          <span class="text-xs text-blue-300">${controlsText}</span>
         `;
       }
+    }
+  }
+
+  private getControlsText(mode: CameraMode): string 
+  {
+    switch (mode) 
+    {
+      case CameraMode.RACING:
+        return 'Mouse: Rotate View | Scroll: Zoom';
+      case CameraMode.FREE:
+        return 'WASD: Move Camera | Mouse: Look Around | Scroll: Speed';
+      case CameraMode.PLAYER:
+        return 'WASD: Move Pod | Mouse: Steer Pod | Scroll: Pod Speed';
+      default:
+        return '';
     }
   }
 
@@ -663,6 +750,9 @@ export class GameCanvas
     
     // Stop render loop
     this.stopRenderLoop();
+    
+    // Clear player pod
+    this.clearPlayerPod();
     
     // Dispose managers
     if (this.inputManager)
