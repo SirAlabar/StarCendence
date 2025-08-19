@@ -34,7 +34,7 @@ export function renderDefault(component: BaseComponent, headerHtml: string): voi
     if (contentMountAfter) 
     {
         contentMountAfter.setAttribute('data-route-content', 'true');
-        
+        contentMountAfter.className = 'pt-20';
         // Use Layout's renderPageSection like your App.ts does
         const pageContent = layout.renderPageSection(
             'page-content', 
@@ -52,7 +52,7 @@ export function renderDefault(component: BaseComponent, headerHtml: string): voi
 }
 
 // Render game layout (fullscreen)
-export function renderGame(component: BaseComponent, headerHtml: string): void 
+export function renderGame(component: BaseComponent): void 
 {
     const app = document.querySelector('#app')!;
     
@@ -62,19 +62,11 @@ export function renderGame(component: BaseComponent, headerHtml: string): void
         // Create custom game layout (fullscreen)
         app.innerHTML = `
             <div class="h-screen overflow-hidden bg-black" data-route-content="true">
-                <div id="game-header-mount"></div>
                 <main class="h-full">
                     <div id="game-content" class="h-full"></div>
                 </main>
             </div>
         `;
-    }
-
-    // Mount header
-    const headerMount = document.querySelector('#game-header-mount');
-    if (headerMount) 
-    {
-        headerMount.innerHTML = headerHtml;
     }
 
     mountComponent(component, '#game-content');

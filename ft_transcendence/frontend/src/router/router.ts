@@ -227,6 +227,9 @@ export async function navigateTo(path: string): Promise<void>
 
         renderWithLayout(component, route.layout, headerHtml);
 
+        // Scroll to top
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+
         // Setup events after DOM is ready
         requestAnimationFrame(() =>
         {
@@ -255,7 +258,7 @@ function renderWithLayout(component: any, layoutType: string, headerHtml: string
     switch (layoutType)
     {
         case 'game':
-            renderGame(component, headerHtml);
+            renderGame(component);
             break;
         case 'auth':
             renderAuth(component, headerHtml);
@@ -273,6 +276,10 @@ function updateActiveNavLinks(): void
     document.querySelectorAll('[data-link]').forEach(link =>
     {
         const href = link.getAttribute('href');
+        if (!href)
+        {
+            return;
+        }
         if (href === currentPath)
         {
             link.classList.add('active');
@@ -288,9 +295,21 @@ function updateActiveNavLinks(): void
 function handleLinkClick(e: Event): void
 {
     const target = e.target as HTMLElement;
+    if (!target)
+    {
+        return;
+    }
 
     const link = target?.closest('a') as HTMLAnchorElement;
+    if (!link)
+    {
+        return;
+    }
     const href = link.getAttribute('href');
+    if (!href)
+    {
+        return;
+    }
     if (link.hasAttribute("data-link"))
     {
         e.preventDefault();
@@ -326,6 +345,11 @@ function handlePopState(_e: PopStateEvent): void
 // Initialize router
 export function initRouter(): void
 {
+    if (document.readyState === 'loading') 
+    {
+        document.addEventListener('DOMContentLoaded', () => initRouter());
+        return;
+    }
     // Prevent double initialization
     if (routerState.isInitialized)
     {
