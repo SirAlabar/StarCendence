@@ -1,24 +1,28 @@
-// User input handling with Pod Movement Support
+import { Vector3, FreeCamera } from '@babylonjs/core';
+import { RacerPod } from '../engines/racer/RacerPods';
+
+export enum CameraMode 
+{
+  RACING = 'racing',
+  FREE = 'free', 
+  PLAYER = 'player'
+}
 
 export interface InputState 
 {
-  // Movement keys
-  forward: boolean;    // W
-  backward: boolean;   // S
-  left: boolean;       // A
-  right: boolean;      // D
-  up: boolean;         // Space
-  down: boolean;       // Shift
+  forward: boolean;
+  backward: boolean;
+  left: boolean;
+  right: boolean;
+  up: boolean;
+  down: boolean;
   
-  // Camera controls
   mouseDeltaX: number;
   mouseDeltaY: number;
   mouseWheel: number;
   
-  // Camera switching
-  cameraSwitchPressed: boolean; // F1 key
+  cameraSwitchPressed: boolean;
   
-  // Mouse state
   isMouseDown: boolean;
   mouseX: number;
   mouseY: number;
@@ -26,11 +30,8 @@ export interface InputState
 
 export interface InputCallbacks 
 {
-  onMovement?: (direction: { x: number; y: number; z: number }) => void;
-  onMouseLook?: (deltaX: number, deltaY: number) => void;
   onMouseWheel?: (delta: number) => void;
   onCameraSwitch?: () => void;
-  onPodMovement?: (direction: { x: number; y: number; z: number }) => void;
 }
 
 export class InputManager 
@@ -40,9 +41,12 @@ export class InputManager
   private canvas: HTMLCanvasElement | null = null;
   private isActive: boolean = false;
   
-  // Movement speed settings
   private movementSpeed: number = 0.5;
   private mouseSensitivity: number = 0.002;
+  
+  private currentCameraMode: CameraMode = CameraMode.RACING;
+  private playerPod: RacerPod | null = null;
+  private freeCamera: FreeCamera | null = null;
   
   constructor() 
   {
@@ -66,7 +70,6 @@ export class InputManager
     this.callbacks = {};
   }
 
-  // Initialize input system
   public initialize(canvas: HTMLCanvasElement, callbacks: InputCallbacks): void 
   {
     this.canvas = canvas;
@@ -74,40 +77,54 @@ export class InputManager
     this.setupEventListeners();
     this.isActive = true;
     
-    console.log('🎮 InputManager initialized with pod movement support');
+    console.log('InputManager initialized with direct control');
   }
 
-  // Setup all event listeners
+  public setCameraMode(mode: CameraMode): void 
+  {
+    this.currentCameraMode = mode;
+  }
+
+  public setPlayerPod(pod: RacerPod | null): void 
+  {
+    this.playerPod = pod;
+  }
+
+  public setFreeCamera(camera: FreeCamera | null): void 
+  {
+    this.freeCamera = camera;
+  }
+
   private setupEventListeners(): void 
   {
-    if (!this.canvas) return;
+    if (!this.canvas) 
+    {
+      return;
+    }
 
-    // Keyboard events
     document.addEventListener('keydown', this.onKeyDown.bind(this));
     document.addEventListener('keyup', this.onKeyUp.bind(this));
     
-    // Mouse events
     this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
     this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
     this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
     this.canvas.addEventListener('wheel', this.onMouseWheel.bind(this));
     
-    // Prevent context menu on right click
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     
-    // Focus canvas for keyboard input
     this.canvas.tabIndex = 1;
     this.canvas.focus();
   }
 
-  // Keyboard event handlers
   private onKeyDown(event: KeyboardEvent): void 
   {
-    if (!this.isActive) return;
+    if (!this.isActive) 
+    {
+      return;
+    }
     
     switch (event.code) 
     {
-      // Movement keys
       case 'KeyW':
         this.inputState.forward = true;
         break;
@@ -129,7 +146,6 @@ export class InputManager
         this.inputState.down = true;
         break;
         
-      // Camera switch
       case 'F1':
         if (!this.inputState.cameraSwitchPressed) 
         {
@@ -143,7 +159,10 @@ export class InputManager
 
   private onKeyUp(event: KeyboardEvent): void 
   {
-    if (!this.isActive) return;
+    if (!this.isActive) 
+    {
+      return;
+    }
     
     switch (event.code) 
     {
@@ -166,88 +185,80 @@ export class InputManager
       case 'ShiftRight':
         this.inputState.down = false;
         break;
+        
       case 'F1':
         this.inputState.cameraSwitchPressed = false;
         break;
     }
   }
 
-  // Mouse event handlers
-  private onMouseDown(event: MouseEvent): void 
+  private onMouseDown(_event: MouseEvent): void 
   {
-    if (!this.isActive) return;
+    if (!this.isActive) 
+    {
+      return;
+    }
     
     this.inputState.isMouseDown = true;
-    this.inputState.mouseX = event.clientX;
-    this.inputState.mouseY = event.clientY;
-    
-    // Request pointer lock for better mouse control
-    if (event.button === 0) 
-    { // Left click
-      this.canvas?.requestPointerLock();
-    }
+    this.inputState.mouseX = _event.clientX;
+    this.inputState.mouseY = _event.clientY;
   }
 
   private onMouseUp(_event: MouseEvent): void 
   {
-    if (!this.isActive) return;
+    if (!this.isActive) 
+    {
+      return;
+    }
     
     this.inputState.isMouseDown = false;
-    
-    // Exit pointer lock
-    if (document.pointerLockElement === this.canvas) 
-    {
-      document.exitPointerLock();
-    }
   }
 
-  private onMouseMove(event: MouseEvent): void 
+  private onMouseMove(_event: MouseEvent): void 
   {
-    if (!this.isActive) return;
-    
-    let deltaX = 0;
-    let deltaY = 0;
-    
-    // Use movementX/Y if in pointer lock, otherwise calculate delta
-    if (document.pointerLockElement === this.canvas) 
+    if (!this.isActive) 
     {
-      deltaX = event.movementX || 0;
-      deltaY = event.movementY || 0;
-    } 
-    else if (this.inputState.isMouseDown) 
-    {
-      deltaX = event.clientX - this.inputState.mouseX;
-      deltaY = event.clientY - this.inputState.mouseY;
-      this.inputState.mouseX = event.clientX;
-      this.inputState.mouseY = event.clientY;
+      return;
     }
     
-    if (deltaX !== 0 || deltaY !== 0) 
-    {
-      this.inputState.mouseDeltaX = deltaX * this.mouseSensitivity;
-      this.inputState.mouseDeltaY = deltaY * this.mouseSensitivity;
-      
-      this.callbacks.onMouseLook?.(this.inputState.mouseDeltaX, this.inputState.mouseDeltaY);
-    }
+    this.inputState.mouseDeltaX = _event.movementX || (_event.clientX - this.inputState.mouseX);
+    this.inputState.mouseDeltaY = _event.movementY || (_event.clientY - this.inputState.mouseY);
+    
+    this.inputState.mouseX = _event.clientX;
+    this.inputState.mouseY = _event.clientY;
   }
 
   private onMouseWheel(event: WheelEvent): void 
   {
-    if (!this.isActive) return;
+    if (!this.isActive) 
+    {
+      return;
+    }
     
     const delta = event.deltaY > 0 ? 1 : -1;
     this.inputState.mouseWheel = delta;
     
-    this.callbacks.onMouseWheel?.(delta);
+    if (this.currentCameraMode === CameraMode.FREE && this.freeCamera) 
+    {
+      const forward = this.freeCamera.getDirection(new Vector3(0, 0, 1));
+      const movement = forward.scale(-delta * 2);
+      this.freeCamera.position.addInPlace(movement);
+    } 
+    else 
+    {
+      this.callbacks.onMouseWheel?.(delta);
+    }
+    
     event.preventDefault();
   }
 
-  // Update movement - now supports both camera and pod movement
   public update(): void 
   {
-    if (!this.isActive) return;
+    if (!this.isActive) 
+    {
+      return;
+    }
     
-    // Calculate movement direction
     const direction = { x: 0, y: 0, z: 0 };
     
     if (this.inputState.forward) direction.z += this.movementSpeed;
@@ -257,27 +268,40 @@ export class InputManager
     if (this.inputState.up) direction.y += this.movementSpeed;
     if (this.inputState.down) direction.y -= this.movementSpeed;
     
-    // Send movement if any key is pressed
     if (direction.x !== 0 || direction.y !== 0 || direction.z !== 0) 
     {
-      // Send to main movement callback (will be routed by CameraManager)
-      this.callbacks.onMovement?.(direction);
+      this.handleMovement(direction);
     }
   }
 
-  // Direct pod movement callback (alternative method - not currently used)
-  public triggerPodMovement(direction: { x: number; y: number; z: number }): void 
+  private handleMovement(direction: { x: number; y: number; z: number }): void 
   {
-    this.callbacks.onPodMovement?.(direction);
+    if (this.currentCameraMode === CameraMode.PLAYER && this.playerPod) 
+    {
+      this.playerPod.move(direction);
+    }
+    else if (this.currentCameraMode === CameraMode.FREE && this.freeCamera) 
+    {
+      const moveVector = new Vector3(direction.x, direction.y, direction.z);
+      moveVector.scaleInPlace(0.5);
+      
+      const forward = this.freeCamera.getDirection(new Vector3(0, 0, 1));
+      const right = this.freeCamera.getDirection(new Vector3(1, 0, 0));
+      const up = Vector3.Up();
+      
+      const movement = forward.scale(moveVector.z)
+        .add(right.scale(moveVector.x))
+        .add(up.scale(moveVector.y));
+      
+      this.freeCamera.position.addInPlace(movement);
+    }
   }
 
-  // Get current input state
   public getInputState(): Readonly<InputState> 
   {
     return this.inputState;
   }
 
-  // Check if movement keys are currently pressed
   public isMovementActive(): boolean 
   {
     return this.inputState.forward || this.inputState.backward || 
@@ -285,7 +309,6 @@ export class InputManager
            this.inputState.up || this.inputState.down;
   }
 
-  // Get current movement direction
   public getCurrentMovementDirection(): { x: number; y: number; z: number } 
   {
     const direction = { x: 0, y: 0, z: 0 };
@@ -300,7 +323,6 @@ export class InputManager
     return direction;
   }
 
-  // Settings
   public setMovementSpeed(speed: number): void 
   {
     this.movementSpeed = speed;
@@ -321,14 +343,12 @@ export class InputManager
     return this.mouseSensitivity;
   }
 
-  // Enable/disable input handling
   public setActive(active: boolean): void 
   {
     this.isActive = active;
     
     if (!active) 
     {
-      // Reset all input states
       this.resetInputState();
     }
   }
@@ -345,16 +365,14 @@ export class InputManager
     this.inputState.cameraSwitchPressed = false;
   }
 
-  // Cleanup
   public dispose(): void 
   {
-    console.log('🎮 Disposing InputManager...');
+    console.log('Disposing InputManager...');
     
     this.isActive = false;
     
     if (this.canvas) 
     {
-      // Remove event listeners
       document.removeEventListener('keydown', this.onKeyDown.bind(this));
       document.removeEventListener('keyup', this.onKeyUp.bind(this));
       
@@ -364,13 +382,14 @@ export class InputManager
       this.canvas.removeEventListener('wheel', this.onMouseWheel.bind(this));
     }
     
-    // Exit pointer lock if active
     if (document.pointerLockElement === this.canvas) 
     {
       document.exitPointerLock();
     }
     
     this.canvas = null;
+    this.playerPod = null;
+    this.freeCamera = null;
     this.resetInputState();
   }
 }

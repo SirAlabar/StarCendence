@@ -1,5 +1,3 @@
-// Racing Scene Manager - Loads and manages racing environment
-
 import { 
   Scene,
   AbstractMesh,
@@ -8,7 +6,7 @@ import {
 } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
 import { AssetManager } from '../../managers/AssetManager';
-import { GameCanvas } from '../../../components/game/GameCanvas';
+import { GameCanvas } from './GameCanvas';
 
 export interface RacerSceneConfig 
 {
@@ -20,7 +18,6 @@ export interface RacerSceneConfig
   fogDensity?: number;
 }
 
-// Default configuration for Polar Pass
 const POLAR_PASS_CONFIG: RacerSceneConfig = {
   trackId: 'polar_pass',
   trackPath: '/assets/models/racing_tracks/',
@@ -39,7 +36,6 @@ export class RacerScene
   private track: AbstractMesh | null = null;
   private isLoaded: boolean = false;
 
-  // Loading callbacks
   public onTrackLoaded?: (track: AbstractMesh) => void;
   public onLoadingProgress?: (percentage: number, asset: string) => void;
   public onLoadingComplete?: () => void;
@@ -60,7 +56,6 @@ export class RacerScene
     console.log(`RacerScene initialized - Track: ${config.trackId}`);
   }
 
-  // Load the racing track and set up environment
   public async loadTrack(): Promise<void> 
   {
     if (this.isLoaded) 
@@ -71,10 +66,6 @@ export class RacerScene
 
     console.log(`Loading racing track: ${this.config.trackId}`);
 
-    // Show loading state on GameCanvas
-    this.gameCanvas.setLoadingState(true, `Loading ${this.config.trackId}...`);
-
-    // Configure asset loading
     this.assetManager
       .addMeshAsset({
         id: this.config.trackId,
@@ -85,19 +76,15 @@ export class RacerScene
       .setCallbacks({
         onProgress: (progress) => {
           console.log(`Track loading: ${progress.percentage}% - ${progress.currentAsset}`);
-          this.gameCanvas.setLoadingState(true, `Loading track: ${progress.percentage}%`);
           
           if (this.onLoadingProgress) {
             this.onLoadingProgress(progress.percentage, progress.currentAsset);
           }
         },
         onSuccess: () => {
-          console.log('✅ Track loaded successfully!');
+          console.log('Track loaded successfully!');
           this.setupTrack();
           this.setupRacingEnvironment();
-          
-          // Hide loading state
-          this.gameCanvas.setLoadingState(false);
           
           if (this.onLoadingComplete) 
           {
@@ -105,8 +92,7 @@ export class RacerScene
           }
         },
         onError: (errors) => {
-          console.error('❌ Failed to load track:', errors);
-          this.gameCanvas.setLoadingState(false);
+          console.error('Failed to load track:', errors);
           
           if (this.onLoadingError) 
           {
@@ -115,11 +101,9 @@ export class RacerScene
         }
       });
 
-    // Start loading
     await this.assetManager.load();
   }
 
-  // Set up the track mesh
   private setupTrack(): void 
   {
     this.track = this.assetManager.getFirstMesh(this.config.trackId);
@@ -130,16 +114,13 @@ export class RacerScene
       return;
     }
 
-    // Position track at origin
     this.track.position = Vector3.Zero();
     this.track.rotation = Vector3.Zero();
-    
     this.track.scaling = new Vector3(8, 8, 8);
 
     console.log(`Track positioned: ${this.track.name}`);
     console.log(`Track bounds:`, this.track.getBoundingInfo());
 
-    // Call callback if set
     if (this.onTrackLoaded) 
     {
       this.onTrackLoaded(this.track);
@@ -148,31 +129,38 @@ export class RacerScene
     this.isLoaded = true;
   }
 
-  // Set up racing-specific environment
   private setupRacingEnvironment(): void 
   {
     console.log('Setting up racing environment...');
 
-    // Set up polar racing atmosphere
     if (this.config.enableFog && this.config.fogColor) 
     {
       this.scene.fogMode = Scene.FOGMODE_EXP;
       this.scene.fogColor = this.config.fogColor;
       this.scene.fogDensity = this.config.fogDensity || 0.002;
-      console.log('✅ Racing fog configured for polar atmosphere');
+      console.log('Racing fog configured for polar atmosphere');
     }
 
-    // Set scene clear color for polar environment
     if (this.config.fogColor) 
     {
       this.scene.clearColor = this.config.fogColor.toColor4();
     }
 
-    // GameCanvas already handles basic lighting, we just enhance for racing
-    console.log('✅ Racing environment configured (using GameCanvas foundation)');
+    console.log('Racing environment configured');
   }
 
-  // Get track information
+  public setupPhysics(): void 
+  {
+    if (!this.track || !this.gameCanvas.hasPhysics()) 
+    {
+      console.warn('Cannot setup track physics: track or physics not ready');
+      return;
+    }
+
+    this.gameCanvas.setupTrackPhysics(this.track);
+    console.log('Track physics collision enabled');
+  }
+
   public getTrack(): AbstractMesh | null 
   {
     return this.track;
@@ -180,7 +168,10 @@ export class RacerScene
 
   public getTrackCenter(): Vector3 
   {
-    if (!this.track) return Vector3.Zero();
+    if (!this.track) 
+    {
+      return Vector3.Zero();
+    }
     return this.track.getBoundingInfo().boundingBox.center;
   }
 
@@ -203,26 +194,26 @@ export class RacerScene
     };
   }
 
-  // Check if track is loaded
   public isTrackLoaded(): boolean 
   {
     return this.isLoaded && this.track !== null;
   }
 
-  // Get starting positions for pods
   public getStartingPositions(count: number = 1): Vector3[] 
   {
-    if (!this.track) return [Vector3.Zero()];
+    if (!this.track) 
+    {
+      return [new Vector3(0, 2, 0)];
+    }
 
     const trackCenter = this.getTrackCenter();
     const positions: Vector3[] = [];
 
-    // Generate starting positions
     for (let i = 0; i < count; i++) 
     {
       positions.push(new Vector3(
-        trackCenter.x + (i * 5), // Spread pods apart
-        trackCenter.y + 2,       // Above track surface
+        trackCenter.x + (i * 5),
+        trackCenter.y + 3,
         trackCenter.z
       ));
     }
@@ -230,13 +221,11 @@ export class RacerScene
     return positions;
   }
 
-  // Get the GameCanvas instance
   public getGameCanvas(): GameCanvas 
   {
     return this.gameCanvas;
   }
 
-  // Dispose resources
   public dispose(): void 
   {
     console.log('Disposing RacerScene...');
@@ -250,7 +239,6 @@ export class RacerScene
     this.isLoaded = false;
   }
 
-  // Static factory method for easy setup with GameCanvas
   public static async createPolarPass(gameCanvas: GameCanvas): Promise<RacerScene> 
   {
     const racerScene = new RacerScene(gameCanvas, POLAR_PASS_CONFIG);

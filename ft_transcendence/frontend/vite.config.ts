@@ -26,9 +26,12 @@ export default defineConfig({
       output: {
         manualChunks: {
           // Separate Babylon.js into its own chunk for better caching
-          babylon: ['@babylonjs/core', '@babylonjs/materials', '@babylonjs/loaders']
+          babylon: ['@babylonjs/core', '@babylonjs/materials', '@babylonjs/loaders'],
         }
       }
+    },
+    commonjsOptions: {
+      transformMixedEsModules: true
     }
   },
 
@@ -60,7 +63,14 @@ export default defineConfig({
     include: [
       '@babylonjs/core',
       '@babylonjs/materials', 
-      '@babylonjs/loaders'
-    ]
-  }
+      '@babylonjs/loaders',
+      'ammojs-typed'
+    ],
+    exclude: [],
+    esbuildOptions: {
+      target: 'es2020'
+    }
+  },
+
+  assetsInclude: ['**/*.wasm']
 })

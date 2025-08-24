@@ -1,10 +1,9 @@
-
 import { BaseComponent } from '../components/BaseComponent';
-import { GameCanvas } from '../components/game/GameCanvas';
+import { GameCanvas } from '../game/engines/racer/GameCanvas';
 import { RacerScene } from '../game/engines/racer/RacerScene';
 import { PodSelection, PodSelectionEvent } from '../game/engines/racer/PodSelection';
 import { RacerPod } from '../game/engines/racer/RacerPods';
-import { PodConfig, DEFAULT_POD } from '../game/utils/PodConfig';
+import { PodConfig, AVAILABLE_PODS } from '../game/utils/PodConfig';
 
 export default class PodRacerPage extends BaseComponent 
 {
@@ -12,7 +11,7 @@ export default class PodRacerPage extends BaseComponent
     private racerScene: RacerScene | null = null;
     private podSelection: PodSelection | null = null;
     private playerPod: RacerPod | null = null;
-    private selectedPodConfig: PodConfig = DEFAULT_POD;
+    private selectedPodConfig: PodConfig = AVAILABLE_PODS[0];
 
     render(): string 
     {
@@ -89,18 +88,71 @@ export default class PodRacerPage extends BaseComponent
 
                 </div>
 
-                <!-- Loading (Initially Hidden) -->
+                <!-- Enhanced Loading with Particles -->
                 <div 
                     id="loadingOverlay" 
-                    class="absolute inset-0 bg-black/80 flex items-center justify-center"
+                    class="absolute inset-0 bg-black/90 flex items-center justify-center"
                     style="display: none;"
                 >
-                    <div class="text-center">
-                        <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-400 mb-4"></div>
-                        <h3 class="text-white text-xl font-bold mb-2">Loading Race</h3>
-                        <p class="text-gray-300" id="loadingMessage">Preparing 3D scene...</p>
-                        <div class="mt-4 w-64 bg-gray-700 rounded-full h-2">
-                            <div id="loadingProgress" class="bg-purple-400 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    <!-- Particle Canvas -->
+                    <canvas id="particleCanvas" class="absolute inset-0 w-full h-full"></canvas>
+                    
+                    <!-- Loading Content -->
+                    <div class="relative z-10 text-center">
+                        <!-- Circular Progress Bar -->
+                        <div class="relative w-32 h-32 mx-auto mb-8">
+                            <svg class="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
+                                <!-- Background Circle -->
+                                <circle 
+                                    cx="60" 
+                                    cy="60" 
+                                    r="50" 
+                                    fill="none" 
+                                    stroke="rgb(75 85 99)" 
+                                    stroke-width="4"
+                                />
+                                <!-- Progress Circle -->
+                                <circle 
+                                    id="progressCircle"
+                                    cx="60" 
+                                    cy="60" 
+                                    r="50" 
+                                    fill="none" 
+                                    stroke="rgb(147 51 234)" 
+                                    stroke-width="4"
+                                    stroke-linecap="round"
+                                    stroke-dasharray="314"
+                                    stroke-dashoffset="314"
+                                    class="transition-all duration-300 ease-out"
+                                />
+                            </svg>
+                            <!-- Percentage Text -->
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span id="progressPercent" class="text-white text-xl font-bold">0%</span>
+                            </div>
+                        </div>
+
+                        <h3 class="text-white text-2xl font-bold mb-4">Loading Race</h3>
+                        <p class="text-gray-300 text-lg" id="loadingMessage">Preparing 3D scene...</p>
+                        
+                        <!-- Loading Stage Indicator -->
+                        <div class="mt-6 flex justify-center space-x-4">
+                            <div id="stage-canvas" class="flex items-center text-gray-500">
+                                <div class="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
+                                <span class="text-sm">Canvas</span>
+                            </div>
+                            <div id="stage-physics" class="flex items-center text-gray-500">
+                                <div class="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
+                                <span class="text-sm">Physics</span>
+                            </div>
+                            <div id="stage-track" class="flex items-center text-gray-500">
+                                <div class="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
+                                <span class="text-sm">Track</span>
+                            </div>
+                            <div id="stage-pod" class="flex items-center text-gray-500">
+                                <div class="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
+                                <span class="text-sm">Pod</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -114,20 +166,16 @@ export default class PodRacerPage extends BaseComponent
     mount(_containerId?: string): void 
     {
         (window as any).podRacerPage = this;
-        
-        // STEP 1: Show pod selection immediately (no 3D loading yet)
         this.showPodSelection();
     }
 
     public showPodSelection(): void 
     {
-        // If 3D scene is running, pause it
         if (this.gameCanvas) 
         {
             this.gameCanvas.stopRenderLoop();
         }
         
-        // Create pod selection if not exists
         if (!this.podSelection) 
         {
             this.podSelection = new PodSelection((event: PodSelectionEvent) => 
@@ -143,7 +191,6 @@ export default class PodRacerPage extends BaseComponent
             }
         }
 
-        // Show pod selection
         if (this.podSelection) 
         {
             this.podSelection.show();
@@ -152,15 +199,11 @@ export default class PodRacerPage extends BaseComponent
 
     private onPodSelected(event: PodSelectionEvent): void 
     {
-        console.log(`🏎️ Pod selected: ${event.selectedPod.name}`);
+        console.log(`Pod selected: ${event.selectedPod.name}`);
         
-        // Save selected pod
         this.selectedPodConfig = event.selectedPod;
-        
-        // Hide selection UI
         event.onConfirm();
         
-        // STEP 2: Now start 3D initialization with chosen pod
         this.initialize3DScene();
     }
 
@@ -168,43 +211,40 @@ export default class PodRacerPage extends BaseComponent
     {
         try 
         {
-            // Show loading
             this.showLoading();
+            this.initializeParticles();
             
-            console.log('🎮 Starting 3D scene with selected pod...');
+            console.log('Starting 3D scene with selected pod...');
             
-            // Step 1: Create canvas
-            this.updateLoadingMessage('Creating 3D scene...', 10);
+            this.updateLoadingProgress('Creating 3D scene...', 10, 'canvas');
             this.gameCanvas = new GameCanvas('gameCanvas');
             
-            // Step 2: Initialize camera and input managers (NEW!)
-            this.updateLoadingMessage('Setting up camera controls...', 20);
-            this.gameCanvas.initializeManagers(false); // Start in racing mode
+            this.updateLoadingProgress('Initializing physics engine...', 15, 'physics');
+            await this.gameCanvas.initialize();
+            console.log('Physics initialized');
             
-            // Step 3: Start render loop
+            this.updateLoadingProgress('Setting up camera controls...', 20, 'physics');
+            this.gameCanvas.initializeManagers(false);
+            
             this.gameCanvas.startRenderLoop();
 
-            // Step 4: Load track
-            this.updateLoadingMessage('Loading racing track...', 30);
+            this.updateLoadingProgress('Loading racing track...', 30, 'track');
             this.racerScene = new RacerScene(this.gameCanvas);
             
-            // Set up loading callbacks for track
             this.racerScene.onLoadingProgress = (percentage, asset) => 
             {
-                this.updateLoadingMessage(`Loading ${asset}...`, 30 + (percentage * 0.4)); // 30% + 40% for track
+                this.updateLoadingProgress(`Loading ${asset}...`, 30 + (percentage * 0.4), 'track');
             };
 
             this.racerScene.onTrackLoaded = (track) => 
             {
-                console.log('🏁 Racing track loaded:', track.name);
+                console.log('Racing track loaded:', track.name);
                 
-                // Set track bounds for camera system (NEW!)
                 if (this.gameCanvas) 
                 {
                     this.gameCanvas.setTrackBounds(this.racerScene!.getTrackBounds());
                 }
                 
-                // Update track info
                 const trackInfo = document.getElementById('trackInfo');
                 if (trackInfo) 
                 {
@@ -214,203 +254,175 @@ export default class PodRacerPage extends BaseComponent
             };
 
             await this.racerScene.loadTrack();
+            
+            const trackMesh = this.racerScene.getTrack();
+            if (trackMesh && this.gameCanvas) 
+            {
+                this.gameCanvas.setupTrackPhysics(trackMesh);
+                console.log('Track physics collision enabled');
+            }
 
-            // Step 5: Load selected pod
-            this.updateLoadingMessage(`Loading ${this.selectedPodConfig.name}...`, 70);
+            this.updateLoadingProgress(`Loading ${this.selectedPodConfig.name}...`, 70, 'pod');
             await this.loadPod();
 
-            // Step 6: Show game
-            this.updateLoadingMessage('Racing scene ready!', 100);
-            this.showGame();
+            this.updateLoadingProgress('Racing scene ready!', 100, 'pod');
             
-            // Step 7: Start additional features (NEW!)
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            this.showGame();
             this.startPerformanceMonitoring();
             this.updateCameraUI();
             
-            console.log('✅ 3D Pod Racer ready with camera controls!');
+            console.log('3D Pod Racer ready with physics and camera controls!');
             
         } 
         catch (error) 
         {
-            console.error('❌ Failed to initialize 3D scene:', error);
+            console.error('Failed to initialize 3D scene:', error);
             this.showError('Failed to load 3D racing scene');
         }
     }
 
-    // private async loadPod(): Promise<void> 
-    // {
-    //     if (!this.gameCanvas || !this.racerScene) 
-    //     {
-    //         return;
-    //     }
-
-    //     try 
-    //     {
-    //         // Remove old pod if exists
-    //         if (this.playerPod) 
-    //         {
-    //             this.playerPod.dispose();
-    //             this.playerPod = null;
-    //         }
-
-    //         // Create new pod with selected config
-    //         this.playerPod = new RacerPod(this.gameCanvas.getScene()!, this.selectedPodConfig);
-            
-    //         // Set up the onLoaded callback loading
-    //         this.playerPod.onLoaded = (pod) => {
-    //             console.log(`🏁 Pod loaded callback: ${pod.getConfig().name}`);
-                
-    //             // Position at track start
-    //             const startPos = this.racerScene!.getStartingPositions(1)[0];
-    //             if (startPos) 
-    //             {
-    //                 pod.setPosition(startPos);
-    //                 console.log(`🏁 Pod positioned at: ${startPos.toString()}`);
-    //             }
-
-    //             // connect to GameCanvas
-    //             this.gameCanvas!.setPlayerPod(pod);
-    //             this.gameCanvas!.enablePlayerMode();
-                
-    //             console.log(`✅ Pod connected and player mode enabled!`);
-    //         };
-            
-    //         // Load the model
-    //         await this.playerPod.loadModel();
-            
-    //     } 
-    //     catch (error) 
-    //     {
-    //         console.error('❌ Pod loading failed:', error);
-    //     }
-    // }
-    // Enhanced loadPod() method with detailed debugging
-private async loadPod(): Promise<void> 
-{
-    console.log('🔍 DEBUG: Starting loadPod() method');
-    
-    if (!this.gameCanvas || !this.racerScene) 
+    private initializeParticles(): void 
     {
-        console.error('🔍 DEBUG: Missing dependencies - gameCanvas:', !!this.gameCanvas, 'racerScene:', !!this.racerScene);
-        return;
-    }
-
-    try 
-    {
-        // Remove old pod if exists
-        if (this.playerPod) 
+        const canvas = document.getElementById('particleCanvas') as HTMLCanvasElement;
+        if (!canvas) 
         {
-            console.log('🔍 DEBUG: Disposing existing pod');
-            this.playerPod.dispose();
-            this.playerPod = null;
+            return;
         }
 
-        console.log('🔍 DEBUG: Creating new pod with config:', this.selectedPodConfig.name);
-        
-        // Create new pod with selected config
-        this.playerPod = new RacerPod(this.gameCanvas.getScene()!, this.selectedPodConfig);
-        
-        console.log('🔍 DEBUG: Pod instance created:', !!this.playerPod);
-        
-        // Set up the onLoaded callback BEFORE loading
-        this.playerPod.onLoaded = (pod) => {
-            console.log('🔍 DEBUG: Pod onLoaded callback triggered');
-            console.log('🔍 DEBUG: Pod ready state:', pod.isReady());
-            console.log('🔍 DEBUG: Pod root node:', !!pod.getRootNode());
-            
-            // Position at track start
-            const startPos = this.racerScene!.getStartingPositions(1)[0];
-            console.log('🔍 DEBUG: Starting position:', startPos);
-            
-            if (startPos) 
+        const ctx = canvas.getContext('2d');
+        if (!ctx) 
+        {
+            return;
+        }
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const particles: Array<{x: number, y: number, vx: number, vy: number, size: number, opacity: number}> = [];
+
+        for (let i = 0; i < 50; i++) 
+        {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                size: Math.random() * 2 + 1,
+                opacity: Math.random() * 0.5 + 0.2
+            });
+        }
+
+        const animate = () => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(particle => {
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+
+                if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
+                if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
+
+                ctx.globalAlpha = particle.opacity;
+                ctx.fillStyle = '#a855f7';
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay && overlay.style.display !== 'none') 
             {
-                pod.setPosition(startPos);
-                console.log('🔍 DEBUG: Pod positioned at:', pod.getPosition());
+                requestAnimationFrame(animate);
+            }
+        };
+
+        animate();
+    }
+
+    private updateLoadingProgress(message: string, progress: number, stage: string): void 
+    {
+        const messageElement = document.getElementById('loadingMessage');
+        if (messageElement) 
+        {
+            messageElement.textContent = message;
+        }
+
+        const progressCircle = document.getElementById('progressCircle');
+        const progressPercent = document.getElementById('progressPercent');
+        
+        if (progressCircle && progressPercent) 
+        {
+            const circumference = 314;
+            const offset = circumference - (progress / 100) * circumference;
+            progressCircle.style.strokeDashoffset = offset.toString();
+            progressPercent.textContent = `${Math.round(progress)}%`;
+        }
+
+        const stageElement = document.getElementById(`stage-${stage}`);
+        if (stageElement) 
+        {
+            stageElement.className = 'flex items-center text-purple-400';
+            const dot = stageElement.querySelector('.w-3.h-3.rounded-full');
+            if (dot) 
+            {
+                dot.className = 'w-3 h-3 rounded-full bg-purple-400 mr-2 animate-pulse';
+            }
+        }
+
+        console.log(`${message} (${progress}%)`);
+    }
+
+    private async loadPod(): Promise<void> 
+    {
+        if (!this.gameCanvas || !this.racerScene) 
+        {
+            console.error('Missing dependencies');
+            return;
+        }
+
+        try 
+        {
+            if (this.playerPod) 
+            {
+                this.playerPod.dispose();
+                this.playerPod = null;
             }
 
-            // Debug GameCanvas state
-            console.log('🔍 DEBUG: GameCanvas state check:');
-            console.log('  - GameCanvas exists:', !!this.gameCanvas);
-            console.log('  - Current camera mode:', this.gameCanvas?.getCurrentCameraMode());
-            console.log('  - Active camera:', !!this.gameCanvas?.getActiveCamera());
-            console.log('  - Scene exists:', !!this.gameCanvas?.getScene());
-
-            // Check CameraManager state
-            const cameraManager = (this.gameCanvas as any).cameraManager;
-            console.log('🔍 DEBUG: CameraManager state:');
-            console.log('  - CameraManager exists:', !!cameraManager);
-            if (cameraManager) {
-                console.log('  - Current mode:', cameraManager.getCurrentMode());
-                console.log('  - Available modes:', cameraManager.getAvailableModes());
-            }
-
-            // NOW connect to GameCanvas AFTER everything is ready
-            console.log('🔍 DEBUG: Connecting pod to GameCanvas...');
+            this.playerPod = new RacerPod(this.gameCanvas.getScene()!, this.selectedPodConfig);
             
-            try {
+            this.playerPod.onLoaded = (pod) => 
+            {
+                console.log(`Pod loaded: ${pod.getConfig().name}`);
+                
+                const startPos = this.racerScene!.getStartingPositions(1)[0];
+                if (startPos) 
+                {
+                    pod.setPosition(startPos);
+                    console.log('Pod positioned at start');
+                }
+
                 this.gameCanvas!.setPlayerPod(pod);
-                console.log('🔍 DEBUG: setPlayerPod() completed successfully');
-                
-                // Check if pod was set
-                const playerPod = this.gameCanvas!.getPlayerPod();
-                console.log('🔍 DEBUG: GameCanvas player pod after set:', !!playerPod);
-                console.log('🔍 DEBUG: Pod config name:', playerPod?.getConfig().name);
-                
                 this.gameCanvas!.enablePlayerMode();
-                console.log('🔍 DEBUG: enablePlayerMode() completed successfully');
                 
-                // Final state check
-                console.log('🔍 DEBUG: Final camera mode:', this.gameCanvas?.getCurrentCameraMode());
-                
-                console.log('✅ Pod connected and player mode enabled!');
-                
-            } catch (error) {
-                console.error('🔍 DEBUG: Error during pod connection:', error);
-            }
-        };
-        
-        this.playerPod.onLoadingError = (error) => {
-            console.error('🔍 DEBUG: Pod loading error:', error);
-        };
-        
-        console.log('🔍 DEBUG: Starting pod model loading...');
-        
-        // Load the model (this will trigger onLoaded when complete)
-        await this.playerPod.loadModel();
-        
-        console.log('🔍 DEBUG: loadModel() completed (but onLoaded callback may still be pending)');
-        
-    } 
-    catch (error) 
-    {
-        console.error('🔍 DEBUG: Exception in loadPod():', error);
-    }
-}
-
-    // Also add this debugging method to your PodRacerPage class:
-    public debugGameState(): void 
-    {
-        console.log('🔍 DEBUG: Complete Game State:');
-        console.log('  - this.gameCanvas:', !!this.gameCanvas);
-        console.log('  - this.racerScene:', !!this.racerScene);
-        console.log('  - this.playerPod:', !!this.playerPod);
-        console.log('  - this.selectedPodConfig:', this.selectedPodConfig.name);
-        
-        if (this.gameCanvas) {
-            console.log('  - GameCanvas player pod:', !!this.gameCanvas.getPlayerPod());
-            console.log('  - GameCanvas camera mode:', this.gameCanvas.getCurrentCameraMode());
-            console.log('  - GameCanvas active camera:', !!this.gameCanvas.getActiveCamera());
-        }
-        
-        if (this.playerPod) {
-            console.log('  - Player pod ready:', this.playerPod.isReady());
-            console.log('  - Player pod position:', this.playerPod.getPosition());
-            console.log('  - Player pod root node:', !!this.playerPod.getRootNode());
+                console.log('Pod connected with physics enabled!');
+            };
+            
+            this.playerPod.onLoadingError = (error) => 
+            {
+                console.error('Pod loading error:', error);
+            };
+            
+            await this.playerPod.loadModel();
+            
+        } 
+        catch (error) 
+        {
+            console.error('Pod loading failed:', error);
         }
     }
-
-
-    // ===== NEW CAMERA MANAGEMENT METHODS =====
 
     public toggleDevelopmentMode(): void 
     {
@@ -419,14 +431,13 @@ private async loadPod(): Promise<void>
             return;
         }
         
-        // Get current development state and toggle it
         const currentMode = this.gameCanvas.getCurrentCameraMode();
         const isDevelopment = currentMode === 'free';
         
         this.gameCanvas.setDevelopmentMode(!isDevelopment);
         this.updateDevelopmentModeUI(!isDevelopment);
         
-        console.log(`🎮 Development mode: ${!isDevelopment ? 'ON' : 'OFF'}`);
+        console.log(`Development mode: ${!isDevelopment ? 'ON' : 'OFF'}`);
     }
 
     public resetCamera(): void 
@@ -436,13 +447,12 @@ private async loadPod(): Promise<void>
             return;
         }
         
-        // Get current camera mode and reset it
         const currentMode = this.gameCanvas.getCurrentCameraMode();
         if (currentMode) 
         {
             this.gameCanvas.switchCameraMode(currentMode);
         }
-        console.log('📹 Camera reset to default position');
+        console.log('Camera reset to default position');
     }
 
     private updateDevelopmentModeUI(isDevelopment: boolean): void 
@@ -471,7 +481,6 @@ private async loadPod(): Promise<void>
 
         const currentMode = this.gameCanvas.getCurrentCameraMode();
         
-        // Update camera info
         const cameraInfo = document.getElementById('cameraInfo');
         const cameraModeIndicator = document.getElementById('currentCameraMode');
         
@@ -497,7 +506,6 @@ private async loadPod(): Promise<void>
             }
         }
         
-        // Update development mode UI
         const isDevelopment = currentMode === 'free';
         this.updateDevelopmentModeUI(isDevelopment);
     }
@@ -527,35 +535,25 @@ private async loadPod(): Promise<void>
             }
         };
         
-        // Update performance info every second
         setInterval(updatePerformance, 1000);
-        updatePerformance(); // Initial update
+        updatePerformance();
     }
-
-    // ===== ORIGINAL UI STATE MANAGEMENT (UNCHANGED) =====
 
     private showLoading(): void 
     {
-        // Hide everything
         this.hideElement('podSelectionContainer');
         this.hideElement('gameCanvasContainer'); 
         this.hideElement('gameUI');
-        
-        // Show loading
         this.showElement('loadingOverlay');
     }
 
     private showGame(): void 
     {
-        // Hide loading and selection
         this.hideElement('loadingOverlay');
         this.hideElement('podSelectionContainer');
-        
-        // Show game
         this.showElement('gameCanvasContainer');
         this.showElement('gameUI');
         
-        // Update UI
         const podInfo = document.getElementById('podInfo');
         if (podInfo) 
         {
@@ -588,33 +586,6 @@ private async loadPod(): Promise<void>
         }
     }
 
-    private updateLoadingMessage(message: string, progress?: number): void 
-    {
-        const element = document.getElementById('loadingMessage');
-        if (element) 
-        {
-            element.textContent = message;
-        }
-        
-        if (progress !== undefined) 
-        {
-            const progressElement = document.getElementById('loadingProgress');
-            if (progressElement) 
-            {
-                progressElement.style.width = `${Math.min(100, Math.max(0, progress))}%`;
-            }
-        }
-        
-        if (progress)
-        {
-            console.log(`📥 ${message} (${progress}%)`);
-        }
-        else
-        {
-            console.log(`📥 ${message}`);
-        }
-    }
-
     private showError(message: string): void 
     {
         const overlay = document.getElementById('loadingOverlay');
@@ -638,11 +609,9 @@ private async loadPod(): Promise<void>
         }
     }
 
-    // ===== ORIGINAL CLEANUP (UNCHANGED) =====
-
     dispose(): void 
     {
-        console.log('🗑️ Disposing PodRacerPage...');
+        console.log('Disposing PodRacerPage...');
         
         if (this.playerPod) 
         {
@@ -673,6 +642,6 @@ private async loadPod(): Promise<void>
             delete (window as any).podRacerPage;
         }
         
-        console.log('✅ PodRacerPage disposed');
+        console.log('PodRacerPage disposed');
     }
 }

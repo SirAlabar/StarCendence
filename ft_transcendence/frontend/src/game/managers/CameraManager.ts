@@ -1,14 +1,14 @@
-// Camera management system with Player Camera and Pod Following
+// CameraManager.ts - Simplified Camera Management with Physics Movement
 
-import { GameCanvas } from '../../components/game/GameCanvas';
+import { GameCanvas } from '../engines/racer/GameCanvas';
 import { Vector3, Scene, Camera, ArcRotateCamera, FreeCamera } from '@babylonjs/core';
-import { RacerPod } from '../../game/engines/racer/RacerPods';
+import { RacerPod } from '../engines/racer/RacerPods';
 
 export enum CameraMode 
 {
-  RACING = 'racing',        // ArcRotate camera for track overview
-  FREE = 'free',           // FreeCamera for development/exploration
-  PLAYER = 'player'        // ArcRotateCamera following the pod
+  RACING = 'racing',
+  FREE = 'free',
+  PLAYER = 'player'
 }
 
 export interface CameraInfo 
@@ -24,18 +24,11 @@ export class CameraManager
   private scene: Scene;
   private currentMode: CameraMode;
   
-  // Babylon.js cameras
   private racingCamera: ArcRotateCamera | null = null;
   private freeCamera: FreeCamera | null = null;
   private playerCamera: ArcRotateCamera | null = null;
   
-  // Player pod reference
   private playerPod: RacerPod | null = null;
-  
-  // Track bounds for camera positioning
-  private trackBounds: { min: Vector3; max: Vector3; size: Vector3 } | null = null;
-  
-  // Render loop registration
   private beforeRenderObserver: any = null;
 
   constructor(gameCanvas: GameCanvas) 
@@ -45,27 +38,22 @@ export class CameraManager
     this.currentMode = CameraMode.RACING;
     
     this.setupCameras();
-    console.log('📹 CameraManager initialized with Babylon.js cameras');
+    console.log('CameraManager initialized');
   }
 
-  // Setup all Babylon.js cameras
   private setupCameras(): void 
   {
-    // 1. Racing Camera (Overview of track)
     this.racingCamera = new ArcRotateCamera(
       "racingCamera",
-      -Math.PI / 2,    // alpha
-      Math.PI / 4,     // beta  
-      50,              // radius
-      Vector3.Zero(),  // target
+      -Math.PI / 2,
+      Math.PI / 4,
+      50,
+      Vector3.Zero(),
       this.scene
     );
     this.racingCamera.lowerRadiusLimit = 10;
     this.racingCamera.upperRadiusLimit = 100;
-    this.racingCamera.lowerBetaLimit = 0.1;
-    this.racingCamera.upperBetaLimit = Math.PI / 2;
 
-    // 2. Free Camera (Development/exploration)
     this.freeCamera = new FreeCamera(
       "freeCamera", 
       new Vector3(0, 20, 30), 
@@ -73,67 +61,42 @@ export class CameraManager
     );
     this.freeCamera.setTarget(Vector3.Zero());
 
-    // 3. Player Camera (Following pod) - Created when pod is set
-    this.createPlayerCamera();
-
-    console.log('📹 All Babylon.js cameras created');
-  }
-
-  // Create player camera (follows pod)
-  private createPlayerCamera(): void 
-  {
     this.playerCamera = new ArcRotateCamera(
       "playerCamera",
-      -Math.PI / 2,          // alpha (behind pod)
-      Math.PI / 3,           // beta (above pod)
-      10,                    // radius (distance from pod)
-      Vector3.Zero(),        // target (will be pod position)
+      -Math.PI / 2,
+      Math.PI / 6,
+      15,
+      Vector3.Zero(),
       this.scene
     );
-    
-    // Camera limits
     this.playerCamera.lowerRadiusLimit = 5;
-    this.playerCamera.upperRadiusLimit = 25;
-    this.playerCamera.lowerBetaLimit = 0.1;
-    this.playerCamera.upperBetaLimit = Math.PI / 2;
-    
-    // Smooth camera movement
-    this.playerCamera.inertia = 0.9;
-    this.playerCamera.angularSensibilityX = 1000;
-    this.playerCamera.angularSensibilityY = 1000;
-  }
+    this.playerCamera.upperRadiusLimit = 50;
 
-  // ===== CAMERA SWITCHING =====
+    this.switchToMode(this.currentMode);
+  }
 
   public switchToMode(mode: CameraMode): void 
   {
-    if (this.currentMode === mode) 
-    {
-      console.log(`📹 Already in ${mode} camera mode`);
-      return;
-    }
-
-    console.log(`📹 Switching from ${this.currentMode} to ${mode} camera`);
-
-    // Detach current camera
     this.detachCurrentCamera();
+    this.currentMode = mode;
 
-    // Switch to new camera
     switch (mode) 
     {
       case CameraMode.RACING:
-        this.activateRacingCamera();
+        this.scene.activeCamera = this.racingCamera;
+        this.racingCamera?.attachControl(this.gameCanvas.getCanvas()!, true);
         break;
       case CameraMode.FREE:
-        this.activateFreeCamera();
+        this.scene.activeCamera = this.freeCamera;
         break;
       case CameraMode.PLAYER:
-        this.activatePlayerCamera();
+        this.scene.activeCamera = this.playerCamera;
+        this.playerCamera?.attachControl(this.gameCanvas.getCanvas()!, true);
+        this.setupPodFollowing();
         break;
     }
 
-    this.currentMode = mode;
-    console.log(`📹 ✅ Switched to ${this.getCameraInfo(mode).name}`);
+    console.log(`Switched to ${mode} camera`);
   }
 
   public cycleCameraMode(): void 
@@ -144,49 +107,86 @@ export class CameraManager
     this.switchToMode(modes[nextIndex]);
   }
 
-  // ===== CAMERA ACTIVATION =====
-
-  private activateRacingCamera(): void 
+  public getCurrentMode(): CameraMode 
   {
-    if (!this.racingCamera) return;
+    return this.currentMode;
+  }
 
-    // Position camera based on track bounds
-    if (this.trackBounds) 
+  public getActiveCamera(): Camera | null 
+  {
+    return this.scene.activeCamera;
+  }
+
+  public getFreeCamera(): FreeCamera | null 
+  {
+    return this.freeCamera;
+  }
+
+  public getCameraInfo(mode: CameraMode): CameraInfo | null 
+  {
+    const infoMap = {
+      [CameraMode.RACING]: { mode, name: 'Racing Camera', description: 'Track overview' },
+      [CameraMode.FREE]: { mode, name: 'Free Camera', description: 'Free movement' },
+      [CameraMode.PLAYER]: { mode, name: 'Player Camera', description: 'Follow pod' }
+    };
+    
+    return infoMap[mode] || null;
+  }
+
+  public setPlayerPod(pod: RacerPod | null): void 
+  {
+    this.playerPod = pod;
+    
+    if (this.currentMode === CameraMode.PLAYER && pod) 
     {
-      const trackCenter = this.trackBounds.min.add(this.trackBounds.max).scale(0.5);
-      const cameraDistance = Math.max(this.trackBounds.size.x, this.trackBounds.size.z) * 0.8;
+      this.setupPodFollowing();
+    }
+  }
+
+  public setTrackBounds(bounds: { min: Vector3; max: Vector3; size: Vector3 }): void 
+  {
+    if (this.racingCamera && bounds) 
+    {
+      const trackCenter = bounds.min.add(bounds.max).scale(0.5);
+      const cameraDistance = Math.max(bounds.size.x, bounds.size.z) * 0.8;
       
       this.racingCamera.setTarget(trackCenter);
       this.racingCamera.radius = cameraDistance;
     }
-
-    // Set as active camera
-    this.scene.activeCamera = this.racingCamera;
-    this.racingCamera.attachControl(this.gameCanvas.getCanvas()!, true);
   }
 
-  private activateFreeCamera(): void 
+  public handleMouseWheel(delta: number): void 
   {
-    if (!this.freeCamera) return;
-
-    // Set as active camera
-    this.scene.activeCamera = this.freeCamera;
-    this.freeCamera.attachControl(this.gameCanvas.getCanvas()!, true);
-  }
-
-  private activatePlayerCamera(): void 
-  {
-    if (!this.playerCamera) return;
-
-    // Set as active camera
-    this.scene.activeCamera = this.playerCamera;
-    this.playerCamera.attachControl(this.gameCanvas.getCanvas()!, true);
-
-    // Setup pod following if pod exists
-    if (this.playerPod) 
+    const activeCamera = this.scene.activeCamera;
+    if (activeCamera instanceof ArcRotateCamera) 
     {
-      this.setupPodFollowing();
+      const arcCamera = activeCamera as ArcRotateCamera;
+      arcCamera.radius += delta * 2;
+      
+      const lowerLimit = arcCamera.lowerRadiusLimit ?? 1;
+      const upperLimit = arcCamera.upperRadiusLimit ?? 1000;
+      
+      arcCamera.radius = Math.max(lowerLimit, Math.min(upperLimit, arcCamera.radius));
     }
+  }
+
+  private setupPodFollowing(): void 
+  {
+    if (!this.playerPod || !this.playerCamera || this.currentMode !== CameraMode.PLAYER) 
+    {
+      return;
+    }
+
+    const podPosition = this.playerPod.getPosition();
+    this.playerCamera.setTarget(podPosition);
+
+    this.beforeRenderObserver = this.scene.registerBeforeRender(() => {
+      if (this.playerPod && this.playerCamera && this.currentMode === CameraMode.PLAYER) 
+      {
+        const currentPodPosition = this.playerPod.getPosition();
+        this.playerCamera.setTarget(currentPodPosition);
+      }
+    });
   }
 
   private detachCurrentCamera(): void 
@@ -196,7 +196,6 @@ export class CameraManager
       this.scene.activeCamera.detachControl(this.gameCanvas.getCanvas()!);
     }
 
-    // Remove any existing render observers
     if (this.beforeRenderObserver) 
     {
       this.scene.unregisterBeforeRender(this.beforeRenderObserver);
@@ -204,154 +203,10 @@ export class CameraManager
     }
   }
 
-  // ===== PLAYER POD INTEGRATION =====
-
-  public setPlayerPod(pod: RacerPod | null): void 
-  {
-    console.log('📹 Setting player pod:', pod?.getConfig().name || 'none');
-    this.playerPod = pod;
-
-    // If we're in player mode, setup following immediately
-    if (this.currentMode === CameraMode.PLAYER && pod) 
-    {
-      this.setupPodFollowing();
-    }
-  }
-
-  private setupPodFollowing(): void 
-  {
-    if (!this.playerPod || !this.playerCamera) return;
-
-    console.log('📹 Setting up pod following camera');
-
-    // Initial camera positioning
-    const podPosition = this.playerPod.getPosition();
-    this.playerCamera.setTarget(podPosition);
-
-    // Register render loop for continuous following
-    this.beforeRenderObserver = this.scene.registerBeforeRender(() => {
-      if (this.playerPod && this.playerCamera && this.currentMode === CameraMode.PLAYER) 
-      {
-        // Update camera target to follow pod
-        const currentPodPosition = this.playerPod.getPosition();
-        this.playerCamera.setTarget(currentPodPosition);
-      }
-    });
-
-    console.log('📹 ✅ Pod following camera setup complete');
-  }
-
-  // ===== INPUT HANDLING =====
-
-  public handleMovement(direction: { x: number; y: number; z: number }): void 
-  {
-    // Only handle movement in PLAYER mode (move the pod, not camera)
-    if (this.currentMode === CameraMode.PLAYER && this.playerPod) 
-    {
-      // Move the pod directly
-      this.playerPod.move(direction);
-      console.log('📹 Pod moved:', this.playerPod.getPosition());
-    }
-    // FREE camera movement is handled automatically by Babylon.js
-    // RACING camera movement is handled automatically by Babylon.js
-  }
-
-  public handleMouseWheel(delta: number): void 
-  {
-    const activeCamera = this.scene.activeCamera;
-    if (!activeCamera) return;
-
-    // Handle zoom for ArcRotate cameras
-    if (activeCamera instanceof ArcRotateCamera) 
-    {
-      const arcCamera = activeCamera as ArcRotateCamera;
-      arcCamera.radius += delta * 2;
-      
-      // Safe null checks for limits
-      const lowerLimit = arcCamera.lowerRadiusLimit ?? 1;
-      const upperLimit = arcCamera.upperRadiusLimit ?? 100;
-      
-      arcCamera.radius = Math.max(lowerLimit, Math.min(upperLimit, arcCamera.radius));
-    }
-    // For FREE camera, adjust movement speed
-    else if (activeCamera instanceof FreeCamera && this.currentMode === CameraMode.FREE) 
-    {
-      const freeCamera = activeCamera as any;
-      const currentSpeed = freeCamera.speed || 1;
-      const newSpeed = Math.max(0.1, Math.min(5.0, currentSpeed + (delta * 0.1)));
-      freeCamera.speed = newSpeed;
-      console.log(`📹 Free camera speed: ${newSpeed.toFixed(1)}`);
-    }
-  }
-
-  // Get current active camera
-  public getActiveCamera(): Camera | null 
-  {
-    return this.scene.activeCamera;
-  }
-
-  // Get specific camera by mode
-  public getCamera(mode: CameraMode): Camera | null 
-  {
-    switch (mode) {
-      case CameraMode.RACING: return this.racingCamera;
-      case CameraMode.FREE: return this.freeCamera;
-      case CameraMode.PLAYER: return this.playerCamera;
-      default: return null;
-    }
-  }
-
-  public getCurrentMode(): CameraMode 
-  {
-    return this.currentMode;
-  }
-
-  public getAvailableModes(): CameraMode[] 
-  {
-    return [CameraMode.RACING, CameraMode.FREE, CameraMode.PLAYER];
-  }
-
-  public getCameraInfo(mode: CameraMode): CameraInfo 
-  {
-    const cameraInfoMap = {
-      [CameraMode.RACING]: { mode, name: 'Racing Camera', description: 'Track overview camera' },
-      [CameraMode.FREE]: { mode, name: 'Free Camera', description: 'WASD exploration camera' },
-      [CameraMode.PLAYER]: { mode, name: 'Player Camera', description: 'Third-person pod following camera' }
-    };
-    
-    return cameraInfoMap[mode];
-  }
-
-  public setTrackBounds(bounds: { min: Vector3; max: Vector3; size: Vector3 }): void 
-  {
-    this.trackBounds = bounds;
-    console.log('📹 Track bounds set for camera positioning');
-    
-    // Update racing camera if it's active
-    if (this.currentMode === CameraMode.RACING) 
-    {
-      this.activateRacingCamera();
-    }
-  }
-
-  public resetCamera(): void 
-  {
-    console.log(`📹 Resetting ${this.currentMode} camera`);
-    
-    // Simply reactivate current camera to reset it
-    this.switchToMode(this.currentMode);
-  }
-
-  // ===== CLEANUP =====
-
   public dispose(): void 
   {
-    console.log('📹 Disposing CameraManager...');
-    
-    // Detach current camera
     this.detachCurrentCamera();
     
-    // Dispose all cameras
     this.racingCamera?.dispose();
     this.freeCamera?.dispose();
     this.playerCamera?.dispose();
@@ -360,6 +215,5 @@ export class CameraManager
     this.freeCamera = null;
     this.playerCamera = null;
     this.playerPod = null;
-    this.trackBounds = null;
   }
 }

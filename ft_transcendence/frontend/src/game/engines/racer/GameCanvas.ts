@@ -1,5 +1,3 @@
-// Complete 3D Rendering Component with Player Pod Integration
-
 import { 
   Engine, 
   Scene, 
@@ -10,15 +8,13 @@ import {
   Camera
 } from '@babylonjs/core';
 
-// Import the managers
-import { InputManager, InputCallbacks } from '../../game/managers/InputManager';
-import { CameraManager, CameraMode } from '../../game/managers/CameraManager';
-import { RacerPod } from '../../game/engines/racer/RacerPods';
+import { InputManager, InputCallbacks, CameraMode } from '../../managers/InputManager';
+import { CameraManager } from '../../managers/CameraManager';
+import { RacerPod } from './RacerPods';
+import { RacerPhysics } from './RacerPhysics';
 
-// Simplified configuration (no camera config - CameraManager handles it)
 export interface GameCanvasConfig 
 {
-  // Lighting configuration
   lighting?: 
   {
     ambient?: 
@@ -35,7 +31,6 @@ export interface GameCanvasConfig
     };
   };
   
-  // Engine configuration
   engine?: 
   {
     antialias?: boolean;
@@ -43,7 +38,6 @@ export interface GameCanvasConfig
     preserveDrawingBuffer?: boolean;
   };
   
-  // Performance configuration
   performance?: 
   {
     skipPointerPicking?: boolean;
@@ -52,7 +46,6 @@ export interface GameCanvasConfig
   };
 }
 
-// Default configuration (no camera config)
 const DEFAULT_CONFIG: Required<GameCanvasConfig> = 
 {
   lighting: 
@@ -86,41 +79,34 @@ const DEFAULT_CONFIG: Required<GameCanvasConfig> =
 
 export class GameCanvas 
 {
-  // Core Babylon.js components
   private canvas: HTMLCanvasElement | null = null;
   private engine: Engine | null = null;
   private scene: Scene | null = null;
   
-  // Lighting
   private ambientLight: HemisphericLight | null = null;
   private directionalLight: DirectionalLight | null = null;
   
-  // Configuration
   private config: Required<GameCanvasConfig>;
+
+  private racerPhysics: RacerPhysics | null = null;
   
-  // Managers
   private inputManager: InputManager | null = null;
   private cameraManager: CameraManager | null = null;
   
-  // Player pod integration
   private playerPod: RacerPod | null = null;
   
-  // State
   private isRenderLoopRunning: boolean = false;
 
   constructor(canvasId: string, config?: Partial<GameCanvasConfig>) 
   {
-    // Merge provided config with defaults
     this.config = this.mergeConfig(config || {});
     
-    // Get canvas element with proper type checking
     const canvasElement = document.getElementById(canvasId);
     if (!canvasElement) 
     {
       throw new Error(`Canvas element with id '${canvasId}' not found`);
     }
     
-    // Check if it's actually a canvas element
     if (!(canvasElement instanceof HTMLCanvasElement)) 
     {
       throw new Error(`Element with id '${canvasId}' is not a canvas element`);
@@ -128,33 +114,51 @@ export class GameCanvas
     
     this.canvas = canvasElement;
     
-    console.log('🎮 GameCanvas constructor initialized');
+    console.log('GameCanvas constructor initialized');
     this.initializeBabylonJS();
   }
 
-  // ===== CORE BABYLON.JS SETUP =====
+  public async initialize(): Promise<void> 
+  {
+    await this.initializePhysics();
+  }
 
   private initializeBabylonJS(): void 
   {
     try 
     {
-      // Initialize engine
       this.engine = this.createEngine();
-      
-      // Initialize scene
       this.scene = new Scene(this.engine);
-      
-      // Setup lighting (cameras handled by CameraManager)
       this.setupLighting();
-      
-      // Setup performance optimizations
       this.setupPerformanceOptimizations();
       
-      console.log('🎮 ✅ Babylon.js initialized successfully');
+      console.log('Babylon.js initialized successfully');
     } 
     catch (error) 
     {
-      console.error('🎮 ❌ Failed to initialize Babylon.js:', error);
+      console.error('Failed to initialize Babylon.js:', error);
+      throw error;
+    }
+  }
+
+  private async initializePhysics(): Promise<void> 
+  {
+    if (!this.scene) 
+    {
+      console.error('Scene not available for physics');
+      return;
+    }
+
+    try 
+    {
+      console.log('Initializing physics system...');
+      this.racerPhysics = new RacerPhysics(this.scene);
+      await this.racerPhysics.initialize();
+      console.log('Physics system ready');
+    } 
+    catch (error) 
+    {
+      console.error('Failed to initialize physics:', error);
       throw error;
     }
   }
@@ -198,7 +202,6 @@ export class GameCanvas
     
     const perfConfig = this.config.performance;
     
-    // Scene optimizations
     if (perfConfig.skipPointerPicking) 
     {
       this.scene.skipPointerMovePicking = true;
@@ -206,13 +209,11 @@ export class GameCanvas
       this.scene.skipPointerUpPicking = true;
     }
     
-    // Hardware scaling
     if (perfConfig.hardwareScaling && this.engine) 
     {
       this.engine.setHardwareScalingLevel(perfConfig.hardwareScaling);
     }
     
-    // Audio optimization
     if (this.scene.audioEnabled) 
     {
       this.scene.headphone = true;
@@ -227,7 +228,6 @@ export class GameCanvas
     }
     const lightConfig = this.config.lighting!;
     
-    // Hemisphere light (ambient lighting)
     if (lightConfig.ambient) 
     {
       const hemiLight = new HemisphericLight(
@@ -239,7 +239,6 @@ export class GameCanvas
       hemiLight.diffuse = lightConfig.ambient.color || new Color3(1, 1, 1);
     }
 
-    // Directional light (sun-like lighting)
     if (lightConfig.directional) 
     {
       const dirLight = new DirectionalLight(
@@ -252,29 +251,41 @@ export class GameCanvas
     }
   }
 
-  // ===== PLAYER POD INTEGRATION =====
-
-  // Set the player pod for camera following and movement
-  public setPlayerPod(pod: RacerPod): void 
+  public setPlayerPod(pod: RacerPod | null): void 
   {
+    console.log('Setting player pod:', pod?.getConfig().name || 'none');
     this.playerPod = pod;
-    
-    // Connect pod to camera manager
+
+    if (pod && this.racerPhysics && this.racerPhysics.isPhysicsReady()) 
+    {
+      pod.enablePhysics(this.racerPhysics);
+      console.log('Pod physics enabled');
+    }
+    else 
+    {
+      console.warn('Cannot enable physics:', {
+        hasPod: !!pod,
+        hasPhysics: !!this.racerPhysics,
+        physicsReady: this.racerPhysics?.isPhysicsReady()
+      });
+    }
+
     if (this.cameraManager) 
     {
       this.cameraManager.setPlayerPod(pod);
     }
-    
-    console.log(`🎮 Player pod set: ${pod.getConfig().name}`);
+
+    if (this.inputManager) 
+    {
+      this.inputManager.setPlayerPod(pod);
+    }
   }
 
-  // Get the current player pod
   public getPlayerPod(): RacerPod | null 
   {
     return this.playerPod;
   }
 
-  // Remove player pod
   public clearPlayerPod(): void 
   {
     this.playerPod = null;
@@ -283,40 +294,42 @@ export class GameCanvas
     {
       this.cameraManager.setPlayerPod(null);
     }
+
+    if (this.inputManager) 
+    {
+      this.inputManager.setPlayerPod(null);
+    }
     
-    console.log('🎮 Player pod cleared');
+    console.log('Player pod cleared');
   }
 
-  // ===== MANAGER INTEGRATION =====
+  public setupTrackPhysics(trackMesh: any): void 
+  {
+    if (this.racerPhysics && this.racerPhysics.isPhysicsReady() && trackMesh) 
+    {
+      this.racerPhysics.createTrack(trackMesh);
+      console.log('Track physics collision enabled');
+    }
+  }
 
   public initializeManagers(developmentMode: boolean = false): void 
   {
-    if (!this.canvas) 
+    if (!this.scene || !this.canvas) 
     {
-      console.warn('Canvas not available, cannot initialize managers');
+      console.error('Cannot initialize managers: scene or canvas not ready');
       return;
     }
 
-    // Initialize CameraManager (creates all cameras)
     this.cameraManager = new CameraManager(this);
     
-    // Set player pod if available
     if (this.playerPod) 
     {
       this.cameraManager.setPlayerPod(this.playerPod);
     }
     
-    // Initialize InputManager with simplified callbacks
     this.inputManager = new InputManager();
     
     const inputCallbacks: InputCallbacks = {
-      onMovement: (direction) => {
-        if (this.cameraManager)
-        {
-          this.cameraManager.handleMovement(direction);
-        }
-      },
-      // onMouseLook removed - Babylon.js handles it automatically
       onMouseWheel: (delta) => {
         if (this.cameraManager)
         {
@@ -327,71 +340,71 @@ export class GameCanvas
         if (this.cameraManager)
         {
           this.cameraManager.cycleCameraMode();
+          this.updateInputManagerReferences();
         }
         this.updateCameraUI();
       }
-      // onPodMovement removed - handled by CameraManager.handleMovement
     };
 
     this.inputManager.initialize(this.canvas, inputCallbacks);
+    this.updateInputManagerReferences();
 
-    // Start with appropriate camera mode
     if (developmentMode)
     {
-      this.cameraManager.switchToMode(CameraMode.FREE);
+      this.switchCameraMode(CameraMode.FREE);
     }
     else
     {
-      this.cameraManager.switchToMode(CameraMode.RACING);
+      this.switchCameraMode(CameraMode.RACING);
     }
 
-    console.log(`🎮 Managers initialized (Development: ${developmentMode})`);
+    console.log(`Managers initialized (Development: ${developmentMode})`);
     this.updateCameraUI();
   }
 
-  // ===== RENDER LOOP =====
+  private updateInputManagerReferences(): void 
+  {
+    if (!this.inputManager || !this.cameraManager) 
+    {
+      return;
+    }
+
+    const currentMode = this.cameraManager.getCurrentMode();
+    this.inputManager.setCameraMode(currentMode);
+    this.inputManager.setPlayerPod(this.playerPod);
+    this.inputManager.setFreeCamera(this.cameraManager.getFreeCamera());
+  }
 
   public startRenderLoop(): void 
   {
-    if (!this.engine || !this.scene) 
+    if (!this.engine || !this.scene || this.isRenderLoopRunning) 
     {
-      console.error('Engine or scene not initialized');
       return;
     }
 
-    if (this.isRenderLoopRunning) 
+    this.isRenderLoopRunning = true;
+    
+    this.engine.runRenderLoop(() => 
     {
-      console.warn('Render loop already running');
-      return;
-    }
-
-    this.engine.runRenderLoop(() => {
-      // Update input system
       if (this.inputManager)
       {
         this.inputManager.update();
       }
-      
-      // Camera updates handled automatically by Babylon.js
-      // No manual camera update needed
-      
-      // Render scene
+
       if (this.scene)
       {
         this.scene.render();
       }
     });
 
-    // Handle window resize
     window.addEventListener('resize', () => {
       if (this.engine)
       {
         this.engine.resize();
       }
     });
-
-    this.isRenderLoopRunning = true;
-    console.log('🎮 Enhanced render loop started with Babylon.js camera system');
+    
+    console.log('Render loop started');
   }
 
   public stopRenderLoop(): void 
@@ -401,10 +414,8 @@ export class GameCanvas
       this.engine.stopRenderLoop();
     }
     this.isRenderLoopRunning = false;
-    console.log('🎮 Render loop stopped');
+    console.log('Render loop stopped');
   }
-
-  // ===== CAMERA MANAGEMENT =====
 
   public setTrackBounds(bounds: { min: Vector3; max: Vector3; size: Vector3 }): void 
   {
@@ -428,6 +439,7 @@ export class GameCanvas
     if (this.cameraManager)
     {
       this.cameraManager.switchToMode(mode);
+      this.updateInputManagerReferences();
     }
     this.updateCameraUI();
   }
@@ -443,31 +455,24 @@ export class GameCanvas
 
   public setDevelopmentMode(enabled: boolean): void 
   {
-    if (enabled && this.cameraManager) 
+    if (enabled) 
     {
-      this.cameraManager.switchToMode(CameraMode.FREE);
+      this.switchCameraMode(CameraMode.FREE);
     } 
-    else if (!enabled && this.cameraManager) 
+    else 
     {
-      this.cameraManager.switchToMode(CameraMode.RACING);
+      this.switchCameraMode(CameraMode.RACING);
     }
     
     this.updateCameraUI();
-    console.log(`🎮 Development mode: ${enabled ? 'ON' : 'OFF'}`);
+    console.log(`Development mode: ${enabled ? 'ON' : 'OFF'}`);
   }
 
-  // Switch to player camera mode
   public enablePlayerMode(): void 
   {
-    if (this.cameraManager) 
-    {
-      this.cameraManager.switchToMode(CameraMode.PLAYER);
-    }
-    this.updateCameraUI();
-    console.log('🎮 Player camera mode enabled');
+    this.switchCameraMode(CameraMode.PLAYER);
+    console.log('Player camera mode enabled');
   }
-
-  // ===== SCENE ACCESS =====
 
   public getScene(): Scene | null 
   {
@@ -484,13 +489,20 @@ export class GameCanvas
     return this.canvas;
   }
 
-  // Legacy support - returns CameraManager's active camera
+  public getPhysics(): RacerPhysics | null 
+  {
+    return this.racerPhysics;
+  }
+  
+  public hasPhysics(): boolean 
+  {
+    return this.racerPhysics !== null && this.racerPhysics.isPhysicsReady();
+  }
+
   public getCamera(): Camera | null 
   {
     return this.getActiveCamera();
   }
-
-  // ===== LOADING OVERLAY =====
 
   public showLoadingOverlay(isLoading: boolean, message?: string): void 
   {
@@ -502,7 +514,6 @@ export class GameCanvas
         overlay.style.display = 'flex';
         overlay.style.opacity = '1';
         
-        // Update message if provided
         if (message) 
         {
           const messageElement = overlay.querySelector('.loading-message');
@@ -529,8 +540,6 @@ export class GameCanvas
     this.showLoadingOverlay(isLoading, message);
   }
 
-  // ===== PERFORMANCE =====
-
   public updatePerformance(perfConfig: GameCanvasConfig['performance']): void 
   {
     this.config.performance = { ...this.config.performance, ...perfConfig };
@@ -548,8 +557,6 @@ export class GameCanvas
     };
   }
 
-  // ===== UI UPDATES =====
-
   private updateCameraUI(): void 
   {
     if (!this.cameraManager)
@@ -560,14 +567,12 @@ export class GameCanvas
     const currentMode = this.cameraManager.getCurrentMode();
     const modeInfo = this.cameraManager.getCameraInfo(currentMode);
     
-    // Update UI element if it exists
     const cameraInfo = document.getElementById('cameraInfo');
     if (cameraInfo && modeInfo) 
     {
       cameraInfo.textContent = `Camera: ${modeInfo.name}`;
     }
 
-    // Update track info to include camera controls
     const trackInfo = document.getElementById('trackInfo');
     if (trackInfo) 
     {
@@ -601,8 +606,6 @@ export class GameCanvas
     }
   }
 
-  // ===== UI RENDERING =====
-
   public render(): string 
   {
     return `
@@ -613,7 +616,6 @@ export class GameCanvas
           style="width: 100%; height: 100vh; display: block; background: linear-gradient(to bottom, #0a0a0a, #1a1a2e);"
         ></canvas>
         
-        <!-- Generic Loading Overlay -->
         <div 
           id="gameLoadingOverlay" 
           class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center"
@@ -631,24 +633,22 @@ export class GameCanvas
 
   public mount(_containerId?: string): void 
   {
-    // This is called after the HTML is inserted into the DOM
-    // Babylon.js initialization happens in constructor
-    console.log('🎮 GameCanvas mounted to DOM');
+    console.log('GameCanvas mounted to DOM');
   }
-
-  // ===== CLEANUP =====
 
   public dispose(): void 
   {
-    console.log('🎮 Disposing GameCanvas and managers...');
+    console.log('Disposing GameCanvas and managers...');
     
-    // Stop render loop
     this.stopRenderLoop();
-    
-    // Clear player pod
     this.clearPlayerPod();
     
-    // Dispose managers
+    if (this.racerPhysics) 
+    {
+      this.racerPhysics.dispose();
+      this.racerPhysics = null;
+    }
+
     if (this.inputManager)
     {
       this.inputManager.dispose();
@@ -660,7 +660,6 @@ export class GameCanvas
     this.inputManager = null;
     this.cameraManager = null;
 
-    // Dispose Babylon.js resources
     if (this.ambientLight)
     {
       this.ambientLight.dispose();
@@ -678,6 +677,6 @@ export class GameCanvas
       this.engine.dispose();
     }
     
-    console.log('✅ GameCanvas disposed');
+    console.log('GameCanvas disposed');
   }
 }
