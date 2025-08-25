@@ -68,6 +68,7 @@ export class InputManager
     };
     
     this.callbacks = {};
+    this.movementSpeed = 0.1;
   }
 
   public initialize(canvas: HTMLCanvasElement, callbacks: InputCallbacks): void 
@@ -261,27 +262,76 @@ export class InputManager
     
     const direction = { x: 0, y: 0, z: 0 };
     
-    if (this.inputState.forward) direction.z += this.movementSpeed;
-    if (this.inputState.backward) direction.z -= this.movementSpeed;
-    if (this.inputState.left) direction.x -= this.movementSpeed;
-    if (this.inputState.right) direction.x += this.movementSpeed;
-    if (this.inputState.up) direction.y += this.movementSpeed;
-    if (this.inputState.down) direction.y -= this.movementSpeed;
+    if (this.inputState.forward) 
+    {
+      direction.z += this.movementSpeed;
+    }
+    if (this.inputState.backward) 
+    {
+      direction.z -= this.movementSpeed;
+    }
+    if (this.inputState.left) 
+    {
+      direction.x -= this.movementSpeed;
+    }
+    if (this.inputState.right) 
+    {
+      direction.x += this.movementSpeed;
+    }
+    if (this.inputState.up) 
+    {
+      direction.y += this.movementSpeed;
+    }
+    if (this.inputState.down) 
+    {
+      direction.y -= this.movementSpeed;
+    }
     
     if (direction.x !== 0 || direction.y !== 0 || direction.z !== 0) 
     {
+      console.log(`Input detected: (${direction.x.toFixed(2)}, ${direction.y.toFixed(2)}, ${direction.z.toFixed(2)})`);
       this.handleMovement(direction);
     }
   }
 
+  // private handleMovement(direction: { x: number; y: number; z: number }): void 
+  // {
+  //   if (this.currentCameraMode === CameraMode.PLAYER && this.playerPod) 
+  //   {
+  //     this.playerPod.move(direction);
+  //   }
+  //   else if (this.currentCameraMode === CameraMode.FREE && this.freeCamera) 
+  //   {
+  //     const moveVector = new Vector3(direction.x, direction.y, direction.z);
+  //     moveVector.scaleInPlace(0.5);
+      
+  //     const forward = this.freeCamera.getDirection(new Vector3(0, 0, 1));
+  //     const right = this.freeCamera.getDirection(new Vector3(1, 0, 0));
+  //     const up = Vector3.Up();
+      
+  //     const movement = forward.scale(moveVector.z)
+  //       .add(right.scale(moveVector.x))
+  //       .add(up.scale(moveVector.y));
+      
+  //     this.freeCamera.position.addInPlace(movement);
+  //   }
+  // }
+
   private handleMovement(direction: { x: number; y: number; z: number }): void 
   {
+    console.log(`🎮 InputManager.handleMovement() called with direction: (${direction.x.toFixed(2)}, ${direction.y.toFixed(2)}, ${direction.z.toFixed(2)})`);
+    console.log(`🎮 Current camera mode: ${this.currentCameraMode}`);
+    console.log(`🎮 Has player pod: ${!!this.playerPod}`);
+    console.log(`🎮 Has free camera: ${!!this.freeCamera}`);
+
     if (this.currentCameraMode === CameraMode.PLAYER && this.playerPod) 
     {
+      console.log(`🎮 Routing to player pod movement`);
       this.playerPod.move(direction);
     }
     else if (this.currentCameraMode === CameraMode.FREE && this.freeCamera) 
     {
+      console.log(`🎮 Routing to free camera movement`);
       const moveVector = new Vector3(direction.x, direction.y, direction.z);
       moveVector.scaleInPlace(0.5);
       
@@ -294,6 +344,15 @@ export class InputManager
         .add(up.scale(moveVector.y));
       
       this.freeCamera.position.addInPlace(movement);
+    }
+    else if (this.currentCameraMode === CameraMode.RACING && this.playerPod) 
+    {
+      console.log(`🎮 Routing to player pod movement (racing camera mode)`);
+      this.playerPod.move(direction);
+    }
+    else 
+    {
+      console.warn(`🎮 No movement target available - Mode: ${this.currentCameraMode}, Pod: ${!!this.playerPod}, Camera: ${!!this.freeCamera}`);
     }
   }
 

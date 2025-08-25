@@ -3,7 +3,8 @@ import {
   AbstractMesh,
   Mesh,
   Vector3,
-  TransformNode
+  TransformNode,
+  Quaternion
 } from '@babylonjs/core';
 import { AssetManager } from '../../managers/AssetManager';
 import { PodConfig } from '../../utils/PodConfig';
@@ -24,6 +25,7 @@ export class RacerPod
   private moveSpeed: number = 0.5;
   private rotationSpeed: number = 0.03;
   
+  // ===== PHYSICS INTEGRATION =====
   private racerPhysics: RacerPhysics | null = null;
   private physicsEnabled: boolean = false;
   
@@ -151,32 +153,93 @@ export class RacerPod
     });
   }
 
+  // ===== PHYSICS INTEGRATION METHODS =====
+
   public enablePhysics(racerPhysics: RacerPhysics): void 
   {
-    if (!this.mesh || !racerPhysics.isPhysicsReady()) 
+    if (!this.mesh || !this.isLoaded) 
     {
-      console.warn('Cannot enable physics: mesh or physics not ready');
+      console.warn(`Cannot enable physics: pod not loaded - ${this.config.name}`);
+      return;
+    }
+
+    if (!racerPhysics.isPhysicsReady()) 
+    {
+      console.warn('Cannot enable physics: physics system not ready');
       return;
     }
 
     this.racerPhysics = racerPhysics;
-    this.racerPhysics.createPod(this.mesh as Mesh, this.config.id);
-    this.physicsEnabled = true;
     
-    console.log(`Physics enabled for pod: ${this.config.id}`);
+    if (!this.mesh.rotationQuaternion) 
+    {
+      this.mesh.rotationQuaternion = Quaternion.Identity();
+    }
+    
+    try 
+    {
+      this.racerPhysics.createPod(this.mesh as Mesh, this.config.id);
+      this.physicsEnabled = true;
+      console.log(`Physics enabled for pod: ${this.config.id}`);
+    } 
+    catch (error) 
+    {
+      console.error(`Failed to enable physics for ${this.config.id}:`, error);
+      this.racerPhysics = null;
+      this.physicsEnabled = false;
+    }
   }
+
+  public disablePhysics(): void 
+  {
+    if (this.racerPhysics && this.physicsEnabled) 
+    {
+      this.racerPhysics.removePod(this.config.id);
+    }
+    
+    this.racerPhysics = null;
+    this.physicsEnabled = false;
+  }
+
+  // ===== UPDATED MOVEMENT METHOD =====
 
   public move(direction: { x: number; y: number; z: number }): void 
   {
+    console.log(`🚀 RacerPod.move() called - Pod: ${this.config.name}`);
+    console.log(`🚀 Direction: (${direction.x.toFixed(2)}, ${direction.y.toFixed(2)}, ${direction.z.toFixed(2)})`);
+    console.log(`🚀 Is loaded: ${this.isLoaded}`);
+    console.log(`🚀 Physics enabled: ${this.physicsEnabled}`);
+    console.log(`🚀 Has racerPhysics: ${!!this.racerPhysics}`);
+
+    if (!this.isLoaded) 
+    {
+      console.warn(`🚀 Pod not loaded, skipping movement`);
+      return;
+    }
+
     if (this.physicsEnabled && this.racerPhysics) 
     {
-      const input = { x: direction.x, z: direction.z };
-      this.racerPhysics.movePod(this.config.id, input);
-    } 
+      console.log(`🚀 Using physics movement`);
+      const racingInput = 
+      {
+        x: direction.x,
+        z: direction.z
+      };
+
+      console.log(`🚀 Calling racerPhysics.movePod() with input: (${racingInput.x.toFixed(2)}, ${racingInput.z.toFixed(2)})`);
+      this.racerPhysics.movePod(this.config.id, racingInput);
+      
+      if (this.rootNode) 
+      {
+        this.position = this.rootNode.position.clone();
+      }
+    }
     else 
     {
+      console.log(`🚀 Using static movement`);
       if (!this.rootNode) 
       {
+        console.warn(`🚀 No rootNode for static movement`);
         return;
       }
 
@@ -188,8 +251,9 @@ export class RacerPod
 
       this.position.addInPlace(localMovement);
       this.rootNode.position = this.position.clone();
-
       this.velocity = localMovement;
+      
+      console.log(`🚀 Static movement applied to ${this.config.name}`);
     }
   }
 
@@ -203,10 +267,13 @@ export class RacerPod
     this.rotation.y += deltaX * this.rotationSpeed;
     this.rotation.x += deltaY * this.rotationSpeed;
 
+    // Clamp vertical rotation
     this.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, this.rotation.x));
 
     this.rootNode.rotation = this.rotation.clone();
   }
+
+  // ===== POSITION/ROTATION METHODS =====
 
   public setPosition(position: Vector3): void 
   {
@@ -216,6 +283,7 @@ export class RacerPod
       this.rootNode.position = this.position.clone();
     }
 
+    // If physics enabled, reset physics state to new position
     if (this.physicsEnabled && this.racerPhysics) 
     {
       this.racerPhysics.reset(this.config.id, position);
@@ -228,6 +296,12 @@ export class RacerPod
     if (this.rootNode) 
     {
       this.rootNode.rotation = this.rotation.clone();
+    }
+
+    // If physics enabled, reset physics rotation too
+    if (this.physicsEnabled && this.racerPhysics) 
+    {
+      this.racerPhysics.reset(this.config.id, this.position, rotation);
     }
   }
 
@@ -261,6 +335,8 @@ export class RacerPod
     return Vector3.TransformNormal(forward, rotationMatrix).normalize();
   }
 
+  // ===== CAMERA HELPER METHODS =====
+
   public getCameraTargetPosition(): Vector3 
   {
     if (!this.rootNode) 
@@ -286,10 +362,13 @@ export class RacerPod
     return this.getPosition().add(forward.scale(2)).add(new Vector3(0, 1, 0));
   }
 
+  // ===== VELOCITY AND SPEED =====
+
   public getVelocity(): Vector3 
   {
     if (this.physicsEnabled && this.racerPhysics) 
     {
+      // Get actual physics velocity
       const speed = this.racerPhysics.getSpeed(this.config.id);
       const forward = this.getForwardDirection();
       return forward.scale(speed);
@@ -301,6 +380,17 @@ export class RacerPod
   {
     this.velocity = velocity.clone();
   }
+
+  public getSpeed(): number 
+  {
+    if (this.physicsEnabled && this.racerPhysics) 
+    {
+      return this.racerPhysics.getSpeed(this.config.id);
+    }
+    return this.velocity.length();
+  }
+
+  // ===== CONFIGURATION METHODS =====
 
   public setMoveSpeed(speed: number): void 
   {
@@ -322,14 +412,7 @@ export class RacerPod
     return this.rotationSpeed;
   }
 
-  public getSpeed(): number 
-  {
-    if (this.physicsEnabled && this.racerPhysics) 
-    {
-      return this.racerPhysics.getSpeed(this.config.id);
-    }
-    return this.getVelocity().length();
-  }
+  // ===== STATUS METHODS =====
 
   public getRootNode(): TransformNode | null 
   {
@@ -356,27 +439,33 @@ export class RacerPod
     return this.config;
   }
 
+  // ===== UPDATED DISPOSE METHOD =====
+
   public dispose(): void 
   {
-    if (this.physicsEnabled && this.racerPhysics) 
-    {
-      this.racerPhysics.removePod(this.config.id);
-    }
-
+    console.log(`Disposing RacerPod: ${this.config.name}`);
+    
+    // Disable physics first
+    this.disablePhysics();
+    
+    // Dispose asset manager
     if (this.assetManager) 
     {
       this.assetManager.dispose();
     }
     
+    // Dispose 3D objects
     if (this.rootNode) 
     {
       this.rootNode.dispose();
       this.rootNode = null;
     }
     
+    // Clear references
     this.mesh = null;
-    this.racerPhysics = null;
-    this.physicsEnabled = false;
     this.isLoaded = false;
+    this.onLoaded = undefined;
+    this.onLoadingProgress = undefined;
+    this.onLoadingError = undefined;
   }
 }

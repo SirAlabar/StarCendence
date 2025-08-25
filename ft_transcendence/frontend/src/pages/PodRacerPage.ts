@@ -199,10 +199,13 @@ export default class PodRacerPage extends BaseComponent
 
     private onPodSelected(event: PodSelectionEvent): void 
     {
-        console.log(`Pod selected: ${event.selectedPod.name}`);
+        console.log(`🎯 [PODRACER-DEBUG] Pod selected: ${event.selectedPod.name}`);
         
         this.selectedPodConfig = event.selectedPod;
         event.onConfirm();
+        
+        console.log(`🎯 [PODRACER-DEBUG] Starting 3D scene initialization...`);
+        console.log(`🎯 [PODRACER-DEBUG] Selected pod config:`, this.selectedPodConfig);
         
         this.initialize3DScene();
     }
@@ -212,20 +215,23 @@ export default class PodRacerPage extends BaseComponent
         try 
         {
             this.showLoading();
+            console.log(`🎯 [PODRACER-DEBUG] === SCENE INITIALIZATION START ===`);
             this.initializeParticles();
             
             console.log('Starting 3D scene with selected pod...');
             
             this.updateLoadingProgress('Creating 3D scene...', 10, 'canvas');
             this.gameCanvas = new GameCanvas('gameCanvas');
+            console.log(`🎯 [PODRACER-DEBUG] GameCanvas created, initializing physics...`);
             
             this.updateLoadingProgress('Initializing physics engine...', 15, 'physics');
             await this.gameCanvas.initialize();
             console.log('Physics initialized');
-            
+            console.log(`🎯 [PODRACER-DEBUG] Physics initialized, setting up managers...`);
+
             this.updateLoadingProgress('Setting up camera controls...', 20, 'physics');
             this.gameCanvas.initializeManagers(false);
-            
+
             this.gameCanvas.startRenderLoop();
 
             this.updateLoadingProgress('Loading racing track...', 30, 'track');
@@ -236,13 +242,18 @@ export default class PodRacerPage extends BaseComponent
                 this.updateLoadingProgress(`Loading ${asset}...`, 30 + (percentage * 0.4), 'track');
             };
 
+            console.log(`🎯 [PODRACER-DEBUG] RacerScene created, loading track...`);
+
             this.racerScene.onTrackLoaded = (track) => 
             {
-                console.log('Racing track loaded:', track.name);
+                console.log(`🎯 [PODRACER-DEBUG] === TRACK LOADED ===`);
+                console.log(`🎯 [PODRACER-DEBUG] Track name: ${track.name}`);
+                console.log(`🎯 [PODRACER-DEBUG] Track has mesh: ${!!this.racerScene!.getTrack()}`);
                 
                 if (this.gameCanvas) 
                 {
                     this.gameCanvas.setTrackBounds(this.racerScene!.getTrackBounds());
+                    console.log(`🎯 [PODRACER-DEBUG] Track bounds set in GameCanvas`);
                 }
                 
                 const trackInfo = document.getElementById('trackInfo');
@@ -250,6 +261,7 @@ export default class PodRacerPage extends BaseComponent
                 {
                     const trackBounds = this.racerScene!.getTrackBounds();
                     trackInfo.textContent = `Track: Polar Pass (${Math.round(trackBounds.size.x)}x${Math.round(trackBounds.size.z)}m)`;
+                    console.log(`🎯 [PODRACER-DEBUG] Track bounds: ${Math.round(trackBounds.size.x)}x${Math.round(trackBounds.size.z)}m`);
                 }
             };
 
@@ -258,8 +270,17 @@ export default class PodRacerPage extends BaseComponent
             const trackMesh = this.racerScene.getTrack();
             if (trackMesh && this.gameCanvas) 
             {
+                console.log(`🎯 [PODRACER-DEBUG] === SETTING UP TRACK PHYSICS ===`);
+                console.log(`🎯 [PODRACER-DEBUG] Track mesh exists: ${!!trackMesh}`);
+                console.log(`🎯 [PODRACER-DEBUG] Track mesh name: ${trackMesh.name}`);
+                console.log(`🎯 [PODRACER-DEBUG] Track position: (${trackMesh.position.x}, ${trackMesh.position.y}, ${trackMesh.position.z})`);
+                
                 this.gameCanvas.setupTrackPhysics(trackMesh);
-                console.log('Track physics collision enabled');
+                console.log(`🎯 [PODRACER-DEBUG] Track physics collision setup complete`);
+            } 
+            else 
+            {
+                console.error(`🎯 [PODRACER-DEBUG] ❌ TRACK PHYSICS SETUP FAILED - trackMesh: ${!!trackMesh}, gameCanvas: ${!!this.gameCanvas}`);
             }
 
             this.updateLoadingProgress(`Loading ${this.selectedPodConfig.name}...`, 70, 'pod');
@@ -395,17 +416,27 @@ export default class PodRacerPage extends BaseComponent
             
             this.playerPod.onLoaded = (pod) => 
             {
-                console.log(`Pod loaded: ${pod.getConfig().name}`);
+                console.log(`🎯 [PODRACER-DEBUG] === POD LOADED ===`);
+                console.log(`🎯 [PODRACER-DEBUG] Pod name: ${pod.getConfig().name}`);
+                console.log(`🎯 [PODRACER-DEBUG] Pod physics enabled: ${pod.isReady()}`);
                 
                 const startPos = this.racerScene!.getStartingPositions(1)[0];
                 if (startPos) 
                 {
+                    console.log(`🎯 [PODRACER-DEBUG] Start position: (${startPos.x.toFixed(2)}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)})`);
                     pod.setPosition(startPos);
                     console.log('Pod positioned at start');
                 }
 
                 this.gameCanvas!.setPlayerPod(pod);
                 this.gameCanvas!.enablePlayerMode();
+                
+                // Check physics state
+                const racerPhysics = this.gameCanvas!.getPhysics();
+                console.log(`🎯 [PODRACER-DEBUG] RacerPhysics exists: ${!!racerPhysics}`);
+                if (racerPhysics) {
+                    console.log(`🎯 [PODRACER-DEBUG] Physics ready: ${racerPhysics.isPhysicsReady()}`);
+                }
                 
                 console.log('Pod connected with physics enabled!');
             };
@@ -559,6 +590,10 @@ export default class PodRacerPage extends BaseComponent
         {
             podInfo.textContent = `Pod: ${this.selectedPodConfig.name}`;
         }
+
+        this.debugInputFlow();
+        this.startPositionMonitoring();
+        this.setupPageCleanup();
     }
 
     private showElement(id: string): void 
@@ -609,6 +644,17 @@ export default class PodRacerPage extends BaseComponent
         }
     }
 
+    private setupPageCleanup(): void 
+    {
+        console.log(`🎯 [PODRACER-DEBUG] Setting up page cleanup handlers...`);
+        
+        window.addEventListener('beforeunload', () => 
+        {
+            console.log(`🎯 [PODRACER-DEBUG] Page unloading - cleaning up physics...`);
+            this.dispose();
+        });
+    }
+
     dispose(): void 
     {
         console.log('Disposing PodRacerPage...');
@@ -644,4 +690,61 @@ export default class PodRacerPage extends BaseComponent
         
         console.log('PodRacerPage disposed');
     }
+
+private debugInputFlow(): void 
+{
+    console.log(`🎯 [PODRACER-DEBUG] === INPUT DEBUGGING ENABLED ===`);
+    
+    document.addEventListener('keydown', (event) => 
+    {
+        if (['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(event.code)) 
+        {
+            console.log(`🎯 [PODRACER-DEBUG] Key pressed: ${event.code}`);
+            
+            if (this.playerPod) 
+            {
+                const currentPos = this.playerPod.getPosition();
+                console.log(`🎯 [PODRACER-DEBUG] Pod position before move: (${currentPos.x.toFixed(2)}, ${currentPos.y.toFixed(2)}, ${currentPos.z.toFixed(2)})`);
+                
+                if (this.gameCanvas && this.gameCanvas.getPhysics()) 
+                {
+                    const speed = this.gameCanvas.getPhysics()!.getSpeed(this.selectedPodConfig.id);
+                    console.log(`🎯 [PODRACER-DEBUG] Current speed: ${speed.toFixed(2)}`);
+                }
+            }
+        }
+    });
+}
+
+private startPositionMonitoring(): void 
+{
+    setInterval(() => 
+    {
+        if (this.playerPod) 
+        {
+            const pos = this.playerPod.getPosition();
+            const distance = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+            
+            if (distance > 50) 
+            {
+                console.warn(`🎯 [PODRACER-DEBUG] ⚠️ POD TOO FAR FROM ORIGIN!`);
+                console.warn(`🎯 [PODRACER-DEBUG] Position: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`);
+                console.warn(`🎯 [PODRACER-DEBUG] Distance from origin: ${distance.toFixed(2)}`);
+            }
+        }
+    }, 1000);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

@@ -253,17 +253,22 @@ export class GameCanvas
 
   public setPlayerPod(pod: RacerPod | null): void 
   {
-    console.log('Setting player pod:', pod?.getConfig().name || 'none');
+    console.log(`🎯 GameCanvas.setPlayerPod() called`);
+    console.log(`🎯 Setting player pod: ${pod?.getConfig().name || 'none'}`);
+    console.log(`🎯 Has racerPhysics: ${!!this.racerPhysics}`);
+    console.log(`🎯 Physics ready: ${this.racerPhysics?.isPhysicsReady()}`);
+    
     this.playerPod = pod;
 
     if (pod && this.racerPhysics && this.racerPhysics.isPhysicsReady()) 
     {
+      console.log(`🎯 Enabling physics for pod`);
       pod.enablePhysics(this.racerPhysics);
-      console.log('Pod physics enabled');
+      console.log(`🎯 Pod physics enabled`);
     }
     else 
     {
-      console.warn('Cannot enable physics:', {
+      console.warn(`🎯 Cannot enable physics:`, {
         hasPod: !!pod,
         hasPhysics: !!this.racerPhysics,
         physicsReady: this.racerPhysics?.isPhysicsReady()
@@ -272,13 +277,17 @@ export class GameCanvas
 
     if (this.cameraManager) 
     {
+      console.log(`🎯 Setting pod in camera manager`);
       this.cameraManager.setPlayerPod(pod);
     }
 
     if (this.inputManager) 
     {
+      console.log(`🎯 Setting pod in input manager`);
       this.inputManager.setPlayerPod(pod);
     }
+    
+    console.log(`🎯 GameCanvas.setPlayerPod() completed`);
   }
 
   public getPlayerPod(): RacerPod | null 
