@@ -163,8 +163,8 @@ export class RacerRenderer
     
     this.racerUIManager.startRace();
     
-    this.racerUIManager.simulateRacerData();
-    
+    // this.racerUIManager.simulateRacerData(); //For testing UI
+
     // Setup local input handling
     this.setupLocalInput();
     

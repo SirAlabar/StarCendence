@@ -95,82 +95,89 @@ export class RacerHUD
         <!-- Speed Display (Bottom Right) -->
         <div class="absolute bottom-8 right-8">
           <div class="relative">
-            <!-- Oval Speedometer Container -->
-            <div class="w-48 h-24 bg-gradient-to-br from-purple-900/70 via-blue-900/60 to-indigo-900/60 backdrop-blur rounded-full border-4 border-gray-600 relative overflow-hidden">
+            <!-- Enhanced Oval Speedometer Container -->
+            <div class="w-64 h-32 bg-gradient-to-br from-purple-900/70 via-blue-900/60 to-indigo-900/60 backdrop-blur rounded-full border-4 border-gray-600 relative">
+
+              <!-- Outer Glow Arc (Outside the oval) -->
+              <div class="absolute -inset-4 pointer-events-none">
+                <svg width="340" height="170" class="absolute inset-0">
+                  
+                  <!-- Background Arc (Full oval outline) -->
+                  <path id="speedArcBackground" 
+                          d="M 144 20 A 140 60 0 0 1 144 140" 
+                          fill="none" 
+                          stroke="rgba(75,85,99,0.3)" 
+                          stroke-width="24" 
+                          stroke-linecap="round"/>
+                  
+                  <!-- Dynamic Speed Arc (Progressive fill) -->
+                  <path id="speedArcDynamic" 
+                          d="M 144 20 A 140 60 0 0 1 144 140"  
+                          fill="none" 
+                          stroke="url(#dynamicSpeedGradient)" 
+                          stroke-width="26" 
+                          stroke-linecap="round"
+                          stroke-dasharray="0 999"
+                          stroke-dashoffset="0"
+                          opacity="0.4"/>
+                  
+                  <!-- Glow Overlay Arc (Intense glow effect) -->
+                  <path id="speedArcGlow" 
+                          d="M 144 20 A 140 60 0 0 1 144 140" 
+                          fill="none" 
+                          stroke="url(#glowSpeedGradient)" 
+                          stroke-width="28" 
+                          stroke-linecap="round"
+                          stroke-dasharray="0 999"
+                          stroke-dashoffset="0"
+                          opacity="0"
+                          filter="url(#intensiveGlowFilter)"/>
+                  
+                  <!-- Gradient Definitions -->
+                  <defs>
+                    <!-- Dynamic Speed Gradient -->
+                    <linearGradient id="dynamicSpeedGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#22d3ee"/>
+                      <stop offset="25%" stop-color="#3b82f6"/>
+                      <stop offset="50%" stop-color="#8b5cf6"/>
+                      <stop offset="75%" stop-color="#ec4899"/>
+                      <stop offset="100%" stop-color="#f97316"/>
+                    </linearGradient>
+
+                    <!-- Glow Speed Gradient -->
+                    <linearGradient id="glowSpeedGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="white" stop-opacity="1"/>
+                      <stop offset="30%" stop-color="#a5f3fc" stop-opacity="0.9"/>
+                      <stop offset="60%" stop-color="#c084fc" stop-opacity="0.8"/>
+                      <stop offset="100%" stop-color="#fb7185" stop-opacity="0.7"/>
+                    </linearGradient>
+
+                    <!-- Intensive Blur filter for glow -->
+                    <filter id="intensiveGlowFilter" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="6" result="blur"/>
+                      <feGaussianBlur stdDeviation="3" result="blur2"/>
+                      <feMerge>
+                        <feMergeNode in="blur"/>
+                        <feMergeNode in="blur2"/>
+                        <feMergeNode in="SourceGraphic"/>
+                      </feMerge>
+                    </filter>
+                  </defs>
+                </svg>
+              </div>
               
-            <!-- Speed Arc (Right Side) -->
-            <div class="absolute right-0 top-0 w-24 h-24">
-              <svg width="96" height="96" class="absolute inset-0">
-                
-                <!-- Background Arc -->
-                <path id="speedArcOval"
-                      d="M 48 8 A 40 40 0 0 1 48 88" 
-                      fill="none" 
-                      stroke="rgba(75,85,99,0.1)" 
-                      stroke-width="10" 
-                      stroke-linecap="round"/>
-                
-                <!-- Base Gradient Arc -->
-                <path id="speedArcBase" 
-                      d="M 48 8 A 40 40 0 0 1 48 88" 
-                      fill="none" 
-                      stroke="url(#ovalSpeedGradient)" 
-                      stroke-width="10" 
-                      stroke-linecap="round"/>
-                
-                <!-- Glow Overlay Arc (for highlight while accelerating) -->
-                <path id="speedArcGlow" 
-                      d="M 48 8 A 40 40 0 0 1 48 88" 
-                      fill="none" 
-                      stroke="url(#glowGradient)" 
-                      stroke-width="14" 
-                      stroke-linecap="round"
-                      stroke-dasharray="0 999"
-                      stroke-dashoffset="0"
-                      opacity="0.9"
-                      filter="url(#glowFilter)"/>
-                
-                <!-- Gradient Definitions -->
-                <defs>
-                  <!-- Base Gradient -->
-                  <linearGradient id="ovalSpeedGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stop-color="#22d3ee"/>
-                    <stop offset="40%" stop-color="#3b82f6"/>
-                    <stop offset="70%" stop-color="#8b5cf6"/>
-                    <stop offset="100%" stop-color="#ec4899"/>
-                  </linearGradient>
-
-                  <!-- Glow Gradient -->
-                  <linearGradient id="glowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="white" stop-opacity="1"/>
-                    <stop offset="50%" stop-color="#a5f3fc" stop-opacity="0.8"/>
-                    <stop offset="100%" stop-color="transparent" stop-opacity="0"/>
-                  </linearGradient>
-
-                  <!-- Blur filter for glow -->
-                  <filter id="glowFilter" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="4" result="blur"/>
-                    <feMerge>
-                      <feMergeNode in="blur"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                  </filter>
-                </defs>
-              </svg>
-            </div>
-
-              
-              <!-- Speed Value (Left Side) -->
+              <!-- Speed Value (Center) -->
               <div class="absolute inset-0 flex items-center justify-center" style="transform: translateY(-2px);">
                 <div class="text-center relative">
                   
-                  <!-- Shadow -->
-                  <span class="absolute inset-0 text-5xl font-extrabold text-black translate-x-1 translate-y-1"
+                  <!-- Dynamic Shadow (matches speed value) -->
+                  <span id="speedShadow" 
+                        class="absolute inset-0 text-5xl font-extrabold text-black translate-x-1 translate-y-1"
                         style="font-family: 'Arial Black', sans-serif;">
                     0
                   </span>
 
-                  <!-- Text -->
+                  <!-- Main Speed Text -->
                   <span id="speedValue" 
                     class="relative text-5xl font-extrabold 
                           bg-gradient-to-b from-cyan-200 via-cyan-400 to-cyan-600 
@@ -182,7 +189,6 @@ export class RacerHUD
                   <div class="text-xs text-gray-300 uppercase tracking-widest font-bold">KM/H</div>
                 </div>
               </div>
-
               
               <!-- Inner Oval Highlight -->
               <div class="absolute inset-2 rounded-full border border-gray-500/30"></div>
@@ -269,61 +275,125 @@ export class RacerHUD
     this.updateSpeed(data.speed, data.maxSpeed);
   }
   
-  // Update speed display with oval gauge like reference image
+  // Update speed display with enhanced oval gauge
   private updateSpeed(speed: number, maxSpeed: number): void 
   {
+    const speedValue = Math.round(speed);
     const speedValueEl = document.getElementById('speedValue');
+    const speedShadowEl = document.getElementById('speedShadow');
     
+    // Update both main text and shadow with same value
     if (speedValueEl) 
     {
-      speedValueEl.textContent = Math.round(speed).toString();
+      speedValueEl.textContent = speedValue.toString();
+    }
+    if (speedShadowEl) 
+    {
+      speedShadowEl.textContent = speedValue.toString();
     }
     
-    // Update the right-side arc
-    this.updateOvalSpeedArc(speed, maxSpeed);
+    // Update the enhanced arc
+    this.updateEnhancedSpeedArc(speed, maxSpeed);
   }
   
-  // Update oval arc on right side only
-  private updateOvalSpeedArc(speed: number, maxSpeed: number): void 
+  // Update enhanced oval arc that wraps around outside
+  private updateEnhancedSpeedArc(speed: number, maxSpeed: number): void 
   {
-    const speedArc = document.getElementById('speedArcOval');
-    if (!speedArc) 
+    const speedArcDynamic = document.getElementById('speedArcDynamic');
+    const speedArcGlow = document.getElementById('speedArcGlow');
+    
+    if (!speedArcDynamic || !speedArcGlow) 
     {
       return;
     }
     
     const percentage = Math.min((speed / maxSpeed) * 100, 100);
     
-    // Right-side semicircle arc (top to bottom)
-    const centerX = 48;
-    const centerY = 48;
-    const radius = 40;
+    // Calculate ellipse perimeter approximation
+    const rx = 128; // Semi-major axis
+    const ry = 64;  // Semi-minor axis
+    const perimeter = Math.PI * (3 * (rx + ry) - Math.sqrt((3 * rx + ry) * (rx + 3 * ry)));
     
-    const startAngle = -90;
-    const totalSweep = 180; 
-    const currentSweep = (percentage / 100) * totalSweep;
-    const endAngle = startAngle + currentSweep;
+    // Calculate dash array for progressive fill
+    const filledLength = (percentage / 100) * perimeter;
+    const emptyLength = perimeter - filledLength;
     
-    // Convert to radians
-    const startRad = (startAngle * Math.PI) / 180;
-    const endRad = (endAngle * Math.PI) / 180;
+    // ALWAYS show full arc outline (even at speed 0)
+    speedArcDynamic.setAttribute('stroke-dasharray', `${perimeter} 0`);
     
-    // Calculate coordinates
-    const startX = centerX + radius * Math.cos(startRad);
-    const startY = centerY + radius * Math.sin(startRad);
-    const endX = centerX + radius * Math.cos(endRad);
-    const endY = centerY + radius * Math.sin(endRad);
+    // Update dynamic arc opacity based on speed (stronger as speed increases)
+    const baseOpacity = 0.3; // Always visible base
+    const dynamicOpacity = baseOpacity + (percentage / 100) * 0.5; // Increases to 0.8 max
+    speedArcDynamic.setAttribute('opacity', dynamicOpacity.toString());
     
-    // Create arc path
-    if (percentage === 0) 
+    // Update glow arc - this shows the "filled" portion
+    const glowIntensity = Math.min(percentage / 100, 1);
+    const glowOpacity = glowIntensity * 0.7; // Max 70% opacity for glow
+    
+    if (percentage > 0) // Start showing fill immediately
     {
-      speedArc.setAttribute('d', `M ${startX} ${startY} A ${radius} ${radius} 0 0 1 ${startX} ${startY}`);
+      speedArcGlow.setAttribute('stroke-dasharray', `${filledLength} ${emptyLength}`);
+      speedArcGlow.setAttribute('opacity', glowOpacity.toString());
+      
+      // Add pulsing effect for high speeds
+      if (percentage > 80) 
+      {
+        speedArcGlow.style.animation = 'pulse 0.5s ease-in-out infinite alternate';
+      } 
+      else 
+      {
+        speedArcGlow.style.animation = '';
+      }
     } 
     else 
     {
-      const largeArcFlag = currentSweep > 90 ? 1 : 0;
-      const pathData = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
-      speedArc.setAttribute('d', pathData);
+      speedArcGlow.setAttribute('stroke-dasharray', `0 ${perimeter}`);
+      speedArcGlow.setAttribute('opacity', '0');
+      speedArcGlow.style.animation = '';
+    }
+    
+    // Dynamic color intensity based on speed
+    this.updateSpeedColors(percentage);
+  }
+  
+  // Update color intensity based on speed percentage
+  private updateSpeedColors(percentage: number): void 
+  {
+    const speedValueEl = document.getElementById('speedValue');
+    if (!speedValueEl) return;
+    
+    // Change text gradient based on speed
+    if (percentage < 30) 
+    {
+      // Low speed - cyan tones
+      speedValueEl.className = speedValueEl.className.replace(
+        /bg-gradient-to-b from-\w+-\d+ via-\w+-\d+ to-\w+-\d+/,
+        'bg-gradient-to-b from-cyan-200 via-cyan-400 to-cyan-600'
+      );
+    } 
+    else if (percentage < 60) 
+    {
+      // Medium speed - blue/purple tones
+      speedValueEl.className = speedValueEl.className.replace(
+        /bg-gradient-to-b from-\w+-\d+ via-\w+-\d+ to-\w+-\d+/,
+        'bg-gradient-to-b from-blue-200 via-purple-400 to-purple-600'
+      );
+    } 
+    else if (percentage < 85) 
+    {
+      // High speed - purple/pink tones
+      speedValueEl.className = speedValueEl.className.replace(
+        /bg-gradient-to-b from-\w+-\d+ via-\w+-\d+ to-\w+-\d+/,
+        'bg-gradient-to-b from-purple-200 via-pink-400 to-pink-600'
+      );
+    } 
+    else 
+    {
+      // Maximum speed - orange/red tones
+      speedValueEl.className = speedValueEl.className.replace(
+        /bg-gradient-to-b from-\w+-\d+ via-\w+-\d+ to-\w+-\d+/,
+        'bg-gradient-to-b from-orange-200 via-red-400 to-red-600'
+      );
     }
   }
   
@@ -340,7 +410,7 @@ export class RacerHUD
     const colorClass = type === 'success' ? 'text-green-500' : type === 'warning' ? 'text-yellow-500' : 'text-blue-500';
     
     const messageHTML = `
-      <div id="${messageId}" class=" from-purple-900/75 via-blue-900/65 to-indigo-900/65 backdrop-blur rounded-lg px-6 py-2 mb-2 border border-white/20">
+      <div id="${messageId}" class="bg-gradient-to-br from-purple-900/75 via-blue-900/65 to-indigo-900/65 backdrop-blur rounded-lg px-6 py-2 mb-2 border border-white/20">
         <div class="${colorClass} text-lg font-semibold text-center">${message}</div>
       </div>
     `;
