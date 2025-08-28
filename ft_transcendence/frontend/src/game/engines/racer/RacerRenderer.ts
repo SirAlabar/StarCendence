@@ -361,26 +361,36 @@ export class RacerRenderer
     // this.zones = new RacerZones(this.gameCanvas!.getScene()!);
   }
   
-  private async setupLocalPhysics(): Promise<void> 
-  {
-    if (!this.gameCanvas) 
+    private async setupLocalPhysics(): Promise<void> 
     {
-      return;
+    if (!this.gameCanvas || !this.racerScene) 
+    {
+        console.error('RACER-RENDERER: Missing dependencies for physics setup');
+        return;
     }
     
     console.log('RACER-RENDERER: Setting up local physics...');
     
-    // Setup track physics collision if track is loaded
-    if (this.racerScene) 
+    // Single call - RacerPhysics handles everything
+    const trackMesh = this.racerScene.getTrack();
+    if (trackMesh) 
     {
-      const trackMesh = this.racerScene.getTrack();
-      if (trackMesh) 
-      {
-        this.gameCanvas.setupTrackPhysics(trackMesh);
-        console.log('RACER-RENDERER: Track physics collision setup complete');
-      }
+        const physics = this.gameCanvas.getPhysics();
+        if (physics && physics.isPhysicsReady()) 
+        {
+        await physics.setupTrackCollision(trackMesh, true);
+        console.log('RACER-RENDERER: Physics setup complete');
+        }
+        else 
+        {
+        console.error('RACER-RENDERER: Physics not ready');
+        }
     }
-  }
+    else 
+    {
+        console.error('RACER-RENDERER: No track mesh available');
+    }
+}
   
   private async initializeVisualTrack(): Promise<void> 
   {

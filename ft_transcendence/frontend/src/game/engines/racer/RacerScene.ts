@@ -149,17 +149,6 @@ export class RacerScene
     console.log('Racing environment configured');
   }
 
-  public setupPhysics(): void 
-  {
-    if (!this.track || !this.gameCanvas.hasPhysics()) 
-    {
-      console.warn('Cannot setup track physics: track or physics not ready');
-      return;
-    }
-
-    this.gameCanvas.setupTrackPhysics(this.track);
-    console.log('Track physics collision enabled');
-  }
 
   public getTrack(): AbstractMesh | null 
   {

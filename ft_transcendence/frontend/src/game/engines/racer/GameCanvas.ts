@@ -312,15 +312,6 @@ export class GameCanvas
     console.log('Player pod cleared');
   }
 
-  public setupTrackPhysics(trackMesh: any): void 
-  {
-    if (this.racerPhysics && this.racerPhysics.isPhysicsReady() && trackMesh) 
-    {
-      this.racerPhysics.createTrack(trackMesh);
-      console.log('Track physics collision enabled');
-    }
-  }
-
   public initializeManagers(developmentMode: boolean = false): void 
   {
     if (!this.scene || !this.canvas) 
