@@ -18,7 +18,7 @@ export class RacerUIManager
   private config: RacerUIConfig;
   private isActive: boolean = false;
   private startTime: number = 0;
-  private updateInterval: number | null = null;
+  private updateInterval: ReturnType<typeof setInterval> | null = null;
   
   // Current racer state
   private currentRacerData: RacerData = 

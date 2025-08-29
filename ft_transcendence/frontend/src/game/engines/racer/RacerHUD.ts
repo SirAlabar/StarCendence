@@ -80,17 +80,6 @@ export class RacerHUD
             Back
           </button>
         </div>
-
-        <!-- Performance Info (Bottom Left) -->
-        <div class="absolute bottom-4 left-4 pointer-events-auto">
-          <div class="bg-gradient-to-br from-purple-900/75 via-blue-900/65 to-indigo-900/65 backdrop-blur rounded-lg p-3 border border-gray-500/30">
-            <div class="text-gray-300 text-xs space-y-1">
-              <div>FPS: <span id="fpsCounter">60</span></div>
-              <div>Meshes: <span id="meshCounter">0</span></div>
-              <div>Camera: <span id="cameraMode">Racing</span></div>
-            </div>
-          </div>
-        </div>
         
         <!-- Speed Display (Bottom Right) -->
         <div class="absolute bottom-8 right-8">

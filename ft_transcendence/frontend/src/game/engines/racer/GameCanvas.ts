@@ -253,41 +253,31 @@ export class GameCanvas
 
   public setPlayerPod(pod: RacerPod | null): void 
   {
-    console.log(`🎯 GameCanvas.setPlayerPod() called`);
-    console.log(`🎯 Setting player pod: ${pod?.getConfig().name || 'none'}`);
-    console.log(`🎯 Has racerPhysics: ${!!this.racerPhysics}`);
-    console.log(`🎯 Physics ready: ${this.racerPhysics?.isPhysicsReady()}`);
+    console.log(`GameCanvas.setPlayerPod() called`);
     
     this.playerPod = pod;
 
     if (pod && this.racerPhysics && this.racerPhysics.isPhysicsReady()) 
     {
-      console.log(`🎯 Enabling physics for pod`);
+      console.log(`Enabling physics for pod`);
       pod.enablePhysics(this.racerPhysics);
-      console.log(`🎯 Pod physics enabled`);
     }
     else 
     {
-      console.warn(`🎯 Cannot enable physics:`, {
-        hasPod: !!pod,
-        hasPhysics: !!this.racerPhysics,
-        physicsReady: this.racerPhysics?.isPhysicsReady()
-      });
+      console.warn(`Cannot enable physics - missing dependencies`);
     }
 
     if (this.cameraManager) 
     {
-      console.log(`🎯 Setting pod in camera manager`);
       this.cameraManager.setPlayerPod(pod);
     }
 
     if (this.inputManager) 
     {
-      console.log(`🎯 Setting pod in input manager`);
-      this.inputManager.setPlayerPod(pod);
+      this.updateInputManagerReferences();
     }
     
-    console.log(`🎯 GameCanvas.setPlayerPod() completed`);
+    console.log(`GameCanvas.setPlayerPod() completed`);
   }
 
   public getPlayerPod(): RacerPod | null 
@@ -306,7 +296,7 @@ export class GameCanvas
 
     if (this.inputManager) 
     {
-      this.inputManager.setPlayerPod(null);
+      this.inputManager.setPhysicsSystem(null, null);
     }
     
     console.log('Player pod cleared');
@@ -355,7 +345,7 @@ export class GameCanvas
     }
     else
     {
-      this.switchCameraMode(CameraMode.RACING);
+      this.switchCameraMode(CameraMode.PLAYER);
     }
 
     console.log(`Managers initialized (Development: ${developmentMode})`);
@@ -371,8 +361,13 @@ export class GameCanvas
 
     const currentMode = this.cameraManager.getCurrentMode();
     this.inputManager.setCameraMode(currentMode);
-    this.inputManager.setPlayerPod(this.playerPod);
     this.inputManager.setFreeCamera(this.cameraManager.getFreeCamera());
+
+    // Set physics system if pod and physics are available
+    if (this.playerPod && this.racerPhysics) 
+    {
+      this.inputManager.setPhysicsSystem(this.racerPhysics, this.playerPod.getConfig().id);
+    }
   }
 
   public startRenderLoop(): void 

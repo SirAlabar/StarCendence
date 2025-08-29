@@ -1,5 +1,3 @@
-// CameraManager.ts - Simplified Camera Management with Physics Movement
-
 import { GameCanvas } from '../engines/racer/GameCanvas';
 import { Vector3, Scene, Camera, ArcRotateCamera, FreeCamera } from '@babylonjs/core';
 import { RacerPod } from '../engines/racer/RacerPods';
@@ -23,6 +21,7 @@ export class CameraManager
   private gameCanvas: GameCanvas;
   private scene: Scene;
   private currentMode: CameraMode;
+  private developmentMode: boolean = false;
   
   private racingCamera: ArcRotateCamera | null = null;
   private freeCamera: FreeCamera | null = null;
@@ -35,11 +34,13 @@ export class CameraManager
   {
     this.gameCanvas = gameCanvas;
     this.scene = gameCanvas.getScene()!;
-    this.currentMode = CameraMode.RACING;
+    this.currentMode = CameraMode.PLAYER;
     
     this.setupCameras();
     console.log('CameraManager initialized');
   }
+
+  // ===== Camera Setup =====
 
   private setupCameras(): void 
   {
@@ -75,8 +76,31 @@ export class CameraManager
     this.switchToMode(this.currentMode);
   }
 
+  public setDevelopmentMode(enabled: boolean): void 
+  {
+    this.developmentMode = enabled;
+    
+    if (enabled) 
+    {
+      this.switchToMode(CameraMode.FREE);
+    }
+    else if (this.currentMode === CameraMode.FREE) 
+    {
+      this.switchToMode(CameraMode.PLAYER);
+    }
+  }
+
+  // ===== Camera Mode Management =====
+
   public switchToMode(mode: CameraMode): void 
   {
+    // Restrict free camera to dev mode only
+    if (mode === CameraMode.FREE && !this.developmentMode) 
+    {
+      console.warn('Free camera only available in development mode');
+      return;
+    }
+
     this.detachCurrentCamera();
     this.currentMode = mode;
 
@@ -86,9 +110,11 @@ export class CameraManager
         this.scene.activeCamera = this.racingCamera;
         this.racingCamera?.attachControl(this.gameCanvas.getCanvas()!, true);
         break;
+        
       case CameraMode.FREE:
         this.scene.activeCamera = this.freeCamera;
         break;
+        
       case CameraMode.PLAYER:
         this.scene.activeCamera = this.playerCamera;
         this.playerCamera?.attachControl(this.gameCanvas.getCanvas()!, true);
@@ -101,11 +127,23 @@ export class CameraManager
 
   public cycleCameraMode(): void 
   {
-    const modes = [CameraMode.RACING, CameraMode.FREE, CameraMode.PLAYER];
-    const currentIndex = modes.indexOf(this.currentMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    this.switchToMode(modes[nextIndex]);
+    let availableModes: CameraMode[];
+    
+    if (this.developmentMode) 
+    {
+      availableModes = [CameraMode.RACING, CameraMode.FREE, CameraMode.PLAYER];
+    }
+    else 
+    {
+      availableModes = [CameraMode.RACING, CameraMode.PLAYER];
+    }
+    
+    const currentIndex = availableModes.indexOf(this.currentMode);
+    const nextIndex = (currentIndex + 1) % availableModes.length;
+    this.switchToMode(availableModes[nextIndex]);
   }
+
+  // ===== Camera Getters =====
 
   public getCurrentMode(): CameraMode 
   {
@@ -133,6 +171,8 @@ export class CameraManager
     return infoMap[mode] || null;
   }
 
+  // ===== Pod Integration =====
+
   public setPlayerPod(pod: RacerPod | null): void 
   {
     this.playerPod = pod;
@@ -140,6 +180,12 @@ export class CameraManager
     if (this.currentMode === CameraMode.PLAYER && pod) 
     {
       this.setupPodFollowing();
+    }
+    
+    // Auto-switch to player mode when pod is set (unless in dev mode)
+    if (pod && !this.developmentMode && this.currentMode !== CameraMode.PLAYER) 
+    {
+      this.switchToMode(CameraMode.PLAYER);
     }
   }
 
@@ -170,6 +216,8 @@ export class CameraManager
     }
   }
 
+  // ===== Pod Following =====
+
   private setupPodFollowing(): void 
   {
     if (!this.playerPod || !this.playerCamera || this.currentMode !== CameraMode.PLAYER) 
@@ -180,7 +228,8 @@ export class CameraManager
     const podPosition = this.playerPod.getPosition();
     this.playerCamera.setTarget(podPosition);
 
-    this.beforeRenderObserver = this.scene.registerBeforeRender(() => {
+    this.beforeRenderObserver = this.scene.registerBeforeRender(() => 
+    {
       if (this.playerPod && this.playerCamera && this.currentMode === CameraMode.PLAYER) 
       {
         const currentPodPosition = this.playerPod.getPosition();
@@ -202,6 +251,8 @@ export class CameraManager
       this.beforeRenderObserver = null;
     }
   }
+
+  // ===== Cleanup =====
 
   public dispose(): void 
   {

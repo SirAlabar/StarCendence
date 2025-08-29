@@ -7,9 +7,7 @@ import
   AbstractMesh
 } from '@babylonjs/core';
 import Ammo from 'ammojs-typed';
-
 import { CreateLines, Color3 } from '@babylonjs/core';
-
 
 export class RacerPhysics 
 {
@@ -36,100 +34,92 @@ export class RacerPhysics
     console.log('RacerPhysics: Initializing');
   }
 
-  ///////
-public createCollisionVisualization(meshes: AbstractMesh[], scaleFactor: number = 8): void 
-{
-  console.log('RacerPhysics: Creating collision visualization...');
-  console.log(`RacerPhysics: Visualization scale factor: ${scaleFactor}`);
-  
-  // Clear existing visualization
-  this.clearCollisionVisualization();
-  
-  meshes.forEach((mesh, index) => 
+  // ===== Debug Visualization =====
+
+  public createCollisionVisualization(meshes: AbstractMesh[], scaleFactor: number = 8): void 
   {
-    if (!(mesh instanceof Mesh)) 
-    {
-      return;
-    }
-
-    const babylonMesh = mesh as Mesh;
-    const vertices = babylonMesh.getVerticesData('position');
-    const indices = babylonMesh.getIndices();
-
-    if (!vertices || !indices) 
-    {
-      return;
-    }
-
-    console.log(`RacerPhysics: Creating visualization for mesh ${index}`);
-
-    // Create wireframe lines for each triangle
-    const linePoints: Vector3[] = [];
+    console.log('RacerPhysics: Creating collision visualization');
     
-    for (let i = 0; i < indices.length; i += 3) 
+    this.clearCollisionVisualization();
+    
+    meshes.forEach((mesh, index) => 
     {
-      const i1 = indices[i] * 3;
-      const i2 = indices[i + 1] * 3;
-      const i3 = indices[i + 2] * 3;
-
-      // Apply SAME scale factor as physics collision
-      const v1 = new Vector3(
-        vertices[i1] * scaleFactor,
-        vertices[i1 + 1] * scaleFactor,
-        vertices[i1 + 2] * scaleFactor
-      );
-      const v2 = new Vector3(
-        vertices[i2] * scaleFactor,
-        vertices[i2 + 1] * scaleFactor,
-        vertices[i2 + 2] * scaleFactor
-      );
-      const v3 = new Vector3(
-        vertices[i3] * scaleFactor,
-        vertices[i3 + 1] * scaleFactor,
-        vertices[i3 + 2] * scaleFactor
-      );
-
-      // Add triangle edges (sample every 20th triangle to reduce visual clutter)
-      if (i % 1 === 0) 
+      if (!(mesh instanceof Mesh)) 
       {
-        linePoints.push(v1, v2, v2, v3, v3, v1);
+        return;
       }
-    }
 
-    if (linePoints.length > 0) 
-    {
-      // Create wireframe lines
-      const collisionLines = CreateLines(`collisionWireframe_${index}`, { points: linePoints }, this.scene);
-      collisionLines.color = new Color3(1, 0, 0); // Red wireframe
-      collisionLines.alpha = 0.6;
+      const babylonMesh = mesh as Mesh;
+      const vertices = babylonMesh.getVerticesData('position');
+      const indices = babylonMesh.getIndices();
+
+      if (!vertices || !indices) 
+      {
+        return;
+      }
+
+      const linePoints: Vector3[] = [];
       
-      this.debugCollisionVisualization.push(collisionLines);
-      
-      console.log(`RacerPhysics: Created wireframe for mesh ${index} with ${linePoints.length/6} triangles`);
-    }
-  });
-  
-  console.log(`RacerPhysics: Collision visualization created for ${meshes.length} meshes`);
-}
+      for (let i = 0; i < indices.length; i += 3) 
+      {
+        const i1 = indices[i] * 3;
+        const i2 = indices[i + 1] * 3;
+        const i3 = indices[i + 2] * 3;
 
-public clearCollisionVisualization(): void 
-{
-  this.debugCollisionVisualization.forEach(mesh => mesh.dispose());
-  this.debugCollisionVisualization = [];
-}
+        const v1 = new Vector3(
+          vertices[i1] * scaleFactor,
+          vertices[i1 + 1] * scaleFactor,
+          vertices[i1 + 2] * scaleFactor
+        );
+        const v2 = new Vector3(
+          vertices[i2] * scaleFactor,
+          vertices[i2 + 1] * scaleFactor,
+          vertices[i2 + 2] * scaleFactor
+        );
+        const v3 = new Vector3(
+          vertices[i3] * scaleFactor,
+          vertices[i3 + 1] * scaleFactor,
+          vertices[i3 + 2] * scaleFactor
+        );
 
-public toggleCollisionVisualization(): boolean 
-{
-  const isVisible = this.debugCollisionVisualization.length > 0 && this.debugCollisionVisualization[0].isVisible;
-  
-  this.debugCollisionVisualization.forEach(mesh => 
+        if (i % 1 === 0) 
+        {
+          linePoints.push(v1, v2, v2, v3, v3, v1);
+        }
+      }
+
+      if (linePoints.length > 0) 
+      {
+        const collisionLines = CreateLines(`collisionWireframe_${index}`, { points: linePoints }, this.scene);
+        collisionLines.color = new Color3(1, 0, 0);
+        collisionLines.alpha = 0.6;
+        
+        this.debugCollisionVisualization.push(collisionLines);
+      }
+    });
+    
+    console.log(`RacerPhysics: Collision visualization created for ${meshes.length} meshes`);
+  }
+
+  public clearCollisionVisualization(): void 
   {
-    mesh.isVisible = !isVisible;
-  });
-  
-  return !isVisible;
+    this.debugCollisionVisualization.forEach(mesh => mesh.dispose());
+    this.debugCollisionVisualization = [];
+  }
 
-}/////////////
+  public toggleCollisionVisualization(): boolean 
+  {
+    const isVisible = this.debugCollisionVisualization.length > 0 && this.debugCollisionVisualization[0].isVisible;
+    
+    this.debugCollisionVisualization.forEach(mesh => 
+    {
+      mesh.isVisible = !isVisible;
+    });
+    
+    return !isVisible;
+  }
+
+  // ===== Physics Initialization =====
 
   public async initialize(): Promise<void> 
   {
@@ -140,7 +130,7 @@ public toggleCollisionVisualization(): boolean
 
     try 
     {
-      console.log('RacerPhysics: Attempt 1/1');
+      console.log('RacerPhysics: Initializing physics engine');
       
       const ammoInstance = await Ammo.bind(window)();
       const physicsPlugin = new (await import('@babylonjs/core')).AmmoJSPlugin(true, ammoInstance);
@@ -163,7 +153,7 @@ public toggleCollisionVisualization(): boolean
       });
       
       this.isInitialized = true;
-      console.log('RacerPhysics: Ready with AmmoJSPlugin');
+      console.log('RacerPhysics: Ready');
     } 
     catch (error) 
     {
@@ -172,311 +162,275 @@ public toggleCollisionVisualization(): boolean
     }
   }
 
-    public createPod(mesh: Mesh, podId: string): void 
+  // ===== Pod Physics Creation =====
+
+  public createPod(mesh: Mesh, podId: string): void 
+  {
+    if (!this.isInitialized || !this.ammoInstance) 
     {
-        if (!this.isInitialized || !this.ammoInstance) 
-        {
-            console.error('RacerPhysics: Not initialized');
-            return;
-        }
-
-        console.log(`ðŸŽï¸ [POD-PHYSICS] Creating pod collision for: ${podId}`);
-
-        const Ammo = this.ammoInstance;
-        const position = mesh.position;
-        const quaternion = mesh.rotationQuaternion || Quaternion.Identity();
-        
-        console.log(`ðŸŽï¸ [POD-PHYSICS] Pod position: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
-
-        const transform = new Ammo.btTransform();
-        transform.setIdentity();
-        transform.setOrigin(new Ammo.btVector3(position.x, position.y, position.z));
-        transform.setRotation(new Ammo.btQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w));
-
-        const motionState = new Ammo.btDefaultMotionState(transform);
-        const localInertia = new Ammo.btVector3(0, 0, 0);
-
-        const podLength = 2.0;
-        const podWidth = 0.8;
-        const podHeight = 0.6;
-
-        const compoundShape = new Ammo.btCompoundShape();
-        
-        const mainShape = new Ammo.btBoxShape(new Ammo.btVector3(podLength/2, podHeight/2, podWidth/2));
-        const mainTransform = new Ammo.btTransform();
-        mainTransform.setIdentity();
-        compoundShape.addChildShape(mainTransform, mainShape);
-        
-        const frontShape = new Ammo.btBoxShape(new Ammo.btVector3(0.3, podHeight/3, podWidth/3));
-        const frontTransform = new Ammo.btTransform();
-        frontTransform.setIdentity();
-        frontTransform.setOrigin(new Ammo.btVector3(podLength/2 + 0.3, 0, 0));
-        compoundShape.addChildShape(frontTransform, frontShape);
-
-        compoundShape.setMargin(0.05);
-        compoundShape.calculateLocalInertia(this.POD_MASS, localInertia);
-
-        console.log(`ðŸŽï¸ [POD-PHYSICS] Pod collision shape: ${podLength}Ã—${podHeight}Ã—${podWidth}`);
-
-        const rigidBodyInfo = new Ammo.btRigidBodyConstructionInfo(this.POD_MASS, motionState, compoundShape, localInertia);
-        const rigidBody = new Ammo.btRigidBody(rigidBodyInfo);
-        
-        rigidBody.setDamping(0.3, 0.5);
-        rigidBody.setFriction(0.8);
-        rigidBody.setRestitution(0.1);
-        rigidBody.setActivationState(4);
-        rigidBody.forceActivationState(4);
-        
-        this.physicsWorld.addRigidBody(rigidBody);
-        this.pods.set(podId, { rigidBody, mesh });
-        
-        console.log(`ðŸŽï¸ [POD-PHYSICS] Pod collision body created and added to physics world`);
-        console.log(`ðŸŽï¸ [POD-PHYSICS] Pod mass: ${this.POD_MASS}, damping: 0.3/0.5, friction: 0.8`);
+      throw new Error('RacerPhysics: Not initialized');
     }
 
-// Add this method to RacerPhysics.ts
+    console.log(`Creating pod physics: ${podId}`);
 
-public async setupTrackCollision(trackMesh: AbstractMesh, showVisualization: boolean = false, scaleFactor: number = 8): Promise<void> 
-{
-  if (!this.isInitialized || !this.ammoInstance) 
-  {
-    console.error('RacerPhysics: Cannot setup track - not initialized');
-    return;
+    const Ammo = this.ammoInstance;
+    const position = mesh.position;
+    const quaternion = mesh.rotationQuaternion || Quaternion.Identity();
+
+    const transform = new Ammo.btTransform();
+    transform.setIdentity();
+    transform.setOrigin(new Ammo.btVector3(position.x, position.y, position.z));
+    transform.setRotation(new Ammo.btQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w));
+
+    const motionState = new Ammo.btDefaultMotionState(transform);
+    const localInertia = new Ammo.btVector3(0, 0, 0);
+
+    const podLength = 2.0;
+    const podWidth = 0.8;
+    const podHeight = 0.6;
+
+    const compoundShape = new Ammo.btCompoundShape();
+    
+    const mainShape = new Ammo.btBoxShape(new Ammo.btVector3(podLength/2, podHeight/2, podWidth/2));
+    const mainTransform = new Ammo.btTransform();
+    mainTransform.setIdentity();
+    compoundShape.addChildShape(mainTransform, mainShape);
+    
+    const frontShape = new Ammo.btBoxShape(new Ammo.btVector3(0.3, podHeight/3, podWidth/3));
+    const frontTransform = new Ammo.btTransform();
+    frontTransform.setIdentity();
+    frontTransform.setOrigin(new Ammo.btVector3(podLength/2 + 0.3, 0, 0));
+    compoundShape.addChildShape(frontTransform, frontShape);
+
+    compoundShape.setMargin(0.05);
+    compoundShape.calculateLocalInertia(this.POD_MASS, localInertia);
+
+    const rigidBodyInfo = new Ammo.btRigidBodyConstructionInfo(this.POD_MASS, motionState, compoundShape, localInertia);
+    const rigidBody = new Ammo.btRigidBody(rigidBodyInfo);
+    
+    rigidBody.setDamping(0.3, 0.5);
+    rigidBody.setFriction(0.8);
+    rigidBody.setRestitution(0.1);
+    rigidBody.setActivationState(4);
+    rigidBody.forceActivationState(4);
+    
+    this.physicsWorld.addRigidBody(rigidBody);
+    this.pods.set(podId, { rigidBody, mesh });
+
+    const initialUpwardVelocity = new Ammo.btVector3(0, 0, 0);
+    rigidBody.setLinearVelocity(initialUpwardVelocity);
+    rigidBody.activate();
+
+    console.log(`Pod physics created: ${podId}`);
   }
 
-  console.log('RacerPhysics: Setting up track collision...');
-  console.log(`RacerPhysics: Track mesh: ${trackMesh.name}`);
-  console.log(`RacerPhysics: Scale factor: ${scaleFactor}`);
-  
-  // Wait for geometry to be ready
-  await this.waitForGeometryReady(trackMesh);
-  
-  // Find all meshes with actual geometry
-  const meshesWithGeometry = this.findMeshesWithGeometry(trackMesh);
-  
-  if (meshesWithGeometry.length > 0) 
+  // ===== Track Physics Setup =====
+
+  public async setupTrackCollision(trackMesh: AbstractMesh, showVisualization: boolean = false, scaleFactor: number = 8): Promise<void> 
   {
-    console.log(`RacerPhysics: Creating collision from ${meshesWithGeometry.length} meshes with geometry`);
-    
-    // Create the actual collision with scale factor
-    this.createTrackFromMultipleMeshes(meshesWithGeometry, scaleFactor);
-    
-    // Create visual debugging if requested
-    if (showVisualization) 
+    if (!this.isInitialized || !this.ammoInstance) 
     {
-      this.createCollisionVisualization(meshesWithGeometry, scaleFactor);
-      console.log('RacerPhysics: Collision visualization created (red wireframe)');
+      throw new Error('RacerPhysics: Cannot setup track - not initialized');
     }
-    
-    console.log('RacerPhysics: Track collision setup complete');
-  }
-  else 
-  {
-    console.error('RacerPhysics: No meshes with geometry found');
-  }
-}
 
-private async waitForGeometryReady(trackMesh: AbstractMesh, maxWaitMs: number = 3000): Promise<void> 
-{
-  console.log('RacerPhysics: Waiting for track geometry data...');
-  
-  const startTime = Date.now();
-  
-  return new Promise((resolve) => 
-  {
-    const checkGeometry = () => 
+    console.log('RacerPhysics: Setting up track collision');
+    
+    await this.waitForGeometryReady(trackMesh);
+    
+    const meshesWithGeometry = this.findMeshesWithGeometry(trackMesh);
+    
+    if (meshesWithGeometry.length > 0) 
     {
-      // Check if main mesh has geometry
-      if (trackMesh instanceof Mesh) 
+      this.createTrackFromMultipleMeshes(meshesWithGeometry, scaleFactor);
+      
+      if (showVisualization) 
       {
-        const vertices = trackMesh.getVerticesData('position');
-        if (vertices && vertices.length > 0) 
-        {
-          console.log('RacerPhysics: Main track geometry ready');
-          resolve();
-          return;
-        }
+        this.createCollisionVisualization(meshesWithGeometry, scaleFactor);
+        console.log('RacerPhysics: Collision visualization enabled');
       }
       
-      // Check if any child has geometry
-      const children = trackMesh.getChildMeshes();
-      for (const child of children) 
+      console.log('RacerPhysics: Track collision setup complete');
+    }
+    else 
+    {
+      throw new Error('RacerPhysics: No meshes with geometry found');
+    }
+  }
+
+  private async waitForGeometryReady(trackMesh: AbstractMesh, maxWaitMs: number = 3000): Promise<void> 
+  {
+    const startTime = Date.now();
+    
+    return new Promise((resolve) => 
+    {
+      const checkGeometry = () => 
       {
-        if (child instanceof Mesh) 
+        if (trackMesh instanceof Mesh) 
         {
-          const vertices = child.getVerticesData('position');
+          const vertices = trackMesh.getVerticesData('position');
           if (vertices && vertices.length > 0) 
           {
-            console.log('RacerPhysics: Child mesh geometry ready');
             resolve();
             return;
           }
         }
-      }
+        
+        const children = trackMesh.getChildMeshes();
+        for (const child of children) 
+        {
+          if (child instanceof Mesh) 
+          {
+            const vertices = child.getVerticesData('position');
+            if (vertices && vertices.length > 0) 
+            {
+              resolve();
+              return;
+            }
+          }
+        }
+        
+        if (Date.now() - startTime > maxWaitMs) 
+        {
+          console.warn('RacerPhysics: Timeout waiting for geometry data');
+          resolve();
+          return;
+        }
+        
+        setTimeout(checkGeometry, 16);
+      };
       
-      // Check timeout
-      if (Date.now() - startTime > maxWaitMs) 
-      {
-        console.warn('RacerPhysics: Timeout waiting for geometry data');
-        resolve();
-        return;
-      }
-      
-      // Check again in next frame
-      setTimeout(checkGeometry, 16);
-    };
-    
-    checkGeometry();
-  });
-}
-
-private findMeshesWithGeometry(trackMesh: AbstractMesh): Mesh[] 
-{
-  const meshesWithGeometry: Mesh[] = [];
-  
-  // Check main track mesh first
-  if (trackMesh instanceof Mesh) 
-  {
-    const vertices = trackMesh.getVerticesData('position');
-    const indices = trackMesh.getIndices();
-    
-    if (vertices && indices && vertices.length > 0) 
-    {
-      console.log(`RacerPhysics: Main track has geometry: ${vertices.length/3} vertices, ${indices.length/3} triangles`);
-      meshesWithGeometry.push(trackMesh);
-    }
+      checkGeometry();
+    });
   }
-  
-  // Check all child meshes
-  const children = trackMesh.getChildMeshes();
-  console.log(`RacerPhysics: Checking ${children.length} child meshes for geometry...`);
-  
-  children.forEach((child, index) => 
+
+  private findMeshesWithGeometry(trackMesh: AbstractMesh): Mesh[] 
   {
-    if (child instanceof Mesh) 
+    const meshesWithGeometry: Mesh[] = [];
+    
+    if (trackMesh instanceof Mesh) 
     {
-      const vertices = child.getVerticesData('position');
-      const indices = child.getIndices();
+      const vertices = trackMesh.getVerticesData('position');
+      const indices = trackMesh.getIndices();
       
       if (vertices && indices && vertices.length > 0) 
       {
-        console.log(`RacerPhysics: Child ${index} (${child.name}): ${vertices.length/3} vertices, ${indices.length/3} triangles`);
-        meshesWithGeometry.push(child);
+        meshesWithGeometry.push(trackMesh);
       }
     }
-  });
-  
-  console.log(`RacerPhysics: Total meshes with geometry: ${meshesWithGeometry.length}`);
-  return meshesWithGeometry;
-}
-
-// ADD HELPER METHOD FOR COMBINED MESH COLLISION:
-public createTrackFromMultipleMeshes(meshes: AbstractMesh[], scaleFactor: number = 8): void 
-{
-  if (!this.isInitialized || !this.ammoInstance) 
-  {
-    console.error('RacerPhysics: Cannot create track - not initialized');
-    return;
+    
+    const children = trackMesh.getChildMeshes();
+    children.forEach((child) => 
+    {
+      if (child instanceof Mesh) 
+      {
+        const vertices = child.getVerticesData('position');
+        const indices = child.getIndices();
+        
+        if (vertices && indices && vertices.length > 0) 
+        {
+          meshesWithGeometry.push(child);
+        }
+      }
+    });
+    
+    console.log(`RacerPhysics: Found ${meshesWithGeometry.length} meshes with geometry`);
+    return meshesWithGeometry;
   }
 
-  console.log(`RacerPhysics: Creating collision from ${meshes.length} meshes with scale factor: ${scaleFactor}`);
-
-  const Ammo = this.ammoInstance;
-  const triangleMesh = new Ammo.btTriangleMesh(true, true);
-  let totalTriangles = 0;
-
-  // Process each collision mesh
-  meshes.forEach((mesh, index) => 
+  public createTrackFromMultipleMeshes(meshes: AbstractMesh[], scaleFactor: number = 8): void 
   {
-    if (!(mesh instanceof Mesh)) 
+    if (!this.isInitialized || !this.ammoInstance) 
     {
-      return;
+      throw new Error('RacerPhysics: Cannot create track - not initialized');
     }
 
-    const babylonMesh = mesh as Mesh;
-    const vertices = babylonMesh.getVerticesData('position');
-    const indices = babylonMesh.getIndices();
+    const Ammo = this.ammoInstance;
+    const triangleMesh = new Ammo.btTriangleMesh(true, true);
+    let totalTriangles = 0;
 
-    if (!vertices || !indices) 
+    meshes.forEach((mesh) => 
     {
-      console.warn(`RacerPhysics: Mesh ${index} has no geometry data, skipping`);
-      return;
+      if (!(mesh instanceof Mesh)) 
+      {
+        return;
+      }
+
+      const babylonMesh = mesh as Mesh;
+      const vertices = babylonMesh.getVerticesData('position');
+      const indices = babylonMesh.getIndices();
+
+      if (!vertices || !indices) 
+      {
+        return;
+      }
+
+      for (let i = 0; i < indices.length; i += 3) 
+      {
+        const i1 = indices[i] * 3;
+        const i2 = indices[i + 1] * 3;
+        const i3 = indices[i + 2] * 3;
+
+        const v1 = new Ammo.btVector3(
+          vertices[i1] * scaleFactor,
+          vertices[i1 + 1] * scaleFactor,
+          vertices[i1 + 2] * scaleFactor
+        );
+        const v2 = new Ammo.btVector3(
+          vertices[i2] * scaleFactor,
+          vertices[i2 + 1] * scaleFactor,
+          vertices[i2 + 2] * scaleFactor
+        );
+        const v3 = new Ammo.btVector3(
+          vertices[i3] * scaleFactor,
+          vertices[i3 + 1] * scaleFactor,
+          vertices[i3 + 2] * scaleFactor
+        );
+
+        triangleMesh.addTriangle(v1, v2, v3, false);
+        totalTriangles++;
+      }
+    });
+
+    if (totalTriangles === 0) 
+    {
+      throw new Error('RacerPhysics: No triangles found in meshes');
     }
 
-    console.log(`RacerPhysics: Adding mesh ${index} - ${indices.length / 3} triangles`);
+    const trackShape = new Ammo.btBvhTriangleMeshShape(triangleMesh, true);
+    trackShape.setMargin(0.05);
 
-    // Add triangles from this mesh with scale factor
-    for (let i = 0; i < indices.length; i += 3) 
-    {
-      const i1 = indices[i] * 3;
-      const i2 = indices[i + 1] * 3;
-      const i3 = indices[i + 2] * 3;
+    const transform = new Ammo.btTransform();
+    transform.setIdentity();
+    transform.setOrigin(new Ammo.btVector3(0, 0, 0));
+    transform.setRotation(new Ammo.btQuaternion(0, 0, 0, 1));
 
-      // Apply scale factor directly to vertices
-      const v1 = new Ammo.btVector3(
-        vertices[i1] * scaleFactor,
-        vertices[i1 + 1] * scaleFactor,
-        vertices[i1 + 2] * scaleFactor
-      );
-      const v2 = new Ammo.btVector3(
-        vertices[i2] * scaleFactor,
-        vertices[i2 + 1] * scaleFactor,
-        vertices[i2 + 2] * scaleFactor
-      );
-      const v3 = new Ammo.btVector3(
-        vertices[i3] * scaleFactor,
-        vertices[i3 + 1] * scaleFactor,
-        vertices[i3 + 2] * scaleFactor
-      );
+    const motionState = new Ammo.btDefaultMotionState(transform);
+    const localInertia = new Ammo.btVector3(0, 0, 0);
+    
+    const rigidBodyInfo = new Ammo.btRigidBodyConstructionInfo(
+      0, 
+      motionState, 
+      trackShape, 
+      localInertia
+    );
+    
+    const trackRigidBody = new Ammo.btRigidBody(rigidBodyInfo);
+    trackRigidBody.setFriction(0.8);
+    trackRigidBody.setRestitution(0.1);
+    trackRigidBody.setCollisionFlags(1);
 
-      triangleMesh.addTriangle(v1, v2, v3, false);
-      totalTriangles++;
-    }
-  });
-
-  if (totalTriangles === 0) 
-  {
-    console.error('RacerPhysics: No triangles found in any mesh, track collision failed');
-    return;
+    this.physicsWorld.addRigidBody(trackRigidBody);
+    
+    console.log(`RacerPhysics: Track collision created - ${totalTriangles} triangles`);
   }
 
-  // Create BVH collision shape
-  const trackShape = new Ammo.btBvhTriangleMeshShape(triangleMesh, true);
-  trackShape.setMargin(0.05);
-
-  // Static track body at world origin
-  const transform = new Ammo.btTransform();
-  transform.setIdentity();
-  transform.setOrigin(new Ammo.btVector3(0, 0, 0));
-  transform.setRotation(new Ammo.btQuaternion(0, 0, 0, 1));
-
-  const motionState = new Ammo.btDefaultMotionState(transform);
-  const localInertia = new Ammo.btVector3(0, 0, 0);
-  
-  const rigidBodyInfo = new Ammo.btRigidBodyConstructionInfo(
-    0, 
-    motionState, 
-    trackShape, 
-    localInertia
-  );
-  
-  const trackRigidBody = new Ammo.btRigidBody(rigidBodyInfo);
-  trackRigidBody.setFriction(0.8);
-  trackRigidBody.setRestitution(0.1);
-  trackRigidBody.setCollisionFlags(1);
-
-  this.physicsWorld.addRigidBody(trackRigidBody);
-  
-  console.log(`RacerPhysics: Multi-mesh track collision created - ${totalTriangles} triangles total`);
-  console.log(`RacerPhysics: Applied scale factor: ${scaleFactor}`);
-}
+  // ===== Pod Movement =====
 
   public movePod(podId: string, input: { x: number, z: number }): void 
   {
     const podData = this.pods.get(podId);
     if (!podData || !this.ammoInstance) 
     {
-      console.warn(`RacerPhysics: Pod ${podId} not found or Ammo not ready`);
       return;
     }
 
@@ -484,22 +438,8 @@ public createTrackFromMultipleMeshes(meshes: AbstractMesh[], scaleFactor: number
     const rigidBody = podData.rigidBody;
     const mesh = podData.mesh;
 
-    console.log(`Moving pod ${podId}: input(${input.x.toFixed(2)}, ${input.z.toFixed(2)})`);
-
     const velocity = rigidBody.getLinearVelocity();
     const currentSpeed = Math.sqrt(velocity.x() * velocity.x() + velocity.z() * velocity.z());
-    
-    console.log(`Current speed: ${currentSpeed.toFixed(2)}, position: (${mesh.position.x.toFixed(2)}, ${mesh.position.y.toFixed(2)}, ${mesh.position.z.toFixed(2)})`);
-
-    // const MAX_DISTANCE_FROM_ORIGIN = 200;
-    // const currentDistance = Math.sqrt(mesh.position.x * mesh.position.x + mesh.position.z * mesh.position.z);
-    
-    // if (currentDistance > MAX_DISTANCE_FROM_ORIGIN) 
-    // {
-    //   console.warn(`Pod ${podId} too far from origin (${currentDistance.toFixed(2)}), resetting to origin`);
-    //   this.reset(podId, new Vector3(0, 5, 0));
-    //   return;
-    // }
 
     const REDUCED_THRUST = this.THRUST_FORCE * 0.1;
     const REDUCED_MAX_VELOCITY = this.MAX_VELOCITY * 0.3;
@@ -507,15 +447,12 @@ public createTrackFromMultipleMeshes(meshes: AbstractMesh[], scaleFactor: number
     if (currentSpeed < REDUCED_MAX_VELOCITY && input.z !== 0) 
     {
       const forwardDir = this.getForwardDirection(mesh);
-      console.log(`Forward direction: (${forwardDir.x.toFixed(2)}, ${forwardDir.z.toFixed(2)})`);
       
       const thrustForce = new Ammo.btVector3(
         forwardDir.x * input.z * REDUCED_THRUST * 0.016,
         0,
         forwardDir.z * input.z * REDUCED_THRUST * 0.016
       );
-      
-      console.log(`Applying thrust: (${thrustForce.x().toFixed(2)}, ${thrustForce.z().toFixed(2)})`);
       
       const newVelocity = new Ammo.btVector3(
         velocity.x() + thrustForce.x(),
@@ -530,7 +467,6 @@ public createTrackFromMultipleMeshes(meshes: AbstractMesh[], scaleFactor: number
     if (input.x !== 0) 
     {
       const turnForce = new Ammo.btVector3(0, +input.x * REDUCED_TURN_FORCE, 0);
-      console.log(`Applying turn: ${turnForce.y().toFixed(2)}`);
       rigidBody.setAngularVelocity(turnForce);
     } 
     else 
@@ -566,12 +502,11 @@ public createTrackFromMultipleMeshes(meshes: AbstractMesh[], scaleFactor: number
       );
       
       rigidBody.setLinearVelocity(newVelocity);
-      console.log(`Hover force applied: ${upwardForce.toFixed(2)}, height: ${distanceFromGround.toFixed(2)}`);
     }
 
     if (mesh.position.y < 0) 
     {
-      console.warn(`Pod below ground level, resetting position`);
+      console.warn(`Pod below ground, resetting position`);
       const podId = this.findPodIdByMesh(mesh);
       if (podId) 
       {
@@ -599,6 +534,8 @@ public createTrackFromMultipleMeshes(meshes: AbstractMesh[], scaleFactor: number
     return forward.normalize();
   }
 
+  // ===== Physics Update =====
+
   private updatePhysics(): void 
   {
     if (!this.physicsWorld) 
@@ -619,8 +556,6 @@ public createTrackFromMultipleMeshes(meshes: AbstractMesh[], scaleFactor: number
         const position = this.tempTransform.getOrigin();
         const rotation = this.tempTransform.getRotation();
         
-        const oldPosition = mesh.position.clone();
-        
         mesh.position.set(position.x(), position.y(), position.z());
         
         if (!mesh.rotationQuaternion) 
@@ -629,15 +564,11 @@ public createTrackFromMultipleMeshes(meshes: AbstractMesh[], scaleFactor: number
         }
         
         mesh.rotationQuaternion.set(rotation.x(), rotation.y(), rotation.z(), rotation.w());
-        
-        const positionChange = mesh.position.subtract(oldPosition).length();
-        if (positionChange > 0.1) 
-        {
-          console.log(`Pod ${podId} moved: ${positionChange.toFixed(2)} units, new pos: (${mesh.position.x.toFixed(2)}, ${mesh.position.y.toFixed(2)}, ${mesh.position.z.toFixed(2)})`);
-        }
       }
     });
   }
+
+  // ===== Data Access =====
 
   public getSpeed(podId: string): number 
   {
@@ -688,6 +619,15 @@ public createTrackFromMultipleMeshes(meshes: AbstractMesh[], scaleFactor: number
     }
   }
 
+  // ===== Status =====
+
+  public isPhysicsReady(): boolean 
+  {
+    return this.isInitialized && this.physicsWorld !== null;
+  }
+
+  // ===== Cleanup =====
+
   public dispose(): void 
   {
     this.pods.forEach((podData) => 
@@ -709,10 +649,4 @@ public createTrackFromMultipleMeshes(meshes: AbstractMesh[], scaleFactor: number
     
     console.log('RacerPhysics: Disposed');
   }
-  
-  public isPhysicsReady(): boolean 
-  {
-    return this.isInitialized && this.physicsWorld !== null;
-  }
 }
-
