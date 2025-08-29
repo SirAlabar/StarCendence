@@ -543,7 +543,7 @@ export class RacerPhysics
       return;
     }
 
-    this.pods.forEach((podData, podId) => 
+    this.pods.forEach((podData, _podId) => 
     {
       const mesh = podData.mesh;
       const rigidBody = podData.rigidBody;

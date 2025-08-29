@@ -271,23 +271,6 @@ export class RacerUIManager
     }, 30000);
   }
   
-  // Performance monitoring
-  public updatePerformanceInfo(fps: number, meshCount: number): void 
-  {
-    if (this.racerHUD) 
-    {
-      this.racerHUD.updatePerformanceInfo(fps, meshCount);
-    }
-  }
-  
-  public updateCameraMode(mode: string): void 
-  {
-    if (this.racerHUD) 
-    {
-      this.racerHUD.updateCameraMode(mode);
-    }
-  }
-  
   // Getters
   public isUIActive(): boolean 
   {

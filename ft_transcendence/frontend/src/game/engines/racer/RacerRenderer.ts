@@ -1,17 +1,8 @@
-// ====================================================
-// RacerRenderer.ts - VISUAL GAME CONTROLLER (FRONTEND)
-// ====================================================
 import { GameCanvas } from './GameCanvas';
 import { RacerScene } from './RacerScene';
-import { RacerPhysics } from './RacerPhysics';
 import { RacerPod } from './RacerPods';
 import { RacerUIManager } from '../../managers/RacerUIManager';
-// import { RacerTrack } from './RacerTrack';
-// import { RacerCheckpoints } from './RacerCheckpoints';
-// import { RacerZones } from './RacerZones';
-// import { RaceWebSocketClient } from './RaceWebSocketClient';
 import { PodConfig } from '../../utils/PodConfig';
-import { Vector3 } from '@babylonjs/core';
 
 export interface RacerRendererConfig 
 {
@@ -20,44 +11,17 @@ export interface RacerRendererConfig
   cameraMode?: 'racing' | 'free' | 'player';
 }
 
-export interface ServerRaceState 
-{
-  raceId: string;
-  isActive: boolean;
-  players: { [podId: string]: { position: Vector3; rotation: Vector3; speed: number } };
-  leaderboard: { podId: string; position: number; lap: number; time: number }[];
-  currentTime: number;
-}
-
 export class RacerRenderer 
 {
-  // Core 3D components
   private gameCanvas: GameCanvas | null = null;
   private racerScene: RacerScene | null = null;
-  private racerPhysics: RacerPhysics | null = null;
   private playerPod: RacerPod | null = null;
-  
-  // Visual track system - TODO: Implement when files are created
-  // private racerTrack: RacerTrack | null = null;
-  // private checkpoints: RacerCheckpoints | null = null;
-  // private zones: RacerZones | null = null;
-  
-  // Input and communication - TODO: Implement when backend is ready
-  // private inputHandler: InputHandler | null = null;
-  // private webSocketClient: RaceWebSocketClient | null = null;
-  
-  // UI Management
   private racerUIManager: RacerUIManager | null = null;
-  
-  // Loading system
   private loadingOverlay: HTMLElement | null = null;
   private isLoadingActive: boolean = false;
-  
-  // Visual state
   private config: RacerRendererConfig;
   private isInitialized: boolean = false;
-  private isVisualRaceActive: boolean = false;
-  private otherPlayerPods: Map<string, RacerPod> = new Map();
+  private hudUpdateInterval: number | null = null;
   
   // Callbacks for UI updates
   public onLoadingProgress: ((message: string, progress: number, stage: string) => void) | null = null;
@@ -67,30 +31,24 @@ export class RacerRenderer
   
   constructor(config?: RacerRendererConfig) 
   {
-    this.config = {
+    this.config = 
+    {
       debugMode: false,
       performanceMonitoring: false,
-      cameraMode: 'racing',
       ...config
     };
   }
   
-  // Main lifecycle methods
   public async initialize(canvasId: string, selectedPod: PodConfig): Promise<void> 
   {
     try 
     {
-      console.log('RACER-RENDERER: Starting initialization...');
-      
-      // Create and show loading overlay
       this.createLoadingOverlay();
       this.showLoading();
       this.initializeParticles();
       
-      // Add a small delay to ensure loading overlay is visible
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Initialize 3D engine
       this.updateLoadingProgress('Creating 3D scene...', 10, 'canvas');
       this.gameCanvas = new GameCanvas(canvasId);
       await this.gameCanvas.initialize();
@@ -99,38 +57,23 @@ export class RacerRenderer
       this.gameCanvas.initializeManagers(this.config.debugMode || false);
       this.gameCanvas.startRenderLoop();
       
-      // Load track first
       await this.initializeVisualTrack();
-      
-      // Setup physics after track is loaded
       await this.setupLocalPhysics();
-      
-      // Load player pod
       await this.loadPlayerPod(selectedPod);
-      
-      // Setup additional systems
-    //   await this.loadVisualAssets();
       
       this.isInitialized = true;
       this.updateLoadingProgress('Racing scene ready!', 100, 'pod');
       
-      // Hide loading after a brief delay
       setTimeout(() => 
       {
         this.hideLoading();
       }, 1000);
       
-      console.log('RACER-RENDERER: Initialization complete');
-      
     } 
     catch (error) 
     {
-      console.error('RACER-RENDERER: Initialization failed:', error);
-      
-      // Always hide loading on error
+      console.error('Initialization failed:', error);
       this.hideLoading();
-      
-      // Show error message if loading overlay still exists
       this.showLoadingError(`Initialization failed: ${error}`);
       
       if (this.onError) 
@@ -148,9 +91,6 @@ export class RacerRenderer
       throw new Error('RacerRenderer not initialized');
     }
     
-    console.log('RACER-RENDERER: Starting visual race...');
-    
-    // Initialize and start Racer UI Manager
     this.racerUIManager = new RacerUIManager(
     {
       showHUD: true,
@@ -162,224 +102,85 @@ export class RacerRenderer
     
     this.racerUIManager.startRace();
     
-    // this.racerUIManager.simulateRacerData(); //For testing UI
-
-    // Setup local input handling
-    // this.setupLocalInput();
-    
-    // TODO: Connect to backend when WebSocket is implemented
-    // await this.setupWebSocketConnection();
-    
-    this.isVisualRaceActive = true;
-    
-    // Start performance monitoring if enabled
-    // if (this.config.performanceMonitoring) 
-    // {
-    //   this.startPerformanceMonitoring();
-    // }
+    // Start HUD update loop for real-time speed display
+    this.startHUDUpdateLoop();
   }
-  
-//   public stopVisualRace(): void 
-//   {
-//     console.log('RACER-RENDERER: Stopping visual race...');
-//     this.isVisualRaceActive = false;
+
+  private startHUDUpdateLoop(): void 
+  {
+    if (this.hudUpdateInterval) 
+    {
+      clearInterval(this.hudUpdateInterval);
+    }
+
+    this.hudUpdateInterval = setInterval(() => 
+    {
+      this.updateHUDFromPhysics();
+    }, 50) as unknown as number; // 20fps for HUD updates
+  }
+
+  private updateHUDFromPhysics(): void 
+  {
+    if (!this.racerUIManager || !this.gameCanvas || !this.playerPod) 
+    {
+      return;
+    }
+
+    const physics = this.gameCanvas.getPhysics();
+    if (!physics) 
+    {
+      return;
+    }
+
+    const podId = this.playerPod.getConfig().id;
+    const currentSpeed = physics.getSpeed(podId);
     
-//     // Stop UI Manager
-//     if (this.racerUIManager) 
-//     {
-//       this.racerUIManager.stopRace();
-//     }
+    // Convert to km/h for display
+    const speedKmh = Math.round(currentSpeed * 3.6);
     
-//     // Stop render loop immediately
-//     if (this.gameCanvas) 
-//     {
-//       this.gameCanvas.stopRenderLoop();
-//     }
-    
-//     // TODO: Disconnect WebSocket when implemented
-//     // this.webSocketClient?.disconnect();
-//   }
-  
-//   public resetVisuals(): void 
-//   {
-//     console.log('RACER-RENDERER: Resetting visuals...');
-    
-//     // Reset player pod position
-//     if (this.playerPod && this.racerScene) 
-//     {
-//       const startPos = this.racerScene.getStartingPositions(1)[0];
-//       if (startPos) 
-//       {
-//         this.playerPod.setPosition(startPos);
-//       }
-//     }
-    
-//     // Reset camera
-//     if (this.gameCanvas) 
-//     {
-//       this.gameCanvas.switchCameraMode(this.config.cameraMode || 'racing');
-//     }
-    
-//     // Clear other players
-//     this.otherPlayerPods.clear();
-//   }
-  
-//   // Server synchronization - TODO: Implement when backend is ready
-//   public processServerUpdate(raceState: ServerRaceState): void 
-//   {
-//     // TODO: Process race state from backend
-//     console.log('RACER-RENDERER: Processing server update (TODO)');
-//   }
-  
-//   public syncPodPositions(playerPositions: any): void 
-//   {
-//     // TODO: Sync positions from authoritative server
-//     console.log('RACER-RENDERER: Syncing pod positions (TODO)');
-//   }
-  
-//   public updateVisualLeaderboard(leaderboard: any[]): void 
-//   {
-//     // TODO: Update UI leaderboard from server data
-//     console.log('RACER-RENDERER: Updating leaderboard (TODO)');
-//   }
-  
-//   public showLapCompleteEffect(podId: string, lapTime: number): void 
-//   {
-//     // TODO: Show lap completion visual effect
-//     console.log(`RACER-RENDERER: Lap complete for ${podId}: ${lapTime}ms (TODO)`);
-//   }
-  
-  // Input handling
-//   public setupLocalInput(): void 
-//   {
-//     if (!this.gameCanvas) 
-//     {
-//       return;
-//     }
-    
-//     console.log('RACER-RENDERER: Setting up local input...');
-    
-//     // Use GameCanvas existing input system for now
-//     // TODO: Replace with dedicated InputHandler when created
-//     document.addEventListener('keydown', this.handleLocalInput.bind(this));
-//     document.addEventListener('keyup', this.handleLocalInput.bind(this));
-//   }
-  
-//   public handleLocalInput(): void 
-//   {
-//     // TODO: Process input and send to server when InputHandler is implemented
-//     // For now, let GameCanvas handle input directly
-//     console.log('RACER-RENDERER: Processing local input...');
-//   }
-  
-//   public sendInputToServer(inputData: any): void 
-//   {
-//     // TODO: Send input to backend via WebSocket
-//     console.log('RACER-RENDERER: Sending input to server (TODO)');
-//   }
-  
-//   // Visual effects and feedback
-//   public showCheckpointEffect(checkpointId: string): void 
-//   {
-//     // TODO: Implement when RacerCheckpoints is created
-//     console.log(`RACER-RENDERER: Checkpoint effect for ${checkpointId} (TODO)`);
-//   }
-  
-//   public showSpeedBoostEffect(podId: string): void 
-//   {
-//     // TODO: Implement when RacerZones is created
-//     console.log(`RACER-RENDERER: Speed boost effect for ${podId} (TODO)`);
-//   }
-  
-//   public updateProgressBars(): void 
-//   {
-//     // TODO: Update race progress UI elements
-//     console.log('RACER-RENDERER: Updating progress bars (TODO)');
-//   }
-  
-//   public switchCameraMode(mode: 'racing' | 'free' | 'player'): void 
-//   {
-//     if (!this.gameCanvas) 
-//     {
-//       return;
-//     }
-    
-//     console.log(`RACER-RENDERER: Switching to ${mode} camera`);
-//     this.config.cameraMode = mode;
-//     this.gameCanvas.switchCameraMode(mode);
-//   }
-  
-  // Development and monitoring
+    this.racerUIManager.updateSpeed(speedKmh);
+  }
+
   public toggleDebugMode(): void 
   {
     this.config.debugMode = !this.config.debugMode;
     
     if (this.gameCanvas) 
     {
-      this.gameCanvas.setDevelopmentMode(this.config.debugMode);
+      const cameraManager = this.gameCanvas['cameraManager']; // Access private member
+      if (cameraManager && typeof cameraManager.setDevelopmentMode === 'function') 
+      {
+        cameraManager.setDevelopmentMode(this.config.debugMode);
+      }
     }
-    
-    console.log(`RACER-RENDERER: Debug mode: ${this.config.debugMode ? 'ON' : 'OFF'}`);
   }
-  
-//   public getPerformanceInfo(): { fps: number; meshCount: number } 
-//   {
-//     if (!this.gameCanvas) 
-//     {
-//       return { fps: 0, meshCount: 0 };
-//     }
-    
-//     return this.gameCanvas.getPerformanceInfo();
-//   }
-  
-//   public startPerformanceMonitoring(): void 
-//   {
-//     console.log('RACER-RENDERER: Starting performance monitoring...');
-//     this.config.performanceMonitoring = true;
-    
-//     // Start update loop for UI performance data
-//     setInterval(() => 
-//     {
-//       if (this.racerUIManager && this.gameCanvas) 
-//       {
-//         const perfInfo = this.gameCanvas.getPerformanceInfo();
-//         // TODO: Add method to update performance in RaceUIManager
-//         // this.raceUIManager.updatePerformanceInfo(perfInfo.fps, perfInfo.meshCount);
-//       }
-//     }, 1000);
-//   }
 
-  
-     private async setupLocalPhysics(): Promise<void> 
-    {
+  private async setupLocalPhysics(): Promise<void> 
+  {
     if (!this.gameCanvas || !this.racerScene) 
     {
-        console.error('RACER-RENDERER: Missing dependencies for physics setup');
-        return;
+      console.error('Missing dependencies for physics setup');
+      return;
     }
     
-    console.log('RACER-RENDERER: Setting up local physics...');
-    
-    // Single call - RacerPhysics handles everything
     const trackMesh = this.racerScene.getTrack();
     if (trackMesh) 
     {
-        const physics = this.gameCanvas.getPhysics();
-        if (physics && physics.isPhysicsReady()) 
-        {
+      const physics = this.gameCanvas.getPhysics();
+      if (physics && physics.isPhysicsReady()) 
+      {
         await physics.setupTrackCollision(trackMesh, true);
-        console.log('RACER-RENDERER: Physics setup complete');
-        }
-        else 
-        {
-        console.error('RACER-RENDERER: Physics not ready');
-        }
-    }
+      } 
+      else 
+      {
+        console.error('Physics not ready');
+      }
+    } 
     else 
     {
-        console.error('RACER-RENDERER: No track mesh available');
+      console.error('No track mesh available');
     }
-}
+  }
   
   private async initializeVisualTrack(): Promise<void> 
   {
@@ -388,27 +189,21 @@ export class RacerRenderer
       return;
     }
     
-    console.log('RACER-RENDERER: Initializing visual track...');
-    
     this.updateLoadingProgress('Loading racing track...', 30, 'track');
     
     this.racerScene = new RacerScene(this.gameCanvas);
     
-    // Setup progress callback
     this.racerScene.onLoadingProgress = (percentage, asset) => 
     {
       this.updateLoadingProgress(`Loading ${asset}...`, 30 + (percentage * 0.4), 'track');
     };
     
-    // Setup track loaded callback
     this.racerScene.onTrackLoaded = (track) => 
     {
-      console.log('RACER-RENDERER: Track loaded successfully');
-      
-      if (this.gameCanvas) 
-      {
-        this.gameCanvas.setTrackBounds(this.racerScene!.getTrackBounds());
-      }
+        if (this.gameCanvas && this.gameCanvas.cameraManager) 
+        {
+        this.gameCanvas.cameraManager.setTrackBounds(this.racerScene!.getTrackBounds());
+        }
       
       if (this.onTrackLoaded) 
       {
@@ -419,14 +214,6 @@ export class RacerRenderer
     await this.racerScene.loadTrack();
   }
   
-//   private async setupWebSocketConnection(): Promise<void> 
-//   {
-//     // TODO: Implement when RaceWebSocketClient is created
-//     console.log('RACER-RENDERER: WebSocket connection setup (TODO)');
-//     // this.webSocketClient = new RaceWebSocketClient();
-//     // await this.webSocketClient.connect();
-//   }
-  
   private async loadPlayerPod(selectedPod: PodConfig): Promise<void> 
   {
     if (!this.gameCanvas || !this.racerScene) 
@@ -434,37 +221,27 @@ export class RacerRenderer
       throw new Error('Missing dependencies for pod loading');
     }
     
-    console.log(`RACER-RENDERER: Loading player pod: ${selectedPod.name}`);
-    
     this.updateLoadingProgress(`Loading ${selectedPod.name}...`, 70, 'pod');
     
     try 
     {
-      // Dispose existing pod if any
       if (this.playerPod) 
       {
         this.playerPod.dispose();
         this.playerPod = null;
       }
       
-      // Create new pod
       this.playerPod = new RacerPod(this.gameCanvas.getScene()!, selectedPod);
       
-      // Setup pod loaded callback
       this.playerPod.onLoaded = (pod) => 
       {
-        console.log('RACER-RENDERER: Player pod loaded successfully');
-        
-        // Position pod at start
         const startPos = this.racerScene!.getStartingPositions(1)[0];
         if (startPos) 
         {
           pod.setPosition(startPos);
         }
         
-        // Connect to physics
         this.gameCanvas!.setPlayerPod(pod);
-        this.gameCanvas!.enablePlayerMode();
         
         if (this.onPodLoaded) 
         {
@@ -474,7 +251,7 @@ export class RacerRenderer
       
       this.playerPod.onLoadingError = (error) => 
       {
-        console.error('RACER-RENDERER: Pod loading error:', error);
+        console.error('Pod loading error:', error);
         if (this.onError) 
         {
           this.onError(`Failed to load pod: ${error}`);
@@ -486,28 +263,20 @@ export class RacerRenderer
     } 
     catch (error) 
     {
-      console.error('RACER-RENDERER: Pod loading failed:', error);
+      console.error('Pod loading failed:', error);
       throw error;
     }
   }
-  
-  // ====================================================
-  // LOADING SYSTEM
-  // ====================================================
   
   private createLoadingOverlay(): void 
   {
     const loadingHTML = `
       <div id="racerLoadingOverlay" class="fixed inset-0 bg-black/90 flex items-center justify-center" style="z-index: 2000;">
-        <!-- Particle Canvas -->
         <canvas id="racerParticleCanvas" class="absolute inset-0 w-full h-full"></canvas>
         
-        <!-- Loading Content -->
         <div class="relative z-10 text-center">
-          <!-- Circular Progress Bar -->
           <div class="relative w-32 h-32 mx-auto mb-8">
             <svg class="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
-              <!-- Background Circle -->
               <circle 
                 cx="60" 
                 cy="60" 
@@ -516,7 +285,6 @@ export class RacerRenderer
                 stroke="rgb(75 85 99)" 
                 stroke-width="4"
               />
-              <!-- Progress Circle -->
               <circle 
                 id="racerProgressCircle"
                 cx="60" 
@@ -531,7 +299,6 @@ export class RacerRenderer
                 class="transition-all duration-300 ease-out"
               />
             </svg>
-            <!-- Percentage Text -->
             <div class="absolute inset-0 flex items-center justify-center">
               <span id="racerProgressPercent" class="text-white text-xl font-bold">0%</span>
             </div>
@@ -540,7 +307,6 @@ export class RacerRenderer
           <h3 class="text-white text-2xl font-bold mb-4">Loading Race</h3>
           <p class="text-gray-300 text-lg" id="racerLoadingMessage">Preparing 3D scene...</p>
           
-          <!-- Loading Stage Indicator -->
           <div class="mt-6 flex justify-center space-x-4">
             <div id="racerStageCanvas" class="flex items-center text-gray-500">
               <div class="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
@@ -593,7 +359,6 @@ export class RacerRenderer
       messageElement.innerHTML = `<span class="text-red-400">Error: ${errorMessage}</span>`;
     }
     
-    // Show retry button after 2 seconds
     setTimeout(() => 
     {
       if (this.loadingOverlay) 
@@ -620,14 +385,12 @@ export class RacerRenderer
   
   private updateLoadingProgress(message: string, progress: number, stage: string): void 
   {
-    // Update loading message
     const messageElement = document.getElementById('racerLoadingMessage');
     if (messageElement) 
     {
       messageElement.textContent = message;
     }
 
-    // Update progress circle
     const progressCircle = document.getElementById('racerProgressCircle');
     const progressPercent = document.getElementById('racerProgressPercent');
     
@@ -639,7 +402,6 @@ export class RacerRenderer
       progressPercent.textContent = `${Math.round(progress)}%`;
     }
 
-    // Update stage indicator
     const stageElement = document.getElementById(`racerStage${stage.charAt(0).toUpperCase() + stage.slice(1)}`);
     if (stageElement) 
     {
@@ -650,10 +412,7 @@ export class RacerRenderer
         dot.className = 'w-3 h-3 rounded-full bg-purple-400 mr-2 animate-pulse';
       }
     }
-
-    console.log(`RACER-RENDERER: ${message} (${progress}%)`);
     
-    // Also call the callback if it exists (for compatibility)
     if (this.onLoadingProgress) 
     {
       this.onLoadingProgress(message, progress, stage);
@@ -687,7 +446,6 @@ export class RacerRenderer
       opacity: number;
     }> = [];
 
-    // Create particles
     for (let i = 0; i < 50; i++) 
     {
       particles.push(
@@ -701,7 +459,6 @@ export class RacerRenderer
       });
     }
 
-    // Animation loop
     const animate = () => 
     {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
@@ -709,11 +466,9 @@ export class RacerRenderer
 
       particles.forEach(particle => 
       {
-        // Update position
         particle.x += particle.vx;
         particle.y += particle.vy;
 
-        // Bounce off edges
         if (particle.x < 0 || particle.x > canvas.width) 
         {
           particle.vx *= -1;
@@ -723,7 +478,6 @@ export class RacerRenderer
           particle.vy *= -1;
         }
 
-        // Draw particle
         ctx.globalAlpha = particle.opacity;
         ctx.fillStyle = '#a855f7';
         ctx.beginPath();
@@ -731,7 +485,6 @@ export class RacerRenderer
         ctx.fill();
       });
 
-      // Continue animation if loading is active
       if (this.isLoadingActive) 
       {
         requestAnimationFrame(animate);
@@ -740,55 +493,11 @@ export class RacerRenderer
 
     animate();
   }
-  
-  // Force cleanup loading (called on errors or disposal)
-  private forceCleanupLoading(): void 
-  {
-    console.log('RACER-RENDERER: Force cleaning up loading overlay...');
-    
-    this.isLoadingActive = false;
-    
-    if (this.loadingOverlay) 
-    {
-      this.loadingOverlay.remove();
-      this.loadingOverlay = null;
-    }
-    
-    // Also clean up any orphaned loading elements
-    const orphanedOverlay = document.getElementById('racerLoadingOverlay');
-    if (orphanedOverlay) 
-    {
-      orphanedOverlay.remove();
-    }
-  }
-  
-  // Public method to force cleanup (can be called from outside)
-  public forceCleanup(): void 
-  {
-    console.log('RACER-RENDERER: Force cleanup requested...');
-    
-    this.forceCleanupLoading();
-    // this.stopVisualRace();
-    
-    // Also dispose everything
-    this.dispose();
-  }
-  
-  // Getters
+
+  // Essential getters only
   public getGameCanvas(): GameCanvas | null 
   {
     return this.gameCanvas;
-  }
-  
-  public getWebSocketClient(): any | null 
-  {
-    // TODO: Return RaceWebSocketClient when implemented
-    return null; // this.webSocketClient;
-  }
-  
-  public getCurrentCameraMode(): string | undefined 
-  {
-    return this.gameCanvas?.getCurrentCameraMode();
   }
   
   public isReady(): boolean 
@@ -796,47 +505,34 @@ export class RacerRenderer
     return this.isInitialized && this.gameCanvas !== null && this.playerPod !== null;
   }
   
-  // Cleanup
   public dispose(): void 
   {
-    console.log('RACER-RENDERER: Disposing...');
-    
-    // this.stopVisualRace();
-    
-    // Clean up loading overlay first
     this.isLoadingActive = false;
+    
+    if (this.hudUpdateInterval) 
+    {
+      clearInterval(this.hudUpdateInterval);
+      this.hudUpdateInterval = null;
+    }
+    
     if (this.loadingOverlay) 
     {
       this.loadingOverlay.remove();
       this.loadingOverlay = null;
     }
     
-    // Dispose pods
     if (this.playerPod) 
     {
       this.playerPod.dispose();
       this.playerPod = null;
     }
     
-    this.otherPlayerPods.forEach(pod => pod.dispose());
-    this.otherPlayerPods.clear();
-    
-    // Dispose visual systems
-    // TODO: Dispose when files are created
-    // this.racerTrack?.dispose();
-    // this.checkpoints?.dispose();
-    // this.zones?.dispose();
-    // this.inputHandler?.dispose();
-    // this.webSocketClient?.dispose();
-    
-    // Dispose UI Manager
     if (this.racerUIManager) 
     {
       this.racerUIManager.dispose();
       this.racerUIManager = null;
     }
     
-    // Dispose scene and canvas
     if (this.racerScene) 
     {
       this.racerScene.dispose();

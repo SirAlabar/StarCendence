@@ -5,6 +5,7 @@ import { BaseComponent } from '../components/BaseComponent';
 import { PodSelection, PodSelectionEvent } from '../game/engines/racer/PodSelection';
 import { RacerRenderer } from '../game/engines/racer/RacerRenderer';
 import { PodConfig, AVAILABLE_PODS } from '../game/utils/PodConfig';
+import { navigateTo } from '../router/router'; // Adjust path as needed
 
 export default class PodRacerPage extends BaseComponent 
 {

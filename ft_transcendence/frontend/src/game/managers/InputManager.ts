@@ -22,7 +22,6 @@ export interface InputState
   mouseWheel: number;
   
   cameraSwitchPressed: boolean;
-  
   isMouseDown: boolean;
   mouseX: number;
   mouseY: number;
@@ -48,7 +47,6 @@ export class InputManager
   private freeCamera: FreeCamera | null = null;
   private racerPhysics: RacerPhysics | null = null;
   private playerPodId: string | null = null;
-  private developmentMode: boolean = false;
   
   constructor() 
   {
@@ -73,25 +71,13 @@ export class InputManager
     this.movementSpeed = 0.1;
   }
 
-  // ===== Initialization =====
-
   public initialize(canvas: HTMLCanvasElement, callbacks: InputCallbacks): void 
   {
     this.canvas = canvas;
     this.callbacks = callbacks;
     this.setupEventListeners();
     this.isActive = true;
-    
-    console.log('InputManager initialized');
   }
-
-  public setDevelopmentMode(enabled: boolean): void 
-  {
-    this.developmentMode = enabled;
-    console.log(`Development mode: ${enabled ? 'ON' : 'OFF'}`);
-  }
-
-  // ===== Component References =====
 
   public setCameraMode(mode: CameraMode): void 
   {
@@ -108,8 +94,6 @@ export class InputManager
     this.racerPhysics = physics;
     this.playerPodId = podId;
   }
-
-  // ===== Event Listeners =====
 
   private setupEventListeners(): void 
   {
@@ -218,9 +202,15 @@ export class InputManager
     this.inputState.isMouseDown = true;
     this.inputState.mouseX = event.clientX;
     this.inputState.mouseY = event.clientY;
+    
+    // Request pointer lock for free camera
+    if (this.currentCameraMode === CameraMode.FREE && this.canvas) 
+    {
+      this.canvas.requestPointerLock();
+    }
   }
 
-  private onMouseUp(event: MouseEvent): void 
+  private onMouseUp(_event: MouseEvent): void 
   {
     if (!this.isActive) 
     {
@@ -243,7 +233,7 @@ export class InputManager
     this.inputState.mouseX = event.clientX;
     this.inputState.mouseY = event.clientY;
 
-    // ===== Mouse Look for Free Camera =====
+    // Handle free camera mouse look
     if (this.currentCameraMode === CameraMode.FREE && this.freeCamera && this.inputState.isMouseDown) 
     {
       this.freeCamera.rotation.y += this.inputState.mouseDeltaX * this.mouseSensitivity;
@@ -276,8 +266,6 @@ export class InputManager
     
     event.preventDefault();
   }
-
-  // ===== Input Processing =====
 
   public update(): void 
   {
@@ -323,7 +311,7 @@ export class InputManager
   {
     if (this.currentCameraMode === CameraMode.FREE && this.freeCamera) 
     {
-      // ===== Free Camera Movement =====
+      // Free camera movement - handled locally
       const moveVector = new Vector3(direction.x, direction.y, direction.z);
       moveVector.scaleInPlace(0.5);
       
@@ -336,69 +324,28 @@ export class InputManager
         .add(up.scale(moveVector.y));
       
       this.freeCamera.position.addInPlace(movement);
-    }
-    else if ((this.currentCameraMode === CameraMode.PLAYER || this.currentCameraMode === CameraMode.RACING) 
-             && this.racerPhysics && this.playerPodId) 
+    } 
+    else if (this.shouldSendToPhysics()) 
     {
-      // ===== Physics Movement (Direct) =====
+      // Pod movement - send to physics
       const physicsInput = 
       {
         x: direction.x,
         z: direction.z
       };
 
-      this.racerPhysics.movePod(this.playerPodId, physicsInput);
+      if (this.racerPhysics && this.playerPodId) 
+      {
+        this.racerPhysics.movePod(this.playerPodId, physicsInput);
+      }
     }
   }
 
-  // ===== State Getters =====
-
-  public getInputState(): Readonly<InputState> 
+  private shouldSendToPhysics(): boolean 
   {
-    return this.inputState;
-  }
-
-  public isMovementActive(): boolean 
-  {
-    return this.inputState.forward || this.inputState.backward || 
-           this.inputState.left || this.inputState.right || 
-           this.inputState.up || this.inputState.down;
-  }
-
-  public getCurrentMovementDirection(): { x: number; y: number; z: number } 
-  {
-    const direction = { x: 0, y: 0, z: 0 };
-    
-    if (this.inputState.forward) direction.z += this.movementSpeed;
-    if (this.inputState.backward) direction.z -= this.movementSpeed;
-    if (this.inputState.left) direction.x -= this.movementSpeed;
-    if (this.inputState.right) direction.x += this.movementSpeed;
-    if (this.inputState.up) direction.y += this.movementSpeed;
-    if (this.inputState.down) direction.y -= this.movementSpeed;
-    
-    return direction;
-  }
-
-  // ===== Configuration =====
-
-  public setMovementSpeed(speed: number): void 
-  {
-    this.movementSpeed = speed;
-  }
-
-  public setMouseSensitivity(sensitivity: number): void 
-  {
-    this.mouseSensitivity = sensitivity;
-  }
-
-  public getMovementSpeed(): number 
-  {
-    return this.movementSpeed;
-  }
-
-  public getMouseSensitivity(): number 
-  {
-    return this.mouseSensitivity;
+    return this.currentCameraMode !== CameraMode.FREE && 
+           this.racerPhysics !== null && 
+           this.playerPodId !== null;
   }
 
   public setActive(active: boolean): void 
@@ -410,8 +357,6 @@ export class InputManager
       this.resetInputState();
     }
   }
-
-  // ===== Cleanup =====
 
   private resetInputState(): void 
   {
@@ -427,8 +372,6 @@ export class InputManager
 
   public dispose(): void 
   {
-    console.log('Disposing InputManager');
-    
     this.isActive = false;
     
     if (this.canvas) 

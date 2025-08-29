@@ -34,13 +34,10 @@ export class CameraManager
   {
     this.gameCanvas = gameCanvas;
     this.scene = gameCanvas.getScene()!;
-    this.currentMode = CameraMode.PLAYER;
+    this.currentMode = CameraMode.PLAYER; // Default to player camera
     
     this.setupCameras();
-    console.log('CameraManager initialized');
   }
-
-  // ===== Camera Setup =====
 
   private setupCameras(): void 
   {
@@ -83,18 +80,15 @@ export class CameraManager
     if (enabled) 
     {
       this.switchToMode(CameraMode.FREE);
-    }
-    else if (this.currentMode === CameraMode.FREE) 
+    } 
+    else 
     {
       this.switchToMode(CameraMode.PLAYER);
     }
   }
 
-  // ===== Camera Mode Management =====
-
   public switchToMode(mode: CameraMode): void 
   {
-    // Restrict free camera to dev mode only
     if (mode === CameraMode.FREE && !this.developmentMode) 
     {
       console.warn('Free camera only available in development mode');
@@ -108,7 +102,10 @@ export class CameraManager
     {
       case CameraMode.RACING:
         this.scene.activeCamera = this.racingCamera;
-        this.racingCamera?.attachControl(this.gameCanvas.getCanvas()!, true);
+        if (this.racingCamera) 
+        {
+          this.racingCamera.attachControl(this.gameCanvas.getCanvas()!, true);
+        }
         break;
         
       case CameraMode.FREE:
@@ -117,12 +114,17 @@ export class CameraManager
         
       case CameraMode.PLAYER:
         this.scene.activeCamera = this.playerCamera;
-        this.playerCamera?.attachControl(this.gameCanvas.getCanvas()!, true);
+        if (this.playerCamera) 
+        {
+          this.playerCamera.attachControl(this.gameCanvas.getCanvas()!, true);
+        }
         this.setupPodFollowing();
         break;
     }
 
-    console.log(`Switched to ${mode} camera`);
+    // Notify InputManager about mode change
+    this.notifyInputManager();
+    this.updateCameraUI();
   }
 
   public cycleCameraMode(): void 
@@ -132,7 +134,7 @@ export class CameraManager
     if (this.developmentMode) 
     {
       availableModes = [CameraMode.RACING, CameraMode.FREE, CameraMode.PLAYER];
-    }
+    } 
     else 
     {
       availableModes = [CameraMode.RACING, CameraMode.PLAYER];
@@ -143,7 +145,16 @@ export class CameraManager
     this.switchToMode(availableModes[nextIndex]);
   }
 
-  // ===== Camera Getters =====
+  private notifyInputManager(): void 
+  {
+    // Access InputManager through GameCanvas to update camera mode
+    const inputManager = (this.gameCanvas as any).inputManager;
+    if (inputManager && typeof inputManager.setCameraMode === 'function') 
+    {
+      inputManager.setCameraMode(this.currentMode);
+      inputManager.setFreeCamera(this.freeCamera);
+    }
+  }
 
   public getCurrentMode(): CameraMode 
   {
@@ -162,7 +173,8 @@ export class CameraManager
 
   public getCameraInfo(mode: CameraMode): CameraInfo | null 
   {
-    const infoMap = {
+    const infoMap = 
+    {
       [CameraMode.RACING]: { mode, name: 'Racing Camera', description: 'Track overview' },
       [CameraMode.FREE]: { mode, name: 'Free Camera', description: 'Free movement' },
       [CameraMode.PLAYER]: { mode, name: 'Player Camera', description: 'Follow pod' }
@@ -170,8 +182,6 @@ export class CameraManager
     
     return infoMap[mode] || null;
   }
-
-  // ===== Pod Integration =====
 
   public setPlayerPod(pod: RacerPod | null): void 
   {
@@ -183,7 +193,7 @@ export class CameraManager
     }
     
     // Auto-switch to player mode when pod is set (unless in dev mode)
-    if (pod && !this.developmentMode && this.currentMode !== CameraMode.PLAYER) 
+    if (pod && !this.developmentMode) 
     {
       this.switchToMode(CameraMode.PLAYER);
     }
@@ -216,7 +226,25 @@ export class CameraManager
     }
   }
 
-  // ===== Pod Following =====
+  public handleMovement(direction: { x: number; y: number; z: number }): void 
+  {
+    if (this.currentMode === CameraMode.FREE && this.freeCamera) 
+    {
+      const moveVector = new Vector3(direction.x, direction.y, direction.z);
+      moveVector.scaleInPlace(0.5);
+      
+      const forward = this.freeCamera.getDirection(new Vector3(0, 0, 1));
+      const right = this.freeCamera.getDirection(new Vector3(1, 0, 0));
+      const up = Vector3.Up();
+      
+      const movement = forward.scale(moveVector.z)
+        .add(right.scale(moveVector.x))
+        .add(up.scale(moveVector.y));
+      
+      this.freeCamera.position.addInPlace(movement);
+    }
+    // For PLAYER/RACING modes, InputManager will send to physics directly
+  }
 
   private setupPodFollowing(): void 
   {
@@ -252,19 +280,71 @@ export class CameraManager
     }
   }
 
-  // ===== Cleanup =====
+  private updateCameraUI(): void 
+  {
+    const modeInfo = this.getCameraInfo(this.currentMode);
+    
+    const cameraInfo = document.getElementById('cameraInfo');
+    if (cameraInfo && modeInfo) 
+    {
+      cameraInfo.textContent = `Camera: ${modeInfo.name}`;
+    }
+
+    const trackInfo = document.getElementById('trackInfo');
+    if (trackInfo) 
+    {
+      const currentText = trackInfo.textContent || '';
+      if (!currentText.includes('F1')) 
+      {
+        const modeInfoName = modeInfo ? modeInfo.name : 'Unknown';
+        const controlsText = this.getControlsText(this.currentMode);
+        
+        trackInfo.innerHTML = `
+          ${currentText}<br>
+          <span class="text-xs text-purple-300">F1: Switch Camera (${modeInfoName})</span><br>
+          <span class="text-xs text-blue-300">${controlsText}</span>
+        `;
+      }
+    }
+  }
+
+  private getControlsText(mode: CameraMode): string 
+  {
+    switch (mode) 
+    {
+      case CameraMode.RACING:
+        return 'Mouse: Rotate View | Scroll: Zoom';
+      case CameraMode.FREE:
+        return 'WASD: Move Camera | Mouse: Look Around | Scroll: Speed';
+      case CameraMode.PLAYER:
+        return 'WASD: Move Pod | Mouse: Camera Control | Scroll: Zoom';
+      default:
+        return '';
+    }
+  }
 
   public dispose(): void 
   {
     this.detachCurrentCamera();
     
-    this.racingCamera?.dispose();
-    this.freeCamera?.dispose();
-    this.playerCamera?.dispose();
+    if (this.racingCamera) 
+    {
+      this.racingCamera.dispose();
+      this.racingCamera = null;
+    }
     
-    this.racingCamera = null;
-    this.freeCamera = null;
-    this.playerCamera = null;
+    if (this.freeCamera) 
+    {
+      this.freeCamera.dispose();
+      this.freeCamera = null;
+    }
+    
+    if (this.playerCamera) 
+    {
+      this.playerCamera.dispose();
+      this.playerCamera = null;
+    }
+    
     this.playerPod = null;
   }
 }
