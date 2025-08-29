@@ -4,7 +4,7 @@ import {
   HemisphericLight, 
   DirectionalLight,
   Vector3, 
-  Color3,
+  Color3
 } from '@babylonjs/core';
 
 import { InputManager, InputCallbacks } from '../../managers/InputManager';
@@ -84,7 +84,7 @@ export class GameCanvas
   private config: Required<GameCanvasConfig>;
   private racerPhysics: RacerPhysics | null = null;
   private inputManager: InputManager | null = null;
-  public cameraManager: CameraManager | null = null;
+  private cameraManager: CameraManager | null = null;
   private playerPod: RacerPod | null = null;
   private isRenderLoopRunning: boolean = false;
 
@@ -248,7 +248,7 @@ export class GameCanvas
 
     if (this.cameraManager) 
     {
-      this.cameraManager.setPlayerPod(pod);
+      this.cameraManager.setCameraTarget(pod);
     }
 
     if (this.inputManager && this.racerPhysics && pod) 
@@ -269,7 +269,7 @@ export class GameCanvas
     
     if (this.playerPod) 
     {
-      this.cameraManager.setPlayerPod(this.playerPod);
+      this.cameraManager.setCameraTarget(this.playerPod);
     }
     
     this.inputManager = new InputManager();
@@ -403,6 +403,19 @@ export class GameCanvas
     const fps = this.engine ? this.engine.getFps() : 0;
     const meshCount = this.scene ? this.scene.meshes.length : 0;
     return { fps, meshCount };
+  }
+
+  public setTrackBounds(bounds: { min: Vector3; max: Vector3; size: Vector3 }): void 
+  {
+    if (this.cameraManager) 
+    {
+      this.cameraManager.setTrackBounds(bounds);
+    }
+  }
+
+  public getCameraManager(): CameraManager | null 
+  {
+    return this.cameraManager;
   }
 
   public dispose(): void 

@@ -200,9 +200,13 @@ export class RacerRenderer
     
     this.racerScene.onTrackLoaded = (track) => 
     {
-        if (this.gameCanvas && this.gameCanvas.cameraManager) 
+        if (this.gameCanvas) 
         {
-        this.gameCanvas.cameraManager.setTrackBounds(this.racerScene!.getTrackBounds());
+            const cameraManager = this.gameCanvas.getCameraManager();
+            if (cameraManager) 
+            {
+                cameraManager.setTrackBounds(this.racerScene!.getTrackBounds());
+            }
         }
       
       if (this.onTrackLoaded) 

@@ -1,5 +1,5 @@
 import { GameCanvas } from '../engines/racer/GameCanvas';
-import { Vector3, Scene, Camera, ArcRotateCamera, FreeCamera } from '@babylonjs/core';
+import { Vector3, Scene, Camera, ArcRotateCamera, FreeCamera, FollowCamera } from '@babylonjs/core';
 import { RacerPod } from '../engines/racer/RacerPods';
 
 export enum CameraMode 
@@ -25,22 +25,22 @@ export class CameraManager
   
   private racingCamera: ArcRotateCamera | null = null;
   private freeCamera: FreeCamera | null = null;
-  private playerCamera: ArcRotateCamera | null = null;
+  private playerCamera: FollowCamera | null = null;
   
-  private playerPod: RacerPod | null = null;
-  private beforeRenderObserver: any = null;
+  private targetPod: RacerPod | null = null;
 
   constructor(gameCanvas: GameCanvas) 
   {
     this.gameCanvas = gameCanvas;
     this.scene = gameCanvas.getScene()!;
-    this.currentMode = CameraMode.PLAYER; // Default to player camera
+    this.currentMode = CameraMode.PLAYER;
     
     this.setupCameras();
   }
 
   private setupCameras(): void 
   {
+    // Racing camera - overview of track
     this.racingCamera = new ArcRotateCamera(
       "racingCamera",
       -Math.PI / 2,
@@ -52,6 +52,7 @@ export class CameraManager
     this.racingCamera.lowerRadiusLimit = 10;
     this.racingCamera.upperRadiusLimit = 100;
 
+    // Free camera - development mode
     this.freeCamera = new FreeCamera(
       "freeCamera", 
       new Vector3(0, 20, 30), 
@@ -59,14 +60,21 @@ export class CameraManager
     );
     this.freeCamera.setTarget(Vector3.Zero());
 
-    this.playerCamera = new ArcRotateCamera(
-      "playerCamera",
-      -Math.PI / 2,
-      Math.PI / 6,
-      15,
-      Vector3.Zero(),
+    // Follow camera - automatically follows target
+    this.playerCamera = new FollowCamera(
+      "followCamera",
+      new Vector3(0, 10, -15),
       this.scene
     );
+    
+    // Configure follow behavior
+    this.playerCamera.radius = 15;
+    this.playerCamera.heightOffset = 8;
+    this.playerCamera.rotationOffset = 0;
+    this.playerCamera.cameraAcceleration = 0.05;
+    this.playerCamera.maxCameraSpeed = 20;
+    this.playerCamera.lowerHeightOffsetLimit = 2;
+    this.playerCamera.upperHeightOffsetLimit = 30;
     this.playerCamera.lowerRadiusLimit = 5;
     this.playerCamera.upperRadiusLimit = 50;
 
@@ -104,25 +112,40 @@ export class CameraManager
         this.scene.activeCamera = this.racingCamera;
         if (this.racingCamera) 
         {
-          this.racingCamera.attachControl(this.gameCanvas.getCanvas()!, true);
+          const canvas = this.gameCanvas.getCanvas();
+          if (canvas) 
+          {
+            this.racingCamera.attachControl(canvas, true);
+          }
         }
         break;
         
       case CameraMode.FREE:
         this.scene.activeCamera = this.freeCamera;
+        if (this.freeCamera) 
+        {
+          const canvas = this.gameCanvas.getCanvas();
+          if (canvas) 
+          {
+            this.freeCamera.attachControl(canvas, true);
+          }
+        }
         break;
         
       case CameraMode.PLAYER:
         this.scene.activeCamera = this.playerCamera;
         if (this.playerCamera) 
         {
-          this.playerCamera.attachControl(this.gameCanvas.getCanvas()!, true);
+          const canvas = this.gameCanvas.getCanvas();
+          if (canvas) 
+          {
+            (this.playerCamera as any).attachControl(canvas, true);
+          }
+          this.attachToTarget();
         }
-        this.setupPodFollowing();
         break;
     }
 
-    // Notify InputManager about mode change
     this.notifyInputManager();
     this.updateCameraUI();
   }
@@ -147,7 +170,6 @@ export class CameraManager
 
   private notifyInputManager(): void 
   {
-    // Access InputManager through GameCanvas to update camera mode
     const inputManager = (this.gameCanvas as any).inputManager;
     if (inputManager && typeof inputManager.setCameraMode === 'function') 
     {
@@ -177,25 +199,40 @@ export class CameraManager
     {
       [CameraMode.RACING]: { mode, name: 'Racing Camera', description: 'Track overview' },
       [CameraMode.FREE]: { mode, name: 'Free Camera', description: 'Free movement' },
-      [CameraMode.PLAYER]: { mode, name: 'Player Camera', description: 'Follow pod' }
+      [CameraMode.PLAYER]: { mode, name: 'Follow Camera', description: 'Follow pod' }
     };
     
     return infoMap[mode] || null;
   }
 
-  public setPlayerPod(pod: RacerPod | null): void 
+  public setCameraTarget(pod: RacerPod | null): void 
   {
-    this.playerPod = pod;
+    this.targetPod = pod;
     
-    if (this.currentMode === CameraMode.PLAYER && pod) 
+    if (this.playerCamera && pod) 
     {
-      this.setupPodFollowing();
+      this.attachToTarget();
     }
     
-    // Auto-switch to player mode when pod is set (unless in dev mode)
     if (pod && !this.developmentMode) 
     {
       this.switchToMode(CameraMode.PLAYER);
+    }
+  }
+
+  private attachToTarget(): void 
+  {
+    if (!this.targetPod || !this.playerCamera) 
+    {
+      return;
+    }
+
+    // Get the pod's mesh for following
+    const podMesh = this.targetPod.getMesh();
+    if (podMesh) 
+    {
+      this.playerCamera.lockedTarget = podMesh;
+      console.log(`FollowCamera locked to target: ${this.targetPod.getConfig().name}`);
     }
   }
 
@@ -214,6 +251,7 @@ export class CameraManager
   public handleMouseWheel(delta: number): void 
   {
     const activeCamera = this.scene.activeCamera;
+    
     if (activeCamera instanceof ArcRotateCamera) 
     {
       const arcCamera = activeCamera as ArcRotateCamera;
@@ -223,6 +261,22 @@ export class CameraManager
       const upperLimit = arcCamera.upperRadiusLimit ?? 1000;
       
       arcCamera.radius = Math.max(lowerLimit, Math.min(upperLimit, arcCamera.radius));
+    }
+    else if (activeCamera instanceof FollowCamera) 
+    {
+      const followCamera = activeCamera as FollowCamera;
+      followCamera.radius += delta * 2;
+      
+      const lowerLimit = followCamera.lowerRadiusLimit ?? 1;
+      const upperLimit = followCamera.upperRadiusLimit ?? 1000;
+      
+      followCamera.radius = Math.max(lowerLimit, Math.min(upperLimit, followCamera.radius));
+    }
+    else if (this.currentMode === CameraMode.FREE && this.freeCamera) 
+    {
+      const forward = this.freeCamera.getDirection(new Vector3(0, 0, 1));
+      const movement = forward.scale(-delta * 2);
+      this.freeCamera.position.addInPlace(movement);
     }
   }
 
@@ -243,27 +297,6 @@ export class CameraManager
       
       this.freeCamera.position.addInPlace(movement);
     }
-    // For PLAYER/RACING modes, InputManager will send to physics directly
-  }
-
-  private setupPodFollowing(): void 
-  {
-    if (!this.playerPod || !this.playerCamera || this.currentMode !== CameraMode.PLAYER) 
-    {
-      return;
-    }
-
-    const podPosition = this.playerPod.getPosition();
-    this.playerCamera.setTarget(podPosition);
-
-    this.beforeRenderObserver = this.scene.registerBeforeRender(() => 
-    {
-      if (this.playerPod && this.playerCamera && this.currentMode === CameraMode.PLAYER) 
-      {
-        const currentPodPosition = this.playerPod.getPosition();
-        this.playerCamera.setTarget(currentPodPosition);
-      }
-    });
   }
 
   private detachCurrentCamera(): void 
@@ -271,12 +304,6 @@ export class CameraManager
     if (this.scene.activeCamera) 
     {
       this.scene.activeCamera.detachControl(this.gameCanvas.getCanvas()!);
-    }
-
-    if (this.beforeRenderObserver) 
-    {
-      this.scene.unregisterBeforeRender(this.beforeRenderObserver);
-      this.beforeRenderObserver = null;
     }
   }
 
@@ -317,7 +344,7 @@ export class CameraManager
       case CameraMode.FREE:
         return 'WASD: Move Camera | Mouse: Look Around | Scroll: Speed';
       case CameraMode.PLAYER:
-        return 'WASD: Move Pod | Mouse: Camera Control | Scroll: Zoom';
+        return 'WASD: Move Pod | Scroll: Distance | Mouse: Rotate Follow';
       default:
         return '';
     }
@@ -345,6 +372,6 @@ export class CameraManager
       this.playerCamera = null;
     }
     
-    this.playerPod = null;
+    this.targetPod = null;
   }
 }
