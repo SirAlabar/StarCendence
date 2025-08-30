@@ -104,20 +104,20 @@ services:
   #   restart: always
 
   # # User Microservice
-  # user-service:
-  #   container_name: transcendence_user
-  #   build:
-  #     context: ./services/user
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - user_data:/app/data
-  #   networks:
-  #     - transcendence_network
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - redis
-  #   restart: always
+  user-service:
+    container_name: transcendence_user
+    build:
+      context: ./services/user
+      dockerfile: Dockerfile
+    volumes:
+      - user_data:/app/data
+    networks:
+      - transcendence_network
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    restart: always
 
   # # WebSocket Microservice
   # websocket-service:
@@ -183,12 +183,12 @@ volumes:
   #     device: ${HOME}/data/chat
   #     o: bind
 
-  # user_data:
-  #   driver: local
-  #   driver_opts:
-  #     type: none
-  #     device: ${HOME}/data/user
-  #     o: bind
+  user_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOME}/data/user
+      o: bind
 
 networks:
   transcendence_network:

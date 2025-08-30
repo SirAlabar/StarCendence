@@ -31,6 +31,8 @@ TESTS_DIR = tests
 DOCKER_DATA_DIR = $(HOME)/data
 FRONTEND_VOLUME = $(DOCKER_DATA_DIR)/frontend
 REDIS_VOLUME = $(DOCKER_DATA_DIR)/redis
+USER_VOLUME = $(DOCKER_DATA_DIR)/user
+
 
 ################################################################################
 #                                 ASCII ART                                    #
@@ -106,9 +108,9 @@ setup:
 	@printf "$(CYAN)Building frontend...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory front
 	@printf "$(CYAN)Building containers...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) build nginx redis
+	@$(DOCKER_COMPOSE) build nginx redis user-service
 	@printf "$(CYAN)Starting services...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) up -d nginx redis
+	@$(DOCKER_COMPOSE) up -d nginx redis user-service
 	@printf "$(CYAN)Waiting for services...$(DEFAULT)\n"
 	@sleep 3
 	@printf "$(CYAN)Health check...$(DEFAULT)\n"
@@ -123,9 +125,11 @@ create-volumes:
 	@printf "$(CYAN)Creating Docker bind mount directories...$(DEFAULT)\n"
 	@mkdir -p $(FRONTEND_VOLUME)
 	@mkdir -p $(REDIS_VOLUME)
+	@mkdir -p $(USER_VOLUME)
 	@printf "$(GREEN)✅ Volume directories created:$(DEFAULT)\n"
 	@printf "  - $(FRONTEND_VOLUME)\n"
 	@printf "  - $(REDIS_VOLUME)\n"
+	@printf "  - $(USER_VOLUME)\n"
 
 .PHONY: setup-env
 setup-env:
@@ -314,3 +318,14 @@ disk:
 .PHONY: quick
 quick: create-volumes start health
 	@printf "$(GREEN)⚡ Quick setup complete!$(DEFAULT)\n"
+
+
+################################################################################
+#                               SINGLE RESET                                   #
+################################################################################
+
+user_service_restart:
+	@printf "$(YELLOW)🔄 Restarting user-service...$(DEFAULT)\n"
+	@docker compose up user-service -d --force-recreate
+	@printf "$(GREEN)✅ user-service restarted!$(DEFAULT)\n"
+

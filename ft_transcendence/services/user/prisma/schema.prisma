@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// SQLite database
+datasource db {
+  provider = "sqlite"
+  url      = "file:./user.db"
+}
+
+// Core user model
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  username  String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
