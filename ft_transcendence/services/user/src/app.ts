@@ -11,7 +11,7 @@ export async function buildApp() {
   await app.register(cors)
   await app.register(helmet)
   
-  // Register routes - clean and meaningful!
+  // User routes
   app.get('/users/:id', userController.getUserById)
   app.get('/users/', userController.getAllUsers)
   
