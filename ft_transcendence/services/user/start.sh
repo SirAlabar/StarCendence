@@ -3,7 +3,7 @@
 echo " Starting User Service..."
 
 # Check if database exists, if not create it
-if [ ! -f "user.db" ]; then
+if [ ! -f "prisma/user.db" ]; then
     echo " Database not found, initializing..."
     npx prisma db push
     echo " Database initialized successfully"

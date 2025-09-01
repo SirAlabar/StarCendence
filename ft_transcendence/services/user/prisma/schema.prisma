@@ -5,7 +5,7 @@ generator client {
 // SQLite database
 datasource db {
   provider = "sqlite"
-  url      = "file:./user.db"
+  url      = "file:/app/prisma/user.db"
 }
 
 // Core user model
