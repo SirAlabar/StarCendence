@@ -95,7 +95,7 @@ export class RacerRenderer
     {
       showHUD: true,
       showDebugInfo: this.config.debugMode || false,
-      maxSpeed: 500,
+      maxSpeed: 600,
       totalLaps: 3,
       totalRacers: 8
     });

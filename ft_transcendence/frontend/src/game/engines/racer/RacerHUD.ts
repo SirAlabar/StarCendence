@@ -382,13 +382,22 @@ export class RacerHUD
       const isCurrentlyOff = button.textContent?.includes('OFF');
       button.textContent = `Dev Mode: ${isCurrentlyOff ? 'ON' : 'OFF'}`;
       
-      if (isCurrentlyOff) 
+      // Get physics system and player pod
+      if ((window as any).racerRenderer) 
       {
-        button.className = 'bg-green-600/80 backdrop-blur text-white px-4 py-2 rounded-lg hover:bg-green-700';
-      } 
-      else 
-      {
-        button.className = 'bg-blue-600/80 backdrop-blur text-white px-4 py-2 rounded-lg hover:bg-blue-700';
+        const gameCanvas = (window as any).racerRenderer.getGameCanvas();
+        if (gameCanvas) 
+        {
+          const physics = gameCanvas.getPhysics();
+          const playerPod = gameCanvas.getPlayerPod();
+          
+          if (physics && playerPod) 
+          {
+            const podId = playerPod.getConfig().id;
+            physics.showEnhancedHoverLines(podId, isCurrentlyOff);
+            physics.showPodCollisionBox(podId, isCurrentlyOff);
+          }
+        }
       }
     }
   }

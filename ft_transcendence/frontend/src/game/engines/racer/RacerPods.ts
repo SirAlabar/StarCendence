@@ -22,6 +22,10 @@ export class RacerPod
   // ===== Physics Integration =====
   private racerPhysics: RacerPhysics | null = null;
   private physicsEnabled: boolean = false;
+
+  private readonly physicalLength: number = 6.0;
+  private readonly physicalWidth: number = 3.2;
+  private readonly physicalHeight: number = 0.8;
   
   public onLoaded?: (pod: RacerPod) => void;
   public onLoadingProgress?: (progress: number) => void;
@@ -160,7 +164,7 @@ export class RacerPod
       this.mesh.rotationQuaternion = Quaternion.Identity();
     }
     
-    this.racerPhysics.createPod(this.mesh as Mesh, this.config.id);
+    this.racerPhysics.createPod(this.mesh as Mesh, this.config.id, this);
     this.physicsEnabled = true;
     console.log(`Physics enabled for pod: ${this.config.id}`);
   }
@@ -189,6 +193,15 @@ export class RacerPod
     {
       this.racerPhysics.reset(this.config.id, position);
     }
+  }
+
+  public getPhysicalDimensions(): { length: number, width: number, height: number } 
+  {
+    return {
+      length: this.physicalLength,
+      width: this.physicalWidth,
+      height: this.physicalHeight
+    };
   }
 
   public getPosition(): Vector3 

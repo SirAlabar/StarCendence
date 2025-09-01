@@ -29,7 +29,7 @@ export class RacerUIManager
     position: 1,
     totalRacers: 8,
     speed: 0,
-    maxSpeed: 500
+    maxSpeed: 600
   };
   
   constructor(config?: Partial<RacerUIConfig>) 
@@ -38,7 +38,7 @@ export class RacerUIManager
     {
       showHUD: true,
       showDebugInfo: false,
-      maxSpeed: 500,
+      maxSpeed: 600,
       totalLaps: 3,
       totalRacers: 8,
       ...config

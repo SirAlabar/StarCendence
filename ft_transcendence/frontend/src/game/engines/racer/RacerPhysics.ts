@@ -4,10 +4,12 @@ import
   Mesh, 
   Vector3, 
   Quaternion,
-  AbstractMesh
+  AbstractMesh,
+  Ray
 } from '@babylonjs/core';
 import Ammo from 'ammojs-typed';
 import { CreateLines, Color3 } from '@babylonjs/core';
+import { RacerPod } from './RacerPods';
 
 export class RacerPhysics 
 {
@@ -17,14 +19,21 @@ export class RacerPhysics
   private isInitialized: boolean = false;
   private tempTransform: any = null;
   
-  private pods: Map<string, { rigidBody: any, mesh: Mesh }> = new Map();
+  private pods: Map<string, { 
+    rigidBody: any, 
+    mesh: Mesh,
+    hoverPoints: Vector3[],
+    hoverRays: Ray[],
+    pod: RacerPod
+  }> = new Map();
   
-  private readonly GRAVITY = new Vector3(0, -9.81, 0);
+  private readonly GRAVITY = new Vector3(0, -25, 0);
   private readonly POD_MASS = 100;
-  private readonly THRUST_FORCE = 2000;
-  private readonly MAX_VELOCITY = 50;
-  private readonly HOVER_FORCE = 1500;
+  private readonly THRUST_FORCE = 3000;
+  private readonly MAX_VELOCITY = 650;
+  private readonly HOVER_FORCE = 1000;
   private readonly HOVER_HEIGHT = 3;
+  private readonly HOVER_RAY_LENGTH = 10.0;
 
   private debugCollisionVisualization: AbstractMesh[] = [];
 
@@ -164,65 +173,94 @@ export class RacerPhysics
 
   // ===== Pod Physics Creation =====
 
-  public createPod(mesh: Mesh, podId: string): void 
+  public createPod(mesh: Mesh, podId: string, pod: RacerPod): void
   {
-    if (!this.isInitialized || !this.ammoInstance) 
+    if (!this.isInitialized || !this.ammoInstance)
     {
       throw new Error('RacerPhysics: Not initialized');
     }
-
+    
     console.log(`Creating pod physics: ${podId}`);
-
+    
     const Ammo = this.ammoInstance;
     const position = mesh.position;
     const quaternion = mesh.rotationQuaternion || Quaternion.Identity();
-
+    
+    // Get dimensions from pod class
+    const dimensions = pod.getPhysicalDimensions();
+    const podLength = dimensions.length;
+    const podWidth = dimensions.width;
+    const podHeight = dimensions.height;
+    
     const transform = new Ammo.btTransform();
     transform.setIdentity();
     transform.setOrigin(new Ammo.btVector3(position.x, position.y, position.z));
     transform.setRotation(new Ammo.btQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w));
-
+    
     const motionState = new Ammo.btDefaultMotionState(transform);
     const localInertia = new Ammo.btVector3(0, 0, 0);
-
-    const podLength = 2.0;
-    const podWidth = 0.8;
-    const podHeight = 0.6;
-
-    const compoundShape = new Ammo.btCompoundShape();
     
+    const compoundShape = new Ammo.btCompoundShape();
+  
     const mainShape = new Ammo.btBoxShape(new Ammo.btVector3(podLength/2, podHeight/2, podWidth/2));
     const mainTransform = new Ammo.btTransform();
     mainTransform.setIdentity();
     compoundShape.addChildShape(mainTransform, mainShape);
-    
+  
     const frontShape = new Ammo.btBoxShape(new Ammo.btVector3(0.3, podHeight/3, podWidth/3));
     const frontTransform = new Ammo.btTransform();
     frontTransform.setIdentity();
     frontTransform.setOrigin(new Ammo.btVector3(podLength/2 + 0.3, 0, 0));
     compoundShape.addChildShape(frontTransform, frontShape);
-
+    
     compoundShape.setMargin(0.05);
     compoundShape.calculateLocalInertia(this.POD_MASS, localInertia);
-
+    
     const rigidBodyInfo = new Ammo.btRigidBodyConstructionInfo(this.POD_MASS, motionState, compoundShape, localInertia);
     const rigidBody = new Ammo.btRigidBody(rigidBodyInfo);
-    
+  
     rigidBody.setDamping(0.3, 0.5);
     rigidBody.setFriction(0.8);
     rigidBody.setRestitution(0.1);
     rigidBody.setActivationState(4);
     rigidBody.forceActivationState(4);
-    
+  
     this.physicsWorld.addRigidBody(rigidBody);
-    this.pods.set(podId, { rigidBody, mesh });
-
+    
+    // Calculate hover points from collision box corners
+    const hoverPoints = this.calculateHoverPoints(podLength, podWidth, podHeight);
+    const hoverRays = hoverPoints.map(() => new Ray(Vector3.Zero(), Vector3.Down()));
+  
+    this.pods.set(podId, { rigidBody, mesh, hoverPoints, hoverRays, pod });
+    
     const initialUpwardVelocity = new Ammo.btVector3(0, 0, 0);
     rigidBody.setLinearVelocity(initialUpwardVelocity);
-    rigidBody.activate();
+    rigidBody.activate();    
+    
+    this.showPodCollisionBox(podId, true);
+    this.createHoverLines(podId);
+    this.createPhysicsDebugHUD(podId);
 
+    
     console.log(`Pod physics created: ${podId}`);
   }
+
+
+
+  private calculateHoverPoints(podLength: number, podWidth: number, podHeight: number): Vector3[]  
+  {
+    const halfWidth = podWidth / 2;
+    const halfLength = podLength / 2;
+    const boxBottom = -podHeight / 2;
+  
+    return [
+      new Vector3(-halfLength, boxBottom, -halfWidth),  // Front Left corner
+      new Vector3(-halfLength, boxBottom, halfWidth),   // Front Right corner
+      new Vector3(halfLength, boxBottom, -halfWidth),   // Back Left corner
+      new Vector3(halfLength, boxBottom, halfWidth)     // Back Right corner
+    ];
+  }
+  
 
   // ===== Track Physics Setup =====
 
@@ -426,50 +464,57 @@ export class RacerPhysics
 
   // ===== Pod Movement =====
 
-  public movePod(podId: string, input: { x: number, z: number }): void 
+  public movePod(podId: string, input: { x: number, z: number }): void
   {
     const podData = this.pods.get(podId);
-    if (!podData || !this.ammoInstance) 
+    if (!podData || !this.ammoInstance)
     {
       return;
     }
-
+    
     const Ammo = this.ammoInstance;
     const rigidBody = podData.rigidBody;
     const mesh = podData.mesh;
-
     const velocity = rigidBody.getLinearVelocity();
     const currentSpeed = Math.sqrt(velocity.x() * velocity.x() + velocity.z() * velocity.z());
-
-    const REDUCED_THRUST = this.THRUST_FORCE * 0.1;
-    const REDUCED_MAX_VELOCITY = this.MAX_VELOCITY * 0.3;
     
-    if (currentSpeed < REDUCED_MAX_VELOCITY && input.z !== 0) 
+    // Simple thrust progression - reduce thrust as speed increases
+    const speedPercentage = currentSpeed / this.MAX_VELOCITY;
+    let thrustMultiplier = 1.0;
+    if (speedPercentage > 0.3) 
+    {
+      thrustMultiplier = 1.0 - (speedPercentage * 0.3); // Gentle reduction
+    }
+    
+    const REDUCED_THRUST = this.THRUST_FORCE * 0.3 * thrustMultiplier; // Apply progression here
+    const REDUCED_MAX_VELOCITY = this.MAX_VELOCITY * 0.9;
+  
+    if (currentSpeed < REDUCED_MAX_VELOCITY && input.z !== 0)
     {
       const forwardDir = this.getForwardDirection(mesh);
-      
+    
       const thrustForce = new Ammo.btVector3(
         forwardDir.x * input.z * REDUCED_THRUST * 0.016,
         0,
         forwardDir.z * input.z * REDUCED_THRUST * 0.016
       );
-      
+    
       const newVelocity = new Ammo.btVector3(
         velocity.x() + thrustForce.x(),
         velocity.y(),
         velocity.z() + thrustForce.z()
       );
-      
+    
       rigidBody.setLinearVelocity(newVelocity);
     }
-    
+  
     const REDUCED_TURN_FORCE = 8.0;
-    if (input.x !== 0) 
+    if (input.x !== 0)
     {
       const turnForce = new Ammo.btVector3(0, +input.x * REDUCED_TURN_FORCE, 0);
       rigidBody.setAngularVelocity(turnForce);
-    } 
-    else 
+    }
+    else
     {
       const currentAngular = rigidBody.getAngularVelocity();
       const dampedAngular = new Ammo.btVector3(
@@ -479,31 +524,75 @@ export class RacerPhysics
       );
       rigidBody.setAngularVelocity(dampedAngular);
     }
-
+    
     this.applyHoverForce(rigidBody, mesh);
+    this.preventUpsideDown(rigidBody, mesh);
+
+    this.updatePhysicsDebugHUD(podId, {
+      speed: currentSpeed * 3.6,
+      thrust: REDUCED_THRUST * thrustMultiplier,
+      maxSpeed: this.MAX_VELOCITY * 3.6,
+      acceleration: thrustMultiplier * 100,
+      slopeAngle: 0,
+      position: mesh.position
+    });
   }
 
   private applyHoverForce(rigidBody: any, mesh: Mesh): void 
   {
     const Ammo = this.ammoInstance;
-    const distanceFromGround = mesh.position.y;
-    
-    if (distanceFromGround < this.HOVER_HEIGHT) 
+    const podId = this.findPodIdByMesh(mesh);
+    if (!podId) 
     {
-      const hoverStrength = (this.HOVER_HEIGHT - distanceFromGround) / this.HOVER_HEIGHT;
-      const REDUCED_HOVER_FORCE = this.HOVER_FORCE * 0.3;
-      const upwardForce = REDUCED_HOVER_FORCE * hoverStrength * 0.016;
-      
-      const velocity = rigidBody.getLinearVelocity();
-      const newVelocity = new Ammo.btVector3(
-        velocity.x(),
-        velocity.y() + upwardForce,
-        velocity.z()
-      );
-      
-      rigidBody.setLinearVelocity(newVelocity);
+      return;
     }
 
+    const podData = this.pods.get(podId);
+    if (!podData) 
+    {
+      return;
+    }
+
+    const hoverPoints = podData.hoverPoints;
+
+    // Apply hover force at each of the 4 points
+    for (let i = 0; i < hoverPoints.length; i++) 
+    {
+      // Calculate world position of hover point
+      const localHoverPoint = hoverPoints[i];
+      const worldHoverPoint = Vector3.TransformCoordinates(localHoverPoint, mesh.getWorldMatrix());
+      
+      // Cast ray downward from this hover point
+      const ray = new Ray(worldHoverPoint, Vector3.Down());
+      const hit = this.scene.pickWithRay(ray);
+
+      let distanceFromGround = worldHoverPoint.y; // Use hover point height, not mesh center
+
+      if (hit?.hit && hit.distance < this.HOVER_RAY_LENGTH) 
+      {
+        distanceFromGround = hit.distance;
+      }
+
+      // Apply your original hover logic per point
+      if (distanceFromGround < this.HOVER_HEIGHT) 
+      {
+        const hoverStrength = (this.HOVER_HEIGHT - distanceFromGround) / this.HOVER_HEIGHT;
+        const REDUCED_HOVER_FORCE = this.HOVER_FORCE * 0.3;
+        const upwardForce = REDUCED_HOVER_FORCE * hoverStrength * 0.016 * 0.25; // Divide by 4 points
+        
+        // Apply force at this specific hover point
+        const forcePosition = new Ammo.btVector3(
+          localHoverPoint.x, 
+          localHoverPoint.y, 
+          localHoverPoint.z
+        );
+        const upwardForceVector = new Ammo.btVector3(0, upwardForce, 0);
+        
+        rigidBody.applyForce(upwardForceVector, forcePosition);
+      }
+    }
+
+    // Keep your original emergency recovery
     if (mesh.position.y < 0) 
     {
       console.warn(`Pod below ground, resetting position`);
@@ -512,6 +601,41 @@ export class RacerPhysics
       {
         const resetPos = new Vector3(mesh.position.x, this.HOVER_HEIGHT + 2, mesh.position.z);
         this.reset(podId, resetPos);
+      }
+    }
+  }
+
+  private preventUpsideDown(rigidBody: any, mesh: Mesh): void 
+  {
+    const Ammo = this.ammoInstance;
+    
+    // Check if pod is tilted too much
+    const upVector = mesh.up;
+    const dotProduct = Vector3.Dot(upVector, Vector3.Up());
+    
+    // If pod is tilted more than 45 degrees (dotProduct < 0.7)
+    if (dotProduct < 0.7) 
+    {
+      console.warn('Pod tilted too much, applying stabilization');
+      
+      // Apply strong upright torque
+      const stabilizationTorque = new Ammo.btVector3(
+        -mesh.rotation.x * 1000,  // Counter roll
+        0,                        // Don't affect yaw (steering)
+        -mesh.rotation.z * 1000   // Counter pitch
+      );
+      
+      rigidBody.applyTorque(stabilizationTorque);
+      
+      // If completely upside down, reset pod
+      if (dotProduct < 0) 
+      {
+        const podId = this.findPodIdByMesh(mesh);
+        if (podId) 
+        {
+          const resetPos = new Vector3(mesh.position.x, mesh.position.y + 3, mesh.position.z);
+          this.reset(podId, resetPos);
+        }
       }
     }
   }
@@ -564,6 +688,8 @@ export class RacerPhysics
         }
         
         mesh.rotationQuaternion.set(rotation.x(), rotation.y(), rotation.z(), rotation.w());
+
+        // this.showHoverLines(_podId);
       }
     });
   }
@@ -624,6 +750,291 @@ export class RacerPhysics
   public isPhysicsReady(): boolean 
   {
     return this.isInitialized && this.physicsWorld !== null;
+  }
+
+  // ===== Debug Visualization Methods =====
+
+  public createHoverLines(podId: string): void 
+  {
+    const podData = this.pods.get(podId);
+    if (!podData) 
+    {
+      return;
+    }
+
+    const { mesh, pod } = podData;
+    
+    // Remove any existing hover lines first
+    this.scene.meshes.filter(meshItem => 
+      meshItem.name.startsWith(`hoverLine_${podId}`)
+    ).forEach(meshItem => meshItem.dispose());
+
+    // Get current collision box dimensions
+    const dimensions = pod.getPhysicalDimensions();
+    const hoverPoints = this.calculateHoverPoints(dimensions.length, dimensions.width, dimensions.height);
+    
+    // Create initial hover lines for each hover point
+    hoverPoints.forEach((hoverPoint, index) => 
+    {
+      const worldHoverPoint = Vector3.TransformCoordinates(hoverPoint, mesh.getWorldMatrix());
+      
+      // Cast ray downward from hover point
+      const ray = new Ray(worldHoverPoint, Vector3.Down());
+      const hit = this.scene.pickWithRay(ray);
+      
+      // Create line from hover point to ground or max distance
+      const rayEnd = hit?.hit ? 
+        hit.pickedPoint! : 
+        worldHoverPoint.add(Vector3.Down().scale(this.HOVER_RAY_LENGTH));
+      
+      const linePoints = [worldHoverPoint, rayEnd];
+      const hoverLine = CreateLines(`hoverLine_${podId}_${index}`, { points: linePoints }, this.scene);
+      hoverLine.color = new Color3(0, 1, 0); // Green lines
+      hoverLine.alpha = 0.8;
+      
+      console.log(`Created hover line ${index} for pod ${podId}`);
+    });
+  }
+
+  private showHoverLines(podId: string): void 
+  {
+    const podData = this.pods.get(podId);
+    if (!podData) 
+    {
+      return;
+    }
+
+    const { mesh, pod } = podData;
+    
+    // Check if hover lines exist
+    const existingLines = this.scene.meshes.filter(meshItem => 
+      meshItem.name.startsWith(`hoverLine_${podId}`)
+    );
+    
+    // If no lines exist, create them
+    if (existingLines.length === 0) 
+    {
+      this.createHoverLines(podId);
+      return;
+    }
+
+    // Get current collision box dimensions
+    const dimensions = pod.getPhysicalDimensions();
+    const currentHoverPoints = this.calculateHoverPoints(dimensions.length, dimensions.width, dimensions.height);
+    
+    // Remove old hit spheres
+    this.scene.meshes.filter(meshItem => 
+      meshItem.name.startsWith(`hitSphere_${podId}`)
+    ).forEach(meshItem => meshItem.dispose());
+    
+    currentHoverPoints.forEach((hoverPoint, index) => 
+    {
+      const worldHoverPoint = Vector3.TransformCoordinates(hoverPoint, mesh.getWorldMatrix());
+      
+      // Cast ray and check hit
+      const ray = new Ray(worldHoverPoint, Vector3.Down());
+      const hit = this.scene.pickWithRay(ray);
+      
+      // Update existing line
+      const existingLine = existingLines[index];
+      if (existingLine) 
+      {
+        const rayEnd = hit?.hit ? 
+          hit.pickedPoint! : 
+          worldHoverPoint.add(Vector3.Down().scale(this.HOVER_RAY_LENGTH));
+        
+        const newPoints = [worldHoverPoint, rayEnd];
+        existingLine.dispose();
+        
+        const newRayLine = CreateLines(`hoverLine_${podId}_${index}`, { points: newPoints }, this.scene);
+        newRayLine.color = hit?.hit ? new Color3(0, 1, 0) : new Color3(1, 1, 0); // Green if hitting, yellow if not
+        newRayLine.alpha = 0.8;
+      }
+      
+      // Create new hit sphere if ray hits
+      if (hit?.hit && hit.pickedPoint) 
+      {
+        import('@babylonjs/core').then(({ CreateSphere, StandardMaterial }) => 
+        {
+          const hitSphere = CreateSphere(`hitSphere_${podId}_${index}`, { diameter: 0.3 }, this.scene);
+          hitSphere.position = hit.pickedPoint!.clone();
+          
+          const hitMaterial = new StandardMaterial(`hitMat_${podId}_${index}`, this.scene);
+          hitMaterial.diffuseColor = new Color3(1, 1, 0); // Yellow hit spheres
+          hitMaterial.emissiveColor = new Color3(0.3, 0.3, 0);
+          hitSphere.material = hitMaterial;
+        });
+      }
+    });
+  }
+
+  public showPodCollisionBox(podId: string, show: boolean): void 
+  {
+    const podData = this.pods.get(podId);
+    if (!podData) 
+    {
+      return;
+    }
+
+    const { mesh, pod } = podData;
+    
+    // Remove existing collision box visualization
+    this.scene.meshes.filter(meshItem => meshItem.name.startsWith(`collisionBox_${podId}`))
+      .forEach(meshItem => meshItem.dispose());
+    
+    if (show) 
+    {
+      // Get dimensions from pod class
+      const dimensions = pod.getPhysicalDimensions();
+      const podLength = dimensions.length;
+      const podWidth = dimensions.width;
+      const podHeight = dimensions.height;
+      
+      // Create wireframe box matching the collision shape
+      const boxCorners = [
+        // Bottom face
+        new Vector3(-podLength/2, -podHeight/2, -podWidth/2),
+        new Vector3(podLength/2, -podHeight/2, -podWidth/2),
+        new Vector3(podLength/2, -podHeight/2, podWidth/2),
+        new Vector3(-podLength/2, -podHeight/2, podWidth/2),
+        
+        // Top face  
+        new Vector3(-podLength/2, podHeight/2, -podWidth/2),
+        new Vector3(podLength/2, podHeight/2, -podWidth/2),
+        new Vector3(podLength/2, podHeight/2, podWidth/2),
+        new Vector3(-podLength/2, podHeight/2, podWidth/2)
+      ];
+      
+      // Create wireframe lines for collision box
+      const boxLines: Vector3[] = [];
+      
+      // Bottom face edges
+      boxLines.push(boxCorners[0], boxCorners[1], boxCorners[1], boxCorners[2], 
+                    boxCorners[2], boxCorners[3], boxCorners[3], boxCorners[0]);
+      
+      // Top face edges
+      boxLines.push(boxCorners[4], boxCorners[5], boxCorners[5], boxCorners[6], 
+                    boxCorners[6], boxCorners[7], boxCorners[7], boxCorners[4]);
+      
+      // Vertical edges connecting top and bottom
+      boxLines.push(boxCorners[0], boxCorners[4], boxCorners[1], boxCorners[5],
+                    boxCorners[2], boxCorners[6], boxCorners[3], boxCorners[7]);
+      
+      const collisionBoxWireframe = CreateLines(`collisionBox_${podId}`, { points: boxLines }, this.scene);
+      collisionBoxWireframe.color = new Color3(1, 1, 0); // Yellow collision box
+      collisionBoxWireframe.alpha = 0.7;
+      
+      // Make the wireframe follow the pod
+      collisionBoxWireframe.parent = mesh;
+      
+      console.log(`Collision box visible for pod: ${podId}`);
+    }
+    else 
+    {
+      console.log(`Collision box hidden for pod: ${podId}`);
+    }
+  }
+
+  // ===== Toggle Debug Visualization =====
+
+  public togglePodDebugVisualization(podId: string): void 
+  {
+    const hoverLinesVisible = this.scene.meshes.some(mesh => 
+      mesh.name.startsWith(`hoverLine_${podId}`) && mesh.isVisible
+    );
+    
+    const collisionBoxVisible = this.scene.meshes.some(mesh => 
+      mesh.name.startsWith(`collisionBox_${podId}`) && mesh.isVisible
+    );
+    
+    // Toggle both hover lines and collision box
+    const newVisibility = !(hoverLinesVisible || collisionBoxVisible);
+    
+    this.showPodCollisionBox(podId, newVisibility);
+    
+    console.log(`Pod debug visualization ${newVisibility ? 'enabled' : 'disabled'} for: ${podId}`);
+  }
+
+  public createPhysicsDebugHUD(podId: string): void 
+  {
+    // Remove existing debug HUD
+    const existingHUD = document.getElementById('physicsDebugHUD');
+    if (existingHUD) 
+    {
+      existingHUD.remove();
+    }
+
+    const debugHTML = `
+      <div id="physicsDebugHUD" class="absolute top-20 left-4 bg-black/80 text-white p-4 rounded-lg text-sm font-mono" style="z-index: 1001;">
+        <h3 class="text-green-400 font-bold mb-2">Physics Debug - ${podId}</h3>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Movement Forces -->
+          <div>
+            <div class="text-yellow-400 font-bold">Movement</div>
+            <div>Speed: <span id="debugSpeed">0</span> km/h</div>
+            <div>Thrust: <span id="debugThrust">0</span> N</div>
+            <div>Max Speed: <span id="debugMaxSpeed">0</span> km/h</div>
+            <div>Acceleration: <span id="debugAcceleration">0</span>%</div>
+          </div>
+          
+          <!-- Hover System -->
+          <div>
+            <div class="text-blue-400 font-bold">Hover System</div>
+            <div>Height: <span id="debugHeight">0</span> m</div>
+            <div>Hover Force: <span id="debugHoverForce">0</span> N</div>
+            <div>Ground Contact: <span id="debugGroundContact">0</span>/4</div>
+            <div>Slope Angle: <span id="debugSlopeAngle">0</span>°</div>
+          </div>
+          
+          <!-- Physics Forces -->
+          <div>
+            <div class="text-red-400 font-bold">Forces</div>
+            <div>Gravity: <span id="debugGravity">0</span> N</div>
+            <div>Velocity X: <span id="debugVelX">0</span></div>
+            <div>Velocity Y: <span id="debugVelY">0</span></div>
+            <div>Velocity Z: <span id="debugVelZ">0</span></div>
+          </div>
+          
+          <!-- Position -->
+          <div>
+            <div class="text-purple-400 font-bold">Position</div>
+            <div>X: <span id="debugPosX">0</span></div>
+            <div>Y: <span id="debugPosY">0</span></div>
+            <div>Z: <span id="debugPosZ">0</span></div>
+            <div>On Track: <span id="debugOnTrack">Unknown</span></div>
+          </div>
+        </div>
+        
+        <div class="mt-4 border-t border-gray-600 pt-2">
+          <div class="text-gray-400 text-xs">
+            Press 'P' to toggle physics debug | 'H' to toggle hover lines
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', debugHTML);
+  }
+
+    private updatePhysicsDebugHUD(podId: string, data: {
+    speed: number,
+    thrust: number,
+    maxSpeed: number,
+    acceleration: number,
+    slopeAngle: number,
+    position: Vector3
+  }): void 
+  {
+    document.getElementById('debugSpeed')!.textContent = Math.round(data.speed).toString();
+    document.getElementById('debugThrust')!.textContent = Math.round(data.thrust).toString();
+    document.getElementById('debugMaxSpeed')!.textContent = Math.round(data.maxSpeed).toString();
+    document.getElementById('debugAcceleration')!.textContent = Math.round(data.acceleration).toString();
+    document.getElementById('debugSlopeAngle')!.textContent = Math.round(data.slopeAngle).toString();
+    document.getElementById('debugPosX')!.textContent = data.position.x.toFixed(1);
+    document.getElementById('debugPosY')!.textContent = data.position.y.toFixed(1);
+    document.getElementById('debugPosZ')!.textContent = data.position.z.toFixed(1);
+    document.getElementById('debugGravity')!.textContent = Math.abs(this.GRAVITY.y * this.POD_MASS).toString();
   }
 
   // ===== Cleanup =====
