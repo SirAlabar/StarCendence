@@ -109,8 +109,8 @@ services:
     build:
       context: ./services/user
       dockerfile: Dockerfile
-    volumes:
-      - user_data:/app/data
+    # volumes:
+    #   - user_data:/app/data
     networks:
       - transcendence_network
     env_file:
@@ -183,12 +183,12 @@ volumes:
   #     device: ${HOME}/data/chat
   #     o: bind
 
-  user_data:
-    driver: local
-    driver_opts:
-      type: none
-      device: ${HOME}/data/user
-      o: bind
+  # user_data:
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     device: ${HOME}/data/user
+  #     o: bind
 
 networks:
   transcendence_network:

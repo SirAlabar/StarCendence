@@ -326,6 +326,8 @@ quick: create-volumes start health
 
 user_service_restart:
 	@printf "$(YELLOW)🔄 Restarting user-service...$(DEFAULT)\n"
+	@docker compose build --no-cache user-service
 	@docker compose up user-service -d --force-recreate
 	@printf "$(GREEN)✅ user-service restarted!$(DEFAULT)\n"
+
 

@@ -1,8 +1,8 @@
 # docker-compose.override.yml
 services:
   user-service:
-    volumes:
-      - ./services/user/prisma/user.db:/app/prisma/user.db:rw
+    # volumes:
+    #   - ./services/user/prisma/user.db:/app/prisma/user.db:rw
     environment:
       - PRISMA_STUDIO=1
       - PRISMA_STUDIO_PORT=5555
