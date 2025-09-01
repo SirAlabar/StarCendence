@@ -1,16 +1,16 @@
+// == USER SERVICE == //
 generator client {
   provider = "prisma-client-js"
 }
 
-// SQLite database
 datasource db {
   provider = "sqlite"
-  url      = "file:./app/prisma/user.db"
+  url      = "file:./user.db"
 }
 
 // Core user model
-model User {
-  id        String   @id @default(uuid())
+model UserProfile {
+  id        String   @id // same as AuthUser id
   email     String   @unique
   username  String   @unique
   createdAt DateTime @default(now())

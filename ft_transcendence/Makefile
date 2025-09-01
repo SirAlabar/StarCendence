@@ -108,9 +108,9 @@ setup:
 	@printf "$(CYAN)Building frontend...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory front
 	@printf "$(CYAN)Building containers...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) build nginx redis user-service
+	@$(DOCKER_COMPOSE) build nginx redis user-service auth-service
 	@printf "$(CYAN)Starting services...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) up -d nginx redis user-service
+	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service
 	@printf "$(CYAN)Waiting for services...$(DEFAULT)\n"
 	@sleep 3
 	@printf "$(CYAN)Health check...$(DEFAULT)\n"
@@ -329,5 +329,11 @@ user_service_restart:
 	@docker compose build --no-cache user-service
 	@docker compose up user-service -d --force-recreate
 	@printf "$(GREEN)✅ user-service restarted!$(DEFAULT)\n"
+
+auth_service_restart:
+	@printf "$(YELLOW)🔄 Restarting auth-service...$(DEFAULT)\n"
+	@docker compose build --no-cache auth-service
+	@docker compose up auth-service -d --force-recreate
+	@printf "$(GREEN)✅ auth-service restarted!$(DEFAULT)\n"
 
 

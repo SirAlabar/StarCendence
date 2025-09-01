@@ -51,25 +51,25 @@ services:
       - nginx
     profiles: ["tunnel"]
 
-  # # Auth Microservice
-  # auth-service:
-  #   container_name: transcendence_auth
-  #   build:
-  #     context: ./services/auth
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - auth_data:/app/data
-  #   networks:
-  #     - transcendence_network
-  #   secrets:
-  #     - jwt_secret
-  #     - google_client_id
-  #     - google_client_secret
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - redis
-  #   restart: always
+  # Auth Microservice
+  auth-service:
+    container_name: transcendence_auth
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
+    # volumes:
+    #   - auth_data:/app/data
+    networks:
+      - transcendence_network
+    # secrets:
+    #   - jwt_secret
+    #   - google_client_id
+    #   - google_client_secret
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    restart: always
 
   # # Game Microservice  
   # game-service:

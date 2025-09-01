@@ -15,7 +15,7 @@ export async function buildApp() {
   app.get('/users/:id', userController.getUserById)
   app.get('/users/', userController.getAllUsers)
   
-  app.post('/users/', userController.createUser)
+//   app.post('/users/', userController.createUser)
 
   return app
 }

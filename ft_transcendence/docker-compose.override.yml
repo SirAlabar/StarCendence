@@ -1,41 +1,51 @@
 # docker-compose.override.yml
 services:
-  user-service:
+  auth-service:
     # volumes:
-    #   - ./services/user/prisma/user.db:/app/prisma/user.db:rw
+    #   - ./services/auth/auth.db:/app/prisma/auth.db:rw
     environment:
       - PRISMA_STUDIO=1
-      - PRISMA_STUDIO_PORT=5555
+      - PRISMA_STUDIO_PORT=5001
     ports:
-      - "3004:3004"
-      - "5555:5555"  # User service Studio
-
-  # auth-service:
-  #   volumes:
-  #     - ./services/auth/auth.db:/app/prisma/auth.db:rw
-  #   environment:
-  #     - PRISMA_STUDIO=1
-  #     - PRISMA_STUDIO_PORT=5556
-  #   ports:
-  #     - "3001:3001"
-  #     - "5556:5556"  # Auth service Studio
-
-  # game-service:
-  #   volumes:
-  #     - ./services/game/game.db:/app/prisma/game.db:rw
-  #   environment:
-  #     - PRISMA_STUDIO=1
-  #     - PRISMA_STUDIO_PORT=5557
-  #   ports:
-  #     - "3002:3002"
-  #     - "5557:5557"  # Game service Studio
+      - "3001:3001"
+      - "5001:5001"  # Auth service Studio
 
   # chat-service:
   #   volumes:
   #     - ./services/chat/chat.db:/app/prisma/chat.db:rw
   #   environment:
   #     - PRISMA_STUDIO=1
-  #     - PRISMA_STUDIO_PORT=5558
+  #     - PRISMA_STUDIO_PORT=5002
   #   ports:
   #     - "3003:3003"
-  #     - "5558:5558"  # Chat service Studio
+  #     - "5002:5002"  # Chat service Studio
+
+  # game-service:
+  #   volumes:
+  #     - ./services/game/game.db:/app/prisma/game.db:rw
+  #   environment:
+  #     - PRISMA_STUDIO=1
+  #     - PRISMA_STUDIO_PORT=5003
+  #   ports:
+  #     - "3002:3002"
+  #     - "5003:5003"  # Game service Studio
+
+  user-service:
+    # volumes:
+    #   - ./services/user/prisma/user.db:/app/prisma/user.db:rw
+    environment:
+      - PRISMA_STUDIO=1
+      - PRISMA_STUDIO_PORT=5004
+    ports:
+      - "3004:3004"
+      - "5004:5004"  # User service Studio
+
+  # websocket-service:
+  #   volumes:
+  #     - ./services/game/game.db:/app/prisma/game.db:rw
+  #   environment:
+  #     - PRISMA_STUDIO=1
+  #     - PRISMA_STUDIO_PORT=5005
+  #   ports:
+  #     - "3002:3002"
+  #     - "5005:5005"  # Websocket service Studio

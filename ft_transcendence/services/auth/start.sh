@@ -12,8 +12,8 @@ else
 fi
 
 if [ "${PRISMA_STUDIO:-}" = "1" ] || [ "${PRISMA_STUDIO:-}" = "true" ]; then
-  echo " Starting Prisma Studio on ${PRISMA_STUDIO_PORT:-5004}..."
-  npx prisma studio --port ${PRISMA_STUDIO_PORT:-5004} --browser none &
+  echo " Starting Prisma Studio on ${PRISMA_STUDIO_PORT:-5001}..."
+  npx prisma studio --port ${PRISMA_STUDIO_PORT:-5001} --browser none &
 fi
 
 # Start the application

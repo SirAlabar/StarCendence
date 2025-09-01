@@ -1,3 +1,5 @@
+# User Service Dockerfile 3004
+
 # Use Node.js 20 Slim for smaller size
 FROM node:20-slim
 
