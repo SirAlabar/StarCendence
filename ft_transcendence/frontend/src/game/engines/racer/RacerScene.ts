@@ -2,7 +2,8 @@ import {
   Scene,
   AbstractMesh,
   Vector3,
-  Color3
+  Color3,
+  Mesh
 } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
 import { AssetManager } from '../../managers/AssetManager';
@@ -16,6 +17,22 @@ export interface RacerSceneConfig
   enableFog?: boolean;
   fogColor?: Color3;
   fogDensity?: number;
+}
+
+export interface MaterialCollisionConfig 
+{
+  solidTrack: string[];
+  fallZones: string[];
+  specialSurfaces: string[];
+}
+
+export interface TrackMaterialData 
+{
+  mesh: Mesh;
+  materialId: string;
+  surfaceType: 'solid' | 'void' | 'boost' | 'ice' | 'start_finish';
+  vertices: number[];
+  indices: number[];
 }
 
 const POLAR_PASS_CONFIG: RacerSceneConfig = {
@@ -35,6 +52,13 @@ export class RacerScene
   private config: RacerSceneConfig;
   private track: AbstractMesh | null = null;
   private isLoaded: boolean = false;
+  private trackMaterialData: TrackMaterialData[] = [];
+  
+  private materialConfig: MaterialCollisionConfig = {
+    solidTrack: ['track_surface', 'Ice', 'speed_boost', 'start_line', 'wall'],
+    fallZones: ['void'],
+    specialSurfaces: ['Ice', 'speed_boost', 'start_line']
+  };
 
   public onTrackLoaded?: (track: AbstractMesh) => void;
   public onLoadingProgress?: (percentage: number, asset: string) => void;
@@ -52,19 +76,14 @@ export class RacerScene
     this.scene = scene;
     this.config = config;
     this.assetManager = new AssetManager(this.scene);
-    
-    console.log(`RacerScene initialized - Track: ${config.trackId}`);
   }
 
   public async loadTrack(): Promise<void> 
   {
     if (this.isLoaded) 
     {
-      console.warn('Track already loaded');
       return;
     }
-
-    console.log(`Loading racing track: ${this.config.trackId}`);
 
     this.assetManager
       .addMeshAsset({
@@ -74,15 +93,15 @@ export class RacerScene
         filename: this.config.trackFilename
       })
       .setCallbacks({
-        onProgress: (progress) => {
-          console.log(`Track loading: ${progress.percentage}% - ${progress.currentAsset}`);
-          
-          if (this.onLoadingProgress) {
+        onProgress: (progress) => 
+        {
+          if (this.onLoadingProgress) 
+          {
             this.onLoadingProgress(progress.percentage, progress.currentAsset);
           }
         },
-        onSuccess: () => {
-          console.log('Track loaded successfully!');
+        onSuccess: () => 
+        {
           this.setupTrack();
           this.setupRacingEnvironment();
           
@@ -91,9 +110,8 @@ export class RacerScene
             this.onLoadingComplete();
           }
         },
-        onError: (errors) => {
-          console.error('Failed to load track:', errors);
-          
+        onError: (errors) => 
+        {
           if (this.onLoadingError) 
           {
             this.onLoadingError(errors);
@@ -110,7 +128,6 @@ export class RacerScene
     
     if (!this.track) 
     {
-      console.error('Track mesh not found!');
       return;
     }
 
@@ -118,8 +135,7 @@ export class RacerScene
     this.track.rotation = Vector3.Zero();
     this.track.scaling = new Vector3(8, 8, 8);
 
-    console.log(`Track positioned: ${this.track.name}`);
-    console.log(`Track bounds:`, this.track.getBoundingInfo());
+    this.extractTrackMaterialData();
 
     if (this.onTrackLoaded) 
     {
@@ -129,26 +145,173 @@ export class RacerScene
     this.isLoaded = true;
   }
 
+  private extractTrackMaterialData(): void 
+  {
+    if (!this.track) 
+    {
+      return;
+    }
+    
+    this.trackMaterialData = [];
+    const childMeshes = this.track.getChildMeshes();
+    
+    console.log('=== TRACK MATERIAL EXTRACTION DEBUG ===');
+    console.log(`Total child meshes found: ${childMeshes.length}`);
+    
+    childMeshes.forEach((child, index) => 
+    {
+      if (child instanceof Mesh) 
+      {
+        const babylonMesh = child as Mesh;
+        const vertices = babylonMesh.getVerticesData('position');
+        const indices = babylonMesh.getIndices();
+
+        let materialId = 'unknown';
+        if (babylonMesh.material) 
+        {
+          materialId = babylonMesh.material.name || babylonMesh.material.id || 'unknown';
+        }
+
+        const surfaceType = this.determineSurfaceType(materialId);
+        
+        console.log(`Mesh ${index + 1}:`);
+        console.log(`  Name: ${babylonMesh.name}`);
+        console.log(`  Material ID: ${materialId}`);
+        console.log(`  Surface Type: ${surfaceType}`);
+        console.log(`  Vertices: ${vertices ? vertices.length : 0}`);
+        console.log(`  Indices: ${indices ? indices.length : 0}`);
+        console.log(`  Has Collision: ${surfaceType !== 'void'}`);
+        console.log('---');
+
+        if (!vertices || !indices) 
+        {
+          console.warn(`  WARNING: Mesh ${babylonMesh.name} has no geometry data`);
+          return;
+        }
+        
+        this.trackMaterialData.push({
+          mesh: babylonMesh,
+          materialId,
+          surfaceType,
+          vertices: Array.from(vertices),
+          indices: Array.from(indices)
+        });
+      }
+      else 
+      {
+        console.log(`Child ${index + 1}: Not a mesh (${child.constructor.name})`);
+      }
+    });
+    
+    console.log('=== MATERIAL SUMMARY ===');
+    const summary = this.trackMaterialData.reduce((acc, data) => 
+    {
+      acc[data.surfaceType] = (acc[data.surfaceType] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    Object.entries(summary).forEach(([type, count]) => 
+    {
+      console.log(`${type}: ${count} meshes`);
+    });
+    console.log('=== END DEBUG ===');
+  }
+
+ private determineSurfaceType(materialId: string, meshName?: string): 'solid' | 'void' | 'boost' | 'ice' | 'start_finish' 
+  {
+    const lowerMaterialId = materialId.toLowerCase();
+    const lowerMeshName = meshName ? meshName.toLowerCase() : '';
+    
+    if (lowerMaterialId.startsWith('void') || lowerMaterialId.includes('invisible') ||
+        lowerMeshName.startsWith('void')) 
+    {
+      return 'void';
+    }
+    
+    if (lowerMaterialId.startsWith('speed_boost') || lowerMeshName.startsWith('speed_boost')) 
+    {
+      return 'boost';
+    }
+    
+    if (lowerMaterialId.startsWith('ice') || lowerMeshName.startsWith('ice')) 
+    {
+      return 'ice';
+    }
+    
+    if (lowerMaterialId.startsWith('start_line') || lowerMeshName.startsWith('start_line')) 
+    {
+      return 'start_finish';
+    }
+    
+    return 'solid';
+  }
+
+
+  public shouldCreateCollisionForMaterial(materialId: string): boolean 
+  {
+    const surfaceType = this.determineSurfaceType(materialId);
+    return surfaceType !== 'void';
+  }
+
+  public getCollisionMeshes(): TrackMaterialData[] 
+  {
+    return this.trackMaterialData.filter(data => 
+      this.shouldCreateCollisionForMaterial(data.materialId)
+    );
+  }
+
+  public getFallZoneMeshes(): TrackMaterialData[] 
+  {
+    return this.trackMaterialData.filter(data => 
+      data.surfaceType === 'void'
+    );
+  }
+
+  public getSpecialSurfaceMeshes(): TrackMaterialData[] 
+  {
+    return this.trackMaterialData.filter(data => 
+      ['boost', 'ice', 'start_finish'].includes(data.surfaceType)
+    );
+  }
+
+  public getStartLinePosition(): Vector3 | null 
+  {
+    const startLineMesh = this.trackMaterialData.find(data => 
+      data.surfaceType === 'start_finish'
+    );
+    
+    if (startLineMesh) 
+    {
+      return startLineMesh.mesh.getBoundingInfo().boundingBox.center;
+    }
+    
+    return null;
+  }
+
+  public getMaterialCollisionConfig(): MaterialCollisionConfig 
+  {
+    return this.materialConfig;
+  }
+
+  public setMaterialCollisionConfig(config: Partial<MaterialCollisionConfig>): void 
+  {
+    this.materialConfig = { ...this.materialConfig, ...config };
+  }
+
   private setupRacingEnvironment(): void 
   {
-    console.log('Setting up racing environment...');
-
     if (this.config.enableFog && this.config.fogColor) 
     {
       this.scene.fogMode = Scene.FOGMODE_EXP;
       this.scene.fogColor = this.config.fogColor;
       this.scene.fogDensity = this.config.fogDensity || 0.002;
-      console.log('Racing fog configured for polar atmosphere');
     }
 
     if (this.config.fogColor) 
     {
       this.scene.clearColor = this.config.fogColor.toColor4();
     }
-
-    console.log('Racing environment configured');
   }
-
 
   public getTrack(): AbstractMesh | null 
   {
@@ -190,6 +353,22 @@ export class RacerScene
 
   public getStartingPositions(count: number = 1): Vector3[] 
   {
+    const startLinePos = this.getStartLinePosition();
+    
+    if (startLinePos) 
+    {
+      const positions: Vector3[] = [];
+      for (let i = 0; i < count; i++) 
+      {
+        positions.push(new Vector3(
+          startLinePos.x + (i * 5),
+          startLinePos.y + 2,
+          startLinePos.z
+        ));
+      }
+      return positions;
+    }
+    
     if (!this.track) 
     {
       return [new Vector3(0, 2, 0)];
@@ -217,14 +396,13 @@ export class RacerScene
 
   public dispose(): void 
   {
-    console.log('Disposing RacerScene...');
-    
     if (this.assetManager) 
     {
       this.assetManager.dispose();
     }
 
     this.track = null;
+    this.trackMaterialData = [];
     this.isLoaded = false;
   }
 

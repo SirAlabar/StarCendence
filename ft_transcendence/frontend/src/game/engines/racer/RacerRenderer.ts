@@ -155,32 +155,25 @@ export class RacerRenderer
     }
   }
 
-  private async setupLocalPhysics(): Promise<void> 
-  {
+    private async setupLocalPhysics(): Promise<void> 
+    {
     if (!this.gameCanvas || !this.racerScene) 
     {
-      console.error('Missing dependencies for physics setup');
-      return;
+        return;
     }
     
+    const physics = this.gameCanvas.getPhysics();
+    if (!physics || !physics.isPhysicsReady()) 
+    {
+        return;
+    }
+
     const trackMesh = this.racerScene.getTrack();
     if (trackMesh) 
     {
-      const physics = this.gameCanvas.getPhysics();
-      if (physics && physics.isPhysicsReady()) 
-      {
-        await physics.setupTrackCollision(trackMesh, true);
-      } 
-      else 
-      {
-        console.error('Physics not ready');
-      }
-    } 
-    else 
-    {
-      console.error('No track mesh available');
+        await physics.setupTrackCollision(trackMesh, this.racerScene, true);
     }
-  }
+    }
   
   private async initializeVisualTrack(): Promise<void> 
   {

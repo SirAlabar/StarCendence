@@ -18,6 +18,8 @@ export class RacerPhysics
   private ammoInstance: any = null;
   private isInitialized: boolean = false;
   private tempTransform: any = null;
+  private racerScene: any = null;
+  private lastSafePositions: Map<string, Vector3> = new Map();  
   
   private pods: Map<string, { 
     rigidBody: any, 
@@ -45,71 +47,86 @@ export class RacerPhysics
 
   // ===== Debug Visualization =====
 
-  public createCollisionVisualization(meshes: AbstractMesh[], scaleFactor: number = 8): void 
+public createCollisionVisualization(racerScene: any, scaleFactor: number): void
+{
+  this.clearCollisionVisualization();
+ 
+  const allMaterialData = racerScene.trackMaterialData || [];
+ 
+  allMaterialData.forEach((materialData: any, index: number) =>
   {
-    console.log('RacerPhysics: Creating collision visualization');
-    
-    this.clearCollisionVisualization();
-    
-    meshes.forEach((mesh, index) => 
+    const { materialId, vertices, indices, surfaceType } = materialData;
+    const linePoints: Vector3[] = [];
+   
+    for (let i = 0; i < indices.length; i += 3)
     {
-      if (!(mesh instanceof Mesh)) 
+      const i1 = indices[i] * 3;
+      const i2 = indices[i + 1] * 3;
+      const i3 = indices[i + 2] * 3;
+      const v1 = new Vector3(
+        vertices[i1] * scaleFactor,
+        vertices[i1 + 1] * scaleFactor,
+        vertices[i1 + 2] * scaleFactor
+      );
+      const v2 = new Vector3(
+        vertices[i2] * scaleFactor,
+        vertices[i2 + 1] * scaleFactor,
+        vertices[i2 + 2] * scaleFactor
+      );
+      const v3 = new Vector3(
+        vertices[i3] * scaleFactor,
+        vertices[i3 + 1] * scaleFactor,
+        vertices[i3 + 2] * scaleFactor
+      );
+      if (i % 1 === 0)
       {
-        return;
+        linePoints.push(v1, v2, v2, v3, v3, v1);
       }
-
-      const babylonMesh = mesh as Mesh;
-      const vertices = babylonMesh.getVerticesData('position');
-      const indices = babylonMesh.getIndices();
-
-      if (!vertices || !indices) 
+    }
+    if (linePoints.length > 0)
+    {
+      const collisionLines = CreateLines(`materialWireframe_${index}`, { points: linePoints }, this.scene);
+     
+      if (surfaceType === 'void')
       {
-        return;
+        collisionLines.color = new Color3(1, 0, 0); // Red for void
+        collisionLines.alpha = 0.3;
       }
-
-      const linePoints: Vector3[] = [];
-      
-      for (let i = 0; i < indices.length; i += 3) 
+      else if (materialId.startsWith('track_surface'))
       {
-        const i1 = indices[i] * 3;
-        const i2 = indices[i + 1] * 3;
-        const i3 = indices[i + 2] * 3;
-
-        const v1 = new Vector3(
-          vertices[i1] * scaleFactor,
-          vertices[i1 + 1] * scaleFactor,
-          vertices[i1 + 2] * scaleFactor
-        );
-        const v2 = new Vector3(
-          vertices[i2] * scaleFactor,
-          vertices[i2 + 1] * scaleFactor,
-          vertices[i2 + 2] * scaleFactor
-        );
-        const v3 = new Vector3(
-          vertices[i3] * scaleFactor,
-          vertices[i3 + 1] * scaleFactor,
-          vertices[i3 + 2] * scaleFactor
-        );
-
-        if (i % 1 === 0) 
-        {
-          linePoints.push(v1, v2, v2, v3, v3, v1);
-        }
-      }
-
-      if (linePoints.length > 0) 
-      {
-        const collisionLines = CreateLines(`collisionWireframe_${index}`, { points: linePoints }, this.scene);
-        collisionLines.color = new Color3(1, 0, 0);
+        collisionLines.color = new Color3(0, 1, 0); // Green for track surface
         collisionLines.alpha = 0.6;
-        
-        this.debugCollisionVisualization.push(collisionLines);
       }
-    });
-    
-    console.log(`RacerPhysics: Collision visualization created for ${meshes.length} meshes`);
-  }
-
+      else if (materialId.startsWith('wall'))
+      {
+        collisionLines.color = new Color3(1, 0, 1); // Purple for walls
+        collisionLines.alpha = 0.6;
+      }
+      else if (surfaceType === 'boost')
+      {
+        collisionLines.color = new Color3(0, 0, 1); // Blue for boost pads
+        collisionLines.alpha = 0.8;
+      }
+      else if (surfaceType === 'ice')
+      {
+        collisionLines.color = new Color3(0, 1, 1); // Cyan for ice
+        collisionLines.alpha = 0.7;
+      }
+      else if (surfaceType === 'start_finish')
+      {
+        collisionLines.color = new Color3(1, 1, 0); // Yellow for start line
+        collisionLines.alpha = 0.9;
+      }
+      else
+      {
+        collisionLines.color = new Color3(0.5, 0.5, 0.5); // Gray for unknown
+        collisionLines.alpha = 0.4;
+      }
+     
+      this.debugCollisionVisualization.push(collisionLines);
+    }
+  });
+}
   public clearCollisionVisualization(): void 
   {
     this.debugCollisionVisualization.forEach(mesh => mesh.dispose());
@@ -264,36 +281,33 @@ export class RacerPhysics
 
   // ===== Track Physics Setup =====
 
-  public async setupTrackCollision(trackMesh: AbstractMesh, showVisualization: boolean = false, scaleFactor: number = 8): Promise<void> 
+  public async setupTrackCollision(trackMesh: AbstractMesh, racerScene: any, showVisualization: boolean = false, scaleFactor: number = 8): Promise<void> 
   {
     if (!this.isInitialized || !this.ammoInstance) 
     {
       throw new Error('RacerPhysics: Cannot setup track - not initialized');
     }
 
-    console.log('RacerPhysics: Setting up track collision');
+    this.racerScene = racerScene;
     
     await this.waitForGeometryReady(trackMesh);
     
-    const meshesWithGeometry = this.findMeshesWithGeometry(trackMesh);
+    const collisionMeshes = racerScene.getCollisionMeshes();
     
-    if (meshesWithGeometry.length > 0) 
+    if (collisionMeshes.length > 0) 
     {
-      this.createTrackFromMultipleMeshes(meshesWithGeometry, scaleFactor);
+      this.createTrackFromMaterialData(collisionMeshes, scaleFactor);
       
       if (showVisualization) 
       {
-        this.createCollisionVisualization(meshesWithGeometry, scaleFactor);
-        console.log('RacerPhysics: Collision visualization enabled');
+        this.createCollisionVisualization(racerScene, scaleFactor);
       }
-      
-      console.log('RacerPhysics: Track collision setup complete');
     }
     else 
     {
-      throw new Error('RacerPhysics: No meshes with geometry found');
+      throw new Error('RacerPhysics: No collision meshes found');
     }
-  }
+}
 
   private async waitForGeometryReady(trackMesh: AbstractMesh, maxWaitMs: number = 3000): Promise<void> 
   {
@@ -341,41 +355,7 @@ export class RacerPhysics
     });
   }
 
-  private findMeshesWithGeometry(trackMesh: AbstractMesh): Mesh[] 
-  {
-    const meshesWithGeometry: Mesh[] = [];
-    
-    if (trackMesh instanceof Mesh) 
-    {
-      const vertices = trackMesh.getVerticesData('position');
-      const indices = trackMesh.getIndices();
-      
-      if (vertices && indices && vertices.length > 0) 
-      {
-        meshesWithGeometry.push(trackMesh);
-      }
-    }
-    
-    const children = trackMesh.getChildMeshes();
-    children.forEach((child) => 
-    {
-      if (child instanceof Mesh) 
-      {
-        const vertices = child.getVerticesData('position');
-        const indices = child.getIndices();
-        
-        if (vertices && indices && vertices.length > 0) 
-        {
-          meshesWithGeometry.push(child);
-        }
-      }
-    });
-    
-    console.log(`RacerPhysics: Found ${meshesWithGeometry.length} meshes with geometry`);
-    return meshesWithGeometry;
-  }
-
-  public createTrackFromMultipleMeshes(meshes: AbstractMesh[], scaleFactor: number = 8): void 
+  private createTrackFromMaterialData(materialDataArray: any[], scaleFactor: number = 8): void 
   {
     if (!this.isInitialized || !this.ammoInstance) 
     {
@@ -386,80 +366,117 @@ export class RacerPhysics
     const triangleMesh = new Ammo.btTriangleMesh(true, true);
     let totalTriangles = 0;
 
-    meshes.forEach((mesh) => 
+    // Declare triangle vectors (like your reference)
+    let vectA = new Ammo.btVector3(0, 0, 0);
+    let vectB = new Ammo.btVector3(0, 0, 0);
+    let vectC = new Ammo.btVector3(0, 0, 0);
+
+    materialDataArray.forEach((materialData) => 
     {
-      if (!(mesh instanceof Mesh)) 
+      const { mesh, surfaceType } = materialData;
+      
+      if (surfaceType === 'void') 
+      {
+        // Skip void meshes - don't add their triangles
+        return;
+      }
+
+      // Get vertices from the actual mesh geometry (like your reference)
+      const verticesPos = mesh.getVerticesData('position');
+      if (!verticesPos) 
       {
         return;
       }
 
-      const babylonMesh = mesh as Mesh;
-      const vertices = babylonMesh.getVerticesData('position');
-      const indices = babylonMesh.getIndices();
-
-      if (!vertices || !indices) 
+      // Convert vertices to triangles (like your reference)
+      let triangles = [];
+      for (let i = 0; i < verticesPos.length; i += 3) 
       {
-        return;
+        triangles.push({
+          x: verticesPos[i] * scaleFactor,
+          y: verticesPos[i + 1] * scaleFactor,
+          z: verticesPos[i + 2] * scaleFactor
+        });
       }
 
-      for (let i = 0; i < indices.length; i += 3) 
+      // Add triangles to collision mesh (like your reference)
+      for (let i = 0; i < triangles.length - 3; i += 3) 
       {
-        const i1 = indices[i] * 3;
-        const i2 = indices[i + 1] * 3;
-        const i3 = indices[i + 2] * 3;
+        vectA.setX(triangles[i].x);
+        vectA.setY(triangles[i].y);
+        vectA.setZ(triangles[i].z);
 
-        const v1 = new Ammo.btVector3(
-          vertices[i1] * scaleFactor,
-          vertices[i1 + 1] * scaleFactor,
-          vertices[i1 + 2] * scaleFactor
-        );
-        const v2 = new Ammo.btVector3(
-          vertices[i2] * scaleFactor,
-          vertices[i2 + 1] * scaleFactor,
-          vertices[i2 + 2] * scaleFactor
-        );
-        const v3 = new Ammo.btVector3(
-          vertices[i3] * scaleFactor,
-          vertices[i3 + 1] * scaleFactor,
-          vertices[i3 + 2] * scaleFactor
-        );
+        vectB.setX(triangles[i + 1].x);
+        vectB.setY(triangles[i + 1].y);
+        vectB.setZ(triangles[i + 1].z);
 
-        triangleMesh.addTriangle(v1, v2, v3, false);
+        vectC.setX(triangles[i + 2].x);
+        vectC.setY(triangles[i + 2].y);
+        vectC.setZ(triangles[i + 2].z);
+
+        triangleMesh.addTriangle(vectA, vectB, vectC, false);
         totalTriangles++;
       }
     });
 
-    if (totalTriangles === 0) 
-    {
-      throw new Error('RacerPhysics: No triangles found in meshes');
-    }
+    // Cleanup vectors (like your reference)
+    Ammo.destroy(vectA);
+    Ammo.destroy(vectB);
+    Ammo.destroy(vectC);
 
+    // Create collision shape from triangle mesh (like your reference)
     const trackShape = new Ammo.btBvhTriangleMeshShape(triangleMesh, true);
     trackShape.setMargin(0.05);
 
+    // Create static rigid body for track
     const transform = new Ammo.btTransform();
     transform.setIdentity();
     transform.setOrigin(new Ammo.btVector3(0, 0, 0));
-    transform.setRotation(new Ammo.btQuaternion(0, 0, 0, 1));
 
     const motionState = new Ammo.btDefaultMotionState(transform);
     const localInertia = new Ammo.btVector3(0, 0, 0);
-    
+
     const rigidBodyInfo = new Ammo.btRigidBodyConstructionInfo(
-      0, 
-      motionState, 
-      trackShape, 
-      localInertia
+      0, motionState, trackShape, localInertia
     );
-    
+
     const trackRigidBody = new Ammo.btRigidBody(rigidBodyInfo);
     trackRigidBody.setFriction(0.8);
     trackRigidBody.setRestitution(0.1);
     trackRigidBody.setCollisionFlags(1);
 
     this.physicsWorld.addRigidBody(trackRigidBody);
+  }
+
+  private checkForFall(podId: string, podData: any): void 
+  {
+    const mesh = podData.mesh;
+    const fallThreshold = -15;
     
-    console.log(`RacerPhysics: Track collision created - ${totalTriangles} triangles`);
+    if (mesh.position.y < fallThreshold) 
+    {
+      const respawnPos = this.getLastSafePosition(podId) || new Vector3(0, 5, 0);
+      this.reset(podId, respawnPos);
+      
+      if (this.racerScene && this.racerScene.onPodRespawn) 
+      {
+        this.racerScene.onPodRespawn(podId);
+      }
+    }
+    else if (mesh.position.y > 0) 
+    {
+      this.updateLastSafePosition(podId, mesh.position.clone());
+    }
+  }
+
+  private getLastSafePosition(podId: string): Vector3 | null 
+  {
+    return this.lastSafePositions.get(podId) || null;
+  }
+
+  private updateLastSafePosition(podId: string, position: Vector3): void 
+  {
+    this.lastSafePositions.set(podId, position);
   }
 
   // ===== Pod Movement =====
@@ -711,6 +728,11 @@ export class RacerPhysics
 
         this.showHoverLines(_podId);
       }
+    });
+
+    this.pods.forEach((podData, podId) => 
+    {
+      this.checkForFall(podId, podData);
     });
   }
 
