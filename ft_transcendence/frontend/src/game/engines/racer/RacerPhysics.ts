@@ -478,15 +478,35 @@ export class RacerPhysics
     const velocity = rigidBody.getLinearVelocity();
     const currentSpeed = Math.sqrt(velocity.x() * velocity.x() + velocity.z() * velocity.z());
     
-    // Simple thrust progression - reduce thrust as speed increases
     const speedPercentage = currentSpeed / this.MAX_VELOCITY;
     let thrustMultiplier = 1.0;
-    if (speedPercentage > 0.3) 
+
+    if (speedPercentage < 0.08) 
     {
-      thrustMultiplier = 1.0 - (speedPercentage * 0.3); // Gentle reduction
+      thrustMultiplier = 3.0;
     }
-    
-    const REDUCED_THRUST = this.THRUST_FORCE * 0.3 * thrustMultiplier; // Apply progression here
+    else if (speedPercentage < 0.15) 
+    {
+      thrustMultiplier = 2.2;
+    }
+    else if (speedPercentage < 0.25) 
+    {
+      thrustMultiplier = 1.6;
+    }
+    else if (speedPercentage < 0.4) 
+    {
+      thrustMultiplier = 1.2;
+    }
+    else if (speedPercentage < 0.8) 
+    {
+      thrustMultiplier = 1.0;
+    }
+    else 
+    {
+      thrustMultiplier = 0.7;
+    }
+  
+    const REDUCED_THRUST = this.THRUST_FORCE * 0.3 * thrustMultiplier;
     const REDUCED_MAX_VELOCITY = this.MAX_VELOCITY * 0.9;
   
     if (currentSpeed < REDUCED_MAX_VELOCITY && input.z !== 0)
@@ -689,7 +709,7 @@ export class RacerPhysics
         
         mesh.rotationQuaternion.set(rotation.x(), rotation.y(), rotation.z(), rotation.w());
 
-        // this.showHoverLines(_podId);
+        this.showHoverLines(_podId);
       }
     });
   }
@@ -1017,7 +1037,7 @@ export class RacerPhysics
     document.body.insertAdjacentHTML('beforeend', debugHTML);
   }
 
-    private updatePhysicsDebugHUD(podId: string, data: {
+    private updatePhysicsDebugHUD(_podId: string, data: {
     speed: number,
     thrust: number,
     maxSpeed: number,
@@ -1038,6 +1058,36 @@ export class RacerPhysics
   }
 
   // ===== Cleanup =====
+
+  public clearPhysicsDebugHUD(): void 
+  {
+    const existingHUD = document.getElementById('physicsDebugHUD');
+    if (existingHUD) 
+    {
+      existingHUD.remove();
+    }
+    
+    this.pods.forEach((_, podId) => {
+      this.scene.meshes.filter(mesh => 
+        mesh.name.startsWith(`hoverLine_${podId}`) || 
+        mesh.name.startsWith(`hitSphere_${podId}`) ||
+        mesh.name.startsWith(`collisionBox_${podId}`)
+      ).forEach(mesh => mesh.dispose());
+    });
+    
+    this.clearCollisionVisualization();
+  }
+
+  public setupPageCleanup(): void 
+  {
+    window.addEventListener('beforeunload', () => {
+      this.clearPhysicsDebugHUD();
+    });
+    
+    window.addEventListener('popstate', () => {
+      this.clearPhysicsDebugHUD();
+    });
+  }
 
   public dispose(): void 
   {
