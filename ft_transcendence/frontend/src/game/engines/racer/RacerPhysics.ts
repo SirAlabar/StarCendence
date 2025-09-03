@@ -55,41 +55,70 @@ public createCollisionVisualization(racerScene: any, scaleFactor: number): void
  
   allMaterialData.forEach((materialData: any, index: number) =>
   {
-    const { materialId, vertices, indices, surfaceType } = materialData;
-    const linePoints: Vector3[] = [];
-   
-    for (let i = 0; i < indices.length; i += 3)
+    const { materialId, surfaceType, mesh } = materialData;
+    
+    // Get vertices and indices from the actual mesh
+    const vertices = mesh.getVerticesData('position');
+    const indices = mesh.getIndices();
+    
+    if (!vertices || !indices)
     {
-      const i1 = indices[i] * 3;
-      const i2 = indices[i + 1] * 3;
-      const i3 = indices[i + 2] * 3;
-      const v1 = new Vector3(
-        vertices[i1] * scaleFactor,
-        vertices[i1 + 1] * scaleFactor,
-        vertices[i1 + 2] * scaleFactor
+      console.warn(`Mesh ${mesh.name} missing geometry data for visualization`);
+      return;
+    }
+    
+    // Get the mesh's world transformation matrix
+    const worldMatrix = mesh.getWorldMatrix();
+    
+    const linePoints: Vector3[] = [];
+    const triangleCount = Math.floor(indices.length / 3);
+   
+    // Create wireframe using proper triangle indices and world transform
+    for (let i = 0; i < triangleCount; i++)
+    {
+      // Get the three vertex indices for this triangle
+      const index0 = indices[i * 3];
+      const index1 = indices[i * 3 + 1];
+      const index2 = indices[i * 3 + 2];
+      
+      // Get local vertex positions
+      const localV1 = new Vector3(
+        vertices[index0 * 3],
+        vertices[index0 * 3 + 1],
+        vertices[index0 * 3 + 2]
       );
-      const v2 = new Vector3(
-        vertices[i2] * scaleFactor,
-        vertices[i2 + 1] * scaleFactor,
-        vertices[i2 + 2] * scaleFactor
+      const localV2 = new Vector3(
+        vertices[index1 * 3],
+        vertices[index1 * 3 + 1],
+        vertices[index1 * 3 + 2]
       );
-      const v3 = new Vector3(
-        vertices[i3] * scaleFactor,
-        vertices[i3 + 1] * scaleFactor,
-        vertices[i3 + 2] * scaleFactor
+      const localV3 = new Vector3(
+        vertices[index2 * 3],
+        vertices[index2 * 3 + 1],
+        vertices[index2 * 3 + 2]
       );
-      if (i % 1 === 0)
+      
+      // Transform to world coordinates
+      const v1 = Vector3.TransformCoordinates(localV1, worldMatrix);
+      const v2 = Vector3.TransformCoordinates(localV2, worldMatrix);
+      const v3 = Vector3.TransformCoordinates(localV3, worldMatrix);
+      
+      // Only visualize every 3rd triangle to reduce visual clutter
+      if (i % 3 === 0)
       {
+        // Add lines for triangle edges: v1->v2, v2->v3, v3->v1
         linePoints.push(v1, v2, v2, v3, v3, v1);
       }
     }
+    
     if (linePoints.length > 0)
     {
       const collisionLines = CreateLines(`materialWireframe_${index}`, { points: linePoints }, this.scene);
      
+      // Set colors based on surface type
       if (surfaceType === 'void')
       {
-        collisionLines.color = new Color3(1, 0, 0); // Red for void
+        collisionLines.color = new Color3(1, 0, 0); // Red for void (not in collision)
         collisionLines.alpha = 0.3;
       }
       else if (materialId.startsWith('track_surface'))
@@ -104,13 +133,13 @@ public createCollisionVisualization(racerScene: any, scaleFactor: number): void
       }
       else if (surfaceType === 'boost')
       {
-        collisionLines.color = new Color3(0, 0, 1); // Blue for boost pads
-        collisionLines.alpha = 0.8;
+        collisionLines.color = new Color3(0, 0.5, 1); // Light blue for boost pads (no collision)
+        collisionLines.alpha = 0.4;
       }
       else if (surfaceType === 'ice')
       {
-        collisionLines.color = new Color3(0, 1, 1); // Cyan for ice
-        collisionLines.alpha = 0.7;
+        collisionLines.color = new Color3(0, 1, 1); // Cyan for ice (no collision)
+        collisionLines.alpha = 0.4;
       }
       else if (surfaceType === 'start_finish')
       {
@@ -126,7 +155,10 @@ public createCollisionVisualization(racerScene: any, scaleFactor: number): void
       this.debugCollisionVisualization.push(collisionLines);
     }
   });
+  
+  console.log(`Created collision visualization for ${allMaterialData.length} material groups`);
 }
+
   public clearCollisionVisualization(): void 
   {
     this.debugCollisionVisualization.forEach(mesh => mesh.dispose());
@@ -355,98 +387,114 @@ public createCollisionVisualization(racerScene: any, scaleFactor: number): void
     });
   }
 
-  private createTrackFromMaterialData(materialDataArray: any[], scaleFactor: number = 8): void 
+private createTrackFromMaterialData(materialDataArray: any[], scaleFactor: number = 8): void 
+{
+  if (!this.isInitialized || !this.ammoInstance) 
   {
-    if (!this.isInitialized || !this.ammoInstance) 
+    throw new Error('RacerPhysics: Cannot create track - not initialized');
+  }
+
+  const Ammo = this.ammoInstance;
+  const triangleMesh = new Ammo.btTriangleMesh(true, true);
+  let totalTriangles = 0;
+
+  // Declare triangle vectors once for reuse
+  let vectA = new Ammo.btVector3(0, 0, 0);
+  let vectB = new Ammo.btVector3(0, 0, 0);
+  let vectC = new Ammo.btVector3(0, 0, 0);
+
+  materialDataArray.forEach((materialData) => 
+  {
+    const { mesh, surfaceType } = materialData;
+    
+    if (surfaceType === 'void') 
     {
-      throw new Error('RacerPhysics: Cannot create track - not initialized');
+      // Skip void meshes - don't add their triangles to collision
+      return;
     }
 
-    const Ammo = this.ammoInstance;
-    const triangleMesh = new Ammo.btTriangleMesh(true, true);
-    let totalTriangles = 0;
-
-    // Declare triangle vectors (like your reference)
-    let vectA = new Ammo.btVector3(0, 0, 0);
-    let vectB = new Ammo.btVector3(0, 0, 0);
-    let vectC = new Ammo.btVector3(0, 0, 0);
-
-    materialDataArray.forEach((materialData) => 
+    // Get both vertices and indices from the actual mesh geometry
+    const vertices = mesh.getVerticesData('position');
+    const indices = mesh.getIndices();
+    
+    if (!vertices || !indices) 
     {
-      const { mesh, surfaceType } = materialData;
+      console.warn(`Mesh ${mesh.name} missing geometry data`);
+      return;
+    }
+
+    // Process triangles using proper index mapping
+    const triangleCount = Math.floor(indices.length / 3);
+    
+    for (let i = 0; i < triangleCount; i++) 
+    {
+      // Get the three vertex indices for this triangle
+      const index0 = indices[i * 3];
+      const index1 = indices[i * 3 + 1];
+      const index2 = indices[i * 3 + 2];
       
-      if (surfaceType === 'void') 
-      {
-        // Skip void meshes - don't add their triangles
-        return;
-      }
+      // Get the actual vertex positions (each vertex has x,y,z coordinates)
+      const vertex0X = vertices[index0 * 3] * scaleFactor;
+      const vertex0Y = vertices[index0 * 3 + 1] * scaleFactor;
+      const vertex0Z = vertices[index0 * 3 + 2] * scaleFactor;
+      
+      const vertex1X = vertices[index1 * 3] * scaleFactor;
+      const vertex1Y = vertices[index1 * 3 + 1] * scaleFactor;
+      const vertex1Z = vertices[index1 * 3 + 2] * scaleFactor;
+      
+      const vertex2X = vertices[index2 * 3] * scaleFactor;
+      const vertex2Y = vertices[index2 * 3 + 1] * scaleFactor;
+      const vertex2Z = vertices[index2 * 3 + 2] * scaleFactor;
 
-      // Get vertices from the actual mesh geometry (like your reference)
-      const verticesPos = mesh.getVerticesData('position');
-      if (!verticesPos) 
-      {
-        return;
-      }
+      // Set the triangle vertex positions
+      vectA.setX(vertex0X);
+      vectA.setY(vertex0Y);
+      vectA.setZ(vertex0Z);
 
-      // Convert vertices to triangles (like your reference)
-      let triangles = [];
-      for (let i = 0; i < verticesPos.length; i += 3) 
-      {
-        triangles.push({
-          x: verticesPos[i] * scaleFactor,
-          y: verticesPos[i + 1] * scaleFactor,
-          z: verticesPos[i + 2] * scaleFactor
-        });
-      }
+      vectB.setX(vertex1X);
+      vectB.setY(vertex1Y);
+      vectB.setZ(vertex1Z);
 
-      // Add triangles to collision mesh (like your reference)
-      for (let i = 0; i < triangles.length - 3; i += 3) 
-      {
-        vectA.setX(triangles[i].x);
-        vectA.setY(triangles[i].y);
-        vectA.setZ(triangles[i].z);
+      vectC.setX(vertex2X);
+      vectC.setY(vertex2Y);
+      vectC.setZ(vertex2Z);
 
-        vectB.setX(triangles[i + 1].x);
-        vectB.setY(triangles[i + 1].y);
-        vectB.setZ(triangles[i + 1].z);
+      // Add the properly formed triangle to collision mesh
+      triangleMesh.addTriangle(vectA, vectB, vectC, false);
+      totalTriangles++;
+    }
+  });
 
-        vectC.setX(triangles[i + 2].x);
-        vectC.setY(triangles[i + 2].y);
-        vectC.setZ(triangles[i + 2].z);
+  // Cleanup vectors
+  Ammo.destroy(vectA);
+  Ammo.destroy(vectB);
+  Ammo.destroy(vectC);
 
-        triangleMesh.addTriangle(vectA, vectB, vectC, false);
-        totalTriangles++;
-      }
-    });
+  console.log(`Created collision mesh with ${totalTriangles} triangles`);
 
-    // Cleanup vectors (like your reference)
-    Ammo.destroy(vectA);
-    Ammo.destroy(vectB);
-    Ammo.destroy(vectC);
+  // Create collision shape from triangle mesh
+  const trackShape = new Ammo.btBvhTriangleMeshShape(triangleMesh, true);
+  trackShape.setMargin(0.05);
 
-    // Create collision shape from triangle mesh (like your reference)
-    const trackShape = new Ammo.btBvhTriangleMeshShape(triangleMesh, true);
-    trackShape.setMargin(0.05);
+  // Create static rigid body for track
+  const transform = new Ammo.btTransform();
+  transform.setIdentity();
+  transform.setOrigin(new Ammo.btVector3(0, 0, 0));
 
-    // Create static rigid body for track
-    const transform = new Ammo.btTransform();
-    transform.setIdentity();
-    transform.setOrigin(new Ammo.btVector3(0, 0, 0));
+  const motionState = new Ammo.btDefaultMotionState(transform);
+  const localInertia = new Ammo.btVector3(0, 0, 0);
 
-    const motionState = new Ammo.btDefaultMotionState(transform);
-    const localInertia = new Ammo.btVector3(0, 0, 0);
+  const rigidBodyInfo = new Ammo.btRigidBodyConstructionInfo(
+    0, motionState, trackShape, localInertia
+  );
 
-    const rigidBodyInfo = new Ammo.btRigidBodyConstructionInfo(
-      0, motionState, trackShape, localInertia
-    );
+  const trackRigidBody = new Ammo.btRigidBody(rigidBodyInfo);
+  trackRigidBody.setFriction(0.8);
+  trackRigidBody.setRestitution(0.1);
+  trackRigidBody.setCollisionFlags(1);
 
-    const trackRigidBody = new Ammo.btRigidBody(rigidBodyInfo);
-    trackRigidBody.setFriction(0.8);
-    trackRigidBody.setRestitution(0.1);
-    trackRigidBody.setCollisionFlags(1);
-
-    this.physicsWorld.addRigidBody(trackRigidBody);
-  }
+  this.physicsWorld.addRigidBody(trackRigidBody);
+}
 
   private checkForFall(podId: string, podData: any): void 
   {
