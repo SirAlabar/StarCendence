@@ -61,10 +61,8 @@ services:
     #   - auth_data:/app/data
     networks:
       - transcendence_network
-    # secrets:
-    #   - jwt_secret
-    #   - google_client_id
-    #   - google_client_secret
+    secrets:
+      - internal_api_key
     env_file:
       - .env
     depends_on:
@@ -113,6 +111,8 @@ services:
     #   - user_data:/app/data
     networks:
       - transcendence_network
+    secrets:
+      - internal_api_key
     env_file:
       - .env
     depends_on:
@@ -197,6 +197,8 @@ networks:
 secrets:
   jwt_secret:
     file: ../secrets/jwt_secret.txt
+  internal_api_key:
+    file: ../secrets/internal_api_key.txt
   # google_client_id:
   #   file: ../secrets/google_client_id.txt
   # google_client_secret:

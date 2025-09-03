@@ -13,7 +13,7 @@ model AuthUser {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
-//   username  String?  @unique // Optional username
+  username  String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
