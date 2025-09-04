@@ -63,6 +63,7 @@ services:
       - transcendence_network
     secrets:
       - internal_api_key
+      - jwt_secret
     env_file:
       - .env
     depends_on:
@@ -196,7 +197,7 @@ networks:
 
 secrets:
   jwt_secret:
-    file: ../secrets/jwt_secret.txt
+    file: ../secrets/jwt_secret_example.txt
   internal_api_key:
     file: ../secrets/internal_api_key.txt
   # google_client_id:

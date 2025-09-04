@@ -1,10 +1,11 @@
 // Fastify app configuration
-import Fastify from 'fastify'
+import Fastify, { FastifyRequest, FastifyReply } from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import * as userController from './controllers/userController'
-import { internalEndpointProtection } from './middleware/security.middleware'
+import { internalEndpointProtection } from './middleware/securityMiddleware'
 import { fastifyErrorHandler } from './handlers/errorHandler'
+import { authenticateToken } from './middleware/authMiddleware'
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
@@ -27,6 +28,9 @@ export async function buildApp() {
   fastify.post('/internal/create-user', userController.createUser);
   fastify.get('/internal/users/:id', userController.getUserById);
   // fastify.get('/internal/users', userController.getAllUsers);
+
+  // Protected endpoint - requires valid JWT access token
+  fastify.get('/profile', { preHandler: [authenticateToken] }, userController.getCurrentUserProfile);
 
   return fastify
 }

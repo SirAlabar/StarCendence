@@ -14,7 +14,7 @@ interface CreateUserBody {
   username: string
 }
 
-// POST /users - Create new user
+// POST /internal/create-user - Create new user
 export async function createUser(
   request: FastifyRequest<{ Body: CreateUserBody }>,
   reply: FastifyReply
@@ -38,7 +38,7 @@ export async function createUser(
   return reply.status(201).send({ user });
 }
 
-// GET /users/:id - Get user by ID
+// GET /internal/users/:id - Get user by ID
 export async function getUserById(
   request: FastifyRequest<{ Params: UserParams }>,
   reply: FastifyReply
@@ -53,5 +53,25 @@ export async function getUserById(
     throw new HttpError('User not found', 404);
   }
 
+  return reply.send({ user });
+}
+
+// GET /profile - Get current user's profile (requires authentication)
+export async function getCurrentUserProfile(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  const userId = request.user?.sub;
+  if (!userId) {
+    throw new HttpError('Unauthorized', 401);
+  }
+  
+  const user = await prisma.userProfile.findUnique({
+    where: { id: userId }
+  });
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+  
   return reply.send({ user });
 }
