@@ -18,12 +18,15 @@
 	  "bcrypt": "^5.1.0",
 	  "dotenv": "^16.3.1",
 	  "fastify": "^4.21.0",
-	  "jsonwebtoken": "^9.0.0"
+	  "jsonwebtoken": "^9.0.0",
+	  "speakeasy": "^2.0.0",
+	  "qrcode": "^1.5.3"
 	},
 	"devDependencies": {
 	  "@types/bcrypt": "^5.0.0",
 	  "@types/jsonwebtoken": "^9.0.1",
 	  "@types/node": "^20.4.5",
+	  "@types/qrcode": "^1.5.2",
 	  "@typescript-eslint/eslint-plugin": "^6.0.0",
 	  "@typescript-eslint/parser": "^6.0.0",
 	  "eslint": "^8.45.0",

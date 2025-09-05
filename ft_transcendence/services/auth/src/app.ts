@@ -9,6 +9,9 @@ import * as loginController from './controllers/loginController'
 import * as logoutController from './controllers/logoutController'
 import * as refreshController from './controllers/refreshController'
 import { authenticateToken } from './middleware/authMiddleware'
+import * as twoFactorController from './controllers/twoFactorController'
+import * as verifyController from './controllers/verifyController'
+import * as twoFactorSchema from './schemas/twoFactorSchema'
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
@@ -30,9 +33,11 @@ export async function buildApp() {
   fastify.post('/logout', { schema: logoutController.logoutSchema }, logoutController.logout);
   fastify.post('/logout-all', { schema: logoutController.logoutAllDevicesSchema }, logoutController.logoutAllDevices);
 
-  fastify.get('/verify', { preHandler: [authenticateToken] }, async (req: FastifyRequest, reply: FastifyReply) => {
-    return { success: true, user: req.user };
-  }); 
+  fastify.get('/verify', { preHandler: [authenticateToken], schema: verifyController.verifySchema }, verifyController.verify);
+
+  fastify.post('/2fa/setup', { preHandler: [authenticateToken], schema: twoFactorSchema.setupTwoFactorSchema }, twoFactorController.setupTwoFactor);
+  fastify.post('/2fa/verify', { preHandler: [authenticateToken], schema: twoFactorSchema.verifyTwoFactorSchema }, twoFactorController.verifyTwoFactor);
+  fastify.post('/2fa/disable', { preHandler: [authenticateToken], schema: twoFactorSchema.disableTwoFactorSchema }, twoFactorController.disableTwoFactor);
 
   return fastify; 
-} 
+}
