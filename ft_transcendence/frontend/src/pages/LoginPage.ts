@@ -1,7 +1,10 @@
 import { BaseComponent } from '../components/BaseComponent';
+import { LoginForm } from '../components/auth/LoginForm';
 
 export default class LoginPage extends BaseComponent 
 {
+    private loginForm: LoginForm | null = null;
+
     render(): string 
     {
         return `
@@ -12,21 +15,7 @@ export default class LoginPage extends BaseComponent
                         <p class="text-gray-300">Sign in to your account</p>
                     </div>
                     
-                    <form class="space-y-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
-                            <input type="email" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none" placeholder="your@email.com">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                            <input type="password" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none" placeholder="••••••••">
-                        </div>
-                        
-                        <button type="submit" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-3 rounded-lg font-bold hover:scale-105 transition-transform">
-                            Sign In
-                        </button>
-                    </form>
+                    <div id="login-form-container"></div>
                     
                     <div class="mt-6 text-center">
                         <p class="text-gray-400">Don't have an account?</p>
@@ -43,5 +32,30 @@ export default class LoginPage extends BaseComponent
                 </div>
             </div>
         `;
+    }
+
+    protected afterMount(): void 
+    {
+        setTimeout(() => {
+            this.initializeLoginForm();
+        }, 50);
+    }
+
+    private initializeLoginForm(): void 
+    {
+        const container = document.getElementById('login-form-container');
+        if (container) 
+        {
+            this.loginForm = new LoginForm(container);
+        }
+    }
+
+    destroy(): void 
+    {
+        if (this.loginForm) 
+        {
+            this.loginForm.destroy();
+            this.loginForm = null;
+        }
     }
 }
