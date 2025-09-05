@@ -1,1 +1,6 @@
-// Chat service dependencies
+{
+    "name": "placeholder-service4",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Placeholder service - not implemented yet"
+}
