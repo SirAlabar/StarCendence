@@ -1,7 +1,10 @@
 import { BaseComponent } from '../components/BaseComponent';
+import { RegisterForm } from '../components/auth/RegisterForm';
 
 export default class RegisterPage extends BaseComponent 
 {
+    private registerForm: RegisterForm | null = null;
+
     render(): string 
     {
         return `
@@ -12,31 +15,7 @@ export default class RegisterPage extends BaseComponent
                         <p class="text-gray-300">Create your gaming account</p>
                     </div>
                     
-                    <form class="space-y-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Username</label>
-                            <input type="text" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none" placeholder="Choose a username">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
-                            <input type="email" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none" placeholder="your@email.com">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                            <input type="password" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none" placeholder="••••••••">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-2">Confirm Password</label>
-                            <input type="password" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none" placeholder="••••••••">
-                        </div>
-                        
-                        <button type="submit" class="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white py-3 rounded-lg font-bold hover:scale-105 transition-transform">
-                            Create Account
-                        </button>
-                    </form>
+                    <div id="register-form-container"></div>
                     
                     <div class="mt-6 text-center">
                         <p class="text-gray-400">Already have an account?</p>
@@ -53,5 +32,30 @@ export default class RegisterPage extends BaseComponent
                 </div>
             </div>
         `;
+    }
+
+    protected afterMount(): void 
+    {
+        setTimeout(() => {
+            this.initializeRegisterForm();
+        }, 50);
+    }
+
+    private initializeRegisterForm(): void 
+    {
+        const container = document.getElementById('register-form-container');
+        if (container) 
+        {
+            this.registerForm = new RegisterForm(container);
+        }
+    }
+
+    destroy(): void 
+    {
+        if (this.registerForm) 
+        {
+            this.registerForm.destroy();
+            this.registerForm = null;
+        }
     }
 }
