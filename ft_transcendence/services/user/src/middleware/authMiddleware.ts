@@ -1,5 +1,4 @@
 import {FastifyReply, FastifyRequest} from "fastify";
-import { HttpError } from "../utils/HttpError";
 
 // Extend Fastify request interface
 declare module 'fastify' {
