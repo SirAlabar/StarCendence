@@ -1,4 +1,3 @@
-// JWT token management
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import { HttpError } from '../utils/HttpError';
@@ -21,10 +20,8 @@ function getJwtSecret(): string {
 
 // Generate access and refresh tokens
 export async function generateTokens(userId: string, email: string, username: string): Promise<TokenPair> {
-  // Get JWT secret from environment
   const jwtSecret = getJwtSecret();
   
-  // Generate short-lived access token (15 minutes)
   const accessToken = jwt.sign(
     { 
       sub: userId, 
@@ -39,10 +36,8 @@ export async function generateTokens(userId: string, email: string, username: st
     }
   );
 
-  // Generate random refresh token
   const refreshToken = crypto.randomBytes(64).toString('hex');
 
-  // Store refresh token in database (expires in 7 days by default)
   const refreshExpiresDays = 7;
   const expiresAt = new Date(Date.now() + refreshExpiresDays * 24 * 60 * 60 * 1000);
   
@@ -61,7 +56,6 @@ export async function verifyAccessToken(token: string) {
 
 // Verify refresh token (for token rotation)
 export async function verifyRefreshToken(token: string) {
-  // Check if refresh token exists and is not expired
   const refreshToken = await refreshTokenRepository.findByToken(token);
 
   if (!refreshToken) {
@@ -69,10 +63,33 @@ export async function verifyRefreshToken(token: string) {
   }
 
   if (refreshToken.expiresAt < new Date()) {
-    // Clean up expired token
     await refreshTokenRepository.deleteById(refreshToken.id);
     throw new HttpError('Refresh token expired', 401);
   }
 
   return refreshToken;
+}
+
+// Refresh access token using a valid refresh token
+export async function refreshAccessToken(refreshToken: string) {
+  if (!refreshToken) {
+    throw new HttpError('Refresh token is required', 400);
+  }
+
+  const refreshTokenRecord = await verifyRefreshToken(refreshToken);
+  
+  await refreshTokenRepository.deleteByToken(refreshToken);
+
+  const newTokens = await generateTokens(
+    refreshTokenRecord.user.id,
+    refreshTokenRecord.user.email,
+    refreshTokenRecord.user.username
+  );
+
+  return newTokens;
+}
+
+// Revoke refresh token (logout from this session)
+export async function revokeRefreshToken(token: string) {
+  await refreshTokenRepository.deleteByToken(token);
 }

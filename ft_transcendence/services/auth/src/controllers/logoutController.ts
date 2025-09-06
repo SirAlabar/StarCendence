@@ -1,51 +1,12 @@
 // Logout endpoint logic
 import { FastifyRequest, FastifyReply } from 'fastify';
-import * as sessionService from '../services/sessionService';
-import { HttpError } from '../utils/HttpError';
+import * as  authService  from '../services/authService';
 
-export const logoutSchema = {
-  body: {
-    type: 'object',
-    required: ['refreshToken'],
-    properties: {
-      refreshToken: { 
-        type: 'string',
-        minLength: 1
-      }
-    }
-  }
-};
-
-export const logoutAllDevicesSchema = {
-  body: {
-    type: 'object',
-    required: ['userId'],
-    properties: {
-      userId: { 
-        type: 'string',
-        minLength: 1
-      }
-    }
-  }
-};
-
-interface LogoutRequestBody {
-  refreshToken: string;
-}
-
-interface LogoutAllDevicesRequestBody {
-  userId: string;
-}
 
 // Logout from current session/device
-export async function logout(req: FastifyRequest<{ Body: LogoutRequestBody }>, reply: FastifyReply) {
-  const { refreshToken } = req.body;
-
-  if (!refreshToken) {
-    throw new HttpError('Refresh token is required', 400);
-  }
-
-  await sessionService.logoutUser(refreshToken);
+export async function logout(req: FastifyRequest, reply: FastifyReply) {
+  const { refreshToken } = req.body as { refreshToken: string };
+  await authService.logoutUser(refreshToken);
 
   return reply.send({ 
     success: true, 
@@ -53,18 +14,3 @@ export async function logout(req: FastifyRequest<{ Body: LogoutRequestBody }>, r
   });
 }
 
-// Logout from all devices
-export async function logoutAllDevices(req: FastifyRequest<{ Body: LogoutAllDevicesRequestBody }>, reply: FastifyReply) {
-  const { userId } = req.body;
-
-  if (!userId) {
-    throw new HttpError('User ID is required', 400);
-  }
-
-  await sessionService.logoutAllDevices(userId);
-
-  return reply.send({ 
-    success: true, 
-    message: 'Successfully logged out from all devices' 
-  });
-}

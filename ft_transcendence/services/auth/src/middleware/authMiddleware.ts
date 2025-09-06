@@ -20,7 +20,6 @@ declare module 'fastify' {
 
 // Authentication middleware - verifies JWT access token
 export async function authenticateToken(req: FastifyRequest, reply: FastifyReply) {
-  // 1. Extract token from Authorization header
   const authHeader = req.headers.authorization;
   
   if (!authHeader) {
@@ -37,20 +36,16 @@ export async function authenticateToken(req: FastifyRequest, reply: FastifyReply
     throw new HttpError('Access token is required', 401);
   }
 
-  // 2. Verify the JWT token
   const decoded = await tokenService.verifyAccessToken(token);
 
-  // 3. Validate token type (should be 'access')
   if (decoded.type !== 'access') {
     throw new HttpError('Invalid token type', 401);
   }
 
-  // 4. Validate required fields
   if (!decoded.sub || !decoded.email || !decoded.username) {
     throw new HttpError('Invalid token: missing required fields', 401);
   }
 
-  // 5. Add user data to request for use in route handlers
   req.user = {
     sub: decoded.sub,
     email: decoded.email,

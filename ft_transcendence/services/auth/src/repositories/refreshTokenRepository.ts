@@ -1,4 +1,3 @@
-// Refresh token data access layer
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();

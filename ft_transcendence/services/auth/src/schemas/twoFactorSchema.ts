@@ -1,3 +1,4 @@
+// Two-Factor Authentication Schemas
 export const setupTwoFactorSchema = {
   response: {
     200: {
@@ -12,6 +13,7 @@ export const setupTwoFactorSchema = {
   }
 };
 
+// Schemas for request validation and response structure
 export const verifyTwoFactorSchema = {
   body: {
     type: 'object',
@@ -31,6 +33,8 @@ export const verifyTwoFactorSchema = {
   }
 };
 
+
+// Disable 2FA schema
 export const disableTwoFactorSchema = {
   response: {
     200: {

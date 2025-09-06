@@ -1,4 +1,3 @@
-
 // Simple custom error with status code
 export class HttpError extends Error {
   public statusCode: number;

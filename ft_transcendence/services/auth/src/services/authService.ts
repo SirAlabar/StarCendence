@@ -1,63 +1,48 @@
 // Core authentication logic
-import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import * as userServiceClient from '../clients/userServiceClient';
 import { HttpError } from '../utils/HttpError';
 import * as tokenService from './tokenService';
-
-const prisma = new PrismaClient();
+import * as userRepository from '../repositories/userRepository';
 
 // Register a new user
 export async function registerUser(email: string, password: string, username: string) {
-  // 1. Check if user already exists (either email OR username)
-  const existingUser = await prisma.authUser.findFirst({
-    where: {
-      OR: [
-        { email },
-        { username }
-      ]
-    }
-  });
-
+  const existingUser = await userRepository.findUserByEmailOrUsername(email, username);
   if (existingUser) {
     throw new HttpError('Email or username already exists', 409);
   }
 
-  // 2. Hash the password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // 3. Create user in auth database
-  const authUser = await prisma.authUser.create({
-    data: {
-      email,
-      password: hashedPassword,
-      username
-    }
-  });
+  const authUser = await userRepository.createUser(email, hashedPassword, username);
 
-  // 4. Create user profile in User Service
   await userServiceClient.createUserProfile(authUser.id, email, username);
 }
 
 // Login user and return tokens
+  // TODO: verify is user is already signed in
+  // TODO: verify 2FA if enabled
 export async function loginUser(email: string, password: string) {
-  // 1. Find user by email
-  const user = await prisma.authUser.findUnique({
-    where: { email }
-  });
 
+  const user = await userRepository.findUserByEmail(email);
   if (!user) {
     throw new HttpError('Invalid email or password', 401);
   }
-
-  // 2. Validate password
+  
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) {
     throw new HttpError('Invalid email or password', 401);
   }
 
-  // 3. Generate access JWT and refresh token
   const tokens = await tokenService.generateTokens(user.id, user.email, user.username);
 
   return tokens;
+}
+
+// Logout user by revoking the refresh token
+export async function logoutUser(refreshToken: string) {
+  if (!refreshToken) {
+    throw new HttpError('Refresh token is required', 400);
+  }
+  await tokenService.revokeRefreshToken(refreshToken);
 }
