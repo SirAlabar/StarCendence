@@ -1,5 +1,6 @@
 import { Vector3, FreeCamera } from '@babylonjs/core';
 import { RacerPhysics } from '../engines/racer/RacerPhysics';
+import '@babylonjs/inspector';
 
 export enum CameraMode 
 {
@@ -31,6 +32,7 @@ export interface InputCallbacks
 {
   onMouseWheel?: (delta: number) => void;
   onCameraSwitch?: () => void;
+  onToggleInspector?: () => void;
 }
 
 export class InputManager 
@@ -151,6 +153,21 @@ export class InputManager
         {
           this.inputState.cameraSwitchPressed = true;
           this.callbacks.onCameraSwitch?.();
+        }
+        event.preventDefault();
+        break;
+        case 'F12':
+        // Toggle Babylon.js Inspector
+        if (this.callbacks.onToggleInspector) {
+          this.callbacks.onToggleInspector();
+        }
+        event.preventDefault();
+        break;
+
+      case 'KeyI':
+        // Ctrl+I to toggle inspector (alternative)
+        if (event.ctrlKey && this.callbacks.onToggleInspector) {
+          this.callbacks.onToggleInspector();
         }
         event.preventDefault();
         break;

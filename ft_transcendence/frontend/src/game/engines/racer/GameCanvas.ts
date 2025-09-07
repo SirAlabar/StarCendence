@@ -6,6 +6,7 @@ import {
   Vector3, 
   Color3
 } from '@babylonjs/core';
+import '@babylonjs/inspector';
 
 import { InputManager, InputCallbacks } from '../../managers/InputManager';
 import { CameraManager } from '../../managers/CameraManager';
@@ -289,6 +290,10 @@ export class GameCanvas
         {
           this.cameraManager.cycleCameraMode();
         }
+      },
+      onToggleInspector: () => 
+      {
+        this.toggleInspector();  // Add this
       }
     };
 
@@ -454,4 +459,42 @@ export class GameCanvas
     
     this.playerPod = null;
   }
+  
+  public showInspector(): void 
+  {
+    if (this.scene) 
+    {
+      this.scene.debugLayer.show({
+        embedMode: false,
+        overlay: true,
+        showExplorer: true,
+        showInspector: true
+      });
+    }
+  }
+
+  public hideInspector(): void 
+  {
+    if (this.scene) 
+    {
+      this.scene.debugLayer.hide();
+    }
+  }
+
+  public toggleInspector(): void 
+  {
+    if (this.scene) 
+    {
+      if (this.scene.debugLayer.isVisible()) 
+      {
+        this.hideInspector();
+      } 
+      else 
+      {
+        this.showInspector();
+      }
+    }
 }
+
+}
+
