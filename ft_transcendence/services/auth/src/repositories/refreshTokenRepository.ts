@@ -21,6 +21,14 @@ export async function findByToken(token: string) {
   });
 }
 
+// Find refresh token by user ID
+export async function findByUserId(userId: string) {
+  return await prisma.refreshToken.findFirst({
+    where: { userId },
+    include: { user: true }
+  });
+}
+
 // Delete refresh token by its token string
 export async function deleteByToken(token: string) {
   return await prisma.refreshToken.delete({

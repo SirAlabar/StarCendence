@@ -50,8 +50,7 @@ export async function generateTokens(userId: string, email: string, username: st
 export async function verifyAccessToken(token: string) {
   const jwtSecret = getJwtSecret();
 
-  const decoded = jwt.verify(token, jwtSecret) as jwt.JwtPayload;
-  return decoded;
+  return jwt.verify(token, jwtSecret) as jwt.JwtPayload;
 }
 
 // Verify refresh token (for token rotation)
@@ -89,7 +88,7 @@ export async function refreshAccessToken(refreshToken: string) {
   return newTokens;
 }
 
-// Revoke refresh token (logout from this session)
-export async function revokeRefreshToken(token: string) {
-  await refreshTokenRepository.deleteByToken(token);
+// Revoke all refresh tokens for a user
+export async function revokeAllRefreshTokensForUser(userId: string) {
+  await refreshTokenRepository.deleteAllByUserId(userId);
 }

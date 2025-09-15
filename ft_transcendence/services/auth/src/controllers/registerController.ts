@@ -1,5 +1,3 @@
-// Registration logic
-
 import { FastifyRequest, FastifyReply } from 'fastify';
 import * as authService from '../services/authService';
 

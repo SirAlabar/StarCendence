@@ -21,7 +21,7 @@ declare module 'fastify' {
 // Authentication middleware - verifies JWT access token
 export async function authenticateToken(req: FastifyRequest, reply: FastifyReply) {
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader) {
     throw new HttpError('Authorization header is required', 401);
   }

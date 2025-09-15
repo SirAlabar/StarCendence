@@ -1,10 +1,14 @@
-// Shared error handler (framework agnostic)
 import { HttpError } from '../utils/HttpError';
 
 export function fastifyErrorHandler(error: any, request: any, reply: any) {
   // Log the error
   request.log.error(error);
-  
+
+  // Handle JWT errors
+  if (error.name === 'JsonWebTokenError') {
+    return reply.status(401).send({ error: 'Invalid or malformed JWT token' });
+  }
+
   // Handle HttpError instances with custom status codes
   if (error instanceof HttpError) {
     return reply.status(error.statusCode).send({ 

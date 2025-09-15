@@ -59,20 +59,6 @@ export const refreshTokenSchema = {
   }
 };
 
-// Logout schema
-export const logoutSchema = {
-  body: {
-    type: 'object',
-    required: ['refreshToken'],
-    properties: {
-      refreshToken: { 
-        type: 'string',
-        minLength: 1
-      }
-    }
-  }
-};
-
 // Verify token schema
 export const verifySchema = {
   response: {

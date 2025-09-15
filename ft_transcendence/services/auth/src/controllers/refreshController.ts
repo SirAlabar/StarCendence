@@ -1,4 +1,3 @@
-// Token refresh endpoint logic
 import { FastifyRequest, FastifyReply } from 'fastify';
 import * as tokenService from '../services/tokenService';
 

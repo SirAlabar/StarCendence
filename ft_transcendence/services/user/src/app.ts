@@ -6,6 +6,7 @@ import * as userController from './controllers/userController'
 import { internalEndpointProtection } from './middleware/securityMiddleware'
 import { fastifyErrorHandler } from './handlers/errorHandler'
 import { authenticateToken } from './middleware/authMiddleware'
+import { internalRoutes } from './routes/internalRoutes'
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
@@ -14,22 +15,13 @@ export async function buildApp() {
   await fastify.register(cors)
   await fastify.register(helmet)
 
-  // Register middleware
-  fastify.addHook('preHandler', internalEndpointProtection);
-  // Global error handler
+  // Global error handler and security hook
   fastify.setErrorHandler(fastifyErrorHandler);
+  fastify.addHook('preHandler', internalEndpointProtection);
   
   fastify.get('/health', async () => ({ status: 'Health is ok!' }))
-  // Public endpoints
-  // fastify.get('/users/profile', userController.getCurrentUserProfile);
-  // fastify.get('/users/:id/public', userController.getPublicProfile);
-
-  // Internal endpoints 
-  fastify.post('/internal/create-user', userController.createUser);
-  fastify.get('/internal/users/:id', userController.getUserById);
-  // fastify.get('/internal/users', userController.getAllUsers);
-
-  // Protected endpoint - requires valid JWT access token
+  
+  fastify.register(internalRoutes, { prefix: '/internal' });
   fastify.get('/profile', { preHandler: [authenticateToken] }, userController.getCurrentUserProfile);
 
   return fastify

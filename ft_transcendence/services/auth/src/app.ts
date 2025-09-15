@@ -4,15 +4,13 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import { fastifyErrorHandler } from './handlers/errorHandler'
-import { authenticateToken } from './middleware/authMiddleware'
-import * as verifyController from './controllers/verifyController'
 import { authRoutes } from './routes/authRoutes'
 import { twoFactorRoutes } from './routes/twoFactorRoutes'
-import { verifySchema } from './schemas/authSchema'
+import { internalRoutes } from './routes/internalRoutes'
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
-  
+
   // Register plugins
   await fastify.register(cors)
   await fastify.register(helmet)
@@ -21,10 +19,10 @@ export async function buildApp() {
   fastify.setErrorHandler(fastifyErrorHandler);
   
   fastify.get('/health', async () => ({ status: 'Health is Ok!' }))
-  fastify.get('/verify', { preHandler: [authenticateToken], schema: verifySchema }, verifyController.verify);
 
   fastify.register(authRoutes);
   fastify.register(twoFactorRoutes, { prefix: '/2fa' });
+  fastify.register(internalRoutes, { prefix: '/internal' });
 
   return fastify; 
 }

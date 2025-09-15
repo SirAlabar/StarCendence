@@ -23,7 +23,6 @@ export async function registerUser(email: string, password: string, username: st
   // TODO: verify is user is already signed in
   // TODO: verify 2FA if enabled
 export async function loginUser(email: string, password: string) {
-
   const user = await userRepository.findUserByEmail(email);
   if (!user) {
     throw new HttpError('Invalid email or password', 401);
@@ -39,10 +38,12 @@ export async function loginUser(email: string, password: string) {
   return tokens;
 }
 
-// Logout user by revoking the refresh token
-export async function logoutUser(refreshToken: string) {
-  if (!refreshToken) {
-    throw new HttpError('Refresh token is required', 400);
+// Logout user by revoking all refresh tokens using the access token
+export async function logoutUser(accessToken: string) {
+  const payload = await tokenService.verifyAccessToken(accessToken);
+  if (!payload || !payload.sub) {
+    throw new HttpError('Invalid access token', 401);
   }
-  await tokenService.revokeRefreshToken(refreshToken);
+
+  await tokenService.revokeAllRefreshTokensForUser(payload.sub);
 }
