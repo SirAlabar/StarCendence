@@ -16,6 +16,9 @@ if [ "${PRISMA_STUDIO:-}" = "1" ] || [ "${PRISMA_STUDIO:-}" = "true" ]; then
   npx prisma studio --port ${PRISMA_STUDIO_PORT:-5004} --browser none &
 fi
 
-# Start the application
+# Build and start the application
+echo " Building TypeScript..."
+npm run build
+
 echo " Starting Node.js application..."
-npm start
+node dist/server.js

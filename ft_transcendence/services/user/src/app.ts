@@ -1,4 +1,3 @@
-// Fastify app configuration
 import Fastify, { FastifyRequest, FastifyReply } from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'

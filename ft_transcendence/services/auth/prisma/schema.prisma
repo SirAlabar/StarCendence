@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./auth.db"
+  url      = "file:/app/data/auth.db"
 }
 
 // Core user model

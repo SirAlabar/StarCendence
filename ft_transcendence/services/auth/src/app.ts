@@ -1,4 +1,3 @@
-// Fastify app configuration
 import { FastifyRequest, FastifyReply } from 'fastify'
 import Fastify from 'fastify'
 import cors from '@fastify/cors'

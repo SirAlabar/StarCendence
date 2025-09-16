@@ -1,8 +1,8 @@
-// Middleware for User Service security
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { readFileSync } from 'fs';
 import { HttpError } from '../utils/HttpError';
 
+// Middleware to protect internal endpoints
 export async function internalEndpointProtection(request: FastifyRequest, reply: FastifyReply) {
   if (request.url.startsWith('/internal/')) {
     

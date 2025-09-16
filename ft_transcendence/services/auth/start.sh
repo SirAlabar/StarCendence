@@ -3,7 +3,7 @@
 echo " Starting User Service..."
 
 # Check if database exists, if not create it
-if [ ! -f "prisma/user.db" ]; then
+if [ ! -f "prisma/auth.db" ]; then
     echo " Database not found, initializing..."
     npx prisma db push
     echo " Database initialized successfully"
@@ -16,6 +16,9 @@ if [ "${PRISMA_STUDIO:-}" = "1" ] || [ "${PRISMA_STUDIO:-}" = "true" ]; then
   npx prisma studio --port ${PRISMA_STUDIO_PORT:-5001} --browser none &
 fi
 
-# Start the application
+# Build and start the application
+echo " Building TypeScript..."
+npm run build
+
 echo " Starting Node.js application..."
-npm start
+node dist/server.js

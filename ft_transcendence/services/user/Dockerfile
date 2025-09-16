@@ -4,7 +4,7 @@
 FROM node:20-slim
 
 # Install OpenSSL (required by Prisma)
-RUN apt-get update -y && apt-get install -y openssl
+RUN apt-get update -y && apt-get install -y openssl sqlite3
 
 # Set working directory
 WORKDIR /app
@@ -39,4 +39,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3004/health || exit 1
 
 # Start the service
-CMD ["/app/start.sh"]
+CMD ["sh", "/app/start.sh"]

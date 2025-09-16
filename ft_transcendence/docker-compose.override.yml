@@ -3,6 +3,10 @@ services:
   auth-service:
     # volumes:
     #   - ./services/auth/auth.db:/app/prisma/auth.db:rw
+    volumes:
+      - ./services/auth:/app
+      - /app/node_modules
+      - auth_data:/app/data
     environment:
       - PRISMA_STUDIO=1
       - PRISMA_STUDIO_PORT=5001
@@ -33,6 +37,10 @@ services:
   user-service:
     # volumes:
     #   - ./services/user/prisma/user.db:/app/prisma/user.db:rw
+    volumes:
+      - ./services/user:/app
+      - /app/node_modules
+      - user_data:/app/data
     environment:
       - PRISMA_STUDIO=1
       - PRISMA_STUDIO_PORT=5004
