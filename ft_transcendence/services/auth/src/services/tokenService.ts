@@ -90,5 +90,5 @@ export async function refreshAccessToken(refreshToken: string) {
 
 // Revoke all refresh tokens for a user
 export async function revokeAllRefreshTokensForUser(userId: string) {
-  await refreshTokenRepository.deleteAllByUserId(userId);
+  await refreshTokenRepository.deleteById(userId);
 }

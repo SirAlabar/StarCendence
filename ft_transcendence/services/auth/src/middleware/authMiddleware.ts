@@ -1,7 +1,7 @@
 // JWT token validation middleware
 import { FastifyRequest, FastifyReply } from 'fastify';
-import * as tokenService from '../services/tokenService';
 import { HttpError } from '../utils/HttpError';
+import { getInternalApiKey } from '../clients/userServiceClient';
 
 // Extended request interface to include user data
 declare module 'fastify' {
@@ -20,39 +20,29 @@ declare module 'fastify' {
 
 // Authentication middleware - verifies JWT access token
 export async function authenticateToken(req: FastifyRequest, reply: FastifyReply) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    throw new HttpError('Authorization header is required', 401);
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new HttpError('Authorization header missing or malformed', 401);
   }
-
-  if (!authHeader.startsWith('Bearer ')) {
-    throw new HttpError('Authorization header must start with "Bearer "', 401);
-  }
-
-  const token = authHeader.substring(7);
   
+  const token = authHeader.substring(7);
+
   if (!token) {
-    throw new HttpError('Access token is required', 401);
+    throw new HttpError('Token not provided', 401);
   }
 
-  const decoded = await tokenService.verifyAccessToken(token);
-
-  if (decoded.type !== 'access') {
-    throw new HttpError('Invalid token type', 401);
+  const response = await fetch('http://auth:3000/internal/token/verify', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'X-API-Key': getInternalApiKey()
+    }
+  });
+  
+  if (!response.ok) {
+    throw new HttpError('Invalid or expired token', 401);
   }
 
-  if (!decoded.sub || !decoded.email || !decoded.username) {
-    throw new HttpError('Invalid token: missing required fields', 401);
-  }
-
-  req.user = {
-    sub: decoded.sub,
-    email: decoded.email,
-    username: decoded.username,
-    type: decoded.type,
-    iat: decoded.iat,
-    exp: decoded.exp,
-    iss: decoded.iss
-  };
+  const data = await response.json();
+  req.user = data;
 }
