@@ -36,8 +36,8 @@ export async function deleteByToken(token: string) {
   });
 }
 
-// Delete all refresh tokens for a user
-export async function deleteAllByUserId(userId: string) {
+// Delete refresh token for a user
+export async function deleteByUserId(userId: string) {
   return await prisma.refreshToken.deleteMany({
     where: { userId }
   });

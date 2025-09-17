@@ -16,9 +16,8 @@ if [ "${PRISMA_STUDIO:-}" = "1" ] || [ "${PRISMA_STUDIO:-}" = "true" ]; then
   npx prisma studio --port ${PRISMA_STUDIO_PORT:-5004} --browser none &
 fi
 
+export CHOKIDAR_USEPOLLING=true
+
 # Build and start the application
 echo " Building TypeScript..."
-npm run build
-
-echo " Starting Node.js application..."
-node dist/server.js
+npm run dev

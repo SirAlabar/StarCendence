@@ -347,6 +347,6 @@ db_clean:
 
 npm_run:
 	@printf "$(YELLOW)🔄 Running npm commands in backend services...$(DEFAULT)\n"
-	@docker compose exec user-service npm run build
-	@docker compose exec auth-service npm run build
+	@docker compose exec user-service npm run dev
+	@docker compose exec auth-service npm run dev
 	@printf "$(GREEN)✅ npm commands executed in backend services!$(DEFAULT)\n"

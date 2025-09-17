@@ -4,6 +4,7 @@ import * as userServiceClient from '../clients/userServiceClient';
 import { HttpError } from '../utils/HttpError';
 import * as tokenService from './tokenService';
 import * as userRepository from '../repositories/userRepository';
+import * as refreshTokenRepository from '../repositories/refreshTokenRepository';
 
 // Register a new user
 export async function registerUser(email: string, password: string, username: string) {
@@ -20,8 +21,6 @@ export async function registerUser(email: string, password: string, username: st
 }
 
 // Login user and return tokens
-  // TODO: verify is user is already signed in
-  // TODO: verify 2FA if enabled
 export async function loginUser(email: string, password: string) {
   const user = await userRepository.findUserByEmail(email);
   if (!user) {
@@ -33,10 +32,20 @@ export async function loginUser(email: string, password: string) {
     throw new HttpError('Invalid email or password', 401);
   }
 
+  if (user.twoFactorEnabled) {
+    // TODO: Implement 2FA verification
+  }
+
+  const existingTokens = await refreshTokenRepository.findByUserId(user.id);
+  if (existingTokens) {
+    await refreshTokenRepository.deleteByUserId(user.id);
+  }
+
   const tokens = await tokenService.generateTokens(user.id, user.email, user.username);
 
   return tokens;
 }
+
 
 // Logout user by revoking all refresh tokens using the access token
 export async function logoutUser(accessToken: string) {
