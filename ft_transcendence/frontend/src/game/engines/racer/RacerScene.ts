@@ -3,42 +3,31 @@ import {
   AbstractMesh,
   Vector3,
   Color3,
-  Mesh
+  Mesh,
+  CreateGround,
+  CreateBox,
+  StandardMaterial,
+  SceneLoader,
+  VertexBuffer
 } from '@babylonjs/core';
-import '@babylonjs/loaders/glTF';
-import { AssetManager } from '../../managers/AssetManager';
 import { GameCanvas } from './GameCanvas';
 
 export interface RacerSceneConfig 
 {
-  trackId: string;
-  trackPath: string;
-  trackFilename: string;
+  trackSize?: number;
+  trackSubdivisions?: number;
+  wallHeight?: number;
+  wallThickness?: number;
   enableFog?: boolean;
   fogColor?: Color3;
   fogDensity?: number;
 }
 
-export interface MaterialCollisionConfig 
-{
-  solidTrack: string[];
-  fallZones: string[];
-  specialSurfaces: string[];
-}
-
-export interface TrackMaterialData 
-{
-  mesh: Mesh;
-  materialId: string;
-  surfaceType: 'solid' | 'void' | 'boost' | 'ice' | 'start_finish';
-  vertices: number[];
-  indices: number[];
-}
-
-const POLAR_PASS_CONFIG: RacerSceneConfig = {
-  trackId: 'polar_pass',
-  trackPath: '/assets/models/racing_tracks/',
-  trackFilename: 'polar_pass.glb',
+const DEFAULT_CONFIG: RacerSceneConfig = {
+  trackSize: 5000,        // Mantido para compatibilidade
+  trackSubdivisions: 50,
+  wallHeight: 20,        
+  wallThickness: 5,      
   enableFog: true,
   fogColor: new Color3(0.7, 0.8, 0.9),
   fogDensity: 0.002
@@ -48,24 +37,18 @@ export class RacerScene
 {
   private gameCanvas: GameCanvas;
   private scene: Scene;
-  private assetManager: AssetManager;
   private config: RacerSceneConfig;
   private track: AbstractMesh | null = null;
+  private walls: AbstractMesh[] = []; 
   private isLoaded: boolean = false;
-  private trackMaterialData: TrackMaterialData[] = [];
-  
-  private materialConfig: MaterialCollisionConfig = {
-    solidTrack: ['track_surface', 'Ice', 'speed_boost', 'start_line', 'wall'],
-    fallZones: ['void'],
-    specialSurfaces: ['Ice', 'speed_boost', 'start_line']
-  };
+  private realVertexBounds: { min: Vector3; max: Vector3; size: Vector3 } | null = null;
 
   public onTrackLoaded?: (track: AbstractMesh) => void;
   public onLoadingProgress?: (percentage: number, asset: string) => void;
   public onLoadingComplete?: () => void;
   public onLoadingError?: (errors: string[]) => void;
 
-  constructor(gameCanvas: GameCanvas, config: RacerSceneConfig = POLAR_PASS_CONFIG) 
+  constructor(gameCanvas: GameCanvas, config: RacerSceneConfig = DEFAULT_CONFIG) 
   {
     this.gameCanvas = gameCanvas;
     const scene = gameCanvas.getScene();
@@ -74,8 +57,7 @@ export class RacerScene
       throw new Error('Cannot create RacerScene: GameCanvas scene not initialized');
     }
     this.scene = scene;
-    this.config = config;
-    this.assetManager = new AssetManager(this.scene);
+    this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
   public async loadTrack(): Promise<void> 
@@ -85,218 +67,148 @@ export class RacerScene
       return;
     }
 
-    this.assetManager
-      .addMeshAsset({
-        id: this.config.trackId,
-        type: 'mesh',
-        path: this.config.trackPath,
-        filename: this.config.trackFilename
-      })
-      .setCallbacks({
-        onProgress: (progress) => 
+    try 
+    {
+      console.log('RacerScene: Loading canyon track model...');
+      
+      if (this.onLoadingProgress) 
+      {
+        this.onLoadingProgress(10, 'Loading canyon.babylon...');
+      }
+
+      await this.loadCanyonTrack();
+      this.setupRacingEnvironment();
+      
+      if (this.onLoadingProgress) 
+      {
+        this.onLoadingProgress(100, 'Canyon track ready');
+      }
+
+      if (this.onLoadingComplete) 
+      {
+        this.onLoadingComplete();
+      }
+
+      console.log('RacerScene: Canyon track loaded successfully');
+    } 
+    catch (error) 
+    {
+      console.error('RacerScene: Failed to load canyon track:', error);
+      if (this.onLoadingError) 
+      {
+        this.onLoadingError([`Failed to load canyon track: ${error}`]);
+      }
+    }
+  }
+
+private async loadCanyonTrack(): Promise<void> 
+{
+  return new Promise((resolve, reject) => 
+  {
+    console.log('Loading canyon.babylon model...');
+    
+    if (this.onLoadingProgress) 
+    {
+      this.onLoadingProgress(30, 'Downloading canyon model...');
+    }
+
+    // Carregar EXATAMENTE como o exemplo
+    SceneLoader.ImportMesh(
+      "Loft001",  // IMPORTANTE: Nome exato da mesh
+      "https://raw.githubusercontent.com/RaggarDK/Baby/baby/", 
+      "canyon.babylon", 
+      this.scene, 
+      (newMeshes) => 
+      {
+        try 
         {
           if (this.onLoadingProgress) 
           {
-            this.onLoadingProgress(progress.percentage, progress.currentAsset);
+            this.onLoadingProgress(70, 'Processing canyon geometry...');
           }
-        },
-        onSuccess: () => 
-        {
-          this.setupTrack();
-          this.setupRacingEnvironment();
+
+          // EXATO do exemplo - pegar apenas a primeira mesh
+          const mesh = newMeshes[0];
+          if (!mesh) 
+          {
+            throw new Error('No mesh found in canyon.babylon');
+          }
+
+          console.log("=== CANYON MESH ANALYSIS ===");
+          console.log(`Total meshes loaded: ${newMeshes.length}`);
+          console.log(`Main mesh: ${mesh.name}`);
+          console.log(`Children count: ${mesh.getChildMeshes().length}`);
           
-          if (this.onLoadingComplete) 
+          // AJUSTAR POSIÇÃO EXATAMENTE COMO O EXEMPLO
+          console.log("=== CANYON POSITIONING ===");
+          console.log("Canyon mesh position BEFORE adjustment:", mesh.position);
+          mesh.position.y -= 2.5; // APENAS o ajuste Y, mantendo X e Z originais
+          console.log("Canyon mesh position AFTER adjustment:", mesh.position);
+          console.log("Canyon mesh world matrix:", mesh.getWorldMatrix());
+
+          // Verificar dados geométricos
+          if (mesh instanceof Mesh) 
           {
-            this.onLoadingComplete();
+            const positions = mesh.getVerticesData(VertexBuffer.PositionKind);
+            const normals = mesh.getVerticesData(VertexBuffer.NormalKind);
+            const colors = mesh.getVerticesData(VertexBuffer.ColorKind);
+            const uvs = mesh.getVerticesData(VertexBuffer.UVKind);
+            const indices = mesh.getIndices();
+            
+            console.log(`Vertices: ${positions ? positions.length / 3 : 'null'}`);
+            console.log(`Triangles: ${indices ? indices.length / 3 : 'null'}`);
+            console.log(`First triangle indices:`, indices ? [indices[0], indices[1], indices[2]] : 'none');
+
+            if (!positions || !indices || positions.length === 0 || indices.length === 0) 
+            {
+              throw new Error('Canyon mesh has no geometry data');
+            }
           }
-        },
-        onError: (errors) => 
-        {
-          if (this.onLoadingError) 
+
+          // Definir como track principal
+          this.track = mesh;
+
+          if (this.onTrackLoaded) 
           {
-            this.onLoadingError(errors);
+            this.onTrackLoaded(this.track);
+          }
+
+          if (this.onLoadingProgress) 
+          {
+            this.onLoadingProgress(90, 'Canyon loaded successfully');
+          }
+
+          this.isLoaded = true;
+          resolve();
+        }
+        catch (error) 
+        {
+          console.error('Error processing canyon mesh:', error);
+          reject(error);
+        }
+      },
+      (progress) => 
+      {
+        if (progress.total > 0) 
+        {
+          const percentage = Math.round((progress.loaded / progress.total) * 100);
+          console.log(`Canyon download progress: ${percentage}%`);
+          
+          if (this.onLoadingProgress) 
+          {
+            this.onLoadingProgress(30 + (percentage * 0.4), `Downloading: ${percentage}%`);
           }
         }
-      });
-
-    await this.assetManager.load();
-  }
-
-  private setupTrack(): void 
-  {
-    this.track = this.assetManager.getFirstMesh(this.config.trackId);
-    
-    if (!this.track) 
-    {
-      return;
-    }
-
-    this.track.position = Vector3.Zero();
-    this.track.rotation = Vector3.Zero();
-    this.track.scaling = new Vector3(8, 8, 8);
-
-    this.extractTrackMaterialData();
-
-    if (this.onTrackLoaded) 
-    {
-      this.onTrackLoaded(this.track);
-    }
-
-    this.isLoaded = true;
-  }
-
-  private extractTrackMaterialData(): void 
-  {
-    if (!this.track) 
-    {
-      return;
-    }
-    
-    this.trackMaterialData = [];
-    const childMeshes = this.track.getChildMeshes();
-    
-    console.log('=== TRACK MATERIAL EXTRACTION DEBUG ===');
-    console.log(`Total child meshes found: ${childMeshes.length}`);
-    
-    childMeshes.forEach((child, index) => 
-    {
-      if (child instanceof Mesh) 
+      },
+      (scene, message) => 
       {
-        const babylonMesh = child as Mesh;
-        const vertices = babylonMesh.getVerticesData('position');
-        const indices = babylonMesh.getIndices();
-
-        let materialId = 'unknown';
-        if (babylonMesh.material) 
-        {
-          materialId = babylonMesh.material.name || babylonMesh.material.id || 'unknown';
-        }
-
-        const surfaceType = this.determineSurfaceType(materialId);
-        
-        console.log(`Mesh ${index + 1}:`);
-        console.log(`  Name: ${babylonMesh.name}`);
-        console.log(`  Material ID: ${materialId}`);
-        console.log(`  Surface Type: ${surfaceType}`);
-        console.log(`  Vertices: ${vertices ? vertices.length : 0}`);
-        console.log(`  Indices: ${indices ? indices.length : 0}`);
-        console.log(`  Has Collision: ${surfaceType !== 'void'}`);
-        console.log('---');
-
-        if (!vertices || !indices) 
-        {
-          console.warn(`  WARNING: Mesh ${babylonMesh.name} has no geometry data`);
-          return;
-        }
-        
-        this.trackMaterialData.push({
-          mesh: babylonMesh,
-          materialId,
-          surfaceType,
-          vertices: Array.from(vertices),
-          indices: Array.from(indices)
-        });
+        console.error('Canyon loading error:', message);
+        reject(new Error(`Failed to load canyon: ${message}`));
       }
-      else 
-      {
-        console.log(`Child ${index + 1}: Not a mesh (${child.constructor.name})`);
-      }
-    });
-    
-    console.log('=== MATERIAL SUMMARY ===');
-    const summary = this.trackMaterialData.reduce((acc, data) => 
-    {
-      acc[data.surfaceType] = (acc[data.surfaceType] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    Object.entries(summary).forEach(([type, count]) => 
-    {
-      console.log(`${type}: ${count} meshes`);
-    });
-    console.log('=== END DEBUG ===');
-  }
-
- private determineSurfaceType(materialId: string, meshName?: string): 'solid' | 'void' | 'boost' | 'ice' | 'start_finish' 
-  {
-    const lowerMaterialId = materialId.toLowerCase();
-    const lowerMeshName = meshName ? meshName.toLowerCase() : '';
-    
-    if (lowerMaterialId.startsWith('void') || lowerMaterialId.includes('invisible') ||
-        lowerMeshName.startsWith('void')) 
-    {
-      return 'void';
-    }
-    
-    if (lowerMaterialId.startsWith('speed_boost') || lowerMeshName.startsWith('speed_boost')) 
-    {
-      return 'boost';
-    }
-    
-    if (lowerMaterialId.startsWith('ice') || lowerMeshName.startsWith('ice')) 
-    {
-      return 'ice';
-    }
-    
-    if (lowerMaterialId.startsWith('start_line') || lowerMeshName.startsWith('start_line')) 
-    {
-      return 'start_finish';
-    }
-    
-    return 'solid';
-  }
-
-
-  public shouldCreateCollisionForMaterial(materialId: string): boolean 
-  {
-    const surfaceType = this.determineSurfaceType(materialId);
-    return surfaceType !== 'void';
-  }
-
-  public getCollisionMeshes(): TrackMaterialData[] 
-  {
-    return this.trackMaterialData.filter(data => 
-      this.shouldCreateCollisionForMaterial(data.materialId)
     );
-  }
+  });
+}
 
-  public getFallZoneMeshes(): TrackMaterialData[] 
-  {
-    return this.trackMaterialData.filter(data => 
-      data.surfaceType === 'void'
-    );
-  }
-
-  public getSpecialSurfaceMeshes(): TrackMaterialData[] 
-  {
-    return this.trackMaterialData.filter(data => 
-      ['boost', 'ice', 'start_finish'].includes(data.surfaceType)
-    );
-  }
-
-  public getStartLinePosition(): Vector3 | null 
-  {
-    const startLineMesh = this.trackMaterialData.find(data => 
-      data.surfaceType === 'start_finish'
-    );
-    
-    if (startLineMesh) 
-    {
-      return startLineMesh.mesh.getBoundingInfo().boundingBox.center;
-    }
-    
-    return null;
-  }
-
-  public getMaterialCollisionConfig(): MaterialCollisionConfig 
-  {
-    return this.materialConfig;
-  }
-
-  public setMaterialCollisionConfig(config: Partial<MaterialCollisionConfig>): void 
-  {
-    this.materialConfig = { ...this.materialConfig, ...config };
-  }
 
   private setupRacingEnvironment(): void 
   {
@@ -311,11 +223,23 @@ export class RacerScene
     {
       this.scene.clearColor = this.config.fogColor.toColor4();
     }
+
+    console.log('Racing environment setup complete for canyon');
   }
 
   public getTrack(): AbstractMesh | null 
   {
     return this.track;
+  }
+
+  public getAllGeometry(): AbstractMesh[] 
+  {
+    const allGeometry: AbstractMesh[] = [];
+    if (this.track) {
+      allGeometry.push(this.track);
+    }
+    // Nota: Canyon não tem paredes separadas como o ground simples
+    return allGeometry;
   }
 
   public getTrackCenter(): Vector3 
@@ -331,18 +255,24 @@ export class RacerScene
   {
     if (!this.track) 
     {
+      // Fallback para valores padrão
+      const defaultSize = this.config.trackSize! / 2;
       return {
-        min: Vector3.Zero(),
-        max: Vector3.Zero(),
-        size: Vector3.Zero()
+        min: new Vector3(-defaultSize, -50, -defaultSize),
+        max: new Vector3(defaultSize, 50, defaultSize),
+        size: new Vector3(this.config.trackSize!, 100, this.config.trackSize!)
       };
     }
 
+    // Bounds reais do canyon
     const boundingBox = this.track.getBoundingInfo().boundingBox;
+    const min = boundingBox.minimum.clone();
+    const max = boundingBox.maximum.clone();
+    
     return {
-      min: boundingBox.minimum,
-      max: boundingBox.maximum,
-      size: boundingBox.maximum.subtract(boundingBox.minimum)
+      min,
+      max,
+      size: max.subtract(min)
     };
   }
 
@@ -353,40 +283,7 @@ export class RacerScene
 
   public getStartingPositions(count: number = 1): Vector3[] 
   {
-    const startLinePos = this.getStartLinePosition();
-    
-    if (startLinePos) 
-    {
-      const positions: Vector3[] = [];
-      for (let i = 0; i < count; i++) 
-      {
-        positions.push(new Vector3(
-          startLinePos.x + (i * 5),
-          startLinePos.y + 2,
-          startLinePos.z
-        ));
-      }
-      return positions;
-    }
-    
-    if (!this.track) 
-    {
-      return [new Vector3(0, 2, 0)];
-    }
-
-    const trackCenter = this.getTrackCenter();
-    const positions: Vector3[] = [];
-
-    for (let i = 0; i < count; i++) 
-    {
-      positions.push(new Vector3(
-        trackCenter.x + (i * 5),
-        trackCenter.y + 3,
-        trackCenter.z
-      ));
-    }
-
-    return positions;
+    return [new Vector3(109, -192, 627)];
   }
 
   public getGameCanvas(): GameCanvas 
@@ -396,19 +293,25 @@ export class RacerScene
 
   public dispose(): void 
   {
-    if (this.assetManager) 
+    if (this.track) 
     {
-      this.assetManager.dispose();
+      this.track.dispose();
+      this.track = null;
     }
-
-    this.track = null;
-    this.trackMaterialData = [];
+    
+    // Limpar paredes (se houver)
+    this.walls.forEach(wall => {
+      wall.dispose();
+    });
+    this.walls = [];
+    
     this.isLoaded = false;
+    console.log('RacerScene: Disposed (canyon track)');
   }
 
-  public static async createPolarPass(gameCanvas: GameCanvas): Promise<RacerScene> 
+  public static async createCanyonTrack(gameCanvas: GameCanvas, config?: RacerSceneConfig): Promise<RacerScene> 
   {
-    const racerScene = new RacerScene(gameCanvas, POLAR_PASS_CONFIG);
+    const racerScene = new RacerScene(gameCanvas, config);
     await racerScene.loadTrack();
     return racerScene;
   }

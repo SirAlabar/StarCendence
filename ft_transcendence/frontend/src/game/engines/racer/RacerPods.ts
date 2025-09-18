@@ -101,9 +101,9 @@ export class RacerPod
     
     if (loadedMesh) 
     {
-      this.rootNode = new TransformNode(`pod_${this.config.id}`, this.scene);
+      // NÃO criar rootNode - usar a mesh diretamente
       this.mesh = loadedMesh;
-      this.mesh.parent = this.rootNode;
+      // this.rootNode removido - não precisamos dele
       
       console.log('Pod asset loaded successfully');
       
@@ -124,12 +124,10 @@ export class RacerPod
   {
     import('@babylonjs/core').then(({ CreateBox, StandardMaterial, Color3 }) => 
     {
-      this.rootNode = new TransformNode(`pod_${this.config.id}`, this.scene);
+      // Criar diretamente o box sem rootNode
       this.mesh = CreateBox(`fallback_${this.config.id}`, { 
-        width: 3, height: 1, depth: 1 
+        width: 5, height: 2, depth: 12  // Dimensões iguais ao exemplo
       }, this.scene);
-      
-      this.mesh.parent = this.rootNode;
       
       const material = new StandardMaterial(`mat_${this.config.id}`, this.scene);
       material.diffuseColor = new Color3(0.5, 0.3, 0.8);
@@ -184,14 +182,9 @@ export class RacerPod
 
   public setPosition(position: Vector3): void 
   {
-    if (this.rootNode) 
+    if (this.mesh) 
     {
-      this.rootNode.position = position.clone();
-    }
-
-    if (this.physicsEnabled && this.racerPhysics) 
-    {
-      this.racerPhysics.reset(this.config.id, position);
+      this.mesh.position = position.clone();
     }
   }
 
@@ -206,9 +199,9 @@ export class RacerPod
 
   public getPosition(): Vector3 
   {
-    if (this.rootNode) 
+    if (this.mesh) 
     {
-      return this.rootNode.position.clone();
+      return this.mesh.position.clone();
     }
     return Vector3.Zero();
   }

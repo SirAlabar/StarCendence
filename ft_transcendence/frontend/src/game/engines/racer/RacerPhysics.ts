@@ -5,10 +5,14 @@ import
   Vector3, 
   Quaternion,
   AbstractMesh,
-  Ray
+  Ray,
+  Color3,
+  VertexBuffer,
+  CreateRibbon,
+  Vector2
 } from '@babylonjs/core';
 import Ammo from 'ammojs-typed';
-import { CreateLines, Color3 } from '@babylonjs/core';
+import { CreateLines, CreateSphere, StandardMaterial } from '@babylonjs/core';
 import { RacerPod } from './RacerPods';
 
 export class RacerPhysics 
@@ -19,165 +23,35 @@ export class RacerPhysics
   private isInitialized: boolean = false;
   private tempTransform: any = null;
   private racerScene: any = null;
-  private lastSafePositions: Map<string, Vector3> = new Map();  
+  private trackRigidBodies: any[] = [];
+  
+  // Player tracking - EXATO do exemplo
+  private player: any = null;
+  private controls: any = {
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
+    vehicleSteering: 0,
+    steeringClamp: 0.5,
+    steeringIncrement: 0.005
+  };
   
   private pods: Map<string, { 
-    rigidBody: any, 
+    rigidBody: any,
+    vehicle: any,
     mesh: Mesh,
-    hoverPoints: Vector3[],
-    hoverRays: Ray[],
-    pod: RacerPod
+    pod: RacerPod,
+    chassisMesh?: Mesh
   }> = new Map();
   
-  private readonly GRAVITY = new Vector3(0, -25, 0);
-  private readonly POD_MASS = 100;
-  private readonly THRUST_FORCE = 3000;
-  private readonly MAX_VELOCITY = 650;
-  private readonly HOVER_FORCE = 1000;
-  private readonly HOVER_HEIGHT = 3;
-  private readonly HOVER_RAY_LENGTH = 10.0;
-
-  private debugCollisionVisualization: AbstractMesh[] = [];
+  private readonly GRAVITY = new Vector3(0, -49, 0); // EXATO do exemplo
 
   constructor(scene: Scene) 
   {
     this.scene = scene;
     console.log('RacerPhysics: Initializing');
   }
-
-  // ===== Debug Visualization =====
-
-public createCollisionVisualization(racerScene: any, scaleFactor: number): void
-{
-  this.clearCollisionVisualization();
- 
-  const allMaterialData = racerScene.trackMaterialData || [];
- 
-  allMaterialData.forEach((materialData: any, index: number) =>
-  {
-    const { materialId, surfaceType, mesh } = materialData;
-    
-    // Get vertices and indices from the actual mesh
-    const vertices = mesh.getVerticesData('position');
-    const indices = mesh.getIndices();
-    
-    if (!vertices || !indices)
-    {
-      console.warn(`Mesh ${mesh.name} missing geometry data for visualization`);
-      return;
-    }
-    
-    // Get the mesh's world transformation matrix
-    const worldMatrix = mesh.getWorldMatrix();
-    
-    const linePoints: Vector3[] = [];
-    const triangleCount = Math.floor(indices.length / 3);
-   
-    // Create wireframe using proper triangle indices and world transform
-    for (let i = 0; i < triangleCount; i++)
-    {
-      // Get the three vertex indices for this triangle
-      const index0 = indices[i * 3];
-      const index1 = indices[i * 3 + 1];
-      const index2 = indices[i * 3 + 2];
-      
-      // Get local vertex positions
-      const localV1 = new Vector3(
-        vertices[index0 * 3],
-        vertices[index0 * 3 + 1],
-        vertices[index0 * 3 + 2]
-      );
-      const localV2 = new Vector3(
-        vertices[index1 * 3],
-        vertices[index1 * 3 + 1],
-        vertices[index1 * 3 + 2]
-      );
-      const localV3 = new Vector3(
-        vertices[index2 * 3],
-        vertices[index2 * 3 + 1],
-        vertices[index2 * 3 + 2]
-      );
-      
-      // Transform to world coordinates
-      const v1 = Vector3.TransformCoordinates(localV1, worldMatrix);
-      const v2 = Vector3.TransformCoordinates(localV2, worldMatrix);
-      const v3 = Vector3.TransformCoordinates(localV3, worldMatrix);
-      
-      // Only visualize every 3rd triangle to reduce visual clutter
-      if (i % 3 === 0)
-      {
-        // Add lines for triangle edges: v1->v2, v2->v3, v3->v1
-        linePoints.push(v1, v2, v2, v3, v3, v1);
-      }
-    }
-    
-    if (linePoints.length > 0)
-    {
-      const collisionLines = CreateLines(`materialWireframe_${index}`, { points: linePoints }, this.scene);
-     
-      // Set colors based on surface type
-      if (surfaceType === 'void')
-      {
-        collisionLines.color = new Color3(1, 0, 0); // Red for void (not in collision)
-        collisionLines.alpha = 0.3;
-      }
-      else if (materialId.startsWith('track_surface'))
-      {
-        collisionLines.color = new Color3(0, 1, 0); // Green for track surface
-        collisionLines.alpha = 0.6;
-      }
-      else if (materialId.startsWith('wall'))
-      {
-        collisionLines.color = new Color3(1, 0, 1); // Purple for walls
-        collisionLines.alpha = 0.6;
-      }
-      else if (surfaceType === 'boost')
-      {
-        collisionLines.color = new Color3(0, 0.5, 1); // Light blue for boost pads (no collision)
-        collisionLines.alpha = 0.4;
-      }
-      else if (surfaceType === 'ice')
-      {
-        collisionLines.color = new Color3(0, 1, 1); // Cyan for ice (no collision)
-        collisionLines.alpha = 0.4;
-      }
-      else if (surfaceType === 'start_finish')
-      {
-        collisionLines.color = new Color3(1, 1, 0); // Yellow for start line
-        collisionLines.alpha = 0.9;
-      }
-      else
-      {
-        collisionLines.color = new Color3(0.5, 0.5, 0.5); // Gray for unknown
-        collisionLines.alpha = 0.4;
-      }
-     
-      this.debugCollisionVisualization.push(collisionLines);
-    }
-  });
-  
-  console.log(`Created collision visualization for ${allMaterialData.length} material groups`);
-}
-
-  public clearCollisionVisualization(): void 
-  {
-    this.debugCollisionVisualization.forEach(mesh => mesh.dispose());
-    this.debugCollisionVisualization = [];
-  }
-
-  public toggleCollisionVisualization(): boolean 
-  {
-    const isVisible = this.debugCollisionVisualization.length > 0 && this.debugCollisionVisualization[0].isVisible;
-    
-    this.debugCollisionVisualization.forEach(mesh => 
-    {
-      mesh.isVisible = !isVisible;
-    });
-    
-    return !isVisible;
-  }
-
-  // ===== Physics Initialization =====
 
   public async initialize(): Promise<void> 
   {
@@ -192,7 +66,9 @@ public createCollisionVisualization(racerScene: any, scaleFactor: number): void
       
       const ammoInstance = await Ammo.bind(window)();
       const physicsPlugin = new (await import('@babylonjs/core')).AmmoJSPlugin(true, ammoInstance);
-      this.scene.enablePhysics(this.GRAVITY, physicsPlugin);
+      
+      // EXATO do exemplo - gravidade -49
+      this.scene.enablePhysics(new Vector3(0, -49, 0), physicsPlugin);
       
       const physicsEngine = this.scene.getPhysicsEngine();
       const plugin = physicsEngine?.getPhysicsPlugin();
@@ -205,6 +81,7 @@ public createCollisionVisualization(racerScene: any, scaleFactor: number): void
       this.ammoInstance = ammoInstance;
       this.tempTransform = new ammoInstance.btTransform();
       
+      // Register update ANTES de criar objetos - EXATO do exemplo
       this.scene.registerBeforeRender(() => 
       {
         this.updatePhysics();
@@ -220,956 +97,335 @@ public createCollisionVisualization(racerScene: any, scaleFactor: number): void
     }
   }
 
-  // ===== Pod Physics Creation =====
-
-  public createPod(mesh: Mesh, podId: string, pod: RacerPod): void
-  {
-    if (!this.isInitialized || !this.ammoInstance)
-    {
+  // MÉTODO CREATEPOD - RÉPLICA EXATA DO createAmmoVehicle do exemplo
+  public createPod(mesh: Mesh, podId: string, pod: RacerPod): void {
+    if (!this.isInitialized || !this.ammoInstance) {
       throw new Error('RacerPhysics: Not initialized');
     }
     
-    console.log(`Creating pod physics: ${podId}`);
-    
+    console.log("=== VEHICLE POSITIONING DEBUG ===");
     const Ammo = this.ammoInstance;
-    const position = mesh.position;
-    const quaternion = mesh.rotationQuaternion || Quaternion.Identity();
     
-    // Get dimensions from pod class
-    const dimensions = pod.getPhysicalDimensions();
-    const podLength = dimensions.length;
-    const podWidth = dimensions.width;
-    const podHeight = dimensions.height;
+    // PARÂMETROS EXATOS do exemplo
+    var chassisWidth = 5;
+    var chassisHeight = 2;
+    var chassisLength = 12;
+    var massVehicle = 2000;
+
+    var wheelAxisPositionBack = -3.2;
+    var wheelRadiusBack = .8;
+    var wheelWidthBack = .3;
+    var wheelHalfTrackBack = 2.6;
+    var wheelAxisHeightBack = 0.6;
+
+    var wheelAxisFrontPosition = 3.2;
+    var wheelHalfTrackFront = 2.6;
+    var wheelAxisHeightFront = 0.6;
+    var wheelRadiusFront = .8;
+    var wheelWidthFront = .3;
+
+    var friction = 5;
+    var suspensionStiffness = 50;
+    var suspensionDamping = 2;
+    var suspensionCompression = 4;
+    var suspensionRestLength = 1.9;
+    var rollInfluence = 0.0;
+
+    var steeringIncrement = .01;
+    var steeringClamp = 0.2;
+    var maxEngineForce = 500;
+    var maxBreakingForce = 10;
+    var incEngine = 10.0;
     
-    const transform = new Ammo.btTransform();
+    // HULL EXATO do exemplo
+    var hull = [724.8979,1742.79126,-293.8619,1013.10107,1136.37292,-1947.64307,1052.83252,1183.11963,2029.03369,-724.8979,1742.79126,-293.8619,-1052.83252,1183.11963,2029.03369,-1013.10107,1136.37292,-1947.64307,477.1378,1157.46509,-2049.793,549.292,688.7122,-2033.02686,1013.10107,1136.37292,-1947.64307,-549.292,688.7122,-2033.02686,549.292,688.7122,-2033.02686,477.1378,1157.46509,-2049.793,-734.6597,1610.0752,700.9919,-1052.83252,1183.11963,2029.03369,-724.8979,1742.79126,-293.8619,-734.6597,1610.0752,700.9919,1052.83252,1183.11963,2029.03369,-1052.83252,1183.11963,2029.03369,734.6597,1610.0752,700.9919,724.8979,1742.79126,-293.8619,1052.83252,1183.11963,2029.03369,734.6597,1610.0752,700.9919,734.6597,1610.0752,700.9919,-734.6597,1610.0752,700.9919,0,1793.94617,-331.3796,482.0361,486.8974,-1960.24573,549.292,688.7122,-2033.02686,-549.292,688.7122,-2033.02686,482.0361,486.8974,-1960.24573,1053.79028,489.8413,-1858.3396,549.292,688.7122,-2033.02686,-477.1378,1157.46509,-2049.793,-1013.10107,1136.37292,-1947.64307,-549.292,688.7122,-2033.02686,-477.1378,1157.46509,-2049.793,-477.1378,1157.46509,-2049.793,477.1378,1157.46509,-2049.793,0,1418.503,-1807.88025,1077.55261,404.8475,-1583.72144,1053.79028,489.8413,-1858.3396,482.0361,486.8974,-1960.24573,1077.55261,404.8475,-1583.72144,-1029.84131,370.7491,-588.8345,1029.84131,370.7491,-588.8345,1077.55261,404.8475,-1583.72144,1029.84131,370.7491,-588.8345,1137.37439,384.7701,2006.43555,-1077.55261,404.8475,-1583.72144,1077.55261,404.8475,-1583.72144,482.0361,486.8974,-1960.24573,-1077.55261,404.8475,-1583.72144,-1077.55261,404.8475,-1583.72144,-1137.37439,384.7701,2006.43555,-1029.84131,370.7491,-588.8345,-482.0361,486.8974,-1960.24573,-1053.79028,489.8413,-1858.3396,-1077.55261,404.8475,-1583.72144,-482.0361,486.8974,-1960.24573,-482.0361,486.8974,-1960.24573,-549.292,688.7122,-2033.02686,-1053.79028,489.8413,-1858.3396,-482.0361,486.8974,-1960.24573,-244.5957,1412.99524,-1810.30493,-1013.10107,1136.37292,-1947.64307,-477.1378,1157.46509,-2049.793,-244.5957,1412.99524,-1810.30493,-477.1378,1157.46509,-2049.793,0,1418.503,-1807.88025,-244.5957,1412.99524,-1810.30493,-724.8979,1742.79126,-293.8619,-1013.10107,1136.37292,-1947.64307,-244.5957,1412.99524,-1810.30493,0,1418.503,-1807.88025,0,1793.94617,-331.3796,244.5957,1412.99524,-1810.30493,0,1418.503,-1807.88025,477.1378,1157.46509,-2049.793,244.5957,1412.99524,-1810.30493,477.1378,1157.46509,-2049.793,1013.10107,1136.37292,-1947.64307,244.5957,1412.99524,-1810.30493,0,1793.94617,-331.3796,0,1418.503,-1807.88025,244.5957,1412.99524,-1810.30493,1013.10107,1136.37292,-1947.64307,724.8979,1742.79126,-293.8619,-1013.8631,691.0133,-1930.07227,-549.292,688.7122,-2033.02686,-1013.10107,1136.37292,-1947.64307,1013.8631,691.0133,-1930.07227,1013.10107,1136.37292,-1947.64307,549.292,688.7122,-2033.02686,-1061.14771,646.3994,-1909.22253,-1053.79028,489.8413,-1858.3396,-549.292,688.7122,-2033.02686,-1061.14771,646.3994,-1909.22253,-549.292,688.7122,-2033.02686,-1013.8631,691.0133,-1930.07227,-1061.14771,646.3994,-1909.22253,-1013.8631,691.0133,-1930.07227,-1013.10107,1136.37292,-1947.64307,-1061.14771,646.3994,-1909.22253,-1077.55261,404.8475,-1583.72144,-1053.79028,489.8413,-1858.3396,1061.14771,646.3994,-1909.22253,549.292,688.7122,-2033.02686,1053.79028,489.8413,-1858.3396,1061.14771,646.3994,-1909.22253,1013.8631,691.0133,-1930.07227,549.292,688.7122,-2033.02686,1061.14771,646.3994,-1909.22253,1013.10107,1136.37292,-1947.64307,1013.8631,691.0133,-1930.07227,1061.14771,646.3994,-1909.22253,1053.79028,489.8413,-1858.3396,1077.55261,404.8475,-1583.72144,-475.1253,1774.70337,-320.6326,-724.8979,1742.79126,-293.8619,-244.5957,1412.99524,-1810.30493,-475.1253,1774.70337,-320.6326,-244.5957,1412.99524,-1810.30493,0,1793.94617,-331.3796,-475.1253,1774.70337,-320.6326,0,1793.94617,-331.3796,-734.6597,1610.0752,700.9919,-475.1253,1774.70337,-320.6326,-734.6597,1610.0752,700.9919,-724.8979,1742.79126,-293.8619,475.1253,1774.70337,-320.6326,0,1793.94617,-331.3796,244.5957,1412.99524,-1810.30493,475.1253,1774.70337,-320.6326,244.5957,1412.99524,-1810.30493,724.8979,1742.79126,-293.8619,475.1253,1774.70337,-320.6326,724.8979,1742.79126,-293.8619,734.6597,1610.0752,700.9919,475.1253,1774.70337,-320.6326,734.6597,1610.0752,700.9919,0,1793.94617,-331.3796,1043.00146,364.6063,791.3676,1137.37439,384.7701,2006.43555,1029.84131,370.7491,-588.8345,1043.00146,364.6063,791.3676,1029.84131,370.7491,-588.8345,-1029.84131,370.7491,-588.8345,1043.00146,364.6063,791.3676,-1137.37439,384.7701,2006.43555,1137.37439,384.7701,2006.43555,-1043.00146,364.6063,791.3676,-1029.84131,370.7491,-588.8345,-1137.37439,384.7701,2006.43555,-1043.00146,364.6063,791.3676,-1043.00146,364.6063,791.3676,0,396.2789,2017.64673,1137.37439,384.7701,2006.43555,-1137.37439,384.7701,2006.43555,0,1175.7417,2039.25269,-1137.37439,384.7701,2006.43555,-1052.83252,1183.11963,2029.03369,0,396.2789,2017.64673,0,1175.7417,2039.25269,1052.83252,1183.11963,2029.03369,1137.37439,384.7701,2006.43555,0,396.2789,2017.64673,0,1175.7417,2039.25269,-1052.83252,1183.11963,2029.03369,1052.83252,1183.11963,2029.03369,-1114.74915,977.62,422.8308,-1122.866,925.131,422.5171,-1092.156,800.1202,-1582.09863,-1114.74915,977.62,422.8308,-1092.156,800.1202,-1582.09863,-1013.10107,1136.37292,-1947.64307,-1114.74915,977.62,422.8308,-1013.10107,1136.37292,-1947.64307,-1052.83252,1183.11963,2029.03369,1114.74915,977.62,422.8308,1013.10107,1136.37292,-1947.64307,1092.156,800.1202,-1582.09863,1114.74915,977.62,422.8308,1092.156,800.1202,-1582.09863,1122.866,925.131,422.5171,1114.74915,977.62,422.8308,1052.83252,1183.11963,2029.03369,1013.10107,1136.37292,-1947.64307,-1060.57458,794.3555,-1872.05847,-1013.10107,1136.37292,-1947.64307,-1092.156,800.1202,-1582.09863,-1060.57458,794.3555,-1872.05847,-1092.156,800.1202,-1582.09863,-1061.14771,646.3994,-1909.22253,-1060.57458,794.3555,-1872.05847,-1061.14771,646.3994,-1909.22253,-1013.10107,1136.37292,-1947.64307,1060.57458,794.3555,-1872.05847,1092.156,800.1202,-1582.09863,1013.10107,1136.37292,-1947.64307,1060.57458,794.3555,-1872.05847,1013.10107,1136.37292,-1947.64307,1061.14771,646.3994,-1909.22253,1060.57458,794.3555,-1872.05847,1061.14771,646.3994,-1909.22253,1092.156,800.1202,-1582.09863,1093.08643,643.8445,-1582.8042,1092.156,800.1202,-1582.09863,1061.14771,646.3994,-1909.22253,1093.08643,643.8445,-1582.8042,1061.14771,646.3994,-1909.22253,1077.55261,404.8475,-1583.72144,1093.08643,643.8445,-1582.8042,1077.55261,404.8475,-1583.72144,1137.37439,384.7701,2006.43555,1093.08643,643.8445,-1582.8042,1137.37439,384.7701,2006.43555,1122.866,925.131,422.5171,1093.08643,643.8445,-1582.8042,1122.866,925.131,422.5171,1092.156,800.1202,-1582.09863,-1093.08643,643.8445,-1582.8042,-1077.55261,404.8475,-1583.72144,-1061.14771,646.3994,-1909.22253,-1093.08643,643.8445,-1582.8042,-1061.14771,646.3994,-1909.22253,-1092.156,800.1202,-1582.09863,-1093.08643,643.8445,-1582.8042,-1137.37439,384.7701,2006.43555,-1077.55261,404.8475,-1583.72144,-1093.08643,643.8445,-1582.8042,-1122.866,925.131,422.5171,-1137.37439,384.7701,2006.43555,-1093.08643,643.8445,-1582.8042,-1092.156,800.1202,-1582.09863,-1122.866,925.131,422.5171,-1124.65894,924.317,605.2404,-1122.866,925.131,422.5171,-1114.74915,977.62,422.8308,-1124.65894,924.317,605.2404,-1114.74915,977.62,422.8308,-1052.83252,1183.11963,2029.03369,-1124.65894,924.317,605.2404,-1052.83252,1183.11963,2029.03369,-1137.37439,384.7701,2006.43555,-1124.65894,924.317,605.2404,-1137.37439,384.7701,2006.43555,-1122.866,925.131,422.5171,1124.65894,924.317,605.2404,1052.83252,1183.11963,2029.03369,1114.74915,977.62,422.8308,1124.65894,924.317,605.2404,1114.74915,977.62,422.8308,1122.866,925.131,422.5171,1124.65894,924.317,605.2404,1137.37439,384.7701,2006.43555,1052.83252,1183.11963,2029.03369,1124.65894,924.317,605.2404,1122.866,925.131,422.5171,1137.37439,384.7701,2006.43555];
+    
+    console.log("=== VEHICLE HULL ANALYSIS ===");
+    console.log(`Hull vertices count: ${hull.length/3}`);
+    
+    // Geometria EXATA do exemplo
+    var geometry = new Ammo.btConvexHullShape();
+    
+    for(let i=0; i < hull.length; i += 3) {
+      geometry.addPoint(new Ammo.btVector3(
+        hull[i]*0.0028,
+        hull[i+1]*0.0028,
+        hull[i+2]*0.0028));
+    }
+    
+    // Transform EXATO do exemplo
+    var transform = new Ammo.btTransform();
     transform.setIdentity();
-    transform.setOrigin(new Ammo.btVector3(position.x, position.y, position.z));
-    transform.setRotation(new Ammo.btQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w));
+    transform.setOrigin(new Ammo.btVector3(109, -192, 627));
+    console.log("Vehicle spawn position: (109, -192, 627)");
     
-    const motionState = new Ammo.btDefaultMotionState(transform);
-    const localInertia = new Ammo.btVector3(0, 0, 0);
+    var motionState = new Ammo.btDefaultMotionState(transform);
+    var localInertia = new Ammo.btVector3(0, 0, 0);
+    geometry.calculateLocalInertia(massVehicle, localInertia);
     
-    const compoundShape = new Ammo.btCompoundShape();
-  
-    const mainShape = new Ammo.btBoxShape(new Ammo.btVector3(podLength/2, podHeight/2, podWidth/2));
-    const mainTransform = new Ammo.btTransform();
-    mainTransform.setIdentity();
-    compoundShape.addChildShape(mainTransform, mainShape);
-  
-    const frontShape = new Ammo.btBoxShape(new Ammo.btVector3(0.3, podHeight/3, podWidth/3));
-    const frontTransform = new Ammo.btTransform();
-    frontTransform.setIdentity();
-    frontTransform.setOrigin(new Ammo.btVector3(podLength/2 + 0.3, 0, 0));
-    compoundShape.addChildShape(frontTransform, frontShape);
+    // NÃO usar compound shape - exemplo não usa
+    const chassisBody = new Ammo.btRigidBody(new Ammo.btRigidBodyConstructionInfo(massVehicle, motionState, geometry, localInertia));
+    chassisBody.setActivationState(4);
+    chassisBody.isPlayer = true;
+    chassisBody.player = pod; // Referência ao pod em vez de this
     
-    compoundShape.setMargin(0.05);
-    compoundShape.calculateLocalInertia(this.POD_MASS, localInertia);
+    this.physicsWorld.addRigidBody(chassisBody);
     
-    const rigidBodyInfo = new Ammo.btRigidBodyConstructionInfo(this.POD_MASS, motionState, compoundShape, localInertia);
-    const rigidBody = new Ammo.btRigidBody(rigidBodyInfo);
-  
-    rigidBody.setDamping(0.3, 0.5);
-    rigidBody.setFriction(0.8);
-    rigidBody.setRestitution(0.1);
-    rigidBody.setActivationState(4);
-    rigidBody.forceActivationState(4);
-  
-    this.physicsWorld.addRigidBody(rigidBody);
+    // Raycast Vehicle - EXATO do exemplo
+    var tuning = new Ammo.btVehicleTuning();
+    var rayCaster = new Ammo.btDefaultVehicleRaycaster(this.physicsWorld);
     
-    // Calculate hover points from collision box corners
-    const hoverPoints = this.calculateHoverPoints(podLength, podWidth, podHeight);
-    const hoverRays = hoverPoints.map(() => new Ray(Vector3.Zero(), Vector3.Down()));
-  
-    this.pods.set(podId, { rigidBody, mesh, hoverPoints, hoverRays, pod });
+    const vehicle = new Ammo.btRaycastVehicle(tuning, chassisBody, rayCaster);
+    vehicle.setCoordinateSystem(0, 1, 2);
+    this.physicsWorld.addAction(vehicle);
     
-    const initialUpwardVelocity = new Ammo.btVector3(0, 0, 0);
-    rigidBody.setLinearVelocity(initialUpwardVelocity);
-    rigidBody.activate();    
+    // Wheels - EXATO do exemplo
+    var FRONT_LEFT = 0;
+    var FRONT_RIGHT = 1;
+    var BACK_LEFT = 2;
+    var BACK_RIGHT = 3;
+    var wheelDirectionCS0 = new Ammo.btVector3(0, -1, 0);
+    var wheelAxleCS = new Ammo.btVector3(-1, 0, 0);
     
-    this.showPodCollisionBox(podId, true);
-    this.createHoverLines(podId);
-    this.createPhysicsDebugHUD(podId);
+    chassisBody.player = pod;
+    vehicle.player = pod;
+    vehicle.isPlayer = true;
+    
+    const addWheel = (isFront: boolean, pos: any, radius: number, width: number, index: number) => {
+      console.log(isFront);
+      
+      var wheelInfo = vehicle.addWheel(
+        pos,
+        wheelDirectionCS0,
+        wheelAxleCS,
+        suspensionRestLength,
+        radius,
+        tuning,
+        isFront);
 
+      wheelInfo.set_m_suspensionStiffness(suspensionStiffness);
+      wheelInfo.set_m_wheelsDampingRelaxation(suspensionDamping);
+      wheelInfo.set_m_wheelsDampingCompression(suspensionCompression);
+      wheelInfo.set_m_maxSuspensionForce(600000);
+      
+      if(isFront){
+        wheelInfo.set_m_frictionSlip(56);
+      } else {
+        wheelInfo.set_m_frictionSlip(38);
+      }
+      
+      wheelInfo.set_m_rollInfluence(rollInfluence);
+    };
+
+    addWheel(true, new Ammo.btVector3(wheelHalfTrackFront, wheelAxisHeightFront, wheelAxisFrontPosition), wheelRadiusFront, wheelWidthFront, FRONT_LEFT);
+    addWheel(true, new Ammo.btVector3(-wheelHalfTrackFront, wheelAxisHeightFront, wheelAxisFrontPosition), wheelRadiusFront, wheelWidthFront, FRONT_RIGHT);
+    addWheel(false, new Ammo.btVector3(-wheelHalfTrackBack, wheelAxisHeightBack, wheelAxisPositionBack), wheelRadiusBack, wheelWidthBack, BACK_LEFT);
+    addWheel(false, new Ammo.btVector3(wheelHalfTrackBack, wheelAxisHeightBack, wheelAxisPositionBack), wheelRadiusBack, wheelWidthBack, BACK_RIGHT);
     
-    console.log(`Pod physics created: ${podId}`);
+    console.log("thus far");
+    
+    // Armazenar referência
+    this.pods.set(podId, { rigidBody: chassisBody, vehicle, mesh, pod });
+    this.player = { vehicle, mesh, pod }; // Para compatibilidade com movimento
+    
+    // Posicionar mesh na posição inicial
+    mesh.position.set(109, -192, 627);
+    if (!mesh.rotationQuaternion) {
+      mesh.rotationQuaternion = new Quaternion();
+    }
+    mesh.visibility = 0.0; // Como no exemplo - mesh invisível, só physics
+    
+    console.log(`Pod vehicle created with EXACT example parameters`);
   }
 
-
-
-  private calculateHoverPoints(podLength: number, podWidth: number, podHeight: number): Vector3[]  
-  {
-    const halfWidth = podWidth / 2;
-    const halfLength = podLength / 2;
-    const boxBottom = -podHeight / 2;
-  
-    return [
-      new Vector3(-halfLength, boxBottom, -halfWidth),  // Front Left corner
-      new Vector3(-halfLength, boxBottom, halfWidth),   // Front Right corner
-      new Vector3(halfLength, boxBottom, -halfWidth),   // Back Left corner
-      new Vector3(halfLength, boxBottom, halfWidth)     // Back Right corner
-    ];
+  // Movimento EXATO do exemplo (dentro do registerBeforeRender)
+  public movePod(podId: string, input: { x: number, z: number }): void {
+    const podData = this.pods.get(podId);
+    if (!podData) return;
+    
+    // Mapear input para controles do exemplo
+    this.controls.forward = input.z > 0;
+    this.controls.backward = input.z < 0;
+    this.controls.left = input.x < 0;
+    this.controls.right = input.x > 0;
   }
-  
 
-  // ===== Track Physics Setup =====
+  private updatePhysics(): void {
+    if (!this.physicsWorld) return;
+    
+    // Para cada pod, aplicar física EXATA do exemplo
+    this.pods.forEach((podData) => {
+      const vehicle = podData.vehicle;
+      
+      // LÓGICA EXATA do exemplo
+      var maxSpeed = 20000;
+      var maxSteerVal = -0.20;
+      
+      var speedkmh = (vehicle.getCurrentSpeedKmHour() === 0) ? 1 : vehicle.getCurrentSpeedKmHour();
+      var speed = maxSpeed - (speedkmh * 30);
+      
+      vehicle.setBrake(0, 0);
+      vehicle.setBrake(0, 1);
+      vehicle.setBrake(0, 2);
+      vehicle.setBrake(0, 3);
+      
+      if(this.controls.forward){
+        if(speedkmh < -50){
+          vehicle.setBrake(300, 0);
+          vehicle.setBrake(300, 1);
+          vehicle.setBrake(300, 2);
+          vehicle.setBrake(300, 3);
+        } else {
+          vehicle.applyEngineForce(speed, 2);
+          vehicle.applyEngineForce(speed, 3);
+        }
+      } else if(this.controls.backward){
+        if(speedkmh > 50){
+          vehicle.setBrake(300, 0);
+          vehicle.setBrake(300, 1);
+          vehicle.setBrake(300, 2);
+          vehicle.setBrake(300, 3);
+        } else {
+          vehicle.applyEngineForce(-speed, 2);
+          vehicle.applyEngineForce(-speed, 3);
+        }
+      } else {
+        vehicle.applyEngineForce(0, 2);
+        vehicle.applyEngineForce(0, 3);
+      }
+      
+      // Steering com incremento suave EXATO do exemplo
+      if(this.controls.left){
+        if (this.controls.vehicleSteering > -this.controls.steeringClamp){
+          this.controls.vehicleSteering -= this.controls.steeringIncrement;
+        }
+      } else if(this.controls.right){
+        if (this.controls.vehicleSteering < this.controls.steeringClamp){
+          this.controls.vehicleSteering += this.controls.steeringIncrement;
+        }
+      } else {
+        this.controls.vehicleSteering = 0;
+      }
+      
+      vehicle.setSteeringValue(this.controls.vehicleSteering, 0);
+      vehicle.setSteeringValue(this.controls.vehicleSteering, 1);
+      
+      // Sync transform EXATO do exemplo
+      let tm = vehicle.getChassisWorldTransform();
+      let p = tm.getOrigin();
+      let q = tm.getRotation();
+      
+      podData.mesh.position.set(p.x(), p.y(), p.z());
+      podData.mesh.rotationQuaternion.set(q.x(), q.y(), q.z(), q.w());
+      podData.mesh.addRotation(0, Math.PI, 0);
+    });
+  }
 
-  public async setupTrackCollision(trackMesh: AbstractMesh, racerScene: any, showVisualization: boolean = false, scaleFactor: number = 8): Promise<void> 
-  {
-    if (!this.isInitialized || !this.ammoInstance) 
-    {
+  // Setup do track EXATO do exemplo
+  public async setupTrackCollision(trackMesh: AbstractMesh, racerScene: any = null): Promise<void> {
+    if (!this.isInitialized || !this.ammoInstance) {
       throw new Error('RacerPhysics: Cannot setup track - not initialized');
     }
-
-    this.racerScene = racerScene;
-    
-    await this.waitForGeometryReady(trackMesh);
-    
-    const collisionMeshes = racerScene.getCollisionMeshes();
-    
-    if (collisionMeshes.length > 0) 
-    {
-      this.createTrackFromMaterialData(collisionMeshes, scaleFactor);
-      
-      if (showVisualization) 
-      {
-        this.createCollisionVisualization(racerScene, scaleFactor);
-      }
-    }
-    else 
-    {
-      throw new Error('RacerPhysics: No collision meshes found');
-    }
-}
-
-  private async waitForGeometryReady(trackMesh: AbstractMesh, maxWaitMs: number = 3000): Promise<void> 
-  {
-    const startTime = Date.now();
-    
-    return new Promise((resolve) => 
-    {
-      const checkGeometry = () => 
-      {
-        if (trackMesh instanceof Mesh) 
-        {
-          const vertices = trackMesh.getVerticesData('position');
-          if (vertices && vertices.length > 0) 
-          {
-            resolve();
-            return;
-          }
-        }
-        
-        const children = trackMesh.getChildMeshes();
-        for (const child of children) 
-        {
-          if (child instanceof Mesh) 
-          {
-            const vertices = child.getVerticesData('position');
-            if (vertices && vertices.length > 0) 
-            {
-              resolve();
-              return;
-            }
-          }
-        }
-        
-        if (Date.now() - startTime > maxWaitMs) 
-        {
-          console.warn('RacerPhysics: Timeout waiting for geometry data');
-          resolve();
-          return;
-        }
-        
-        setTimeout(checkGeometry, 16);
-      };
-      
-      checkGeometry();
-    });
-  }
-
-private createTrackFromMaterialData(materialDataArray: any[], scaleFactor: number = 8): void 
-{
-  if (!this.isInitialized || !this.ammoInstance) 
-  {
-    throw new Error('RacerPhysics: Cannot create track - not initialized');
-  }
-
-  const Ammo = this.ammoInstance;
-  const triangleMesh = new Ammo.btTriangleMesh(true, true);
-  let totalTriangles = 0;
-
-  // Declare triangle vectors once for reuse
-  let vectA = new Ammo.btVector3(0, 0, 0);
-  let vectB = new Ammo.btVector3(0, 0, 0);
-  let vectC = new Ammo.btVector3(0, 0, 0);
-
-  materialDataArray.forEach((materialData) => 
-  {
-    const { mesh, surfaceType } = materialData;
-    
-    if (surfaceType === 'void') 
-    {
-      // Skip void meshes - don't add their triangles to collision
-      return;
-    }
-
-    // Get both vertices and indices from the actual mesh geometry
-    const vertices = mesh.getVerticesData('position');
-    const indices = mesh.getIndices();
-    
-    if (!vertices || !indices) 
-    {
-      console.warn(`Mesh ${mesh.name} missing geometry data`);
-      return;
-    }
-
-    // Process triangles using proper index mapping
-    const triangleCount = Math.floor(indices.length / 3);
-    
-    for (let i = 0; i < triangleCount; i++) 
-    {
-      // Get the three vertex indices for this triangle
-      const index0 = indices[i * 3];
-      const index1 = indices[i * 3 + 1];
-      const index2 = indices[i * 3 + 2];
-      
-      // Get the actual vertex positions (each vertex has x,y,z coordinates)
-      const vertex0X = vertices[index0 * 3] * scaleFactor;
-      const vertex0Y = vertices[index0 * 3 + 1] * scaleFactor;
-      const vertex0Z = vertices[index0 * 3 + 2] * scaleFactor;
-      
-      const vertex1X = vertices[index1 * 3] * scaleFactor;
-      const vertex1Y = vertices[index1 * 3 + 1] * scaleFactor;
-      const vertex1Z = vertices[index1 * 3 + 2] * scaleFactor;
-      
-      const vertex2X = vertices[index2 * 3] * scaleFactor;
-      const vertex2Y = vertices[index2 * 3 + 1] * scaleFactor;
-      const vertex2Z = vertices[index2 * 3 + 2] * scaleFactor;
-
-      // Set the triangle vertex positions
-      vectA.setX(vertex0X);
-      vectA.setY(vertex0Y);
-      vectA.setZ(vertex0Z);
-
-      vectB.setX(vertex1X);
-      vectB.setY(vertex1Y);
-      vectB.setZ(vertex1Z);
-
-      vectC.setX(vertex2X);
-      vectC.setY(vertex2Y);
-      vectC.setZ(vertex2Z);
-
-      // Add the properly formed triangle to collision mesh
-      triangleMesh.addTriangle(vectA, vectB, vectC, false);
-      totalTriangles++;
-    }
-  });
-
-  // Cleanup vectors
-  Ammo.destroy(vectA);
-  Ammo.destroy(vectB);
-  Ammo.destroy(vectC);
-
-  console.log(`Created collision mesh with ${totalTriangles} triangles`);
-
-  // Create collision shape from triangle mesh
-  const trackShape = new Ammo.btBvhTriangleMeshShape(triangleMesh, true);
-  trackShape.setMargin(0.05);
-
-  // Create static rigid body for track
-  const transform = new Ammo.btTransform();
-  transform.setIdentity();
-  transform.setOrigin(new Ammo.btVector3(0, 0, 0));
-
-  const motionState = new Ammo.btDefaultMotionState(transform);
-  const localInertia = new Ammo.btVector3(0, 0, 0);
-
-  const rigidBodyInfo = new Ammo.btRigidBodyConstructionInfo(
-    0, motionState, trackShape, localInertia
-  );
-
-  const trackRigidBody = new Ammo.btRigidBody(rigidBodyInfo);
-  trackRigidBody.setFriction(0.8);
-  trackRigidBody.setRestitution(0.1);
-  trackRigidBody.setCollisionFlags(1);
-
-  this.physicsWorld.addRigidBody(trackRigidBody);
-}
-
-  private checkForFall(podId: string, podData: any): void 
-  {
-    const mesh = podData.mesh;
-    const fallThreshold = -15;
-    
-    if (mesh.position.y < fallThreshold) 
-    {
-      const respawnPos = this.getLastSafePosition(podId) || new Vector3(0, 5, 0);
-      this.reset(podId, respawnPos);
-      
-      if (this.racerScene && this.racerScene.onPodRespawn) 
-      {
-        this.racerScene.onPodRespawn(podId);
-      }
-    }
-    else if (mesh.position.y > 0) 
-    {
-      this.updateLastSafePosition(podId, mesh.position.clone());
-    }
-  }
-
-  private getLastSafePosition(podId: string): Vector3 | null 
-  {
-    return this.lastSafePositions.get(podId) || null;
-  }
-
-  private updateLastSafePosition(podId: string, position: Vector3): void 
-  {
-    this.lastSafePositions.set(podId, position);
-  }
-
-  // ===== Pod Movement =====
-
-  public movePod(podId: string, input: { x: number, z: number }): void
-  {
-    const podData = this.pods.get(podId);
-    if (!podData || !this.ammoInstance)
-    {
-      return;
-    }
     
     const Ammo = this.ammoInstance;
-    const rigidBody = podData.rigidBody;
-    const mesh = podData.mesh;
-    const velocity = rigidBody.getLinearVelocity();
-    const currentSpeed = Math.sqrt(velocity.x() * velocity.x() + velocity.z() * velocity.z());
+    const mesh = trackMesh as Mesh;
     
-    const speedPercentage = currentSpeed / this.MAX_VELOCITY;
-    let thrustMultiplier = 1.0;
-
-    if (speedPercentage < 0.08) 
-    {
-      thrustMultiplier = 3.0;
-    }
-    else if (speedPercentage < 0.15) 
-    {
-      thrustMultiplier = 2.2;
-    }
-    else if (speedPercentage < 0.25) 
-    {
-      thrustMultiplier = 1.6;
-    }
-    else if (speedPercentage < 0.4) 
-    {
-      thrustMultiplier = 1.2;
-    }
-    else if (speedPercentage < 0.8) 
-    {
-      thrustMultiplier = 1.0;
-    }
-    else 
-    {
-      thrustMultiplier = 0.7;
-    }
-  
-    const REDUCED_THRUST = this.THRUST_FORCE * 0.3 * thrustMultiplier;
-    const REDUCED_MAX_VELOCITY = this.MAX_VELOCITY * 0.9;
-  
-    if (currentSpeed < REDUCED_MAX_VELOCITY && input.z !== 0)
-    {
-      const forwardDir = this.getForwardDirection(mesh);
+    console.log("=== CANYON MESH ANALYSIS ===");
+    console.log(`Main mesh: ${mesh.name}`);
     
-      const thrustForce = new Ammo.btVector3(
-        forwardDir.x * input.z * REDUCED_THRUST * 0.016,
-        0,
-        forwardDir.z * input.z * REDUCED_THRUST * 0.016
-      );
+    // NÃO ajustar posição aqui - já foi feita no RacerScene
+    // mesh.position.y -= 2.5; // REMOVIDO - já feito no carregamento
     
-      const newVelocity = new Ammo.btVector3(
-        velocity.x() + thrustForce.x(),
-        velocity.y(),
-        velocity.z() + thrustForce.z()
-      );
+    // Obter dados EXATOS como o exemplo
+    let positions = mesh.getVerticesData(VertexBuffer.PositionKind);
+    let indices = mesh.getIndices();
     
-      rigidBody.setLinearVelocity(newVelocity);
-    }
-  
-    const REDUCED_TURN_FORCE = 8.0;
-    if (input.x !== 0)
-    {
-      const turnForce = new Ammo.btVector3(0, +input.x * REDUCED_TURN_FORCE, 0);
-      rigidBody.setAngularVelocity(turnForce);
-    }
-    else
-    {
-      const currentAngular = rigidBody.getAngularVelocity();
-      const dampedAngular = new Ammo.btVector3(
-        currentAngular.x() * 0.8,
-        currentAngular.y() * 0.8,
-        currentAngular.z() * 0.8
-      );
-      rigidBody.setAngularVelocity(dampedAngular);
-    }
-    
-    this.applyHoverForce(rigidBody, mesh);
-    this.preventUpsideDown(rigidBody, mesh);
-
-    this.updatePhysicsDebugHUD(podId, {
-      speed: currentSpeed * 3.6,
-      thrust: REDUCED_THRUST * thrustMultiplier,
-      maxSpeed: this.MAX_VELOCITY * 3.6,
-      acceleration: thrustMultiplier * 100,
-      slopeAngle: 0,
-      position: mesh.position
-    });
-  }
-
-  private applyHoverForce(rigidBody: any, mesh: Mesh): void 
-  {
-    const Ammo = this.ammoInstance;
-    const podId = this.findPodIdByMesh(mesh);
-    if (!podId) 
-    {
+    if (!positions || !indices) {
+      console.error("No geometry data");
       return;
     }
+    
+    console.log(`Vertices: ${positions.length/3}`);
+    console.log(`Triangles: ${indices.length/3}`);
+    
+    mesh.updateFacetData();
+    var localPositions = mesh.getFacetLocalPositions();
+    var triangleCount = localPositions.length;
+    
+    // Criar triangle mesh EXATO do exemplo
+    let mTriMesh = new Ammo.btTriangleMesh();
+    let removeDuplicateVertices = true;
+    
+    var _g = 0;
+    while(_g < triangleCount) {
+      var i = _g++;
+      var index0 = indices[i * 3];
+      var index1 = indices[i * 3 + 1];
+      var index2 = indices[i * 3 + 2];
+      var vertex0 = new Ammo.btVector3(positions[index0 * 3], positions[index0 * 3 + 1], positions[index0 * 3 + 2]);
+      var vertex1 = new Ammo.btVector3(positions[index1 * 3], positions[index1 * 3 + 1], positions[index1 * 3 + 2]);
+      var vertex2 = new Ammo.btVector3(positions[index2 * 3], positions[index2 * 3 + 1], positions[index2 * 3 + 2]);
+      mTriMesh.addTriangle(vertex0, vertex1, vertex2);
+    }
+    
+    let shape = new Ammo.btBvhTriangleMeshShape(mTriMesh, true, true);
+    let localInertia = new Ammo.btVector3(0, 0, 0);
+    let transform = new Ammo.btTransform();
+    
+    transform.setIdentity();
+    transform.setOrigin(new Ammo.btVector3(mesh.position.x, mesh.position.y, mesh.position.z));
+    console.log("Canyon physics position:", mesh.position.x, mesh.position.y, mesh.position.z);
+    
+    if (mesh.rotationQuaternion) {
+      transform.setRotation(new Ammo.btQuaternion(
+        mesh.rotationQuaternion.x, 
+        mesh.rotationQuaternion.y, 
+        mesh.rotationQuaternion.z, 
+        mesh.rotationQuaternion.w
+      ));
+    }
+    
+    let motionState = new Ammo.btDefaultMotionState(transform);
+    let rbInfo = new Ammo.btRigidBodyConstructionInfo(0, motionState, shape, localInertia);
+    let body = new Ammo.btRigidBody(rbInfo);
+    this.physicsWorld.addRigidBody(body);
+    
+    console.log("Canyon rigid body created");
+  }
 
+  public getSpeed(podId: string): number {
     const podData = this.pods.get(podId);
-    if (!podData) 
-    {
-      return;
-    }
-
-    const hoverPoints = podData.hoverPoints;
-
-    // Apply hover force at each of the 4 points
-    for (let i = 0; i < hoverPoints.length; i++) 
-    {
-      // Calculate world position of hover point
-      const localHoverPoint = hoverPoints[i];
-      const worldHoverPoint = Vector3.TransformCoordinates(localHoverPoint, mesh.getWorldMatrix());
-      
-      // Cast ray downward from this hover point
-      const ray = new Ray(worldHoverPoint, Vector3.Down());
-      const hit = this.scene.pickWithRay(ray);
-
-      let distanceFromGround = worldHoverPoint.y; // Use hover point height, not mesh center
-
-      if (hit?.hit && hit.distance < this.HOVER_RAY_LENGTH) 
-      {
-        distanceFromGround = hit.distance;
-      }
-
-      // Apply your original hover logic per point
-      if (distanceFromGround < this.HOVER_HEIGHT) 
-      {
-        const hoverStrength = (this.HOVER_HEIGHT - distanceFromGround) / this.HOVER_HEIGHT;
-        const REDUCED_HOVER_FORCE = this.HOVER_FORCE * 0.3;
-        const upwardForce = REDUCED_HOVER_FORCE * hoverStrength * 0.016 * 0.25; // Divide by 4 points
-        
-        // Apply force at this specific hover point
-        const forcePosition = new Ammo.btVector3(
-          localHoverPoint.x, 
-          localHoverPoint.y, 
-          localHoverPoint.z
-        );
-        const upwardForceVector = new Ammo.btVector3(0, upwardForce, 0);
-        
-        rigidBody.applyForce(upwardForceVector, forcePosition);
-      }
-    }
-
-    // Keep your original emergency recovery
-    if (mesh.position.y < 0) 
-    {
-      console.warn(`Pod below ground, resetting position`);
-      const podId = this.findPodIdByMesh(mesh);
-      if (podId) 
-      {
-        const resetPos = new Vector3(mesh.position.x, this.HOVER_HEIGHT + 2, mesh.position.z);
-        this.reset(podId, resetPos);
-      }
-    }
+    if (!podData) return 0;
+    return Math.abs(podData.vehicle.getCurrentSpeedKmHour());
   }
 
-  private preventUpsideDown(rigidBody: any, mesh: Mesh): void 
-  {
-    const Ammo = this.ammoInstance;
-    
-    // Check if pod is tilted too much
-    const upVector = mesh.up;
-    const dotProduct = Vector3.Dot(upVector, Vector3.Up());
-    
-    // If pod is tilted more than 45 degrees (dotProduct < 0.7)
-    if (dotProduct < 0.7) 
-    {
-      console.warn('Pod tilted too much, applying stabilization');
-      
-      // Apply strong upright torque
-      const stabilizationTorque = new Ammo.btVector3(
-        -mesh.rotation.x * 1000,  // Counter roll
-        0,                        // Don't affect yaw (steering)
-        -mesh.rotation.z * 1000   // Counter pitch
-      );
-      
-      rigidBody.applyTorque(stabilizationTorque);
-      
-      // If completely upside down, reset pod
-      if (dotProduct < 0) 
-      {
-        const podId = this.findPodIdByMesh(mesh);
-        if (podId) 
-        {
-          const resetPos = new Vector3(mesh.position.x, mesh.position.y + 3, mesh.position.z);
-          this.reset(podId, resetPos);
-        }
-      }
-    }
-  }
-
-  private findPodIdByMesh(targetMesh: Mesh): string | null 
-  {
-    for (const [podId, podData] of this.pods.entries()) 
-    {
-      if (podData.mesh === targetMesh) 
-      {
-        return podId;
-      }
-    }
-    return null;
-  }
-
-  private getForwardDirection(mesh: Mesh): Vector3 
-  {
-    const forward = mesh.getDirection(new Vector3(-1, 0, 0));
-    return forward.normalize();
-  }
-
-  // ===== Physics Update =====
-
-  private updatePhysics(): void 
-  {
-    if (!this.physicsWorld) 
-    {
-      return;
-    }
-
-    this.pods.forEach((podData, _podId) => 
-    {
-      const mesh = podData.mesh;
-      const rigidBody = podData.rigidBody;
-      
-      const motionState = rigidBody.getMotionState();
-      if (motionState) 
-      {
-        motionState.getWorldTransform(this.tempTransform);
-        
-        const position = this.tempTransform.getOrigin();
-        const rotation = this.tempTransform.getRotation();
-        
-        mesh.position.set(position.x(), position.y(), position.z());
-        
-        if (!mesh.rotationQuaternion) 
-        {
-          mesh.rotationQuaternion = new Quaternion();
-        }
-        
-        mesh.rotationQuaternion.set(rotation.x(), rotation.y(), rotation.z(), rotation.w());
-
-        this.showHoverLines(_podId);
-      }
-    });
-
-    this.pods.forEach((podData, podId) => 
-    {
-      this.checkForFall(podId, podData);
-    });
-  }
-
-  // ===== Data Access =====
-
-  public getSpeed(podId: string): number 
-  {
+  public removePod(podId: string): void {
     const podData = this.pods.get(podId);
-    if (!podData) 
-    {
-      return 0;
-    }
-    
-    const velocity = podData.rigidBody.getLinearVelocity();
-    return Math.sqrt(velocity.x() * velocity.x() + velocity.y() * velocity.y() + velocity.z() * velocity.z());
-  }
-
-  public reset(podId: string, position: Vector3, rotation?: Vector3): void 
-  {
-    const podData = this.pods.get(podId);
-    if (!podData || !this.ammoInstance) 
-    {
-      return;
-    }
-
-    const Ammo = this.ammoInstance;
-    const rigidBody = podData.rigidBody;
-    
-    rigidBody.setLinearVelocity(new Ammo.btVector3(0, 0, 0));
-    rigidBody.setAngularVelocity(new Ammo.btVector3(0, 0, 0));
-    
-    this.tempTransform.setIdentity();
-    this.tempTransform.setOrigin(new Ammo.btVector3(position.x, position.y, position.z));
-    
-    if (rotation) 
-    {
-      const quat = Quaternion.FromEulerAngles(rotation.x, rotation.y, rotation.z);
-      this.tempTransform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w));
-    }
-    
-    rigidBody.setWorldTransform(this.tempTransform);
-    rigidBody.activate();
-  }
-
-  public removePod(podId: string): void 
-  {
-    const podData = this.pods.get(podId);
-    if (podData) 
-    {
+    if (podData) {
       this.physicsWorld.removeRigidBody(podData.rigidBody);
+      this.physicsWorld.removeAction(podData.vehicle);
       this.pods.delete(podId);
     }
   }
 
-  // ===== Status =====
-
-  public isPhysicsReady(): boolean 
-  {
+  public isPhysicsReady(): boolean {
     return this.isInitialized && this.physicsWorld !== null;
   }
 
-  // ===== Debug Visualization Methods =====
-
-  public createHoverLines(podId: string): void 
-  {
-    const podData = this.pods.get(podId);
-    if (!podData) 
-    {
-      return;
-    }
-
-    const { mesh, pod } = podData;
-    
-    // Remove any existing hover lines first
-    this.scene.meshes.filter(meshItem => 
-      meshItem.name.startsWith(`hoverLine_${podId}`)
-    ).forEach(meshItem => meshItem.dispose());
-
-    // Get current collision box dimensions
-    const dimensions = pod.getPhysicalDimensions();
-    const hoverPoints = this.calculateHoverPoints(dimensions.length, dimensions.width, dimensions.height);
-    
-    // Create initial hover lines for each hover point
-    hoverPoints.forEach((hoverPoint, index) => 
-    {
-      const worldHoverPoint = Vector3.TransformCoordinates(hoverPoint, mesh.getWorldMatrix());
-      
-      // Cast ray downward from hover point
-      const ray = new Ray(worldHoverPoint, Vector3.Down());
-      const hit = this.scene.pickWithRay(ray);
-      
-      // Create line from hover point to ground or max distance
-      const rayEnd = hit?.hit ? 
-        hit.pickedPoint! : 
-        worldHoverPoint.add(Vector3.Down().scale(this.HOVER_RAY_LENGTH));
-      
-      const linePoints = [worldHoverPoint, rayEnd];
-      const hoverLine = CreateLines(`hoverLine_${podId}_${index}`, { points: linePoints }, this.scene);
-      hoverLine.color = new Color3(0, 1, 0); // Green lines
-      hoverLine.alpha = 0.8;
-      
-      console.log(`Created hover line ${index} for pod ${podId}`);
-    });
-  }
-
-  private showHoverLines(podId: string): void 
-  {
-    const podData = this.pods.get(podId);
-    if (!podData) 
-    {
-      return;
-    }
-
-    const { mesh, pod } = podData;
-    
-    // Check if hover lines exist
-    const existingLines = this.scene.meshes.filter(meshItem => 
-      meshItem.name.startsWith(`hoverLine_${podId}`)
-    );
-    
-    // If no lines exist, create them
-    if (existingLines.length === 0) 
-    {
-      this.createHoverLines(podId);
-      return;
-    }
-
-    // Get current collision box dimensions
-    const dimensions = pod.getPhysicalDimensions();
-    const currentHoverPoints = this.calculateHoverPoints(dimensions.length, dimensions.width, dimensions.height);
-    
-    // Remove old hit spheres
-    this.scene.meshes.filter(meshItem => 
-      meshItem.name.startsWith(`hitSphere_${podId}`)
-    ).forEach(meshItem => meshItem.dispose());
-    
-    currentHoverPoints.forEach((hoverPoint, index) => 
-    {
-      const worldHoverPoint = Vector3.TransformCoordinates(hoverPoint, mesh.getWorldMatrix());
-      
-      // Cast ray and check hit
-      const ray = new Ray(worldHoverPoint, Vector3.Down());
-      const hit = this.scene.pickWithRay(ray);
-      
-      // Update existing line
-      const existingLine = existingLines[index];
-      if (existingLine) 
-      {
-        const rayEnd = hit?.hit ? 
-          hit.pickedPoint! : 
-          worldHoverPoint.add(Vector3.Down().scale(this.HOVER_RAY_LENGTH));
-        
-        const newPoints = [worldHoverPoint, rayEnd];
-        existingLine.dispose();
-        
-        const newRayLine = CreateLines(`hoverLine_${podId}_${index}`, { points: newPoints }, this.scene);
-        newRayLine.color = hit?.hit ? new Color3(0, 1, 0) : new Color3(1, 1, 0); // Green if hitting, yellow if not
-        newRayLine.alpha = 0.8;
-      }
-      
-      // Create new hit sphere if ray hits
-      if (hit?.hit && hit.pickedPoint) 
-      {
-        import('@babylonjs/core').then(({ CreateSphere, StandardMaterial }) => 
-        {
-          const hitSphere = CreateSphere(`hitSphere_${podId}_${index}`, { diameter: 0.3 }, this.scene);
-          hitSphere.position = hit.pickedPoint!.clone();
-          
-          const hitMaterial = new StandardMaterial(`hitMat_${podId}_${index}`, this.scene);
-          hitMaterial.diffuseColor = new Color3(1, 1, 0); // Yellow hit spheres
-          hitMaterial.emissiveColor = new Color3(0.3, 0.3, 0);
-          hitSphere.material = hitMaterial;
-        });
-      }
-    });
-  }
-
-  public showPodCollisionBox(podId: string, show: boolean): void 
-  {
-    const podData = this.pods.get(podId);
-    if (!podData) 
-    {
-      return;
-    }
-
-    const { mesh, pod } = podData;
-    
-    // Remove existing collision box visualization
-    this.scene.meshes.filter(meshItem => meshItem.name.startsWith(`collisionBox_${podId}`))
-      .forEach(meshItem => meshItem.dispose());
-    
-    if (show) 
-    {
-      // Get dimensions from pod class
-      const dimensions = pod.getPhysicalDimensions();
-      const podLength = dimensions.length;
-      const podWidth = dimensions.width;
-      const podHeight = dimensions.height;
-      
-      // Create wireframe box matching the collision shape
-      const boxCorners = [
-        // Bottom face
-        new Vector3(-podLength/2, -podHeight/2, -podWidth/2),
-        new Vector3(podLength/2, -podHeight/2, -podWidth/2),
-        new Vector3(podLength/2, -podHeight/2, podWidth/2),
-        new Vector3(-podLength/2, -podHeight/2, podWidth/2),
-        
-        // Top face  
-        new Vector3(-podLength/2, podHeight/2, -podWidth/2),
-        new Vector3(podLength/2, podHeight/2, -podWidth/2),
-        new Vector3(podLength/2, podHeight/2, podWidth/2),
-        new Vector3(-podLength/2, podHeight/2, podWidth/2)
-      ];
-      
-      // Create wireframe lines for collision box
-      const boxLines: Vector3[] = [];
-      
-      // Bottom face edges
-      boxLines.push(boxCorners[0], boxCorners[1], boxCorners[1], boxCorners[2], 
-                    boxCorners[2], boxCorners[3], boxCorners[3], boxCorners[0]);
-      
-      // Top face edges
-      boxLines.push(boxCorners[4], boxCorners[5], boxCorners[5], boxCorners[6], 
-                    boxCorners[6], boxCorners[7], boxCorners[7], boxCorners[4]);
-      
-      // Vertical edges connecting top and bottom
-      boxLines.push(boxCorners[0], boxCorners[4], boxCorners[1], boxCorners[5],
-                    boxCorners[2], boxCorners[6], boxCorners[3], boxCorners[7]);
-      
-      const collisionBoxWireframe = CreateLines(`collisionBox_${podId}`, { points: boxLines }, this.scene);
-      collisionBoxWireframe.color = new Color3(1, 1, 0); // Yellow collision box
-      collisionBoxWireframe.alpha = 0.7;
-      
-      // Make the wireframe follow the pod
-      collisionBoxWireframe.parent = mesh;
-      
-      console.log(`Collision box visible for pod: ${podId}`);
-    }
-    else 
-    {
-      console.log(`Collision box hidden for pod: ${podId}`);
-    }
-  }
-
-  // ===== Toggle Debug Visualization =====
-
-  public togglePodDebugVisualization(podId: string): void 
-  {
-    const hoverLinesVisible = this.scene.meshes.some(mesh => 
-      mesh.name.startsWith(`hoverLine_${podId}`) && mesh.isVisible
-    );
-    
-    const collisionBoxVisible = this.scene.meshes.some(mesh => 
-      mesh.name.startsWith(`collisionBox_${podId}`) && mesh.isVisible
-    );
-    
-    // Toggle both hover lines and collision box
-    const newVisibility = !(hoverLinesVisible || collisionBoxVisible);
-    
-    this.showPodCollisionBox(podId, newVisibility);
-    
-    console.log(`Pod debug visualization ${newVisibility ? 'enabled' : 'disabled'} for: ${podId}`);
-  }
-
-  public createPhysicsDebugHUD(podId: string): void 
-  {
-    // Remove existing debug HUD
-    const existingHUD = document.getElementById('physicsDebugHUD');
-    if (existingHUD) 
-    {
-      existingHUD.remove();
-    }
-
-    const debugHTML = `
-      <div id="physicsDebugHUD" class="absolute top-20 left-4 bg-black/80 text-white p-4 rounded-lg text-sm font-mono" style="z-index: 1001;">
-        <h3 class="text-green-400 font-bold mb-2">Physics Debug - ${podId}</h3>
-        
-        <div class="grid grid-cols-2 gap-4">
-          <!-- Movement Forces -->
-          <div>
-            <div class="text-yellow-400 font-bold">Movement</div>
-            <div>Speed: <span id="debugSpeed">0</span> km/h</div>
-            <div>Thrust: <span id="debugThrust">0</span> N</div>
-            <div>Max Speed: <span id="debugMaxSpeed">0</span> km/h</div>
-            <div>Acceleration: <span id="debugAcceleration">0</span>%</div>
-          </div>
-          
-          <!-- Hover System -->
-          <div>
-            <div class="text-blue-400 font-bold">Hover System</div>
-            <div>Height: <span id="debugHeight">0</span> m</div>
-            <div>Hover Force: <span id="debugHoverForce">0</span> N</div>
-            <div>Ground Contact: <span id="debugGroundContact">0</span>/4</div>
-            <div>Slope Angle: <span id="debugSlopeAngle">0</span>°</div>
-          </div>
-          
-          <!-- Physics Forces -->
-          <div>
-            <div class="text-red-400 font-bold">Forces</div>
-            <div>Gravity: <span id="debugGravity">0</span> N</div>
-            <div>Velocity X: <span id="debugVelX">0</span></div>
-            <div>Velocity Y: <span id="debugVelY">0</span></div>
-            <div>Velocity Z: <span id="debugVelZ">0</span></div>
-          </div>
-          
-          <!-- Position -->
-          <div>
-            <div class="text-purple-400 font-bold">Position</div>
-            <div>X: <span id="debugPosX">0</span></div>
-            <div>Y: <span id="debugPosY">0</span></div>
-            <div>Z: <span id="debugPosZ">0</span></div>
-            <div>On Track: <span id="debugOnTrack">Unknown</span></div>
-          </div>
-        </div>
-        
-        <div class="mt-4 border-t border-gray-600 pt-2">
-          <div class="text-gray-400 text-xs">
-            Press 'P' to toggle physics debug | 'H' to toggle hover lines
-          </div>
-        </div>
-      </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', debugHTML);
-  }
-
-    private updatePhysicsDebugHUD(_podId: string, data: {
-    speed: number,
-    thrust: number,
-    maxSpeed: number,
-    acceleration: number,
-    slopeAngle: number,
-    position: Vector3
-  }): void 
-  {
-    document.getElementById('debugSpeed')!.textContent = Math.round(data.speed).toString();
-    document.getElementById('debugThrust')!.textContent = Math.round(data.thrust).toString();
-    document.getElementById('debugMaxSpeed')!.textContent = Math.round(data.maxSpeed).toString();
-    document.getElementById('debugAcceleration')!.textContent = Math.round(data.acceleration).toString();
-    document.getElementById('debugSlopeAngle')!.textContent = Math.round(data.slopeAngle).toString();
-    document.getElementById('debugPosX')!.textContent = data.position.x.toFixed(1);
-    document.getElementById('debugPosY')!.textContent = data.position.y.toFixed(1);
-    document.getElementById('debugPosZ')!.textContent = data.position.z.toFixed(1);
-    document.getElementById('debugGravity')!.textContent = Math.abs(this.GRAVITY.y * this.POD_MASS).toString();
-  }
-
-  // ===== Cleanup =====
-
-  public clearPhysicsDebugHUD(): void 
-  {
-    const existingHUD = document.getElementById('physicsDebugHUD');
-    if (existingHUD) 
-    {
-      existingHUD.remove();
-    }
-    
-    this.pods.forEach((_, podId) => {
-      this.scene.meshes.filter(mesh => 
-        mesh.name.startsWith(`hoverLine_${podId}`) || 
-        mesh.name.startsWith(`hitSphere_${podId}`) ||
-        mesh.name.startsWith(`collisionBox_${podId}`)
-      ).forEach(mesh => mesh.dispose());
-    });
-    
-    this.clearCollisionVisualization();
-  }
-
-  public setupPageCleanup(): void 
-  {
-    window.addEventListener('beforeunload', () => {
-      this.clearPhysicsDebugHUD();
-    });
-    
-    window.addEventListener('popstate', () => {
-      this.clearPhysicsDebugHUD();
-    });
-  }
-
-  public dispose(): void 
-  {
-    this.pods.forEach((podData) => 
-    {
+  public dispose(): void {
+    this.pods.forEach((podData) => {
       this.physicsWorld.removeRigidBody(podData.rigidBody);
+      this.physicsWorld.removeAction(podData.vehicle);
+    });
+    
+    this.trackRigidBodies.forEach((rigidBody) => {
+      this.physicsWorld.removeRigidBody(rigidBody);
     });
     
     this.pods.clear();
+    this.trackRigidBodies = [];
     
-    if (this.scene.getPhysicsEngine()) 
-    {
+    if (this.scene.getPhysicsEngine()) {
       this.scene.disablePhysicsEngine();
     }
     
