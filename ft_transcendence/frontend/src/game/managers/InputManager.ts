@@ -70,7 +70,7 @@ export class InputManager
     };
     
     this.callbacks = {};
-    this.movementSpeed = 0.1;
+    this.movementSpeed = 1.0;
   }
 
   public initialize(canvas: HTMLCanvasElement, callbacks: InputCallbacks): void 
