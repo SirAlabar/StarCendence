@@ -12,7 +12,7 @@ import
   Vector2
 } from '@babylonjs/core';
 import Ammo from 'ammojs-typed';
-import { CreateLines, CreateSphere, StandardMaterial } from '@babylonjs/core';
+import { CreateBox, CreateLines, StandardMaterial } from '@babylonjs/core';
 import { RacerPod } from './RacerPods';
 
 export class RacerPhysics 
@@ -50,6 +50,8 @@ export class RacerPhysics
   private readonly MAX_VELOCITY = 400;   // REDUZIDO de 650 para 80
   private readonly HOVER_FORCE = 1000;
   private readonly HOVER_HEIGHT = 3;
+private debugMeshes: Mesh[] = [];
+private isDebugMode: boolean = false;
 
   constructor(scene: Scene) 
   {
@@ -131,7 +133,7 @@ export class RacerPhysics
     var suspensionStiffness = 50;
     var suspensionDamping = 2;
     var suspensionCompression = 4;
-    var suspensionRestLength = 1.9;
+    var suspensionRestLength = 3;
     var rollInfluence = 0.0;
     
     // HULL EXATO do exemplo
@@ -146,10 +148,13 @@ export class RacerPhysics
         hull[i+2]*0.0028));
     }
     
-    // Transform inicial - VOLTAR À POSIÇÃO ORIGINAL  
+    // Transform inicial - VOLTAR À POSIÇÃO ORIGINAL 
+    const position = mesh.position;
+    console.log("=== POD CREATION POSITION PHYSICS ===");
+    console.log(`x=${position.x}, y=${position.y}, z=${position.z}`);
     var transform = new Ammo.btTransform();
     transform.setIdentity();
-    transform.setOrigin(new Ammo.btVector3(109, -192, 627)); // Posição original
+    transform.setOrigin(new Ammo.btVector3(position.x, position.y, position.z));
     
     var motionState = new Ammo.btDefaultMotionState(transform);
     var localInertia = new Ammo.btVector3(0, 0, 0);
@@ -210,11 +215,14 @@ export class RacerPhysics
     this.pods.set(podId, { rigidBody: chassisBody, vehicle, mesh, pod });
     
     // Posicionar mesh - VOLTAR POSIÇÃO ORIGINAL
-    mesh.position.set(109, -192, 627); // Posição original
+    mesh.position.set(position.x, position.y, position.z);
     if (!mesh.rotationQuaternion) {
       mesh.rotationQuaternion = new Quaternion();
     }
     mesh.visibility = 0.0;
+    console.log("=== POD CREATION POSITION ===");
+    console.log(`x=${position.x}, y=${position.y}, z=${position.z}`);
+
     
     console.log(`btRaycastVehicle pod created: ${podId}`);
   }
@@ -228,7 +236,10 @@ export class RacerPhysics
     const vehicle = podData.vehicle;
     const mesh = podData.mesh;
     
-    // USAR velocidade do btRaycastVehicle corretamente
+    console.log(`=== MOVE INPUT DEBUG ===`);
+    console.log(`Input received: x=${input.x.toFixed(3)}, z=${input.z.toFixed(3)}`);
+    console.log(`Pod found: ${podData ? 'YES' : 'NO'}`);
+
     const currentSpeed = Math.abs(vehicle.getCurrentSpeedKmHour());
     const speedPercentage = currentSpeed / this.MAX_VELOCITY;
     
@@ -251,12 +262,12 @@ export class RacerPhysics
     const REDUCED_THRUST = this.THRUST_FORCE * thrustMultiplier;
 
     
-    console.log(`Pod speed: ${currentSpeed.toFixed(1)} km/h, multiplier: ${thrustMultiplier.toFixed(2)}, thrust: ${REDUCED_THRUST.toFixed(0)}`);
+    // console.log(`Pod speed: ${currentSpeed.toFixed(1)} km/h, multiplier: ${thrustMultiplier.toFixed(2)}, thrust: ${REDUCED_THRUST.toFixed(0)}`);
 
     // FORWARD/BACKWARD com força muito menor
     if (currentSpeed < this.MAX_VELOCITY && Math.abs(input.z) > 0.05) {
       const engineForce = input.z * REDUCED_THRUST;
-      console.log(`Applying engine force: ${engineForce.toFixed(0)}`);
+      // console.log(`Applying engine force: ${engineForce.toFixed(0)}`);
       
       // Aplicar nas rodas traseiras (2 e 3)
       vehicle.applyEngineForce(engineForce, 2);
@@ -271,7 +282,7 @@ export class RacerPhysics
     const STEERING_SENSITIVITY = 0.4; 
     if (Math.abs(input.x) > 0.05) {
       const steeringValue = input.x * STEERING_SENSITIVITY;
-      console.log(`Applying steering: ${steeringValue.toFixed(2)}`);
+      // console.log(`Applying steering: ${steeringValue.toFixed(2)}`);
       
       // Aplicar nas rodas dianteiras (0 e 1)
       vehicle.setSteeringValue(steeringValue, 0);
@@ -291,7 +302,7 @@ export class RacerPhysics
         vehicle.setBrake(strongBrake, 1);
         vehicle.setBrake(strongBrake, 2);
         vehicle.setBrake(strongBrake, 3);
-        console.log(`Strong braking: ${strongBrake.toFixed(1)} (speed: ${currentSpeed.toFixed(1)})`);
+        // console.log(`Strong braking: ${strongBrake.toFixed(1)} (speed: ${currentSpeed.toFixed(1)})`);
       } else {
         // Velocidade muito baixa - freio máximo para parar completamente
         vehicle.setBrake(100, 0);
@@ -325,85 +336,157 @@ export class RacerPhysics
       const vehicle = podData.vehicle;
       const mesh = podData.mesh;
       
+        //   if (Math.random() < 0.01) { // Log occasionally (1% of frames)
+        //   console.log(`=== WHEEL CONTACT DEBUG ===`);
+        //   for (let i = 0; i < 4; i++) {
+        //     const wheelInfo = vehicle.getWheelInfo(i);
+        //     const isInContact = wheelInfo.get_m_raycastInfo().get_m_isInContact();
+        //     console.log(`Wheel ${i}: contact=${isInContact}`);
+        //   }
+          
+        //   const speed = vehicle.getCurrentSpeedKmHour();
+        //   console.log(`Current speed: ${speed.toFixed(1)} km/h`);
+        // }
+
       // Sincronizar transform do chassis
       let tm = vehicle.getChassisWorldTransform();
       let p = tm.getOrigin();
       let q = tm.getRotation();
-      
+
       mesh.position.set(p.x(), p.y(), p.z());
       mesh.rotationQuaternion.set(q.x(), q.y(), q.z(), q.w());
       mesh.addRotation(0, Math.PI/2, 0); // Correção de orientação
+      // console.log("=== POD CREATION POSITION ===");
+      // console.log(`x=${mesh.position.x}, y=${mesh.position.y}, z=${mesh.position.z}`);
     });
   }
 
   // Setup do track EXATO do exemplo
-  public async setupTrackCollision(trackMesh: AbstractMesh, racerScene: any = null): Promise<void> {
-    if (!this.isInitialized || !this.ammoInstance) {
-      throw new Error('RacerPhysics: Cannot setup track - not initialized');
-    }
-    
-    const Ammo = this.ammoInstance;
-    const mesh = trackMesh as Mesh;
-    
-    console.log("=== CANYON MESH ANALYSIS ===");
-    console.log(`Main mesh: ${mesh.name}`);
-    
-    // Obter dados EXATOS como o exemplo
-    let positions = mesh.getVerticesData(VertexBuffer.PositionKind);
-    let indices = mesh.getIndices();
-    
-    if (!positions || !indices) {
-      console.error("No geometry data");
-      return;
-    }
-    
-    console.log(`Vertices: ${positions.length/3}`);
-    console.log(`Triangles: ${indices.length/3}`);
-    
-    mesh.updateFacetData();
-    var localPositions = mesh.getFacetLocalPositions();
-    var triangleCount = localPositions.length;
-    
-    // Criar triangle mesh EXATO do exemplo
-    let mTriMesh = new Ammo.btTriangleMesh();
-    let removeDuplicateVertices = true;
-    
-    var _g = 0;
-    while(_g < triangleCount) {
-      var i = _g++;
-      var index0 = indices[i * 3];
-      var index1 = indices[i * 3 + 1];
-      var index2 = indices[i * 3 + 2];
-      var vertex0 = new Ammo.btVector3(positions[index0 * 3], positions[index0 * 3 + 1], positions[index0 * 3 + 2]);
-      var vertex1 = new Ammo.btVector3(positions[index1 * 3], positions[index1 * 3 + 1], positions[index1 * 3 + 2]);
-      var vertex2 = new Ammo.btVector3(positions[index2 * 3], positions[index2 * 3 + 1], positions[index2 * 3 + 2]);
-      mTriMesh.addTriangle(vertex0, vertex1, vertex2);
-    }
-    
-    let shape = new Ammo.btBvhTriangleMeshShape(mTriMesh, true, true);
-    let localInertia = new Ammo.btVector3(0, 0, 0);
-    let transform = new Ammo.btTransform();
-    
-    transform.setIdentity();
-    transform.setOrigin(new Ammo.btVector3(mesh.position.x, mesh.position.y, mesh.position.z));
-    console.log("Canyon physics position:", mesh.position.x, mesh.position.y, mesh.position.z);
-    
-    if (mesh.rotationQuaternion) {
-      transform.setRotation(new Ammo.btQuaternion(
-        mesh.rotationQuaternion.x, 
-        mesh.rotationQuaternion.y, 
-        mesh.rotationQuaternion.z, 
-        mesh.rotationQuaternion.w
-      ));
-    }
-    
-    let motionState = new Ammo.btDefaultMotionState(transform);
-    let rbInfo = new Ammo.btRigidBodyConstructionInfo(0, motionState, shape, localInertia);
-    let body = new Ammo.btRigidBody(rbInfo);
-    this.physicsWorld.addRigidBody(body);
-    
-    console.log("Canyon rigid body created");
+  // public async setupTrackCollision(trackMesh: AbstractMesh, racerScene: any = null): Promise<void> {
+public async setupMultiMeshCollision(racerScene: any): Promise<void> {
+  if (!this.isInitialized || !this.ammoInstance) {
+    throw new Error('RacerPhysics: Cannot setup track - not initialized');
   }
+  
+  const Ammo = this.ammoInstance;
+  
+  // Get all physics meshes from RacerScene
+  const allPhysicsMeshes = racerScene.getAllPhysicsMeshes();
+  console.log(`Setting up physics for ${allPhysicsMeshes.length} meshes`);
+  
+  for (const {mesh, surfaceType} of allPhysicsMeshes) {
+    // Skip void meshes - no collision
+    if (surfaceType === 'void') {
+      console.log(`Skipping void mesh: ${mesh.name}`);
+      continue;
+    }
+    
+    // Create physics body for this mesh
+    await this.createMeshPhysicsBody(mesh, surfaceType);
+  }
+  
+  console.log(`Physics setup complete for ${this.trackRigidBodies.length} collision meshes`);
+}
+
+private async createMeshPhysicsBody(mesh: Mesh, surfaceType: string): Promise<void> {
+  const Ammo = this.ammoInstance;
+  
+  console.log(`Creating physics for: ${mesh.name} (${surfaceType})`);
+  
+  // Get mesh data (same as your current code)
+  let positions = mesh.getVerticesData(VertexBuffer.PositionKind);
+  let indices = mesh.getIndices();
+  
+  if (!positions || !indices) {
+    console.warn(`No geometry data for ${mesh.name}`);
+    return;
+  }
+  
+  console.log(`  Vertices: ${positions.length/3}, Triangles: ${indices.length/3}`);
+  
+  // APPLY SCALING TO VERTEX DATA
+  const scale = mesh.scaling;
+  for (let i = 0; i < positions.length; i += 3) {
+    positions[i] *= scale.x;     // Scale X
+    positions[i + 1] *= scale.y; // Scale Y  
+    positions[i + 2] *= scale.z; // Scale Z
+  }
+  
+  console.log(`After scaling vertices by ${scale.x}x`);
+  // Create triangle mesh (same as your current code)
+  let mTriMesh = new Ammo.btTriangleMesh();
+  let triangleCount = indices.length / 3;
+  console.log(`=== TRACK SURFACE DEBUG ===`);
+  console.log(`Mesh: ${mesh.name}`);
+  console.log(`Mesh position: y=${mesh.position.y}`);
+  console.log(`Mesh bounds: min_y=${mesh.getBoundingInfo().boundingBox.minimum.y}, max_y=${mesh.getBoundingInfo().boundingBox.maximum.y}`);
+
+  for (let i = 0; i < triangleCount; i++) {
+    const index0 = indices[i * 3];
+    const index1 = indices[i * 3 + 1]; 
+    const index2 = indices[i * 3 + 2];
+    const vertex0 = new Ammo.btVector3(positions[index0 * 3], positions[index0 * 3 + 1], positions[index0 * 3 + 2]);
+    const vertex1 = new Ammo.btVector3(positions[index1 * 3], positions[index1 * 3 + 1], positions[index1 * 3 + 2]);
+    const vertex2 = new Ammo.btVector3(positions[index2 * 3], positions[index2 * 3 + 1], positions[index2 * 3 + 2]);
+    mTriMesh.addTriangle(vertex0, vertex1, vertex2);
+  }
+  
+  let shape = new Ammo.btBvhTriangleMeshShape(mTriMesh, true, true);
+  let localInertia = new Ammo.btVector3(0, 0, 0);
+  let transform = new Ammo.btTransform();
+  
+  transform.setIdentity();
+  transform.setOrigin(new Ammo.btVector3(mesh.position.x, mesh.position.y, mesh.position.z));
+  
+  if (mesh.rotationQuaternion) {
+    transform.setRotation(new Ammo.btQuaternion(
+      mesh.rotationQuaternion.x, 
+      mesh.rotationQuaternion.y, 
+      mesh.rotationQuaternion.z, 
+      mesh.rotationQuaternion.w
+    ));
+  }
+  
+  let motionState = new Ammo.btDefaultMotionState(transform);
+  let rbInfo = new Ammo.btRigidBodyConstructionInfo(0, motionState, shape, localInertia);
+  let body = new Ammo.btRigidBody(rbInfo);
+  
+  // Set surface properties based on type
+  this.setSurfaceProperties(body, surfaceType);
+  
+  this.physicsWorld.addRigidBody(body);
+  this.trackRigidBodies.push(body);
+    this.createDebugForPhysicsBody(mesh, body, this.trackRigidBodies.length - 1);
+  if (mesh.name.includes('track_surface')) {
+  const surface_y = mesh.getBoundingInfo().boundingBox.maximum.y;
+  console.log(`*** TRACK SURFACE LEVEL: ${surface_y} ***`);
+}
+  console.log(`Physics body created for: ${mesh.name}`);
+}
+private setSurfaceProperties(rigidBody: any, surfaceType: string): void {
+  switch (surfaceType) {
+    case 'ice':
+      rigidBody.setFriction(0.1); // Very slippery
+      rigidBody.setRestitution(0.1);
+      console.log('  Applied ICE properties (low friction)');
+      break;
+    case 'boost':
+      rigidBody.setFriction(1.5); // High grip for boost pads
+      rigidBody.setRestitution(0.0);
+      console.log('  Applied BOOST properties');
+      break;
+    case 'start_finish':
+      rigidBody.setFriction(1.0);
+      rigidBody.setRestitution(0.0);
+      console.log('  Applied START/FINISH properties');
+      break;
+    default: // 'solid'
+      rigidBody.setFriction(1.0);
+      rigidBody.setRestitution(0.0);
+      console.log('  Applied SOLID track properties');
+      break;
+  }
+}
 
   public getSpeed(podId: string): number {
     const podData = this.pods.get(podId);
@@ -434,7 +517,7 @@ export class RacerPhysics
     // Reposicionar em local seguro
     const resetTransform = new Ammo.btTransform();
     resetTransform.setIdentity();
-    resetTransform.setOrigin(new Ammo.btVector3(109, -180, 627));
+    // resetTransform.setOrigin(new Ammo.btVector3(109, -180, 627));
     
     rigidBody.setWorldTransform(resetTransform);
     rigidBody.activate(true);
@@ -445,6 +528,152 @@ export class RacerPhysics
   public isPhysicsReady(): boolean {
     return this.isInitialized && this.physicsWorld !== null;
   }
+public enablePhysicsDebug(): void {
+  this.isDebugMode = true;
+  // this.createPhysicsDebugVisualization();
+}
+
+public disablePhysicsDebug(): void {
+  this.isDebugMode = false;
+  this.debugMeshes.forEach(mesh => mesh.dispose());
+  this.debugMeshes = [];
+}
+
+private createDebugForPhysicsBody(mesh: Mesh, rigidBody: any, index: number): void {
+  // Create debug material for collision boxes
+  const debugMaterial = new StandardMaterial(`physicsDebugMaterial_${index}`, this.scene);
+  debugMaterial.wireframe = true;
+  debugMaterial.diffuseColor = new Color3(1, 0, 0); // Red wireframe
+  debugMaterial.alpha = 0.6;
+  
+  // Get the mesh bounds to create proper debug box size
+  const bounds = mesh.getBoundingInfo().boundingBox;
+  const size = bounds.maximum.subtract(bounds.minimum);
+  
+  // Create debug box matching the mesh size
+  const debugBox = CreateBox(`physicsDebug_${mesh.name}_${index}`, {
+    width: size.x,
+    height: size.y, 
+    depth: size.z
+  }, this.scene);
+  
+  // Position and orient like the mesh
+  debugBox.position = mesh.position.clone();
+  debugBox.rotation = mesh.rotation.clone();
+  debugBox.scaling = mesh.scaling.clone();
+  debugBox.material = debugMaterial;
+  
+  this.debugMeshes.push(debugBox);
+  
+  console.log(`🔴 Debug Box Created: ${mesh.name} at (${mesh.position.x.toFixed(1)}, ${mesh.position.y.toFixed(1)}, ${mesh.position.z.toFixed(1)})`);
+}
+
+// Add this method to check for missing physics on visual meshes
+public debugTrackCoverage(racerScene: any): void {
+  console.log("=== CHECKING TRACK PHYSICS COVERAGE ===");
+  
+  const allPhysicsMeshes = racerScene.getAllPhysicsMeshes();
+  const solidMeshes = allPhysicsMeshes.filter(({surfaceType}) => surfaceType !== 'void');
+  
+  console.log(`Total physics meshes: ${allPhysicsMeshes.length}`);
+  console.log(`Solid collision meshes: ${solidMeshes.length}`);
+  console.log(`Physics bodies created: ${this.trackRigidBodies.length}`);
+  
+  // Check which meshes might be missing physics
+  solidMeshes.forEach(({mesh, surfaceType}, index) => {
+    const bounds = mesh.getBoundingInfo();
+    console.log(`Mesh ${index}: ${mesh.name} (${surfaceType})`);
+    console.log(`  Position: x=${mesh.position.x}, y=${mesh.position.y}, z=${mesh.position.z}`);
+    console.log(`  Bounds: min_y=${bounds.boundingBox.minimum.y}, max_y=${bounds.boundingBox.maximum.y}`);
+    console.log(`  Size: w=${bounds.boundingBox.maximum.x - bounds.boundingBox.minimum.x}`);
+  });
+}
+
+// Add this method to perform raycast testing
+// public debugRaycastTest(fromPos: Vector3, toPos: Vector3): void {
+//   if (!this.physicsWorld || !this.ammoInstance) return;
+  
+//   const Ammo = this.ammoInstance;
+  
+//   const from = new Ammo.btVector3(fromPos.x, fromPos.y, fromPos.z);
+//   const to = new Ammo.btVector3(toPos.x, toPos.y, toPos.z);
+  
+//   const rayCallback = new Ammo.ClosestRayResultCallback(from, to);
+//   this.physicsWorld.rayTest(from, to, rayCallback);
+  
+//   if (rayCallback.hasHit()) {
+//     const hitPoint = rayCallback.get_m_hitPointWorld();
+//     console.log(`✅ RAYCAST HIT: (${hitPoint.x().toFixed(2)}, ${hitPoint.y().toFixed(2)}, ${hitPoint.z().toFixed(2)})`);
+    
+//     // Create visual indicator for hit point
+//     const hitSphere = CreateSphere("raycast_hit", {diameter: 1}, this.scene);
+//     hitSphere.position.set(hitPoint.x(), hitPoint.y(), hitPoint.z());
+//     const hitMaterial = new StandardMaterial("hitMaterial", this.scene);
+//     hitMaterial.diffuseColor = new Color3(0, 1, 0); // Green
+//     hitSphere.material = hitMaterial;
+    
+//     this.debugMeshes.push(hitSphere);
+    
+//     setTimeout(() => {
+//       hitSphere.dispose();
+//       const index = this.debugMeshes.indexOf(hitSphere);
+//       if (index > -1) this.debugMeshes.splice(index, 1);
+//     }, 5000);
+    
+//   } else {
+//     console.log(`❌ RAYCAST MISS: No collision detected from (${fromPos.x}, ${fromPos.y}, ${fromPos.z}) to (${toPos.x}, ${toPos.y}, ${toPos.z})`);
+    
+//     // Create visual line showing the failed raycast
+//     const points = [fromPos, toPos];
+//     const line = CreateLines("raycast_miss", {points}, this.scene);
+//     const lineMaterial = new StandardMaterial("missMaterial", this.scene);
+//     lineMaterial.diffuseColor = new Color3(1, 0, 0); // Red
+//     line.color = new Color3(1, 0, 0);
+    
+//     this.debugMeshes.push(line);
+    
+//     setTimeout(() => {
+//       line.dispose();
+//       const index = this.debugMeshes.indexOf(line);
+//       if (index > -1) this.debugMeshes.splice(index, 1);
+//     }, 3000);
+//   }
+  
+//   Ammo.destroy(rayCallback);
+//   Ammo.destroy(from);
+//   Ammo.destroy(to);
+// }
+
+// Add this to updatePhysics method for continuous pod ground testing
+private debugPodGroundContact(): void {
+  if (!this.isDebugMode) return;
+  
+  this.pods.forEach((podData, podId) => {
+    const vehicle = podData.vehicle;
+    const mesh = podData.mesh;
+    
+    // Test raycast from pod downward
+    const podPos = mesh.position;
+    const testPos = new Vector3(podPos.x, podPos.y - 10, podPos.z);
+    
+    if (Math.random() < 0.05) { // Test occasionally
+      this.debugRaycastTest(podPos, testPos);
+    }
+    
+    // Check wheel contact
+    let contactCount = 0;
+    for (let i = 0; i < 4; i++) {
+      const wheelInfo = vehicle.getWheelInfo(i);
+      if (wheelInfo.get_m_raycastInfo().get_m_isInContact()) {
+        contactCount++;
+      }
+    }
+    
+    if (contactCount === 0 && Math.random() < 0.01) {
+      console.log(`⚠️  POD ${podId} HAS NO WHEEL CONTACT! Position: ${podPos.x.toFixed(2)}, ${podPos.y.toFixed(2)}, ${podPos.z.toFixed(2)}`);
+    }
+  });
+}
 
   public dispose(): void {
     this.pods.forEach((podData) => {

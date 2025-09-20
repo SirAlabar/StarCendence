@@ -10,10 +10,14 @@ import {
   SceneLoader,
   VertexBuffer
 } from '@babylonjs/core';
+import '@babylonjs/loaders/glTF';
 import { GameCanvas } from './GameCanvas';
 
 export interface RacerSceneConfig 
 {
+  trackId: string;
+  trackPath: string;
+  trackFilename: string;
   trackSize?: number;
   trackSubdivisions?: number;
   wallHeight?: number;
@@ -23,15 +27,28 @@ export interface RacerSceneConfig
   fogDensity?: number;
 }
 
-const DEFAULT_CONFIG: RacerSceneConfig = {
-  trackSize: 5000,        // Mantido para compatibilidade
-  trackSubdivisions: 50,
-  wallHeight: 20,        
-  wallThickness: 5,      
+export interface TrackMaterialData 
+{
+  mesh: Mesh;
+  materialId: string;
+  surfaceType: 'solid' | 'void' | 'boost' | 'ice' | 'start_finish';
+  vertices: number[];
+  indices: number[];
+}
+
+const POLAR_PASS_CONFIG: RacerSceneConfig = {
+  trackId: 'polar_pass',
+  trackPath: '/assets/models/racing_tracks/',
+  trackFilename: 'polar_pass.glb',
   enableFog: true,
   fogColor: new Color3(0.7, 0.8, 0.9),
-  fogDensity: 0.002
+  fogDensity: 0.002,
+  trackSize: 5000,
+  trackSubdivisions: 50,
+  wallHeight: 20,        
+  wallThickness: 5, 
 };
+
 
 export class RacerScene 
 {
@@ -42,13 +59,14 @@ export class RacerScene
   private walls: AbstractMesh[] = []; 
   private isLoaded: boolean = false;
   private realVertexBounds: { min: Vector3; max: Vector3; size: Vector3 } | null = null;
+  private trackMaterialData: TrackMaterialData[] = [];
 
   public onTrackLoaded?: (track: AbstractMesh) => void;
   public onLoadingProgress?: (percentage: number, asset: string) => void;
   public onLoadingComplete?: () => void;
   public onLoadingError?: (errors: string[]) => void;
 
-  constructor(gameCanvas: GameCanvas, config: RacerSceneConfig = DEFAULT_CONFIG) 
+  constructor(gameCanvas: GameCanvas, config: RacerSceneConfig = POLAR_PASS_CONFIG) 
   {
     this.gameCanvas = gameCanvas;
     const scene = gameCanvas.getScene();
@@ -57,7 +75,7 @@ export class RacerScene
       throw new Error('Cannot create RacerScene: GameCanvas scene not initialized');
     }
     this.scene = scene;
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.config = { ...POLAR_PASS_CONFIG, ...config };
   }
 
   public async loadTrack(): Promise<void> 
@@ -69,19 +87,19 @@ export class RacerScene
 
     try 
     {
-      console.log('RacerScene: Loading canyon track model...');
+      console.log('RacerScene: Loading track model...');
       
       if (this.onLoadingProgress) 
       {
-        this.onLoadingProgress(10, 'Loading canyon.babylon...');
+        this.onLoadingProgress(10, `Loading ${this.config.trackFilename}...`);
       }
 
-      await this.loadCanyonTrack();
+      await this.loadGLBTrack();
       this.setupRacingEnvironment();
       
       if (this.onLoadingProgress) 
       {
-        this.onLoadingProgress(100, 'Canyon track ready');
+        this.onLoadingProgress(100, 'Track ready');
       }
 
       if (this.onLoadingComplete) 
@@ -89,34 +107,33 @@ export class RacerScene
         this.onLoadingComplete();
       }
 
-      console.log('RacerScene: Canyon track loaded successfully');
+      console.log('RacerScene: Track loaded successfully');
     } 
     catch (error) 
     {
-      console.error('RacerScene: Failed to load canyon track:', error);
+      console.error('RacerScene: Failed to load track:', error);
       if (this.onLoadingError) 
       {
-        this.onLoadingError([`Failed to load canyon track: ${error}`]);
+        this.onLoadingError([`Failed to load track: ${error}`]);
       }
     }
   }
 
-private async loadCanyonTrack(): Promise<void> 
+private async loadGLBTrack(): Promise<void> 
 {
   return new Promise((resolve, reject) => 
   {
-    console.log('Loading canyon.babylon model...');
+    console.log(`Loading ${this.config.trackFilename} model...`);
     
     if (this.onLoadingProgress) 
     {
-      this.onLoadingProgress(30, 'Downloading canyon model...');
+      this.onLoadingProgress(30, `Downloading ${this.config.trackFilename}...`);
     }
 
-    // Carregar EXATAMENTE como o exemplo
     SceneLoader.ImportMesh(
-      "Loft001",  // IMPORTANTE: Nome exato da mesh
-      "https://raw.githubusercontent.com/RaggarDK/Baby/baby/", 
-      "canyon.babylon", 
+      "",  // Load all meshes
+      this.config.trackPath, 
+      this.config.trackFilename, 
       this.scene, 
       (newMeshes) => 
       {
@@ -124,58 +141,72 @@ private async loadCanyonTrack(): Promise<void>
         {
           if (this.onLoadingProgress) 
           {
-            this.onLoadingProgress(70, 'Processing canyon geometry...');
+            this.onLoadingProgress(70, 'Processing track geometry...');
           }
 
-          // EXATO do exemplo - pegar apenas a primeira mesh
-          const mesh = newMeshes[0];
-          if (!mesh) 
-          {
-            throw new Error('No mesh found in canyon.babylon');
-          }
-
-          console.log("=== CANYON MESH ANALYSIS ===");
+          console.log("=== TRACK MESH ANALYSIS ===");
           console.log(`Total meshes loaded: ${newMeshes.length}`);
-          console.log(`Main mesh: ${mesh.name}`);
-          console.log(`Children count: ${mesh.getChildMeshes().length}`);
           
-          // AJUSTAR POSIÇÃO EXATAMENTE COMO O EXEMPLO
-          console.log("=== CANYON POSITIONING ===");
-          console.log("Canyon mesh position BEFORE adjustment:", mesh.position);
-          mesh.position.y -= 2.5; // APENAS o ajuste Y, mantendo X e Z originais
-          console.log("Canyon mesh position AFTER adjustment:", mesh.position);
-          console.log("Canyon mesh world matrix:", mesh.getWorldMatrix());
+          // Find ALL meshes with geometry - NO main mesh concept
+          let meshesWithGeometry: Mesh[] = [];
 
-          // Verificar dados geométricos
-          if (mesh instanceof Mesh) 
-          {
-            const positions = mesh.getVerticesData(VertexBuffer.PositionKind);
-            const normals = mesh.getVerticesData(VertexBuffer.NormalKind);
-            const colors = mesh.getVerticesData(VertexBuffer.ColorKind);
-            const uvs = mesh.getVerticesData(VertexBuffer.UVKind);
-            const indices = mesh.getIndices();
-            
-            console.log(`Vertices: ${positions ? positions.length / 3 : 'null'}`);
-            console.log(`Triangles: ${indices ? indices.length / 3 : 'null'}`);
-            console.log(`First triangle indices:`, indices ? [indices[0], indices[1], indices[2]] : 'none');
-
-            if (!positions || !indices || positions.length === 0 || indices.length === 0) 
-            {
-              throw new Error('Canyon mesh has no geometry data');
+          for (const mesh of newMeshes) {
+            // console.log(`Checking mesh: ${mesh.name}`);
+            if (mesh instanceof Mesh) {
+              const positions = mesh.getVerticesData(VertexBuffer.PositionKind);
+              const indices = mesh.getIndices();
+              // console.log(`  Vertices: ${positions ? positions.length / 3 : 0}`);
+              // console.log(`  Triangles: ${indices ? indices.length / 3 : 0}`);
+              
+              if (positions && indices && positions.length > 0 && indices.length > 0) {
+                // console.log(`  ✅ Mesh with geometry: ${mesh.name}`);
+                meshesWithGeometry.push(mesh);
+              }
             }
           }
 
-          // Definir como track principal
-          this.track = mesh;
+          if (meshesWithGeometry.length === 0) {
+            throw new Error(`No meshes with geometry found in ${this.config.trackFilename}`);
+          }
 
-          if (this.onTrackLoaded) 
+          console.log(`Found ${meshesWithGeometry.length} meshes with geometry - ALL will be used for collision`);
+          
+          // Position and scale adjustment for ALL meshes
+          console.log("=== TRACK POSITIONING & SCALING FOR ALL MESHES ===");
+          meshesWithGeometry.forEach((mesh, index) => {
+            // console.log(`Adjusting mesh ${index + 1}: ${mesh.name}`);
+            // console.log(`  Position BEFORE: x=${mesh.position.x}, y=${mesh.position.y}, z=${mesh.position.z}`);
+            // console.log(`  Scaling BEFORE: x=${mesh.scaling.x}, y=${mesh.scaling.y}, z=${mesh.scaling.z}`);
+            
+            mesh.position = Vector3.Zero();
+            mesh.rotation = Vector3.Zero();
+            mesh.scaling = new Vector3(8, 8, 8);
+            
+            // console.log(`  Position AFTER: x=${mesh.position.x}, y=${mesh.position.y}, z=${mesh.position.z}`);
+            // console.log(`  Scaling AFTER: x=${mesh.scaling.x}, y=${mesh.scaling.y}, z=${mesh.scaling.z}`);
+          });
+
+          // Extract material data from ALL meshes with geometry
+          this.extractAllMeshData(meshesWithGeometry);
+
+          // Verify we have track data
+          if (this.trackMaterialData.length === 0) {
+            console.warn('No material data extracted, but continuing...');
+          }
+
+          // // NO single track - ALL meshes are the track
+          // this.track = null;
+
+          // For callback compatibility, use first visible mesh or first mesh
+          const callbackMesh = meshesWithGeometry.find(m => !m.name.toLowerCase().includes('void')) || meshesWithGeometry[0];
+          if (this.onTrackLoaded && callbackMesh) 
           {
-            this.onTrackLoaded(this.track);
+            this.onTrackLoaded(callbackMesh);
           }
 
           if (this.onLoadingProgress) 
           {
-            this.onLoadingProgress(90, 'Canyon loaded successfully');
+            this.onLoadingProgress(90, 'Track loaded successfully');
           }
 
           this.isLoaded = true;
@@ -183,7 +214,7 @@ private async loadCanyonTrack(): Promise<void>
         }
         catch (error) 
         {
-          console.error('Error processing canyon mesh:', error);
+          console.error('Error processing track mesh:', error);
           reject(error);
         }
       },
@@ -192,7 +223,7 @@ private async loadCanyonTrack(): Promise<void>
         if (progress.total > 0) 
         {
           const percentage = Math.round((progress.loaded / progress.total) * 100);
-          console.log(`Canyon download progress: ${percentage}%`);
+          console.log(`Track download progress: ${percentage}%`);
           
           if (this.onLoadingProgress) 
           {
@@ -202,13 +233,135 @@ private async loadCanyonTrack(): Promise<void>
       },
       (scene, message) => 
       {
-        console.error('Canyon loading error:', message);
-        reject(new Error(`Failed to load canyon: ${message}`));
+        console.error('Track loading error:', message);
+        reject(new Error(`Failed to load track: ${message}`));
       }
     );
   });
 }
 
+private extractAllMeshData(meshesWithGeometry: Mesh[]): void 
+{
+  this.trackMaterialData = [];
+  
+  console.log('=== MATERIAL ANALYSIS FOR ALL MESHES ===');
+  console.log(`Processing ${meshesWithGeometry.length} meshes with geometry`);
+  
+  meshesWithGeometry.forEach((babylonMesh, index) => 
+  {
+    const vertices = babylonMesh.getVerticesData(VertexBuffer.PositionKind);
+    const indices = babylonMesh.getIndices();
+
+    let materialId = 'track_surface';
+    if (babylonMesh.material) 
+    {
+      materialId = babylonMesh.material.name || babylonMesh.material.id || 'track_surface';
+    }
+
+    const surfaceType = this.determineSurfaceType(materialId, babylonMesh.name);
+    
+    // console.log(`Mesh ${index + 1}: ${babylonMesh.name}`);
+    // console.log(`  Material: ${materialId}`);
+    // console.log(`  Surface: ${surfaceType}`);
+    // console.log(`  Vertices: ${vertices ? vertices.length / 3 : 0}`);
+    // console.log(`  Triangles: ${indices ? indices.length / 3 : 0}`);
+
+    if (vertices && indices) 
+    {
+      this.trackMaterialData.push({
+        mesh: babylonMesh,
+        materialId,
+        surfaceType,
+        vertices: Array.from(vertices),
+        indices: Array.from(indices)
+      });
+    }
+  });
+  
+  console.log(`Total collision meshes stored: ${this.trackMaterialData.length}`);
+  
+  // Summary by surface type
+  const summary = this.trackMaterialData.reduce((acc, data) => 
+  {
+    acc[data.surfaceType] = (acc[data.surfaceType] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  Object.entries(summary).forEach(([type, count]) => 
+  {
+    console.log(`${type}: ${count} meshes`);
+  });
+}
+
+// NO MORE "main track" concept - use these methods instead:
+
+// Get all solid collision meshes (track + walls, no void zones)
+public getAllSolidMeshes(): Mesh[] 
+{
+  return this.trackMaterialData
+    .filter(data => data.surfaceType !== 'void')
+    .map(data => data.mesh);
+}
+
+// Get meshes by surface type
+public getMeshesByType(surfaceType: 'solid' | 'void' | 'boost' | 'ice' | 'start_finish'): Mesh[] 
+{
+  return this.trackMaterialData
+    .filter(data => data.surfaceType === surfaceType)
+    .map(data => data.mesh);
+}
+
+// Get ALL meshes for physics (you should create physics bodies for each)
+public getAllPhysicsMeshes(): { mesh: Mesh, surfaceType: string }[] 
+{
+  return this.trackMaterialData.map(data => ({
+    mesh: data.mesh,
+    surfaceType: data.surfaceType
+  }));
+}
+
+public getCollisionMeshes(): TrackMaterialData[] 
+{
+  return this.trackMaterialData.filter(data => data.surfaceType !== 'void');
+}
+
+// DEPRECATED - DO NOT USE - Use getAllPhysicsMeshes() instead
+public getMainTrackForPhysics(): AbstractMesh | null 
+{
+  console.warn('getMainTrackForPhysics() is deprecated - use getAllPhysicsMeshes() instead');
+  return null;
+}
+
+private determineSurfaceType(materialId: string, meshName?: string): 'solid' | 'void' | 'boost' | 'ice' | 'start_finish' 
+{
+  const lowerMaterialId = materialId.toLowerCase();
+  const lowerMeshName = meshName ? meshName.toLowerCase() : '';
+  
+  if (lowerMaterialId.includes('void') || lowerMaterialId.includes('fall') ||
+      lowerMeshName.includes('void') || lowerMeshName.includes('fall')) 
+  {
+    return 'void';
+  }
+  
+  if (lowerMaterialId.includes('boost') || lowerMaterialId.includes('speed') ||
+      lowerMeshName.includes('boost') || lowerMeshName.includes('speed')) 
+  {
+    return 'boost';
+  }
+  
+  if (lowerMaterialId.includes('ice') || lowerMeshName.includes('ice')) 
+  {
+    return 'ice';
+  }
+  
+  if (lowerMaterialId.includes('start') || lowerMaterialId.includes('finish') ||
+      lowerMeshName.includes('start') || lowerMeshName.includes('finish')) 
+  {
+    return 'start_finish';
+  }
+  
+  return 'solid';
+}
 
   private setupRacingEnvironment(): void 
   {
@@ -224,7 +377,7 @@ private async loadCanyonTrack(): Promise<void>
       this.scene.clearColor = this.config.fogColor.toColor4();
     }
 
-    console.log('Racing environment setup complete for canyon');
+    console.log('Racing environment setup complete');
   }
 
   public getTrack(): AbstractMesh | null 
@@ -235,27 +388,38 @@ private async loadCanyonTrack(): Promise<void>
   public getAllGeometry(): AbstractMesh[] 
   {
     const allGeometry: AbstractMesh[] = [];
-    if (this.track) {
-      allGeometry.push(this.track);
-    }
-    // Nota: Canyon não tem paredes separadas como o ground simples
+    // Return all meshes since we don't have a single track
+    this.trackMaterialData.forEach(data => {
+      allGeometry.push(data.mesh);
+    });
     return allGeometry;
   }
 
   public getTrackCenter(): Vector3 
   {
-    if (!this.track) 
+    if (this.trackMaterialData.length === 0) 
     {
       return Vector3.Zero();
     }
-    return this.track.getBoundingInfo().boundingBox.center;
+    
+    // Calculate center from all solid meshes
+    const solidMeshes = this.getAllSolidMeshes();
+    if (solidMeshes.length === 0) {
+      return Vector3.Zero();
+    }
+    
+    let center = Vector3.Zero();
+    solidMeshes.forEach(mesh => {
+      center = center.add(mesh.getBoundingInfo().boundingBox.center);
+    });
+    
+    return center.scale(1 / solidMeshes.length);
   }
 
   public getTrackBounds(): { min: Vector3; max: Vector3; size: Vector3 } 
   {
-    if (!this.track) 
+    if (this.trackMaterialData.length === 0) 
     {
-      // Fallback para valores padrão
       const defaultSize = this.config.trackSize! / 2;
       return {
         min: new Vector3(-defaultSize, -50, -defaultSize),
@@ -264,26 +428,95 @@ private async loadCanyonTrack(): Promise<void>
       };
     }
 
-    // Bounds reais do canyon
-    const boundingBox = this.track.getBoundingInfo().boundingBox;
-    const min = boundingBox.minimum.clone();
-    const max = boundingBox.maximum.clone();
+    // Calculate bounds from all solid meshes
+    const solidMeshes = this.getAllSolidMeshes();
+    if (solidMeshes.length === 0) {
+      return {
+        min: Vector3.Zero(),
+        max: Vector3.Zero(),
+        size: Vector3.Zero()
+      };
+    }
+    
+    let minBounds = solidMeshes[0].getBoundingInfo().boundingBox.minimum.clone();
+    let maxBounds = solidMeshes[0].getBoundingInfo().boundingBox.maximum.clone();
+    
+    solidMeshes.forEach(mesh => {
+      const bounds = mesh.getBoundingInfo().boundingBox;
+      minBounds = Vector3.Minimize(minBounds, bounds.minimum);
+      maxBounds = Vector3.Maximize(maxBounds, bounds.maximum);
+    });
     
     return {
-      min,
-      max,
-      size: max.subtract(min)
+      min: minBounds,
+      max: maxBounds,
+      size: maxBounds.subtract(minBounds)
     };
   }
 
   public isTrackLoaded(): boolean 
   {
-    return this.isLoaded && this.track !== null;
+    return this.isLoaded && this.trackMaterialData.length > 0;
+  }
+
+  public getStartLinePosition(): Vector3 | null 
+  {
+    const startLineMesh = this.trackMaterialData.find(data => 
+      data.surfaceType === 'start_finish'
+    );
+    
+    if (startLineMesh) 
+    {
+      return startLineMesh.mesh.getBoundingInfo().boundingBox.center;
+    }
+    
+    return null;
   }
 
   public getStartingPositions(count: number = 1): Vector3[] 
   {
-    return [new Vector3(109, -192, 627)];
+    const startLinePos = this.getStartLinePosition();
+    
+    if (startLinePos) 
+    {
+      
+      console.log("=== START LINE POSITION ===");
+      console.log(`x=${startLinePos.x}, y=${startLinePos.y}, z=${startLinePos.z}`);
+      const positions: Vector3[] = [];
+      for (let i = 0; i < count; i++) 
+      {
+        positions.push(new Vector3(
+          startLinePos.x + (i * 5),
+          startLinePos.y + 12,
+          startLinePos.z
+        ));
+      }
+      console.log("=== STARTING POSITIONS ===");
+      positions.forEach((pos, idx) =>
+      {
+        console.log(`Position ${idx}: x=${pos.x}, y=${pos.y}, z=${pos.z}`);
+      });
+      return positions;
+    }
+    
+    if (!this.track) 
+    {
+      return [new Vector3(0, 2, 0)];
+    }
+
+    const trackCenter = this.getTrackCenter();
+    const positions: Vector3[] = [];
+
+    for (let i = 0; i < count; i++) 
+    {
+      positions.push(new Vector3(
+        trackCenter.x + (i * 5),
+        trackCenter.y + 3,
+        trackCenter.z
+      ));
+    }
+
+    return positions;
   }
 
   public getGameCanvas(): GameCanvas 
@@ -293,20 +526,19 @@ private async loadCanyonTrack(): Promise<void>
 
   public dispose(): void 
   {
-    if (this.track) 
-    {
-      this.track.dispose();
-      this.track = null;
-    }
+    this.trackMaterialData.forEach(data => {
+      data.mesh.dispose();
+    });
+    this.trackMaterialData = [];
     
-    // Limpar paredes (se houver)
     this.walls.forEach(wall => {
       wall.dispose();
     });
     this.walls = [];
     
+    this.track = null;
     this.isLoaded = false;
-    console.log('RacerScene: Disposed (canyon track)');
+    console.log('RacerScene: Disposed');
   }
 
   public static async createCanyonTrack(gameCanvas: GameCanvas, config?: RacerSceneConfig): Promise<RacerScene> 

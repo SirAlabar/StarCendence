@@ -168,10 +168,12 @@ export class RacerRenderer
         return;
     }
 
-    const trackMesh = this.racerScene.getTrack();
-    if (trackMesh) 
+    if (this.racerScene.isTrackLoaded()) 
     {
-        await physics.setupTrackCollision(trackMesh, this.racerScene, true);
+      console.log("Starting physics ---------------------------------------------");
+      await physics.setupMultiMeshCollision(this.racerScene);
+          physics.enablePhysicsDebug();
+    physics.debugTrackCoverage(this.racerScene);
     }
     }
   
