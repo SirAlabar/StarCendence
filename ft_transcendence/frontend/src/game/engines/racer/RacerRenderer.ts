@@ -168,12 +168,10 @@ export class RacerRenderer
         return;
     }
 
-    if (this.racerScene.isTrackLoaded()) 
+    const trackMesh = this.racerScene.getTrack();
+    if (trackMesh) 
     {
-      console.log("Starting physics ---------------------------------------------");
-      await physics.setupMultiMeshCollision(this.racerScene);
-          physics.enablePhysicsDebug();
-    physics.debugTrackCoverage(this.racerScene);
+        await physics.setupTrackCollision(trackMesh, this.racerScene);
     }
     }
   
@@ -540,6 +538,12 @@ export class RacerRenderer
 
     if (this.gameCanvas) 
     {
+        const physics = this.gameCanvas.getPhysics();
+        if (physics) 
+        {
+            // physics.clearPhysicsDebugHUD();
+        }
+
       this.gameCanvas.dispose();
       this.gameCanvas = null;
     }
