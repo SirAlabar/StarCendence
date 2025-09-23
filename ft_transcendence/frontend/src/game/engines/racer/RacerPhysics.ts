@@ -128,9 +128,9 @@ export class RacerPhysics
     var wheelWidthFront = .3;
 
     var friction = 5;
-    var suspensionStiffness = 50;
+    var suspensionStiffness = 30;
     var suspensionDamping = 2;
-    var suspensionCompression = 4;
+    var suspensionCompression = 6;
     var suspensionRestLength = 1.9;
     var rollInfluence = 0.0;
     
@@ -147,9 +147,11 @@ export class RacerPhysics
     }
     
     // Transform inicial - VOLTAR À POSIÇÃO ORIGINAL  
-    var transform = new Ammo.btTransform();
-    transform.setIdentity();
-    transform.setOrigin(new Ammo.btVector3(0, 50, 0)); // Posição original
+var transform = new Ammo.btTransform();
+transform.setIdentity();
+transform.setOrigin(new Ammo.btVector3(0, 50, 0));
+const initialPhysicsRotation = new Ammo.btQuaternion(0, 1, 0, 0); // Change to 0 rotation
+transform.setRotation(initialPhysicsRotation);
     
     var motionState = new Ammo.btDefaultMotionState(transform);
     var localInertia = new Ammo.btVector3(0, 0, 0);
@@ -190,12 +192,12 @@ export class RacerPhysics
       wheelInfo.set_m_suspensionStiffness(suspensionStiffness);
       wheelInfo.set_m_wheelsDampingRelaxation(suspensionDamping);
       wheelInfo.set_m_wheelsDampingCompression(suspensionCompression);
-      wheelInfo.set_m_maxSuspensionForce(600000);
+      wheelInfo.set_m_maxSuspensionForce(400000);
       
       if(isFront){
-        wheelInfo.set_m_frictionSlip(6);
+        wheelInfo.set_m_frictionSlip(8);
       } else {
-        wheelInfo.set_m_frictionSlip(10);
+        wheelInfo.set_m_frictionSlip(12);
       }
       
       wheelInfo.set_m_rollInfluence(rollInfluence);
@@ -215,126 +217,106 @@ export class RacerPhysics
       mesh.rotationQuaternion = new Quaternion();
     }
     mesh.visibility = 0.0;
+    mesh.rotationQuaternion.set(0, 0, 0, 1);
     
     console.log(`btRaycastVehicle pod created: ${podId}`);
   }
 
-  public movePod(podId: string, input: { x: number, z: number }): void {
-    const podData = this.pods.get(podId);
-    if (!podData || !this.ammoInstance) {
-      return;
-    }
+public movePod(podId: string, input: { x: number, z: number }): void {
+  const podData = this.pods.get(podId);
+  if (!podData || !this.ammoInstance) {
+    return;
+  }
+  
+  const vehicle = podData.vehicle;
+  const currentSpeed = Math.abs(vehicle.getCurrentSpeedKmHour());
+
+  // FORCE STOP engine when no input - this fixes the constant speed increase
+  vehicle.applyEngineForce(0, 2);
+  vehicle.applyEngineForce(0, 3);
+  
+  // FORWARD/BACKWARD - Only apply force WITH input
+  if (Math.abs(input.z) > 0.05 && currentSpeed < this.MAX_VELOCITY) {
+    const speedPercentage = currentSpeed / this.MAX_VELOCITY;
+    const thrustMultiplier = Math.max(0.1, 1.0 - speedPercentage * 0.8);
+    const engineForce = input.z * this.THRUST_FORCE * thrustMultiplier;
     
+    vehicle.applyEngineForce(engineForce, 2);
+    vehicle.applyEngineForce(engineForce, 3);
+  }
+  
+  // Add natural braking when no input to stop faster
+  if (Math.abs(input.z) < 0.05 && Math.abs(input.x) < 0.05) {
+    // Apply light braking to stop faster when no input
+    const lightBrake = Math.min(currentSpeed * 2, 50);
+    vehicle.setBrake(lightBrake, 0);
+    vehicle.setBrake(lightBrake, 1);
+    vehicle.setBrake(lightBrake, 2);
+    vehicle.setBrake(lightBrake, 3);
+  } else {
+    // Clear brakes when there's input
+    vehicle.setBrake(0, 0);
+    vehicle.setBrake(0, 1);
+    vehicle.setBrake(0, 2);
+    vehicle.setBrake(0, 3);
+  }
+
+  // STEERING - Fixed inverted controls
+  if (Math.abs(input.x) > 0.05) {
+    const steeringValue = -input.x * 2.8;
+    vehicle.setSteeringValue(steeringValue, 0);
+    vehicle.setSteeringValue(steeringValue, 1);
+  } else {
+    vehicle.setSteeringValue(0, 0);
+    vehicle.setSteeringValue(0, 1);
+  }
+}
+
+private updatePhysics(): void {
+  if (!this.physicsWorld) return;
+  
+  this.pods.forEach((podData, podId) => {
     const vehicle = podData.vehicle;
     const mesh = podData.mesh;
+    const rigidBody = podData.rigidBody;
     
-    // USAR velocidade do btRaycastVehicle corretamente
-    const currentSpeed = Math.abs(vehicle.getCurrentSpeedKmHour());
-    const speedPercentage = currentSpeed / this.MAX_VELOCITY;
+    // Sync transform
+    let tm = vehicle.getChassisWorldTransform();
+    let p = tm.getOrigin();
+    let q = tm.getRotation();
     
-    let thrustMultiplier = 1.0;
-    if (speedPercentage < 0.08) {
-      thrustMultiplier = 3.0;
-    } else if (speedPercentage < 0.15) {
-      thrustMultiplier = 2.2;
-    } else if (speedPercentage < 0.25) {
-      thrustMultiplier = 1.6;
-    } else if (speedPercentage < 0.4) {
-      thrustMultiplier = 1.2;
-    } else if (speedPercentage < 0.8) {
-      thrustMultiplier = 1.0;
-    } else {
-      thrustMultiplier = 0.7;
-    }
-
-    // USAR a constante da classe diretamente
-    const REDUCED_THRUST = this.THRUST_FORCE * thrustMultiplier;
-
+    mesh.position.set(p.x(), p.y(), p.z());
     
-    console.log(`Pod speed: ${currentSpeed.toFixed(1)} km/h, multiplier: ${thrustMultiplier.toFixed(2)}, thrust: ${REDUCED_THRUST.toFixed(0)}`);
-
-    // FORWARD/BACKWARD com força muito menor
-    if (currentSpeed < this.MAX_VELOCITY && Math.abs(input.z) > 0.05) {
-      const engineForce = input.z * REDUCED_THRUST;
-      console.log(`Applying engine force: ${engineForce.toFixed(0)}`);
-      
-      // Aplicar nas rodas traseiras (2 e 3)
-      vehicle.applyEngineForce(engineForce, 2);
-      vehicle.applyEngineForce(engineForce, 3);
-    } else {
-      // MOTOR DESLIGADO quando sem input OU velocidade alta
-      vehicle.applyEngineForce(0, 2);
-      vehicle.applyEngineForce(0, 3);
+    // SAFE QUATERNION HANDLING - Check if rotationQuaternion exists
+    if (!mesh.rotationQuaternion) {
+      mesh.rotationQuaternion = new Quaternion();
     }
-
-    // STEERING - TENTAR INVERTER DIREÇÕES
-    const STEERING_SENSITIVITY = 2.8; 
-    if (Math.abs(input.x) > 0.05) {
-      const steeringValue = input.x * STEERING_SENSITIVITY;
-      console.log(`Applying steering: ${steeringValue.toFixed(2)}`);
-      
-      // Aplicar nas rodas dianteiras (0 e 1)
-      vehicle.setSteeringValue(steeringValue, 0);
-      vehicle.setSteeringValue(steeringValue, 1);
-    } else {
-      // VOLANTE CENTRALIZADO
-      vehicle.setSteeringValue(0, 0);
-      vehicle.setSteeringValue(0, 1);
-    }
-
-    // SISTEMA DE FREIOS EFICAZ
-    if (Math.abs(input.z) < 0.05) {
-      // SEM INPUT = FREIOS PROPORCIONAIS À VELOCIDADE
-      if (currentSpeed > 1.0) {
-        const strongBrake = Math.min(currentSpeed * 8, 200); // Freio mais forte
-        vehicle.setBrake(strongBrake, 0);
-        vehicle.setBrake(strongBrake, 1);
-        vehicle.setBrake(strongBrake, 2);
-        vehicle.setBrake(strongBrake, 3);
-        console.log(`Strong braking: ${strongBrake.toFixed(1)} (speed: ${currentSpeed.toFixed(1)})`);
-      } else {
-        // Velocidade muito baixa - freio máximo para parar completamente
-        vehicle.setBrake(100, 0);
-        vehicle.setBrake(100, 1);
-        vehicle.setBrake(100, 2);
-        vehicle.setBrake(100, 3);
-      }
-    } else {
-      // COM INPUT = SOLTAR FREIOS
-      vehicle.setBrake(0, 0);
-      vehicle.setBrake(0, 1);
-      vehicle.setBrake(0, 2);
-      vehicle.setBrake(0, 3);
-    }
-
-    // FREIO DE EMERGÊNCIA para impedir velocidades muito altas
-    if (currentSpeed > this.MAX_VELOCITY) {
-      console.log(`Emergency brake - speed too high: ${currentSpeed.toFixed(1)}`);
-      vehicle.setBrake(300, 0);
-      vehicle.setBrake(300, 1);
-      vehicle.setBrake(300, 2);
-      vehicle.setBrake(300, 3);
-    }
-  }
-
-  private updatePhysics(): void {
-    if (!this.physicsWorld) return;
     
-    // Para cada pod, sincronizar transform do btRaycastVehicle
-    this.pods.forEach((podData, podId) => {
-      const vehicle = podData.vehicle;
-      const mesh = podData.mesh;
-      
-      // Sincronizar transform do chassis
-      let tm = vehicle.getChassisWorldTransform();
-      let p = tm.getOrigin();
-      let q = tm.getRotation();
-      
-      mesh.position.set(p.x(), p.y(), p.z());
-      mesh.rotationQuaternion.set(q.x(), q.y(), q.z(), q.w());
-      mesh.addRotation(0, Math.PI/2, 0); // Correção de orientação
-    });
-  }
+    mesh.rotationQuaternion.set(q.x(), q.y(), q.z(), q.w());
+    mesh.addRotation(0, Math.PI/2, 0);
+    
+    // SIMPLIFIED ANTI-FLIP SYSTEM - Just check Y position and basic orientation
+    const yPos = p.y();
+    const quat = mesh.rotationQuaternion;
+    
+    // Simple upside-down check - if Y component of quaternion indicates flip
+    const isUpsideDown = quat && (quat.w < 0.5 && Math.abs(quat.x) > 0.7);
+    const isUnderground = yPos < -5;
+    const isTooLow = yPos < 0;
+    
+    if (isUpsideDown || isUnderground || isTooLow) {
+      console.log(`Pod issue detected - Y: ${yPos.toFixed(2)}, resetting`);
+      this.resetPodPosition(podId);
+    }
+    
+    // GENTLE DOWNWARD FORCE for stability (reduced force)
+    if (yPos > 2) { // Only when airborne
+      const Ammo = this.ammoInstance;
+      const downwardForce = new Ammo.btVector3(0, -500, 0); // Reduced force
+      rigidBody.applyCentralForce(downwardForce);
+    }
+  });
+}
 
   // Setup do track com transformações consistentes
   public async setupTrackCollision(trackMesh: AbstractMesh, racerScene: any = null): Promise<void> {
@@ -462,27 +444,38 @@ export class RacerPhysics
     }
   }
 
-  private resetPodPosition(podId: string): void {
-    const podData = this.pods.get(podId);
-    if (!podData) return;
-    
-    const Ammo = this.ammoInstance;
-    const rigidBody = podData.rigidBody;
-    
-    // Parar movimento
-    rigidBody.setLinearVelocity(new Ammo.btVector3(0, 0, 0));
-    rigidBody.setAngularVelocity(new Ammo.btVector3(0, 0, 0));
-    
-    // Reposicionar em local seguro
-    const resetTransform = new Ammo.btTransform();
-    resetTransform.setIdentity();
-    resetTransform.setOrigin(new Ammo.btVector3(0, 50, 0));
-    
-    rigidBody.setWorldTransform(resetTransform);
-    rigidBody.activate(true);
-    
-    console.log("Pod reset to safe position");
-  }
+private resetPodPosition(podId: string): void {
+  const podData = this.pods.get(podId);
+  if (!podData) return;
+  
+  const Ammo = this.ammoInstance;
+  const rigidBody = podData.rigidBody;
+  const mesh = podData.mesh;
+  
+  // Get current position
+  const currentPos = mesh.position;
+  
+  // Stop all movement
+  rigidBody.setLinearVelocity(new Ammo.btVector3(0, 0, 0));
+  rigidBody.setAngularVelocity(new Ammo.btVector3(0, 0, 0));
+  
+  // KEEP CURRENT POSITION - just lift slightly and fix rotation
+  const resetTransform = new Ammo.btTransform();
+  resetTransform.setIdentity();
+  resetTransform.setOrigin(new Ammo.btVector3(
+    currentPos.x,  // Keep same X
+    Math.max(currentPos.y + 2, 3), // Just lift 2 units higher, minimum 3
+    currentPos.z   // Keep same Z
+  ));
+  
+  // ONLY FIX ROTATION - make pod upright
+  resetTransform.setRotation(new Ammo.btQuaternion(0, 0, 0, 1));
+  
+  rigidBody.setWorldTransform(resetTransform);
+  rigidBody.activate(true);
+  
+  console.log("Pod tilted back upright at current location");
+}
 
   public isPhysicsReady(): boolean {
     return this.isInitialized && this.physicsWorld !== null;
