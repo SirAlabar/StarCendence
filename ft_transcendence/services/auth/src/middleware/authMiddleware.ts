@@ -2,21 +2,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { HttpError } from '../utils/HttpError';
 import { verifyAccessToken } from '../services/tokenService';
+import { AccessTokenPayload } from '../types/fastify';
 
-// Extended request interface to include user data
-// declare module 'fastify' {
-//   interface FastifyRequest {
-//     user?: {
-//       sub: string;      // User ID
-//       email: string;
-//       username: string;
-//       type: string;
-//       iat?: number;     // Issued at
-//       exp?: number;     // Expires at
-//       iss?: string;     // Issuer
-//     };
-//   }
-// }
 
 // Authentication middleware - verifies JWT access token
 export async function verifyUserToken(req: FastifyRequest, reply: FastifyReply) {
@@ -31,13 +18,9 @@ export async function verifyUserToken(req: FastifyRequest, reply: FastifyReply) 
     throw new HttpError('Access token is required', 401);
   }
 
-  const decoded = await verifyAccessToken(token);
-  
-   if (decoded.type !== 'access') {
-    throw new HttpError('Invalid token type', 401);
-  }
+  const decoded = await verifyAccessToken(token) as AccessTokenPayload;
 
-  if (!decoded.sub || !decoded.email || !decoded.username) {
+  if (!decoded.sub || !decoded.email || !decoded.username || decoded.type !== 'access') {
     throw new HttpError('Invalid token: missing required fields', 401);
   }
 

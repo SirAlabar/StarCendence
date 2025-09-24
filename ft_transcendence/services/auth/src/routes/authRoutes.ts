@@ -12,7 +12,7 @@ export async function authRoutes(fastify: FastifyInstance){
   // no schema needed?
   fastify.post('/logout',
   {
-      preHandler: [verifyUserToken],
+    preHandler: [verifyUserToken],
   },
   logoutController.logout);
 }

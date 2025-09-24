@@ -14,12 +14,8 @@ export async function tokenVerify(req: FastifyRequest, reply: FastifyReply) {
   }
 
   const decoded = await verifyAccessToken(token);
-  
-  if (decoded.type !== 'access') {
-    throw new HttpError('Invalid token type', 401);
-  }
 
-  if (!decoded.sub || !decoded.email || !decoded.username) {
+  if (!decoded.sub || !decoded.email || !decoded.username || decoded.type !== 'access') {
     throw new HttpError('Invalid token: missing required fields', 401);
   }
 
