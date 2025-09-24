@@ -152,7 +152,7 @@ export class RacerScene
             console.log("=== APPLYING IDENTICAL TRANSFORMS ===");
             
             // 3. DEFINIR TRANSFORMAÇÕES ÚNICAS
-            const scale = new Vector3(8, 8, 8);
+            const scale = new Vector3(10, 10, 10);
             const position = new Vector3(0, -2.5, 0);
             const rotation = Vector3.Zero();
             
@@ -165,6 +165,7 @@ export class RacerScene
             
             // Collision mesh (para física) - APLICAR AS MESMAS TRANSFORMAÇÕES
             collisionMesh.position = position.clone();
+            collisionMesh.position.y += 2.5;
             collisionMesh.rotation = rotation.clone();
             collisionMesh.scaling = scale.clone(); // CRÍTICO: mesma escala!
             
@@ -201,6 +202,31 @@ export class RacerScene
             console.log(`Visual: ${visualMesh.name} - visible, with textures`);
             console.log(`Collision: ${collisionMesh.name} - hidden, same transforms`);
 
+            // --- DEBUG VISUAL x COLLISION ---
+if (visualMesh && collisionMesh) {
+  console.log("=== DEBUG VISUAL vs COLLISION ===");
+
+  // Posições, rotações e escalas aplicadas
+  console.log("Visual Pos:", visualMesh.position, "Rot:", visualMesh.rotation, "Scale:", visualMesh.scaling);
+  console.log("Collision Pos:", collisionMesh.position, "Rot:", collisionMesh.rotation, "Scale:", collisionMesh.scaling);
+
+  // Bounding boxes
+  const vBounds = visualMesh.getBoundingInfo().boundingBox;
+  const cBounds = collisionMesh.getBoundingInfo().boundingBox;
+
+  console.log("Visual Bounds - Min:", vBounds.minimumWorld, "Max:", vBounds.maximumWorld, "Center:", vBounds.centerWorld);
+  console.log("Collision Bounds - Min:", cBounds.minimumWorld, "Max:", cBounds.maximumWorld, "Center:", cBounds.centerWorld);
+
+  // Distância entre os centros (se não for ~0, tem deslocamento)
+  const delta = vBounds.centerWorld.subtract(cBounds.centerWorld);
+  console.log("Center Delta (Visual - Collision):", delta);
+
+  // Tamanho do mesh (comprimento, altura, largura)
+  console.log("Visual Size:", vBounds.maximumWorld.subtract(vBounds.minimumWorld));
+  console.log("Collision Size:", cBounds.maximumWorld.subtract(cBounds.minimumWorld));
+}
+
+
             if (this.onTrackLoaded) 
             {
               this.onTrackLoaded(this.track);
@@ -220,6 +246,7 @@ export class RacerScene
             reject(error);
           }
         },
+
         (progress) => 
         {
           if (progress.total > 0) 
@@ -238,6 +265,7 @@ export class RacerScene
           console.error('Polar pass loading error:', message);
           reject(new Error(`Failed to load polar pass: ${message}`));
         }
+        
       );
     });
   }
