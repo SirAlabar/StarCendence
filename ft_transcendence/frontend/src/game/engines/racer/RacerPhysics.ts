@@ -6,13 +6,9 @@ import
   Quaternion,
   AbstractMesh,
   Ray,
-  Color3,
   VertexBuffer,
-  CreateRibbon,
-  Vector2
 } from '@babylonjs/core';
 import Ammo from 'ammojs-typed';
-import { CreateLines, CreateSphere, StandardMaterial } from '@babylonjs/core';
 import { RacerPod } from './RacerPods';
 
 export class RacerPhysics 
@@ -22,20 +18,18 @@ export class RacerPhysics
   private ammoInstance: any = null;
   private isInitialized: boolean = false;
   private tempTransform: any = null;
-  private racerScene: any = null;
   private trackRigidBodies: any[] = [];
   
-  // MODIFICADO: Estrutura para hover system
   private pods: Map<string, { 
     rigidBody: any,
     mesh: Mesh,
     hoverPoints: Vector3[],
     pod: RacerPod,
-    lastPosition: Vector3,   // ADICIONAR
+    lastPosition: Vector3,
     stuckTimer: number 
   }> = new Map();
   
-  private readonly GRAVITY = new Vector3(0, -79, 0);
+  private readonly GRAVITY = new Vector3(0, -99, 0);
   private readonly POD_MASS = 2000;
   private readonly THRUST_FORCE = 85;
   private readonly MAX_VELOCITY = 400;
@@ -45,7 +39,6 @@ export class RacerPhysics
   constructor(scene: Scene) 
   {
     this.scene = scene;
-    console.log('RacerPhysics: Initializing');
   }
 
   public async initialize(): Promise<void> 
@@ -57,8 +50,6 @@ export class RacerPhysics
 
     try 
     {
-      console.log('RacerPhysics: Initializing physics engine');
-      
       const ammoInstance = await Ammo.bind(window)();
       const physicsPlugin = new (await import('@babylonjs/core')).AmmoJSPlugin(true, ammoInstance);
       
@@ -81,96 +72,90 @@ export class RacerPhysics
       });
       
       this.isInitialized = true;
-      console.log('RacerPhysics: Ready');
     } 
     catch (error) 
     {
-      console.error('RacerPhysics: Failed to initialize:', error);
       throw error;
     }
   }
 
-  public createPod(mesh: Mesh, podId: string, pod: RacerPod): void {
-  if (!this.isInitialized || !this.ammoInstance) {
-    throw new Error('RacerPhysics: Not initialized');
+  public createPod(mesh: Mesh, podId: string, pod: RacerPod): void 
+  {
+    if (!this.isInitialized || !this.ammoInstance) 
+    {
+      throw new Error('RacerPhysics: Not initialized');
+    }
+    
+    const Ammo = this.ammoInstance;
+    
+    var transform = new Ammo.btTransform();
+    transform.setIdentity();
+    transform.setOrigin(new Ammo.btVector3(0, 10, 0));
+    const initialPhysicsRotation = new Ammo.btQuaternion(0, 0, 0, 1);
+    transform.setRotation(initialPhysicsRotation);
+    
+    var motionState = new Ammo.btDefaultMotionState(transform);
+    var localInertia = new Ammo.btVector3(0, 0, 0);
+    
+    var hull = [724.8979,1742.79126,-293.8619,1013.10107,1136.37292,-1947.64307,1052.83252,1183.11963,2029.03369,-724.8979,1742.79126,-293.8619,-1052.83252,1183.11963,2029.03369,-1013.10107,1136.37292,-1947.64307,477.1378,1157.46509,-2049.793,549.292,688.7122,-2033.02686,1013.10107,1136.37292,-1947.64307,-549.292,688.7122,-2033.02686,549.292,688.7122,-2033.02686,477.1378,1157.46509,-2049.793,-734.6597,1610.0752,700.9919,-1052.83252,1183.11963,2029.03369,-724.8979,1742.79126,-293.8619,-734.6597,1610.0752,700.9919,1052.83252,1183.11963,2029.03369,-1052.83252,1183.11963,2029.03369,734.6597,1610.0752,700.9919,724.8979,1742.79126,-293.8619,1052.83252,1183.11963,2029.03369,734.6597,1610.0752,700.9919,734.6597,1610.0752,700.9919,-734.6597,1610.0752,700.9919,0,1793.94617,-331.3796,482.0361,486.8974,-1960.24573,549.292,688.7122,-2033.02686,-549.292,688.7122,-2033.02686,482.0361,486.8974,-1960.24573,1053.79028,489.8413,-1858.3396,549.292,688.7122,-2033.02686,-477.1378,1157.46509,-2049.793,-1013.10107,1136.37292,-1947.64307,-549.292,688.7122,-2033.02686,-477.1378,1157.46509,-2049.793,-477.1378,1157.46509,-2049.793,477.1378,1157.46509,-2049.793,0,1418.503,-1807.88025,1077.55261,404.8475,-1583.72144,1053.79028,489.8413,-1858.3396,482.0361,486.8974,-1960.24573,1077.55261,404.8475,-1583.72144,-1029.84131,370.7491,-588.8345,1029.84131,370.7491,-588.8345,1077.55261,404.8475,-1583.72144,1029.84131,370.7491,-588.8345,1137.37439,384.7701,2006.43555,-1077.55261,404.8475,-1583.72144,1077.55261,404.8475,-1583.72144,482.0361,486.8974,-1960.24573,-1077.55261,404.8475,-1583.72144,-1077.55261,404.8475,-1583.72144,-1137.37439,384.7701,2006.43555,-1029.84131,370.7491,-588.8345,-482.0361,486.8974,-1960.24573,-1053.79028,489.8413,-1858.3396,-1077.55261,404.8475,-1583.72144,-482.0361,486.8974,-1960.24573,-482.0361,486.8974,-1960.24573,-549.292,688.7122,-2033.02686,-1053.79028,489.8413,-1858.3396,-482.0361,486.8974,-1960.24573,-244.5957,1412.99524,-1810.30493,-1013.10107,1136.37292,-1947.64307,-477.1378,1157.46509,-2049.793,-244.5957,1412.99524,-1810.30493,-477.1378,1157.46509,-2049.793,0,1418.503,-1807.88025,-244.5957,1412.99524,-1810.30493,-724.8979,1742.79126,-293.8619,-1013.10107,1136.37292,-1947.64307,-244.5957,1412.99524,-1810.30493,0,1418.503,-1807.88025,0,1793.94617,-331.3796,244.5957,1412.99524,-1810.30493,0,1418.503,-1807.88025,477.1378,1157.46509,-2049.793,244.5957,1412.99524,-1810.30493,477.1378,1157.46509,-2049.793,1013.10107,1136.37292,-1947.64307,244.5957,1412.99524,-1810.30493,0,1793.94617,-331.3796,0,1418.503,-1807.88025,244.5957,1412.99524,-1810.30493,1013.10107,1136.37292,-1947.64307,724.8979,1742.79126,-293.8619,-1013.8631,691.0133,-1930.07227,-549.292,688.7122,-2033.02686,-1013.10107,1136.37292,-1947.64307,1013.8631,691.0133,-1930.07227,1013.10107,1136.37292,-1947.64307,549.292,688.7122,-2033.02686,-1061.14771,646.3994,-1909.22253,-1053.79028,489.8413,-1858.3396,-549.292,688.7122,-2033.02686,-1061.14771,646.3994,-1909.22253,-549.292,688.7122,-2033.02686,-1013.8631,691.0133,-1930.07227,-1061.14771,646.3994,-1909.22253,-1013.8631,691.0133,-1930.07227,-1013.10107,1136.37292,-1947.64307,-1061.14771,646.3994,-1909.22253,-1077.55261,404.8475,-1583.72144,-1053.79028,489.8413,-1858.3396,1061.14771,646.3994,-1909.22253,549.292,688.7122,-2033.02686,1053.79028,489.8413,-1858.3396,1061.14771,646.3994,-1909.22253,1013.8631,691.0133,-1930.07227,549.292,688.7122,-2033.02686,1061.14771,646.3994,-1909.22253,1013.10107,1136.37292,-1947.64307,1013.8631,691.0133,-1930.07227,1061.14771,646.3994,-1909.22253,1053.79028,489.8413,-1858.3396,1077.55261,404.8475,-1583.72144,-475.1253,1774.70337,-320.6326,-724.8979,1742.79126,-293.8619,-244.5957,1412.99524,-1810.30493,-475.1253,1774.70337,-320.6326,-244.5957,1412.99524,-1810.30493,0,1793.94617,-331.3796,-475.1253,1774.70337,-320.6326,0,1793.94617,-331.3796,-734.6597,1610.0752,700.9919,-475.1253,1774.70337,-320.6326,-734.6597,1610.0752,700.9919,-724.8979,1742.79126,-293.8619,475.1253,1774.70337,-320.6326,0,1793.94617,-331.3796,244.5957,1412.99524,-1810.30493,475.1253,1774.70337,-320.6326,244.5957,1412.99524,-1810.30493,724.8979,1742.79126,-293.8619,475.1253,1774.70337,-320.6326,724.8979,1742.79126,-293.8619,734.6597,1610.0752,700.9919,475.1253,1774.70337,-320.6326,734.6597,1610.0752,700.9919,0,1793.94617,-331.3796,1043.00146,364.6063,791.3676,1137.37439,384.7701,2006.43555,1029.84131,370.7491,-588.8345,1043.00146,364.6063,791.3676,1029.84131,370.7491,-588.8345,-1029.84131,370.7491,-588.8345,1043.00146,364.6063,791.3676,-1137.37439,384.7701,2006.43555,1137.37439,384.7701,2006.43555,-1043.00146,364.6063,791.3676,-1029.84131,370.7491,-588.8345,-1137.37439,384.7701,2006.43555,-1043.00146,364.6063,791.3676,-1043.00146,364.6063,791.3676,0,396.2789,2017.64673,1137.37439,384.7701,2006.43555,-1137.37439,384.7701,2006.43555,0,1175.7417,2039.25269,-1137.37439,384.7701,2006.43555,-1052.83252,1183.11963,2029.03369,0,396.2789,2017.64673,0,1175.7417,2039.25269,1052.83252,1183.11963,2029.03369,1137.37439,384.7701,2006.43555,0,396.2789,2017.64673,0,1175.7417,2039.25269,-1052.83252,1183.11963,2029.03369,1052.83252,1183.11963,2029.03369,-1114.74915,977.62,422.8308,-1122.866,925.131,422.5171,-1092.156,800.1202,-1582.09863,-1114.74915,977.62,422.8308,-1092.156,800.1202,-1582.09863,-1013.10107,1136.37292,-1947.64307,-1114.74915,977.62,422.8308,-1013.10107,1136.37292,-1947.64307,-1052.83252,1183.11963,2029.03369,1114.74915,977.62,422.8308,1013.10107,1136.37292,-1947.64307,1092.156,800.1202,-1582.09863,1114.74915,977.62,422.8308,1092.156,800.1202,-1582.09863,1122.866,925.131,422.5171,1114.74915,977.62,422.8308,1052.83252,1183.11963,2029.03369,1013.10107,1136.37292,-1947.64307,-1060.57458,794.3555,-1872.05847,-1013.10107,1136.37292,-1947.64307,-1092.156,800.1202,-1582.09863,-1060.57458,794.3555,-1872.05847,-1092.156,800.1202,-1582.09863,-1061.14771,646.3994,-1909.22253,-1060.57458,794.3555,-1872.05847,-1061.14771,646.3994,-1909.22253,-1013.10107,1136.37292,-1947.64307,1060.57458,794.3555,-1872.05847,1092.156,800.1202,-1582.09863,1013.10107,1136.37292,-1947.64307,1060.57458,794.3555,-1872.05847,1013.10107,1136.37292,-1947.64307,1061.14771,646.3994,-1909.22253,1060.57458,794.3555,-1872.05847,1061.14771,646.3994,-1909.22253,1092.156,800.1202,-1582.09863,1093.08643,643.8445,-1582.8042,1092.156,800.1202,-1582.09863,1061.14771,646.3994,-1909.22253,1093.08643,643.8445,-1582.8042,1061.14771,646.3994,-1909.22253,1077.55261,404.8475,-1583.72144,1093.08643,643.8445,-1582.8042,1077.55261,404.8475,-1583.72144,1137.37439,384.7701,2006.43555,1093.08643,643.8445,-1582.8042,1137.37439,384.7701,2006.43555,1122.866,925.131,422.5171,1093.08643,643.8445,-1582.8042,1122.866,925.131,422.5171,1092.156,800.1202,-1582.09863,-1093.08643,643.8445,-1582.8042,-1077.55261,404.8475,-1583.72144,-1061.14771,646.3994,-1909.22253,-1093.08643,643.8445,-1582.8042,-1061.14771,646.3994,-1909.22253,-1092.156,800.1202,-1582.09863,-1093.08643,643.8445,-1582.8042,-1137.37439,384.7701,2006.43555,-1077.55261,404.8475,-1583.72144,-1093.08643,643.8445,-1582.8042,-1122.866,925.131,422.5171,-1137.37439,384.7701,2006.43555,-1093.08643,643.8445,-1582.8042,-1092.156,800.1202,-1582.09863,-1122.866,925.131,422.5171,-1124.65894,924.317,605.2404,-1122.866,925.131,422.5171,-1114.74915,977.62,422.8308,-1124.65894,924.317,605.2404,-1114.74915,977.62,422.8308,-1052.83252,1183.11963,2029.03369,-1124.65894,924.317,605.2404,-1052.83252,1183.11963,2029.03369,-1137.37439,384.7701,2006.43555,-1124.65894,924.317,605.2404,-1137.37439,384.7701,2006.43555,-1122.866,925.131,422.5171,1124.65894,924.317,605.2404,1052.83252,1183.11963,2029.03369,1114.74915,977.62,422.8308,1124.65894,924.317,605.2404,1114.74915,977.62,422.8308,1122.866,925.131,422.5171,1124.65894,924.317,605.2404,1137.37439,384.7701,2006.43555,1052.83252,1183.11963,2029.03369,1124.65894,924.317,605.2404,1122.866,925.131,422.5171,1137.37439,384.7701,2006.43555];
+    
+    var geometry = new Ammo.btConvexHullShape();
+    for(let i=0; i < hull.length; i += 3) 
+    {
+      geometry.addPoint(new Ammo.btVector3(
+        hull[i]*0.0028,
+        hull[i+1]*0.0028,
+        hull[i+2]*0.0028));
+    }
+    
+    geometry.calculateLocalInertia(this.POD_MASS, localInertia);
+    
+    const rigidBody = new Ammo.btRigidBody(new Ammo.btRigidBodyConstructionInfo(this.POD_MASS, motionState, geometry, localInertia));
+    rigidBody.setActivationState(4);
+    rigidBody.setDamping(0.3, 0.5);
+    rigidBody.setFriction(0.8);
+    rigidBody.setRestitution(0.1);
+    
+    this.physicsWorld.addRigidBody(rigidBody);
+    
+    const hoverPoints = this.calculateHoverPoints(11.4, 6.4, 5.0);
+    
+    this.pods.set(podId, { 
+      rigidBody, 
+      mesh, 
+      hoverPoints, 
+      pod,
+      lastPosition: mesh.position.clone(),
+      stuckTimer: 0
+    });
+    
+    mesh.position.set(0, 10, 0);
+    if (!mesh.rotationQuaternion) 
+    {
+      mesh.rotationQuaternion = new Quaternion();
+    }
+    mesh.rotationQuaternion.set(0, 0, 0, 1);
   }
-  
-  console.log(`Creating hover pod with original hull collision: ${podId}`);
-  const Ammo = this.ammoInstance;
-  
-  // Transform inicial
-  var transform = new Ammo.btTransform();
-  transform.setIdentity();
-  transform.setOrigin(new Ammo.btVector3(0, 50, 0));
-  const initialPhysicsRotation = new Ammo.btQuaternion(0, 0, 0, 1);
-  transform.setRotation(initialPhysicsRotation);
-  
-  var motionState = new Ammo.btDefaultMotionState(transform);
-  var localInertia = new Ammo.btVector3(0, 0, 0);
-  
-  // HULL CONVEXO ORIGINAL - mesmo do primeiro arquivo
-  var hull = [724.8979,1742.79126,-293.8619,1013.10107,1136.37292,-1947.64307,1052.83252,1183.11963,2029.03369,-724.8979,1742.79126,-293.8619,-1052.83252,1183.11963,2029.03369,-1013.10107,1136.37292,-1947.64307,477.1378,1157.46509,-2049.793,549.292,688.7122,-2033.02686,1013.10107,1136.37292,-1947.64307,-549.292,688.7122,-2033.02686,549.292,688.7122,-2033.02686,477.1378,1157.46509,-2049.793,-734.6597,1610.0752,700.9919,-1052.83252,1183.11963,2029.03369,-724.8979,1742.79126,-293.8619,-734.6597,1610.0752,700.9919,1052.83252,1183.11963,2029.03369,-1052.83252,1183.11963,2029.03369,734.6597,1610.0752,700.9919,724.8979,1742.79126,-293.8619,1052.83252,1183.11963,2029.03369,734.6597,1610.0752,700.9919,734.6597,1610.0752,700.9919,-734.6597,1610.0752,700.9919,0,1793.94617,-331.3796,482.0361,486.8974,-1960.24573,549.292,688.7122,-2033.02686,-549.292,688.7122,-2033.02686,482.0361,486.8974,-1960.24573,1053.79028,489.8413,-1858.3396,549.292,688.7122,-2033.02686,-477.1378,1157.46509,-2049.793,-1013.10107,1136.37292,-1947.64307,-549.292,688.7122,-2033.02686,-477.1378,1157.46509,-2049.793,-477.1378,1157.46509,-2049.793,477.1378,1157.46509,-2049.793,0,1418.503,-1807.88025,1077.55261,404.8475,-1583.72144,1053.79028,489.8413,-1858.3396,482.0361,486.8974,-1960.24573,1077.55261,404.8475,-1583.72144,-1029.84131,370.7491,-588.8345,1029.84131,370.7491,-588.8345,1077.55261,404.8475,-1583.72144,1029.84131,370.7491,-588.8345,1137.37439,384.7701,2006.43555,-1077.55261,404.8475,-1583.72144,1077.55261,404.8475,-1583.72144,482.0361,486.8974,-1960.24573,-1077.55261,404.8475,-1583.72144,-1077.55261,404.8475,-1583.72144,-1137.37439,384.7701,2006.43555,-1029.84131,370.7491,-588.8345,-482.0361,486.8974,-1960.24573,-1053.79028,489.8413,-1858.3396,-1077.55261,404.8475,-1583.72144,-482.0361,486.8974,-1960.24573,-482.0361,486.8974,-1960.24573,-549.292,688.7122,-2033.02686,-1053.79028,489.8413,-1858.3396,-482.0361,486.8974,-1960.24573,-244.5957,1412.99524,-1810.30493,-1013.10107,1136.37292,-1947.64307,-477.1378,1157.46509,-2049.793,-244.5957,1412.99524,-1810.30493,-477.1378,1157.46509,-2049.793,0,1418.503,-1807.88025,-244.5957,1412.99524,-1810.30493,-724.8979,1742.79126,-293.8619,-1013.10107,1136.37292,-1947.64307,-244.5957,1412.99524,-1810.30493,0,1418.503,-1807.88025,0,1793.94617,-331.3796,244.5957,1412.99524,-1810.30493,0,1418.503,-1807.88025,477.1378,1157.46509,-2049.793,244.5957,1412.99524,-1810.30493,477.1378,1157.46509,-2049.793,1013.10107,1136.37292,-1947.64307,244.5957,1412.99524,-1810.30493,0,1793.94617,-331.3796,0,1418.503,-1807.88025,244.5957,1412.99524,-1810.30493,1013.10107,1136.37292,-1947.64307,724.8979,1742.79126,-293.8619,-1013.8631,691.0133,-1930.07227,-549.292,688.7122,-2033.02686,-1013.10107,1136.37292,-1947.64307,1013.8631,691.0133,-1930.07227,1013.10107,1136.37292,-1947.64307,549.292,688.7122,-2033.02686,-1061.14771,646.3994,-1909.22253,-1053.79028,489.8413,-1858.3396,-549.292,688.7122,-2033.02686,-1061.14771,646.3994,-1909.22253,-549.292,688.7122,-2033.02686,-1013.8631,691.0133,-1930.07227,-1061.14771,646.3994,-1909.22253,-1013.8631,691.0133,-1930.07227,-1013.10107,1136.37292,-1947.64307,-1061.14771,646.3994,-1909.22253,-1077.55261,404.8475,-1583.72144,-1053.79028,489.8413,-1858.3396,1061.14771,646.3994,-1909.22253,549.292,688.7122,-2033.02686,1053.79028,489.8413,-1858.3396,1061.14771,646.3994,-1909.22253,1013.8631,691.0133,-1930.07227,549.292,688.7122,-2033.02686,1061.14771,646.3994,-1909.22253,1013.10107,1136.37292,-1947.64307,1013.8631,691.0133,-1930.07227,1061.14771,646.3994,-1909.22253,1053.79028,489.8413,-1858.3396,1077.55261,404.8475,-1583.72144,-475.1253,1774.70337,-320.6326,-724.8979,1742.79126,-293.8619,-244.5957,1412.99524,-1810.30493,-475.1253,1774.70337,-320.6326,-244.5957,1412.99524,-1810.30493,0,1793.94617,-331.3796,-475.1253,1774.70337,-320.6326,0,1793.94617,-331.3796,-734.6597,1610.0752,700.9919,-475.1253,1774.70337,-320.6326,-734.6597,1610.0752,700.9919,-724.8979,1742.79126,-293.8619,475.1253,1774.70337,-320.6326,0,1793.94617,-331.3796,244.5957,1412.99524,-1810.30493,475.1253,1774.70337,-320.6326,244.5957,1412.99524,-1810.30493,724.8979,1742.79126,-293.8619,475.1253,1774.70337,-320.6326,724.8979,1742.79126,-293.8619,734.6597,1610.0752,700.9919,475.1253,1774.70337,-320.6326,734.6597,1610.0752,700.9919,0,1793.94617,-331.3796,1043.00146,364.6063,791.3676,1137.37439,384.7701,2006.43555,1029.84131,370.7491,-588.8345,1043.00146,364.6063,791.3676,1029.84131,370.7491,-588.8345,-1029.84131,370.7491,-588.8345,1043.00146,364.6063,791.3676,-1137.37439,384.7701,2006.43555,1137.37439,384.7701,2006.43555,-1043.00146,364.6063,791.3676,-1029.84131,370.7491,-588.8345,-1137.37439,384.7701,2006.43555,-1043.00146,364.6063,791.3676,-1043.00146,364.6063,791.3676,0,396.2789,2017.64673,1137.37439,384.7701,2006.43555,-1137.37439,384.7701,2006.43555,0,1175.7417,2039.25269,-1137.37439,384.7701,2006.43555,-1052.83252,1183.11963,2029.03369,0,396.2789,2017.64673,0,1175.7417,2039.25269,1052.83252,1183.11963,2029.03369,1137.37439,384.7701,2006.43555,0,396.2789,2017.64673,0,1175.7417,2039.25269,-1052.83252,1183.11963,2029.03369,1052.83252,1183.11963,2029.03369,-1114.74915,977.62,422.8308,-1122.866,925.131,422.5171,-1092.156,800.1202,-1582.09863,-1114.74915,977.62,422.8308,-1092.156,800.1202,-1582.09863,-1013.10107,1136.37292,-1947.64307,-1114.74915,977.62,422.8308,-1013.10107,1136.37292,-1947.64307,-1052.83252,1183.11963,2029.03369,1114.74915,977.62,422.8308,1013.10107,1136.37292,-1947.64307,1092.156,800.1202,-1582.09863,1114.74915,977.62,422.8308,1092.156,800.1202,-1582.09863,1122.866,925.131,422.5171,1114.74915,977.62,422.8308,1052.83252,1183.11963,2029.03369,1013.10107,1136.37292,-1947.64307,-1060.57458,794.3555,-1872.05847,-1013.10107,1136.37292,-1947.64307,-1092.156,800.1202,-1582.09863,-1060.57458,794.3555,-1872.05847,-1092.156,800.1202,-1582.09863,-1061.14771,646.3994,-1909.22253,-1060.57458,794.3555,-1872.05847,-1061.14771,646.3994,-1909.22253,-1013.10107,1136.37292,-1947.64307,1060.57458,794.3555,-1872.05847,1092.156,800.1202,-1582.09863,1013.10107,1136.37292,-1947.64307,1060.57458,794.3555,-1872.05847,1013.10107,1136.37292,-1947.64307,1061.14771,646.3994,-1909.22253,1060.57458,794.3555,-1872.05847,1061.14771,646.3994,-1909.22253,1092.156,800.1202,-1582.09863,1093.08643,643.8445,-1582.8042,1092.156,800.1202,-1582.09863,1061.14771,646.3994,-1909.22253,1093.08643,643.8445,-1582.8042,1061.14771,646.3994,-1909.22253,1077.55261,404.8475,-1583.72144,1093.08643,643.8445,-1582.8042,1077.55261,404.8475,-1583.72144,1137.37439,384.7701,2006.43555,1093.08643,643.8445,-1582.8042,1137.37439,384.7701,2006.43555,1122.866,925.131,422.5171,1093.08643,643.8445,-1582.8042,1122.866,925.131,422.5171,1092.156,800.1202,-1582.09863,-1093.08643,643.8445,-1582.8042,-1077.55261,404.8475,-1583.72144,-1061.14771,646.3994,-1909.22253,-1093.08643,643.8445,-1582.8042,-1061.14771,646.3994,-1909.22253,-1092.156,800.1202,-1582.09863,-1093.08643,643.8445,-1582.8042,-1137.37439,384.7701,2006.43555,-1077.55261,404.8475,-1583.72144,-1093.08643,643.8445,-1582.8042,-1122.866,925.131,422.5171,-1137.37439,384.7701,2006.43555,-1093.08643,643.8445,-1582.8042,-1092.156,800.1202,-1582.09863,-1122.866,925.131,422.5171,-1124.65894,924.317,605.2404,-1122.866,925.131,422.5171,-1114.74915,977.62,422.8308,-1124.65894,924.317,605.2404,-1114.74915,977.62,422.8308,-1052.83252,1183.11963,2029.03369,-1124.65894,924.317,605.2404,-1052.83252,1183.11963,2029.03369,-1137.37439,384.7701,2006.43555,-1124.65894,924.317,605.2404,-1137.37439,384.7701,2006.43555,-1122.866,925.131,422.5171,1124.65894,924.317,605.2404,1052.83252,1183.11963,2029.03369,1114.74915,977.62,422.8308,1124.65894,924.317,605.2404,1114.74915,977.62,422.8308,1122.866,925.131,422.5171,1124.65894,924.317,605.2404,1137.37439,384.7701,2006.43555,1052.83252,1183.11963,2029.03369,1124.65894,924.317,605.2404,1122.866,925.131,422.5171,1137.37439,384.7701,2006.43555];
-  
-  // Criar hull convexo
-  var geometry = new Ammo.btConvexHullShape();
-  for(let i=0; i < hull.length; i += 3) {
-    geometry.addPoint(new Ammo.btVector3(
-      hull[i]*0.0028,
-      hull[i+1]*0.0028,
-      hull[i+2]*0.0028));
-  }
-  
-  geometry.calculateLocalInertia(this.POD_MASS, localInertia);
-  
-  // Criar rigid body
-  const rigidBody = new Ammo.btRigidBody(new Ammo.btRigidBodyConstructionInfo(this.POD_MASS, motionState, geometry, localInertia));
-  rigidBody.setActivationState(4);
-  rigidBody.setDamping(0.3, 0.5);
-  rigidBody.setFriction(0.8);
-  rigidBody.setRestitution(0.1);
-  
-  this.physicsWorld.addRigidBody(rigidBody);
-  
-  // Calculate hover points usando DIMENSÕES FIXAS do hull original
-  const hoverPoints = this.calculateHoverPoints(11.4, 6.4, 5.0);
-  
-  // Armazenar referência
-  this.pods.set(podId, { 
-    rigidBody, 
-    mesh, 
-    hoverPoints, 
-    pod,
-    lastPosition: mesh.position.clone(),  // NOVA
-    stuckTimer: 0                         // NOVA
-  });
-  
-  // Posicionar mesh
-  mesh.position.set(0, 50, 0);
-  if (!mesh.rotationQuaternion) {
-    mesh.rotationQuaternion = new Quaternion();
-  }
-  // mesh.visibility = 0.0;
-  mesh.rotationQuaternion.set(0, 0, 0, 1);
-  
-  console.log(`Hover pod with original hull collision created: ${podId}`);
-}
 
-  private calculateHoverPoints(podLength: number, podWidth: number, podHeight: number): Vector3[] {
+  private calculateHoverPoints(podLength: number, podWidth: number, podHeight: number): Vector3[] 
+  {
     const halfWidth = podWidth / 2;
     const halfLength = podLength / 2;
     const boxBottom = -podHeight / 2;
   
     return [
-      new Vector3(-halfLength, boxBottom, -halfWidth),  // Front Left corner
-      new Vector3(-halfLength, boxBottom, halfWidth),   // Front Right corner
-      new Vector3(halfLength, boxBottom, -halfWidth),   // Back Left corner
-      new Vector3(halfLength, boxBottom, halfWidth)     // Back Right corner
+      new Vector3(-halfLength, boxBottom, -halfWidth),
+      new Vector3(-halfLength, boxBottom, halfWidth),
+      new Vector3(halfLength, boxBottom, -halfWidth),
+      new Vector3(halfLength, boxBottom, halfWidth)
     ];
   }
 
- public movePod(podId: string, input: { x: number, z: number }): void {
+  public movePod(podId: string, input: { x: number, z: number }): void 
+  {
     const podData = this.pods.get(podId);
-    if (!podData || !this.ammoInstance) {
+    if (!podData || !this.ammoInstance) 
+    {
       return;
     }
    
@@ -180,26 +165,36 @@ export class RacerPhysics
     const velocity = rigidBody.getLinearVelocity();
     const currentSpeed = Math.sqrt(velocity.x() * velocity.x() + velocity.z() * velocity.z());
     
-    // Calculate speed percentage and thrust multiplier
     const speedPercentage = currentSpeed / this.MAX_VELOCITY;
     let thrustMultiplier = 1.0;
     
-    if (speedPercentage < 0.08) {
+    if (speedPercentage < 0.08) 
+    {
       thrustMultiplier = 3.0;
-    } else if (speedPercentage < 0.15) {
+    } 
+    else if (speedPercentage < 0.15) 
+    {
       thrustMultiplier = 1.7;
-    } else if (speedPercentage < 0.25) {
+    } 
+    else if (speedPercentage < 0.25) 
+    {
       thrustMultiplier = 1.3;
-    } else if (speedPercentage < 0.4) {
+    } 
+    else if (speedPercentage < 0.4) 
+    {
       thrustMultiplier = 1.1;
-    } else if (speedPercentage < 0.8) {
+    } 
+    else if (speedPercentage < 0.8) 
+    {
       thrustMultiplier = 1.0;
-    } else {
+    } 
+    else 
+    {
       thrustMultiplier = 0.7;
     }
    
-    // FORWARD/BACKWARD
-    if (currentSpeed < this.MAX_VELOCITY && input.z !== 0) {
+    if (currentSpeed < this.MAX_VELOCITY && input.z !== 0) 
+    {
       const forwardDir = this.getForwardDirection(mesh);
       const thrustForce = new Ammo.btVector3(
         forwardDir.x * input.z * this.THRUST_FORCE * 0.008 * thrustMultiplier,
@@ -216,11 +211,13 @@ export class RacerPhysics
       rigidBody.setLinearVelocity(newVelocity);
     }
    
-    // STEERING
-    if (input.x !== 0) {
+    if (input.x !== 0) 
+    {
       const turnForce = new Ammo.btVector3(0, input.x * 3.0, 0);
       rigidBody.setAngularVelocity(turnForce);
-    } else {
+    } 
+    else 
+    {
       const currentAngular = rigidBody.getAngularVelocity();
       const dampedAngular = new Ammo.btVector3(
         currentAngular.x() * 0.8,
@@ -233,64 +230,70 @@ export class RacerPhysics
     const currentPos = mesh.position;
     const distanceMoved = Vector3.Distance(currentPos, podData.lastPosition);
     
-    // Se tem input mas não se moveu muito
-    if ((Math.abs(input.x) > 0.1 || Math.abs(input.z) > 0.1) && distanceMoved < 0.1) {
-      podData.stuckTimer += 0.016; // ~60fps
+    if ((Math.abs(input.x) > 0.1 || Math.abs(input.z) > 0.1) && distanceMoved < 0.1) 
+    {
+      podData.stuckTimer += 0.016;
      
-      if (podData.stuckTimer > 1.0) { // Preso por 1 segundo
-        console.log("Pod stuck detected - applying unstuck force");
-       
-        // Força para cima + direção do input
+      if (podData.stuckTimer > 1.0) 
+      {
         const unstuckForce = new Ammo.btVector3(
-          input.x * 2000,  // Força lateral
-          800,             // Força para cima
-          input.z * 2000   // Força frontal/traseira
+          input.x * 2000,
+          800,
+          input.z * 2000
         );
        
         rigidBody.applyCentralImpulse(unstuckForce);
-        podData.stuckTimer = 0; // Reset timer
+        podData.stuckTimer = 0;
       }
-    } else {
-      podData.stuckTimer = 0; // Reset se está se movendo
+    } 
+    else 
+    {
+      podData.stuckTimer = 0;
     }
     
-    // Atualizar última posição
     podData.lastPosition = currentPos.clone();
    
     this.applyHoverForce(rigidBody, mesh);
   }
 
-  private getForwardDirection(mesh: Mesh): Vector3 {
+  private getForwardDirection(mesh: Mesh): Vector3 
+  {
     const forward = mesh.getDirection(new Vector3(-1, 0, 0));
     return forward.normalize();
   }
 
-  private applyHoverForce(rigidBody: any, mesh: Mesh): void {
+  private applyHoverForce(rigidBody: any, mesh: Mesh): void 
+  {
     const Ammo = this.ammoInstance;
     const podId = this.findPodIdByMesh(mesh);
-    if (!podId) return;
-
+    if (!podId) 
+    {
+      return;
+    }
     const podData = this.pods.get(podId);
-    if (!podData) return;
-
+    if (!podData) 
+    {
+      return;
+    }
     const hoverPoints = podData.hoverPoints;
 
-    // Apply hover force at each of the 4 points
-    for (let i = 0; i < hoverPoints.length; i++) {
+    for (let i = 0; i < hoverPoints.length; i++) 
+    {
       const localHoverPoint = hoverPoints[i];
       const worldHoverPoint = Vector3.TransformCoordinates(localHoverPoint, mesh.getWorldMatrix());
       
-      // Cast ray downward from this hover point
       const ray = new Ray(worldHoverPoint, Vector3.Down());
       const hit = this.scene.pickWithRay(ray);
 
       let distanceFromGround = worldHoverPoint.y;
 
-      if (hit?.hit && hit.distance < 10.0) {
+      if (hit?.hit && hit.distance < 10.0) 
+      {
         distanceFromGround = hit.distance;
       }
 
-      if (distanceFromGround < this.HOVER_HEIGHT) {
+      if (distanceFromGround < this.HOVER_HEIGHT) 
+      {
         const hoverStrength = (this.HOVER_HEIGHT - distanceFromGround) / this.HOVER_HEIGHT;
         const upwardForce = this.HOVER_FORCE * hoverStrength * 0.016 * 0.25;
         
@@ -306,26 +309,30 @@ export class RacerPhysics
     }
   }
 
-  private findPodIdByMesh(targetMesh: Mesh): string | null {
-    for (const [podId, podData] of this.pods.entries()) {
-      if (podData.mesh === targetMesh) {
+  private findPodIdByMesh(targetMesh: Mesh): string | null 
+  {
+    for (const [podId, podData] of this.pods.entries()) 
+    {
+      if (podData.mesh === targetMesh) 
+      {
         return podId;
       }
     }
     return null;
   }
 
-  // MODIFICADO: UpdatePhysics para hover system
-  private updatePhysics(): void {
+  private updatePhysics(): void 
+  {
     if (!this.physicsWorld) return;
     
-    this.pods.forEach((podData, podId) => {
+    this.pods.forEach((podData, podId) => 
+    {
       const mesh = podData.mesh;
       const rigidBody = podData.rigidBody;
       
-      // Sync transform usando rigidBody
       const motionState = rigidBody.getMotionState();
-      if (motionState) {
+      if (motionState) 
+      {
         motionState.getWorldTransform(this.tempTransform);
         
         const position = this.tempTransform.getOrigin();
@@ -333,75 +340,59 @@ export class RacerPhysics
         
         mesh.position.set(position.x(), position.y(), position.z());
         
-        if (!mesh.rotationQuaternion) {
+        if (!mesh.rotationQuaternion) 
+        {
           mesh.rotationQuaternion = new Quaternion();
         }
         
         mesh.rotationQuaternion.set(rotation.x(), rotation.y(), rotation.z(), rotation.w());
         mesh.addRotation(0, Math.PI, 0);
       }
-      
-      // // Anti-flip system simplificado
-      // const yPos = position.y();
-      // const isUnderground = yPos < -5;
-      // const isTooLow = yPos < 0;
-      
-      // if (isUnderground || isTooLow) {
-      //   console.log(`Pod issue detected - Y: ${yPos.toFixed(2)}, resetting`);
-      //   this.resetPodPosition(podId);
-      // }
     });
   }
 
-  // MANTIDO: Setup do track (sistema original do primeiro arquivo)
-  public async setupTrackCollision(trackMesh: AbstractMesh, racerScene: any = null): Promise<void> {
-    if (!this.isInitialized || !this.ammoInstance) {
+  public async setupTrackCollision(racerScene: any = null): Promise<void> 
+  {
+    if (!this.isInitialized || !this.ammoInstance) 
+    {
       throw new Error('RacerPhysics: Cannot setup track - not initialized');
     }
     
     let collisionMesh: AbstractMesh | null = null;
     
-    if (racerScene && racerScene.findCollisionMesh) {
+    if (racerScene && racerScene.findCollisionMesh) 
+    {
       collisionMesh = racerScene.findCollisionMesh();
     }
     
-    if (!collisionMesh) {
-      console.error("No collision mesh found for physics");
+    if (!collisionMesh) 
+    {
       return;
     }
     
     const Ammo = this.ammoInstance;
     const mesh = collisionMesh as Mesh;
     
-    console.log("=== PHYSICS COLLISION SETUP ===");
-    console.log(`Using collision mesh: ${mesh.name} for physics`);
-    console.log(`Collision mesh position: ${mesh.position.toString()}`);
-    console.log(`Collision mesh scaling: ${mesh.scaling.toString()}`);
-    console.log(`Collision mesh rotation: ${mesh.rotation.toString()}`);
-    
     let positions = mesh.getVerticesData(VertexBuffer.PositionKind);
     let indices = mesh.getIndices();
     
-    if (!positions || !indices) {
-      console.error("No geometry data in collision mesh");
+    if (!positions || !indices) 
+    {
       return;
     }
-    
-    console.log(`Collision vertices: ${positions.length/3}`);
-    console.log(`Collision triangles: ${indices.length/3}`);
     
     mesh.updateFacetData();
     var localPositions = mesh.getFacetLocalPositions();
     var triangleCount = localPositions.length;
     
     let mTriMesh = new Ammo.btTriangleMesh();
-    let removeDuplicateVertices = true;
     
     const scale = mesh.scaling;
     const position = mesh.position;
     
     var _g = 0;
-    while(_g < triangleCount) {
+    while(_g < triangleCount) 
+    {
       var i = _g++;
       var index0 = indices[i * 3];
       var index1 = indices[i * 3 + 1];
@@ -433,16 +424,14 @@ export class RacerPhysics
     transform.setIdentity();
     transform.setOrigin(new Ammo.btVector3(0, 0, 0));
     
-    console.log("Physics body positioned at origin (transforms already applied to vertices)");
-    
-    if (mesh.rotationQuaternion) {
+    if (mesh.rotationQuaternion) 
+    {
       transform.setRotation(new Ammo.btQuaternion(
         mesh.rotationQuaternion.x, 
         mesh.rotationQuaternion.y, 
         mesh.rotationQuaternion.z, 
         mesh.rotationQuaternion.w
       ));
-      console.log(`Applied rotation: ${mesh.rotationQuaternion.toString()}`);
     }
     
     let motionState = new Ammo.btDefaultMotionState(transform);
@@ -450,28 +439,31 @@ export class RacerPhysics
     let body = new Ammo.btRigidBody(rbInfo);
     this.physicsWorld.addRigidBody(body);
     this.trackRigidBodies.push(body);
-    
-    console.log("=== PHYSICS COLLISION READY ===");
-    console.log("Track collision body created with applied transformations");
   }
 
-  // MODIFICADO: GetSpeed para hover system
-  public getSpeed(podId: string): number {
+  public getSpeed(podId: string): number 
+  {
     const podData = this.pods.get(podId);
-    if (!podData) return 0;
+    if (!podData)
+    {
+      return 0;
+    }
     const velocity = podData.rigidBody.getLinearVelocity();
     return Math.sqrt(velocity.x() * velocity.x() + velocity.z() * velocity.z());
   }
 
-  public removePod(podId: string): void {
+  public removePod(podId: string): void 
+  {
     const podData = this.pods.get(podId);
-    if (podData) {
+    if (podData) 
+    {
       this.physicsWorld.removeRigidBody(podData.rigidBody);
       this.pods.delete(podId);
     }
   }
 
-  private resetPodPosition(podId: string): void {
+  private resetPodPosition(podId: string): void 
+  {
     const podData = this.pods.get(podId);
     if (!podData) return;
     
@@ -496,27 +488,30 @@ export class RacerPhysics
     
     rigidBody.setWorldTransform(resetTransform);
     rigidBody.activate(true);
-    
-    console.log("Pod reset at current location");
   }
 
-  public isPhysicsReady(): boolean {
+  public isPhysicsReady(): boolean 
+  {
     return this.isInitialized && this.physicsWorld !== null;
   }
 
-  public dispose(): void {
-    this.pods.forEach((podData) => {
+  public dispose(): void 
+  {
+    this.pods.forEach((podData) => 
+    {
       this.physicsWorld.removeRigidBody(podData.rigidBody);
     });
     
-    this.trackRigidBodies.forEach((rigidBody) => {
+    this.trackRigidBodies.forEach((rigidBody) => 
+    {
       this.physicsWorld.removeRigidBody(rigidBody);
     });
     
     this.pods.clear();
     this.trackRigidBodies = [];
     
-    if (this.scene.getPhysicsEngine()) {
+    if (this.scene.getPhysicsEngine()) 
+    {
       this.scene.disablePhysicsEngine();
     }
     
@@ -524,7 +519,5 @@ export class RacerPhysics
     this.ammoInstance = null;
     this.tempTransform = null;
     this.isInitialized = false;
-    
-    console.log('RacerPhysics: Disposed');
   }
 }

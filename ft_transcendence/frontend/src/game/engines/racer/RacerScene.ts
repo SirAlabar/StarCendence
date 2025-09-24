@@ -4,9 +4,6 @@ import {
   Vector3,
   Color3,
   Mesh,
-  CreateGround,
-  CreateBox,
-  StandardMaterial,
   SceneLoader,
   VertexBuffer
 } from '@babylonjs/core';
@@ -23,8 +20,9 @@ export interface RacerSceneConfig
   fogDensity?: number;
 }
 
-const DEFAULT_CONFIG: RacerSceneConfig = {
-  trackSize: 5000,        // Mantido para compatibilidade
+const DEFAULT_CONFIG: RacerSceneConfig = 
+{
+  trackSize: 5000,
   trackSubdivisions: 50,
   wallHeight: 20,        
   wallThickness: 5,      
@@ -39,9 +37,7 @@ export class RacerScene
   private scene: Scene;
   private config: RacerSceneConfig;
   private track: AbstractMesh | null = null;
-  private walls: AbstractMesh[] = []; 
   private isLoaded: boolean = false;
-  private realVertexBounds: { min: Vector3; max: Vector3; size: Vector3 } | null = null;
 
   public onTrackLoaded?: (track: AbstractMesh) => void;
   public onLoadingProgress?: (percentage: number, asset: string) => void;
@@ -69,8 +65,6 @@ export class RacerScene
 
     try 
     {
-      console.log('RacerScene: Loading canyon track model...');
-      
       if (this.onLoadingProgress) 
       {
         this.onLoadingProgress(10, 'Loading canyon.babylon...');
@@ -88,12 +82,9 @@ export class RacerScene
       {
         this.onLoadingComplete();
       }
-
-      console.log('RacerScene: Canyon track loaded successfully');
     } 
     catch (error) 
     {
-      console.error('RacerScene: Failed to load canyon track:', error);
       if (this.onLoadingError) 
       {
         this.onLoadingError([`Failed to load canyon track: ${error}`]);
@@ -103,7 +94,6 @@ export class RacerScene
 
   public findCollisionMesh(): AbstractMesh | null 
   {
-    // Retornar o collision mesh que foi armazenado
     return (this as any).collisionMesh || null;
   }
 
@@ -111,16 +101,13 @@ export class RacerScene
   {
     return new Promise((resolve, reject) => 
     {
-      console.log('Loading polar_pass.glb model...');
-      
       if (this.onLoadingProgress) 
       {
         this.onLoadingProgress(30, 'Downloading polar pass model...');
       }
 
-      // Importar TODOS os meshes do GLB
       SceneLoader.ImportMesh(
-        "", // String vazia para importar TUDO
+        "", 
         "/assets/models/racing_tracks/", 
         "polar_pass.glb", 
         this.scene, 
@@ -128,63 +115,43 @@ export class RacerScene
         {
           try 
           {
-            console.log("=== SYNCHRONIZING VISUAL AND COLLISION MESHES ===");
-            console.log(`Total meshes loaded: ${newMeshes.length}`);
+            const visualMesh = newMeshes[0];
             
-            // 1. USAR __root__ para RENDERIZAÇÃO (visual com texturas)
-            const visualMesh = newMeshes[0]; // __root__ com todos os child meshes
-            
-            // 2. ENCONTRAR mesh "collision" para FÍSICA
             let collisionMesh = null;
-            for (let i = 0; i < newMeshes.length; i++) {
-              console.log(`Mesh ${i}: ${newMeshes[i].name}`);
-              if (newMeshes[i].name.toLowerCase() === 'collision') {
+            for (let i = 0; i < newMeshes.length; i++) 
+            {
+              if (newMeshes[i].name.toLowerCase() === 'collision') 
+              {
                 collisionMesh = newMeshes[i];
-                console.log(`✅ Found collision mesh at index ${i}`);
                 break;
               }
             }
 
-            if (!collisionMesh) {
+            if (!collisionMesh) 
+            {
               throw new Error('Collision mesh not found in GLB');
             }
 
-            console.log("=== APPLYING IDENTICAL TRANSFORMS ===");
-            
-            // 3. DEFINIR TRANSFORMAÇÕES ÚNICAS
             const scale = new Vector3(10, 10, 10);
             const position = new Vector3(0, -2.5, 0);
             const rotation = Vector3.Zero();
             
-            // 4. APLICAR EXATAMENTE AS MESMAS TRANSFORMAÇÕES EM AMBOS
-            
-            // Visual mesh (para renderização)
             visualMesh.position = position.clone();
             visualMesh.rotation = rotation.clone();
             visualMesh.scaling = scale.clone();
             
-            // Collision mesh (para física) - APLICAR AS MESMAS TRANSFORMAÇÕES
             collisionMesh.position = position.clone();
             collisionMesh.position.y += 2.5;
             collisionMesh.rotation = rotation.clone();
-            collisionMesh.scaling = scale.clone(); // CRÍTICO: mesma escala!
+            collisionMesh.scaling = scale.clone();
             
-            console.log(`Visual mesh - Pos: ${visualMesh.position}, Scale: ${visualMesh.scaling}`);
-            console.log(`Collision mesh - Pos: ${collisionMesh.position}, Scale: ${collisionMesh.scaling}`);
-
-            // 5. TORNAR COLLISION INVISÍVEL (só para física)
             collisionMesh.visibility = 0;
             collisionMesh.isVisible = false;
-            console.log("Collision mesh hidden (physics only)");
 
-            // 6. VERIFICAR GEOMETRIA DO COLLISION
             if (collisionMesh instanceof Mesh) 
             {
               const positions = collisionMesh.getVerticesData(VertexBuffer.PositionKind);
               const indices = collisionMesh.getIndices();
-              
-              console.log(`Collision vertices: ${positions ? positions.length / 3 : 'null'}`);
-              console.log(`Collision triangles: ${indices ? indices.length / 3 : 'null'}`);
 
               if (!positions || !indices || positions.length === 0 || indices.length === 0) 
               {
@@ -192,40 +159,8 @@ export class RacerScene
               }
             }
 
-            // 7. USAR VISUAL MESH como track principal
-            this.track = visualMesh; // Para renderização
-            
-            // 8. ARMAZENAR REFERÊNCIA DO COLLISION
-            (this as any).collisionMesh = collisionMesh; // Para física
-
-            console.log("=== MESHES PERFECTLY SYNCHRONIZED ===");
-            console.log(`Visual: ${visualMesh.name} - visible, with textures`);
-            console.log(`Collision: ${collisionMesh.name} - hidden, same transforms`);
-
-            // --- DEBUG VISUAL x COLLISION ---
-if (visualMesh && collisionMesh) {
-  console.log("=== DEBUG VISUAL vs COLLISION ===");
-
-  // Posições, rotações e escalas aplicadas
-  console.log("Visual Pos:", visualMesh.position, "Rot:", visualMesh.rotation, "Scale:", visualMesh.scaling);
-  console.log("Collision Pos:", collisionMesh.position, "Rot:", collisionMesh.rotation, "Scale:", collisionMesh.scaling);
-
-  // Bounding boxes
-  const vBounds = visualMesh.getBoundingInfo().boundingBox;
-  const cBounds = collisionMesh.getBoundingInfo().boundingBox;
-
-  console.log("Visual Bounds - Min:", vBounds.minimumWorld, "Max:", vBounds.maximumWorld, "Center:", vBounds.centerWorld);
-  console.log("Collision Bounds - Min:", cBounds.minimumWorld, "Max:", cBounds.maximumWorld, "Center:", cBounds.centerWorld);
-
-  // Distância entre os centros (se não for ~0, tem deslocamento)
-  const delta = vBounds.centerWorld.subtract(cBounds.centerWorld);
-  console.log("Center Delta (Visual - Collision):", delta);
-
-  // Tamanho do mesh (comprimento, altura, largura)
-  console.log("Visual Size:", vBounds.maximumWorld.subtract(vBounds.minimumWorld));
-  console.log("Collision Size:", cBounds.maximumWorld.subtract(cBounds.minimumWorld));
-}
-
+            this.track = visualMesh;
+            (this as any).collisionMesh = collisionMesh;
 
             if (this.onTrackLoaded) 
             {
@@ -242,7 +177,6 @@ if (visualMesh && collisionMesh) {
           }
           catch (error) 
           {
-            console.error('Error processing meshes:', error);
             reject(error);
           }
         },
@@ -252,7 +186,6 @@ if (visualMesh && collisionMesh) {
           if (progress.total > 0) 
           {
             const percentage = Math.round((progress.loaded / progress.total) * 100);
-            console.log(`Polar pass download progress: ${percentage}%`);
             
             if (this.onLoadingProgress) 
             {
@@ -262,10 +195,8 @@ if (visualMesh && collisionMesh) {
         },
         (scene, message) => 
         {
-          console.error('Polar pass loading error:', message);
           reject(new Error(`Failed to load polar pass: ${message}`));
         }
-        
       );
     });
   }
@@ -283,8 +214,6 @@ if (visualMesh && collisionMesh) {
     {
       this.scene.clearColor = this.config.fogColor.toColor4();
     }
-
-    console.log('Racing environment setup complete for canyon');
   }
 
   public getTrack(): AbstractMesh | null 
@@ -292,15 +221,6 @@ if (visualMesh && collisionMesh) {
     return this.track;
   }
 
-  public getAllGeometry(): AbstractMesh[] 
-  {
-    const allGeometry: AbstractMesh[] = [];
-    if (this.track) {
-      allGeometry.push(this.track);
-    }
-    // Nota: Canyon não tem paredes separadas como o ground simples
-    return allGeometry;
-  }
 
   public getTrackCenter(): Vector3 
   {
@@ -315,7 +235,6 @@ if (visualMesh && collisionMesh) {
   {
     if (!this.track) 
     {
-      // Fallback para valores padrão
       const defaultSize = this.config.trackSize! / 2;
       return {
         min: new Vector3(-defaultSize, -50, -defaultSize),
@@ -324,7 +243,6 @@ if (visualMesh && collisionMesh) {
       };
     }
 
-    // Bounds reais do canyon
     const boundingBox = this.track.getBoundingInfo().boundingBox;
     const min = boundingBox.minimum.clone();
     const max = boundingBox.maximum.clone();
@@ -358,15 +276,8 @@ if (visualMesh && collisionMesh) {
       this.track.dispose();
       this.track = null;
     }
-    
-    // Limpar paredes (se houver)
-    this.walls.forEach(wall => {
-      wall.dispose();
-    });
-    this.walls = [];
-    
+       
     this.isLoaded = false;
-    console.log('RacerScene: Disposed (canyon track)');
   }
 
   public static async createCanyonTrack(gameCanvas: GameCanvas, config?: RacerSceneConfig): Promise<RacerScene> 

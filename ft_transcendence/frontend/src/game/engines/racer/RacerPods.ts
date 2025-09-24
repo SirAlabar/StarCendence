@@ -15,7 +15,6 @@ export class RacerPod
   private scene: Scene;
   private config: PodConfig;
   private assetManager: AssetManager;
-  private rootNode: TransformNode | null = null;
   private mesh: AbstractMesh | null = null;
   private isLoaded: boolean = false;
   
@@ -101,9 +100,7 @@ export class RacerPod
     
     if (loadedMesh) 
     {
-      // NÃO criar rootNode - usar a mesh diretamente
       this.mesh = loadedMesh;
-      // this.rootNode removido - não precisamos dele
       
       console.log('Pod asset loaded successfully');
       
@@ -115,32 +112,9 @@ export class RacerPod
     } 
     else 
     {
-      console.warn('No mesh found in loaded assets, creating fallback');
-      this.createFallbackPod();
+      console.warn('No mesh found in loaded assets');
     }
   }
-
-  private createFallbackPod(): void 
-  {
-    import('@babylonjs/core').then(({ CreateBox, StandardMaterial, Color3 }) => 
-    {
-      // Criar diretamente o box sem rootNode
-      this.mesh = CreateBox(`fallback_${this.config.id}`, { 
-        width: 5, height: 2, depth: 12  // Dimensões iguais ao exemplo
-      }, this.scene);
-      
-      const material = new StandardMaterial(`mat_${this.config.id}`, this.scene);
-      material.diffuseColor = new Color3(0.5, 0.3, 0.8);
-      this.mesh.material = material;
-      
-      this.isLoaded = true;
-      if (this.onLoaded) 
-      {
-        this.onLoaded(this);
-      }
-    });
-  }
-
   // ===== Physics Integration =====
 
   public enablePhysics(racerPhysics: RacerPhysics): void 
@@ -208,11 +182,6 @@ export class RacerPod
 
   // ===== Status Methods =====
 
-  public getRootNode(): TransformNode | null 
-  {
-    return this.rootNode;
-  }
-
   public getMesh(): AbstractMesh | null 
   {
     return this.mesh;
@@ -239,12 +208,6 @@ export class RacerPod
     if (this.assetManager) 
     {
       this.assetManager.dispose();
-    }
-    
-    if (this.rootNode) 
-    {
-      this.rootNode.dispose();
-      this.rootNode = null;
     }
     
     this.mesh = null;

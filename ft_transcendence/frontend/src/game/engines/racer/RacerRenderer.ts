@@ -171,7 +171,7 @@ export class RacerRenderer
     const trackMesh = this.racerScene.getTrack();
     if (trackMesh) 
     {
-        await physics.setupTrackCollision(trackMesh, this.racerScene);
+        await physics.setupTrackCollision(this.racerScene);
     }
     }
   
