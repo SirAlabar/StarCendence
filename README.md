@@ -487,8 +487,8 @@ Total: ~702 files
       </a>
     </td>
     <td align="center">
-      <a href="https://github.com/melaniereis">
-        <img src="https://github.com/melaniereis.png" width="80" height="80" style="border-radius: 50%;" alt="meferraz"><br>
+      <a href="https://github.com/joaorema">
+        <img src="https://github.com/joaorema.png" width="80" height="80" style="border-radius: 50%;" alt="jpedro-c"><br>
         <sub><b>meferraz</b></sub><br>
       </a>
     </td>

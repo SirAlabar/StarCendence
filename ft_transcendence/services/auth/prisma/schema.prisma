@@ -1,0 +1,38 @@
+// == AUTH SERVICE == //
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./auth.db"
+}
+
+// Core user model
+model AuthUser {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  username  String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  twoFactorSecret   String?
+  twoFactorEnabled  Boolean  @default(false)
+
+  RefreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+// Refresh tokens for session management
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      AuthUser     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@map("refresh_tokens")
+}

@@ -1,0 +1,28 @@
+{
+  "name": "user-service",
+  "version": "1.0.0",
+  "description": "User management microservice",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^8.3.0",
+    "@fastify/helmet": "^11.1.1",
+    "@prisma/client": "^5.0.0",
+    "dotenv": "^16.3.1",
+    "fastify": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.4.5",
+    "nodemon": "^3.0.1",
+    "prisma": "^5.22.0",
+    "tsx": "^3.12.7",
+    "typescript": "^5.1.6"
+  }
+}

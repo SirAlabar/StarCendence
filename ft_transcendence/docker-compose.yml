@@ -51,25 +51,24 @@ services:
       - nginx
     profiles: ["tunnel"]
 
-  # # Auth Microservice
-  # auth-service:
-  #   container_name: transcendence_auth
-  #   build:
-  #     context: ./services/auth
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - auth_data:/app/data
-  #   networks:
-  #     - transcendence_network
-  #   secrets:
-  #     - jwt_secret
-  #     - google_client_id
-  #     - google_client_secret
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - redis
-  #   restart: always
+  # Auth Microservice
+  auth-service:
+    container_name: transcendence_auth
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
+    # volumes:
+    #   - auth_data:/app/data
+    networks:
+      - transcendence_network
+    secrets:
+      - internal_api_key
+      - jwt_secret
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    restart: always
 
   # # Game Microservice  
   # game-service:
@@ -104,20 +103,22 @@ services:
   #   restart: always
 
   # # User Microservice
-  # user-service:
-  #   container_name: transcendence_user
-  #   build:
-  #     context: ./services/user
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - user_data:/app/data
-  #   networks:
-  #     - transcendence_network
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - redis
-  #   restart: always
+  user-service:
+    container_name: transcendence_user
+    build:
+      context: ./services/user
+      dockerfile: Dockerfile
+    # volumes:
+    #   - user_data:/app/data
+    networks:
+      - transcendence_network
+    secrets:
+      - internal_api_key
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    restart: always
 
   # # WebSocket Microservice
   # websocket-service:
@@ -196,7 +197,9 @@ networks:
 
 secrets:
   jwt_secret:
-    file: ../secrets/jwt_secret.txt
+    file: ../secrets/jwt_secret_example.txt
+  internal_api_key:
+    file: ../secrets/internal_api_key.txt
   # google_client_id:
   #   file: ../secrets/google_client_id.txt
   # google_client_secret:
