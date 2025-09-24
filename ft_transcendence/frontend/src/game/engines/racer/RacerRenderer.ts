@@ -232,13 +232,21 @@ export class RacerRenderer
       
       this.playerPod.onLoaded = (pod) => 
       {
-        const startPos = this.racerScene!.getStartingPositions(1)[0];
-        if (startPos) 
-        {
-          pod.setPosition(startPos);
-        }
+        const startPositions = this.racerScene!.getStartingPositions(4);
+              
+        const playerStartPos = startPositions[0];
+        
+        pod.setPosition(playerStartPos);
         
         this.gameCanvas!.setPlayerPod(pod);
+        
+        const physics = this.gameCanvas!.getPhysics();
+        if (physics && physics.isPhysicsReady()) 
+        {
+          pod.enablePhysics(physics, playerStartPos);
+        }
+        
+        console.log(`Player pod loaded at position: ${playerStartPos}`);
         
         if (this.onPodLoaded) 
         {

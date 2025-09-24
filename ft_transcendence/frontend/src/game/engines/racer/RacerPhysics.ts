@@ -105,19 +105,18 @@ export class RacerPhysics
     }
   }
 
-  public createPod(mesh: Mesh, podId: string, pod: RacerPod): void 
-  {
+public createPod(mesh: Mesh, podId: string, pod: RacerPod, initialPosition?: Vector3): void
+{
     if (!this.isInitialized || !this.ammoInstance) 
     {
       throw new Error('RacerPhysics: Not initialized');
     }
     
     const Ammo = this.ammoInstance;
-    
+    const startPos = initialPosition || new Vector3(0, 10, 0);
     var transform = new Ammo.btTransform();
     transform.setIdentity();
-    transform.setOrigin(new Ammo.btVector3(0, 10, 0));
-    const initialPhysicsRotation = new Ammo.btQuaternion(0, 0, 0, 1);
+    transform.setOrigin(new Ammo.btVector3(startPos.x, startPos.y, startPos.z));    const initialPhysicsRotation = new Ammo.btQuaternion(0, 0, 0, 1);
     transform.setRotation(initialPhysicsRotation);
     
     var motionState = new Ammo.btDefaultMotionState(transform);
@@ -157,7 +156,7 @@ export class RacerPhysics
       stuckTimer: 0
     });
     
-    mesh.position.set(0, 10, 0);
+    mesh.position.set(startPos.x, startPos.y, startPos.z);
     if (!mesh.rotationQuaternion) 
     {
       mesh.rotationQuaternion = new Quaternion();

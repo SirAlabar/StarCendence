@@ -109,7 +109,7 @@ export class RacerPod
     }
   }
 
-  public enablePhysics(racerPhysics: RacerPhysics): void 
+  public enablePhysics(racerPhysics: RacerPhysics, initialPosition?: Vector3): void
   {
     if (!this.mesh || !this.isLoaded) 
     {
@@ -128,9 +128,9 @@ export class RacerPod
       this.mesh.rotationQuaternion = Quaternion.Identity();
     }
     
-    this.racerPhysics.createPod(this.mesh as Mesh, this.config.id, this);
+    this.racerPhysics.createPod(this.mesh as Mesh, this.config.id, this, initialPosition);
     this.physicsEnabled = true;
-    console.log(`Physics enabled for pod: ${this.config.id}`);
+    console.log(`Physics enabled for pod: ${this.config.id} at position: ${initialPosition}`);
   }
 
   public disablePhysics(): void 

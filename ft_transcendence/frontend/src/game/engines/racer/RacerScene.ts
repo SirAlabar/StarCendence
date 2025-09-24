@@ -259,10 +259,31 @@ export class RacerScene
     return this.isLoaded && this.track !== null;
   }
 
-  public getStartingPositions(count: number = 1): Vector3[] 
+public getStartingPositions(count: number = 1): Vector3[] 
+{
+  const positions: Vector3[] = [];
+  
+  if (count <= 0) 
   {
-    return [new Vector3(109, -192, 627)];
+    count = 1;
   }
+  const fixedX = 50;
+  const fixedY = 10;
+  
+  const availablePositions = [
+    new Vector3(fixedX, fixedY, -20),
+    new Vector3(fixedX, fixedY, -6.67),
+    new Vector3(fixedX, fixedY, 6.67),
+    new Vector3(fixedX, fixedY, 20)
+  ];
+  for (let i = 0; i < count; i++) 
+  {
+    const randomIndex = Math.floor(Math.random() * availablePositions.length);
+    positions.push(availablePositions[randomIndex].clone());
+  }
+  
+  return positions;
+}
 
   public getGameCanvas(): GameCanvas 
   {
@@ -276,7 +297,6 @@ export class RacerScene
       this.track.dispose();
       this.track = null;
     }
-       
     this.isLoaded = false;
   }
 
