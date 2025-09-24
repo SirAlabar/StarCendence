@@ -3,7 +3,6 @@ import {
   AbstractMesh,
   Mesh,
   Vector3,
-  TransformNode,
   Quaternion
 } from '@babylonjs/core';
 import { AssetManager } from '../../managers/AssetManager';
@@ -18,14 +17,10 @@ export class RacerPod
   private mesh: AbstractMesh | null = null;
   private isLoaded: boolean = false;
   
-  // ===== Physics Integration =====
   private racerPhysics: RacerPhysics | null = null;
   private physicsEnabled: boolean = false;
 
-  private readonly physicalLength: number = 6.0;
-  private readonly physicalWidth: number = 3.2;
-  private readonly physicalHeight: number = 0.8;
-  
+
   public onLoaded?: (pod: RacerPod) => void;
   public onLoadingProgress?: (progress: number) => void;
   public onLoadingError?: (error: string) => void;
@@ -38,7 +33,6 @@ export class RacerPod
     console.log(`Creating pod: ${config.name}`);
   }
 
-  // ===== Asset Loading =====
 
   public async loadModel(): Promise<void> 
   {
@@ -90,7 +84,6 @@ export class RacerPod
     catch (error) 
     {
       console.error('Pod model loading failed:', error);
-      this.createFallbackPod();
     }
   }
 
@@ -115,7 +108,6 @@ export class RacerPod
       console.warn('No mesh found in loaded assets');
     }
   }
-  // ===== Physics Integration =====
 
   public enablePhysics(racerPhysics: RacerPhysics): void 
   {
@@ -152,7 +144,6 @@ export class RacerPod
     this.physicsEnabled = false;
   }
 
-  // ===== Position and Rotation =====
 
   public setPosition(position: Vector3): void 
   {
@@ -160,15 +151,6 @@ export class RacerPod
     {
       this.mesh.position = position.clone();
     }
-  }
-
-  public getPhysicalDimensions(): { length: number, width: number, height: number } 
-  {
-    return {
-      length: this.physicalLength,
-      width: this.physicalWidth,
-      height: this.physicalHeight
-    };
   }
 
   public getPosition(): Vector3 
@@ -180,24 +162,16 @@ export class RacerPod
     return Vector3.Zero();
   }
 
-  // ===== Status Methods =====
 
   public getMesh(): AbstractMesh | null 
   {
     return this.mesh;
   }
 
-  public isPodReady(): boolean 
-  {
-    return this.isLoaded;
-  }
-
   public getConfig(): PodConfig 
   {
     return this.config;
   }
-
-  // ===== Cleanup =====
 
   public dispose(): void 
   {
