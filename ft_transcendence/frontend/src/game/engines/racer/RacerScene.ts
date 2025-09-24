@@ -1,30 +1,31 @@
-// Racing Scene Manager - Loads and manages racing environment
-
 import { 
   Scene,
   AbstractMesh,
   Vector3,
-  Color3
+  Color3,
+  Mesh,
+  SceneLoader,
+  VertexBuffer
 } from '@babylonjs/core';
-import '@babylonjs/loaders/glTF';
-import { AssetManager } from '../../managers/AssetManager';
-import { GameCanvas } from '../../../components/game/GameCanvas';
+import { GameCanvas } from './GameCanvas';
 
 export interface RacerSceneConfig 
 {
-  trackId: string;
-  trackPath: string;
-  trackFilename: string;
+  trackSize?: number;
+  trackSubdivisions?: number;
+  wallHeight?: number;
+  wallThickness?: number;
   enableFog?: boolean;
   fogColor?: Color3;
   fogDensity?: number;
 }
 
-// Default configuration for Polar Pass
-const POLAR_PASS_CONFIG: RacerSceneConfig = {
-  trackId: 'polar_pass',
-  trackPath: '/assets/models/racing_tracks/',
-  trackFilename: 'polar_pass.glb',
+const DEFAULT_CONFIG: RacerSceneConfig = 
+{
+  trackSize: 5000,
+  trackSubdivisions: 50,
+  wallHeight: 20,        
+  wallThickness: 5,      
   enableFog: true,
   fogColor: new Color3(0.7, 0.8, 0.9),
   fogDensity: 0.002
@@ -34,18 +35,16 @@ export class RacerScene
 {
   private gameCanvas: GameCanvas;
   private scene: Scene;
-  private assetManager: AssetManager;
   private config: RacerSceneConfig;
   private track: AbstractMesh | null = null;
   private isLoaded: boolean = false;
 
-  // Loading callbacks
   public onTrackLoaded?: (track: AbstractMesh) => void;
   public onLoadingProgress?: (percentage: number, asset: string) => void;
   public onLoadingComplete?: () => void;
   public onLoadingError?: (errors: string[]) => void;
 
-  constructor(gameCanvas: GameCanvas, config: RacerSceneConfig = POLAR_PASS_CONFIG) 
+  constructor(gameCanvas: GameCanvas, config: RacerSceneConfig = DEFAULT_CONFIG) 
   {
     this.gameCanvas = gameCanvas;
     const scene = gameCanvas.getScene();
@@ -54,133 +53,181 @@ export class RacerScene
       throw new Error('Cannot create RacerScene: GameCanvas scene not initialized');
     }
     this.scene = scene;
-    this.config = config;
-    this.assetManager = new AssetManager(this.scene);
-    
-    console.log(`RacerScene initialized - Track: ${config.trackId}`);
+    this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  // Load the racing track and set up environment
   public async loadTrack(): Promise<void> 
   {
     if (this.isLoaded) 
     {
-      console.warn('Track already loaded');
       return;
     }
 
-    console.log(`Loading racing track: ${this.config.trackId}`);
+    try 
+    {
+      if (this.onLoadingProgress) 
+      {
+        this.onLoadingProgress(10, 'Loading canyon.babylon...');
+      }
 
-    // Show loading state on GameCanvas
-    this.gameCanvas.setLoadingState(true, `Loading ${this.config.trackId}...`);
+      await this.loadCanyonTrack();
+      this.setupRacingEnvironment();
+      
+      if (this.onLoadingProgress) 
+      {
+        this.onLoadingProgress(100, 'Canyon track ready');
+      }
 
-    // Configure asset loading
-    this.assetManager
-      .addMeshAsset({
-        id: this.config.trackId,
-        type: 'mesh',
-        path: this.config.trackPath,
-        filename: this.config.trackFilename
-      })
-      .setCallbacks({
-        onProgress: (progress) => {
-          console.log(`Track loading: ${progress.percentage}% - ${progress.currentAsset}`);
-          this.gameCanvas.setLoadingState(true, `Loading track: ${progress.percentage}%`);
-          
-          if (this.onLoadingProgress) {
-            this.onLoadingProgress(progress.percentage, progress.currentAsset);
-          }
-        },
-        onSuccess: () => {
-          console.log('✅ Track loaded successfully!');
-          this.setupTrack();
-          this.setupRacingEnvironment();
-          
-          // Hide loading state
-          this.gameCanvas.setLoadingState(false);
-          
-          if (this.onLoadingComplete) 
-          {
-            this.onLoadingComplete();
-          }
-        },
-        onError: (errors) => {
-          console.error('❌ Failed to load track:', errors);
-          this.gameCanvas.setLoadingState(false);
-          
-          if (this.onLoadingError) 
-          {
-            this.onLoadingError(errors);
-          }
-        }
-      });
-
-    // Start loading
-    await this.assetManager.load();
+      if (this.onLoadingComplete) 
+      {
+        this.onLoadingComplete();
+      }
+    } 
+    catch (error) 
+    {
+      if (this.onLoadingError) 
+      {
+        this.onLoadingError([`Failed to load canyon track: ${error}`]);
+      }
+    }
   }
 
-  // Set up the track mesh
-  private setupTrack(): void 
+  public findCollisionMesh(): AbstractMesh | null 
   {
-    this.track = this.assetManager.getFirstMesh(this.config.trackId);
-    
-    if (!this.track) 
-    {
-      console.error('Track mesh not found!');
-      return;
-    }
-
-    // Position track at origin
-    this.track.position = Vector3.Zero();
-    this.track.rotation = Vector3.Zero();
-    
-    this.track.scaling = new Vector3(8, 8, 8);
-
-    console.log(`Track positioned: ${this.track.name}`);
-    console.log(`Track bounds:`, this.track.getBoundingInfo());
-
-    // Call callback if set
-    if (this.onTrackLoaded) 
-    {
-      this.onTrackLoaded(this.track);
-    }
-
-    this.isLoaded = true;
+    return (this as any).collisionMesh || null;
   }
 
-  // Set up racing-specific environment
+  private async loadCanyonTrack(): Promise<void> 
+  {
+    return new Promise((resolve, reject) => 
+    {
+      if (this.onLoadingProgress) 
+      {
+        this.onLoadingProgress(30, 'Downloading polar pass model...');
+      }
+
+      SceneLoader.ImportMesh(
+        "", 
+        "/assets/models/racing_tracks/", 
+        "polar_pass.glb", 
+        this.scene, 
+        (newMeshes) => 
+        {
+          try 
+          {
+            const visualMesh = newMeshes[0];
+            
+            let collisionMesh = null;
+            for (let i = 0; i < newMeshes.length; i++) 
+            {
+              if (newMeshes[i].name.toLowerCase() === 'collision') 
+              {
+                collisionMesh = newMeshes[i];
+                break;
+              }
+            }
+
+            if (!collisionMesh) 
+            {
+              throw new Error('Collision mesh not found in GLB');
+            }
+
+            const scale = new Vector3(10, 10, 10);
+            const position = new Vector3(0, -2.5, 0);
+            const rotation = Vector3.Zero();
+            
+            visualMesh.position = position.clone();
+            visualMesh.rotation = rotation.clone();
+            visualMesh.scaling = scale.clone();
+            
+            collisionMesh.position = position.clone();
+            collisionMesh.position.y += 2.5;
+            collisionMesh.rotation = rotation.clone();
+            collisionMesh.scaling = scale.clone();
+            
+            collisionMesh.visibility = 0;
+            collisionMesh.isVisible = false;
+
+            if (collisionMesh instanceof Mesh) 
+            {
+              const positions = collisionMesh.getVerticesData(VertexBuffer.PositionKind);
+              const indices = collisionMesh.getIndices();
+
+              if (!positions || !indices || positions.length === 0 || indices.length === 0) 
+              {
+                throw new Error('Collision mesh has no geometry data');
+              }
+            }
+
+            this.track = visualMesh;
+            (this as any).collisionMesh = collisionMesh;
+
+            if (this.onTrackLoaded) 
+            {
+              this.onTrackLoaded(this.track);
+            }
+
+            if (this.onLoadingProgress) 
+            {
+              this.onLoadingProgress(90, 'Both meshes synchronized');
+            }
+
+            this.isLoaded = true;
+            resolve();
+          }
+          catch (error) 
+          {
+            reject(error);
+          }
+        },
+
+        (progress) => 
+        {
+          if (progress.total > 0) 
+          {
+            const percentage = Math.round((progress.loaded / progress.total) * 100);
+            
+            if (this.onLoadingProgress) 
+            {
+              this.onLoadingProgress(30 + (percentage * 0.4), `Downloading: ${percentage}%`);
+            }
+          }
+        },
+        (scene, message) => 
+        {
+          reject(new Error(`Failed to load polar pass: ${message}`));
+        }
+      );
+    });
+  }
+
   private setupRacingEnvironment(): void 
   {
-    console.log('Setting up racing environment...');
-
-    // Set up polar racing atmosphere
     if (this.config.enableFog && this.config.fogColor) 
     {
       this.scene.fogMode = Scene.FOGMODE_EXP;
       this.scene.fogColor = this.config.fogColor;
       this.scene.fogDensity = this.config.fogDensity || 0.002;
-      console.log('✅ Racing fog configured for polar atmosphere');
     }
 
-    // Set scene clear color for polar environment
     if (this.config.fogColor) 
     {
       this.scene.clearColor = this.config.fogColor.toColor4();
     }
-
-    // GameCanvas already handles basic lighting, we just enhance for racing
-    console.log('✅ Racing environment configured (using GameCanvas foundation)');
   }
 
-  // Get track information
   public getTrack(): AbstractMesh | null 
   {
     return this.track;
   }
 
+
   public getTrackCenter(): Vector3 
   {
-    if (!this.track) return Vector3.Zero();
+    if (!this.track) 
+    {
+      return Vector3.Zero();
+    }
     return this.track.getBoundingInfo().boundingBox.center;
   }
 
@@ -188,72 +235,74 @@ export class RacerScene
   {
     if (!this.track) 
     {
+      const defaultSize = this.config.trackSize! / 2;
       return {
-        min: Vector3.Zero(),
-        max: Vector3.Zero(),
-        size: Vector3.Zero()
+        min: new Vector3(-defaultSize, -50, -defaultSize),
+        max: new Vector3(defaultSize, 50, defaultSize),
+        size: new Vector3(this.config.trackSize!, 100, this.config.trackSize!)
       };
     }
 
     const boundingBox = this.track.getBoundingInfo().boundingBox;
+    const min = boundingBox.minimum.clone();
+    const max = boundingBox.maximum.clone();
+    
     return {
-      min: boundingBox.minimum,
-      max: boundingBox.maximum,
-      size: boundingBox.maximum.subtract(boundingBox.minimum)
+      min,
+      max,
+      size: max.subtract(min)
     };
   }
 
-  // Check if track is loaded
   public isTrackLoaded(): boolean 
   {
     return this.isLoaded && this.track !== null;
   }
 
-  // Get starting positions for pods
-  public getStartingPositions(count: number = 1): Vector3[] 
+public getStartingPositions(count: number = 1): Vector3[] 
+{
+  const positions: Vector3[] = [];
+  
+  if (count <= 0) 
   {
-    if (!this.track) return [Vector3.Zero()];
-
-    const trackCenter = this.getTrackCenter();
-    const positions: Vector3[] = [];
-
-    // Generate starting positions
-    for (let i = 0; i < count; i++) 
-    {
-      positions.push(new Vector3(
-        trackCenter.x + (i * 5), // Spread pods apart
-        trackCenter.y + 2,       // Above track surface
-        trackCenter.z
-      ));
-    }
-
-    return positions;
+    count = 1;
   }
+  const fixedX = 50;
+  const fixedY = 10;
+  
+  const availablePositions = [
+    new Vector3(fixedX, fixedY, -20),
+    new Vector3(fixedX, fixedY, -6.67),
+    new Vector3(fixedX, fixedY, 6.67),
+    new Vector3(fixedX, fixedY, 20)
+  ];
+  for (let i = 0; i < count; i++) 
+  {
+    const randomIndex = Math.floor(Math.random() * availablePositions.length);
+    positions.push(availablePositions[randomIndex].clone());
+  }
+  
+  return positions;
+}
 
-  // Get the GameCanvas instance
   public getGameCanvas(): GameCanvas 
   {
     return this.gameCanvas;
   }
 
-  // Dispose resources
   public dispose(): void 
   {
-    console.log('Disposing RacerScene...');
-    
-    if (this.assetManager) 
+    if (this.track) 
     {
-      this.assetManager.dispose();
+      this.track.dispose();
+      this.track = null;
     }
-
-    this.track = null;
     this.isLoaded = false;
   }
 
-  // Static factory method for easy setup with GameCanvas
-  public static async createPolarPass(gameCanvas: GameCanvas): Promise<RacerScene> 
+  public static async createCanyonTrack(gameCanvas: GameCanvas, config?: RacerSceneConfig): Promise<RacerScene> 
   {
-    const racerScene = new RacerScene(gameCanvas, POLAR_PASS_CONFIG);
+    const racerScene = new RacerScene(gameCanvas, config);
     await racerScene.loadTrack();
     return racerScene;
   }
