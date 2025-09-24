@@ -50,21 +50,8 @@ export class RacerHUD
         
         <div class="absolute top-4 right-4 pointer-events-auto space-x-2">
           <button 
-            id="toggleDevelopmentMode"
-            onclick="racerHUD.toggleDevelopmentMode()" 
-            class="bg-blue-600/80 backdrop-blur text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Dev Mode: OFF
-          </button>
-          <button 
-            onclick="racerHUD.resetCamera()" 
-            class="bg-green-600/80 backdrop-blur text-white px-4 py-2 rounded-lg hover:bg-green-700"
-          >
-            Reset Camera
-          </button>
-          <button 
             onclick="racerHUD.goBack()" 
-            class="bg-gray-600/80 backdrop-blur text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+            class="bg-gradient-to-br from-purple-900/75 via-blue-900/65 to-indigo-900/65 backdrop-blur text-white px-4 py-2 rounded-lg hover:bg-gray-700"
           >
             Back
           </button>
@@ -72,8 +59,7 @@ export class RacerHUD
         
         <div class="absolute bottom-8 right-8">
           <div class="relative">
-            <div class="w-64 h-32 bg-gradient-to-br from-purple-900/70 via-blue-900/60 to-indigo-900/60 backdrop-blur rounded-full border-4 border-gray-600 relative">
-
+            <div class="w-64 h-32">
               <div class="absolute -inset-4 pointer-events-none">
                 <svg width="340" height="170" class="absolute inset-0">
                   <path id="speedArcBackground" 
@@ -152,8 +138,6 @@ export class RacerHUD
                   <div class="text-xs text-gray-300 uppercase tracking-widest font-bold">KM/H</div>
                 </div>
               </div>
-              
-              <div class="absolute inset-2 rounded-full border border-gray-500/30"></div>
             </div>
           </div>
         </div>
@@ -374,34 +358,6 @@ export class RacerHUD
     this.showMessage(`Race Finished!<br>Position: ${finalPosition}<br>Time: ${totalTime}`, 5000, 'success');
   }
 
-  public toggleDevelopmentMode(): void 
-  {
-    const button = document.getElementById('toggleDevelopmentMode');
-    if (button) 
-    {
-      const isCurrentlyOff = button.textContent?.includes('OFF');
-      button.textContent = `Dev Mode: ${isCurrentlyOff ? 'ON' : 'OFF'}`;
-      
-      // Get physics system and player pod
-      if ((window as any).racerRenderer) 
-      {
-        const gameCanvas = (window as any).racerRenderer.getGameCanvas();
-        if (gameCanvas) 
-        {
-          const physics = gameCanvas.getPhysics();
-          const playerPod = gameCanvas.getPlayerPod();
-          
-          if (physics && playerPod) 
-          {
-            const podId = playerPod.getConfig().id;
-            physics.showEnhancedHoverLines(podId, isCurrentlyOff);
-            physics.showPodCollisionBox(podId, isCurrentlyOff);
-          }
-        }
-      }
-    }
-  }
-  
   public resetCamera(): void 
   {
     this.showMessage('Camera Reset', 1000, 'info');
