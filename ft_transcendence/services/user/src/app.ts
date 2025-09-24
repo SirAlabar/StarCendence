@@ -4,7 +4,7 @@ import helmet from '@fastify/helmet'
 import * as userController from './controllers/userController'
 import { internalEndpointProtection } from './middleware/securityMiddleware'
 import { fastifyErrorHandler } from './handlers/errorHandler'
-import { authenticateToken } from './middleware/authMiddleware'
+import { verifyUserToken } from './middleware/authMiddleware'
 import { internalRoutes } from './routes/internalRoutes'
 
 export async function buildApp() {
@@ -21,7 +21,7 @@ export async function buildApp() {
   fastify.get('/health', async () => ({ status: 'Health is ok!' }))
   
   fastify.register(internalRoutes, { prefix: '/internal' });
-  fastify.get('/profile', { preHandler: [authenticateToken] }, userController.getCurrentUserProfile);
+  fastify.get('/profile', { preHandler: [verifyUserToken] }, userController.getCurrentUserProfile);
 
   return fastify
 }

@@ -62,7 +62,7 @@ export async function findActiveByUserId(userId: string) {
 
 // Delete refresh token by its ID
 export async function deleteById(id: string) {
-  return await prisma.refreshToken.delete({
+  return await prisma.refreshToken.deleteMany({
     where: { id }
   });
 }

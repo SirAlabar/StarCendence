@@ -27,7 +27,7 @@ function getInternalApiKey(): string {
 }
 
 // user/src/middleware/authMiddleware.ts
-export async function authenticateToken(req: FastifyRequest, reply: FastifyReply) {
+export async function verifyUserToken(req: FastifyRequest, reply: FastifyReply) {
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

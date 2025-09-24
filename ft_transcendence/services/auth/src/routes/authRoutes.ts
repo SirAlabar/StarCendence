@@ -3,7 +3,7 @@ import * as  authSchema  from '../schemas/authSchema';
 import * as registerController from '../controllers/registerController';
 import * as loginController from '../controllers/loginController';
 import * as logoutController from '../controllers/logoutController';
-import { authenticateToken } from '../middleware/authMiddleware';
+import { verifyUserToken } from '../middleware/authMiddleware';
 
 export async function authRoutes(fastify: FastifyInstance){
   fastify.post('/register', { schema: authSchema.registerSchema }, registerController.register);
@@ -12,7 +12,7 @@ export async function authRoutes(fastify: FastifyInstance){
   // no schema needed?
   fastify.post('/logout',
   {
-      preHandler: [authenticateToken],
+      preHandler: [verifyUserToken],
   },
   logoutController.logout);
 }

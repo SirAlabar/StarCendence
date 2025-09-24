@@ -46,7 +46,6 @@ export async function loginUser(email: string, password: string) {
   return tokens;
 }
 
-
 // Logout user by revoking all refresh tokens using the access token
 export async function logoutUser(accessToken: string) {
   const payload = await tokenService.verifyAccessToken(accessToken);

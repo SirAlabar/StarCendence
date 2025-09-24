@@ -8,7 +8,7 @@ export async function logout(req: FastifyRequest, reply: FastifyReply) {
   if (!accessToken) {
     throw new HttpError('Access token is required', 400);
   }
-  
+
   await authService.logoutUser(accessToken);
 
   return reply.send({ 
