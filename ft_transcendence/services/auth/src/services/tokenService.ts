@@ -1,8 +1,10 @@
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
+import * as speakeasy from 'speakeasy';
 import { HttpError } from '../utils/HttpError';
 import { readFileSync } from 'fs';
 import * as refreshTokenRepository from '../repositories/refreshTokenRepository';
+import * as twoFactorRepository from '../repositories/twoFactorRepository';
 
 export interface TokenPair {
   accessToken: string;
@@ -91,4 +93,35 @@ export async function refreshAccessToken(refreshToken: string) {
 // Revoke all refresh tokens for a user
 export async function revokeAllRefreshTokensForUser(userId: string) {
   await refreshTokenRepository.deleteById(userId);
+}
+
+// Generate a temporary token for 2FA verification
+export async function generateTempToken(userId: string): Promise<string> {
+  const jwtSecret = getJwtSecret();
+
+  const tempToken = jwt.sign(
+    {
+      sub: userId,
+      type: 'temp'
+    },
+    jwtSecret,
+    {
+      expiresIn: '10m',
+      issuer: 'transcendence-auth'
+    }
+  );
+
+  return tempToken;
+}
+
+// Verify 2FA code using the user's secret
+export async function verifyTwoFACode(twoFactorSecret: string, code: string): Promise<boolean> {
+  const verified = speakeasy.totp.verify({
+    secret: twoFactorSecret,
+    encoding: 'base32',
+    token: code,
+    window: 1
+  });
+  
+  return verified;
 }

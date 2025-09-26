@@ -26,14 +26,15 @@ export async function loginUser(email: string, password: string) {
   if (!user) {
     throw new HttpError('Invalid email or password', 401);
   }
-  
+
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) {
     throw new HttpError('Invalid email or password', 401);
   }
 
   if (user.twoFactorEnabled) {
-    // TODO: Implement 2FA verification
+    const tempToken = await tokenService.generateTempToken(user.id);
+    return { twoFactorRequired: true, tempToken };
   }
 
   const existingTokens = await refreshTokenRepository.findByUserId(user.id);
@@ -54,4 +55,31 @@ export async function logoutUser(accessToken: string) {
   }
 
   await tokenService.revokeAllRefreshTokensForUser(payload.sub);
+}
+
+// Verify 2FA code and return JWTs
+export async function verifyTwoFA(tempToken: string, twoFACode: string) {
+  const payload = await tokenService.verifyAccessToken(tempToken);
+  if (!payload || !payload.sub) {
+    throw new HttpError('Invalid temporary token', 401);
+  }
+  
+  const user = await userRepository.findUserById(payload.sub);
+  if (!user || !user.twoFactorSecret) {
+    throw new HttpError('User not found or 2FA not set up', 404);
+  }
+  
+  const isCodeValid = await tokenService.verifyTwoFACode(user.twoFactorSecret, twoFACode);
+  if (!isCodeValid) {
+    throw new HttpError('Invalid 2FA code', 401);
+  }
+  
+  const existingTokens = await refreshTokenRepository.findByUserId(user.id);
+  if (existingTokens) {
+    await refreshTokenRepository.deleteByUserId(user.id);
+  }
+
+  const tokens = await tokenService.generateTokens(user.id, user.email, user.username);
+
+  return tokens;
 }

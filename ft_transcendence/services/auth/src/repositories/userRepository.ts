@@ -31,3 +31,11 @@ export async function findUserByEmailOrUsername(email: string, username: string)
     }
   });
 }
+
+// Find user by ID
+export async function findUserById(id: string) {
+  return prisma.authUser.findUnique({
+    where: { id }
+  });
+}
+

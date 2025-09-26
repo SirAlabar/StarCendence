@@ -14,3 +14,12 @@ export async function login(req: FastifyRequest<{ Body: LoginRequestBody }>, rep
 
   return reply.send({ token });
 }
+
+// Verify 2FA code and return JWTs
+export async function verifyTwoFA(req: FastifyRequest, reply: FastifyReply) {
+  const { tempToken, twoFACode } = req.body as { tempToken: string; twoFACode: string };
+
+  const tokens = await authService.verifyTwoFA(tempToken, twoFACode);
+
+  return reply.send({ tokens });
+}

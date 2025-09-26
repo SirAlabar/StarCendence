@@ -36,13 +36,13 @@ export async function verifyTwoFactor(req: FastifyRequest, reply: FastifyReply) 
     
     const { token } = req.body as { token: string };
 
-    const dbUser = await twoFactorRepository.getTwoFactorSecret(user.sub);
-    if (!dbUser) {
+    const userSecret = await twoFactorRepository.getTwoFactorSecret(user.sub);
+    if (!userSecret) {
         throw new HttpError('2FA not set up', 400);
     }
     
     const verified = speakeasy.totp.verify({
-        secret: dbUser,
+        secret: userSecret,
         encoding: 'base32',
         token
     });

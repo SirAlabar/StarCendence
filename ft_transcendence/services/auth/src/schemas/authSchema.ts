@@ -25,6 +25,24 @@ export const registerSchema = {
   },
 };
 
+// 2FA verification schema
+export const twoFAVerifySchema = {
+  body: {
+    type: 'object',
+    required: ['tempToken', 'twoFACode'],
+    properties: {
+      tempToken: {
+        type: 'string',
+        minLength: 1
+      },
+      twoFACode: {
+        type: 'string',
+        pattern: '^[0-9]{6}$'
+      }
+    }
+  }
+};
+
 // Login schema
 export const loginSchema = {
   body: {

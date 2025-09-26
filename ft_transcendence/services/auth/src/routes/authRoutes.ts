@@ -6,9 +6,24 @@ import * as logoutController from '../controllers/logoutController';
 import { verifyUserToken } from '../middleware/authMiddleware';
 
 export async function authRoutes(fastify: FastifyInstance){
-  fastify.post('/register', { schema: authSchema.registerSchema }, registerController.register);
-  fastify.post('/login', { schema: authSchema.loginSchema }, loginController.login);
-  
+  fastify.post('/register',
+  {
+    schema: authSchema.registerSchema
+  },
+  registerController.register);
+
+  fastify.post('/login',
+  {
+    schema: authSchema.loginSchema
+  },
+  loginController.login);
+
+  fastify.post('/login/2fa-verify',
+  {
+    schema: authSchema.twoFAVerifySchema
+  },
+  loginController.verifyTwoFA);
+
   // no schema needed?
   fastify.post('/logout',
   {
