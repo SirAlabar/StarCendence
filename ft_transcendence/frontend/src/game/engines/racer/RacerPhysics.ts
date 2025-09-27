@@ -353,35 +353,95 @@ public createPod(mesh: Mesh, podId: string, pod: RacerPod, initialPosition?: Vec
     return null;
   }
 
-  private updatePhysics(): void 
+private updatePhysics(): void 
+{
+  if (!this.physicsWorld) return;
+  
+  this.pods.forEach((podData, podId) => 
   {
-    if (!this.physicsWorld) return;
+    const mesh = podData.mesh;
+    const rigidBody = podData.rigidBody;
     
-    this.pods.forEach((podData, _podId) => 
+    const motionState = rigidBody.getMotionState();
+    if (motionState) 
     {
-      const mesh = podData.mesh;
-      const rigidBody = podData.rigidBody;
+      motionState.getWorldTransform(this.tempTransform);
       
-      const motionState = rigidBody.getMotionState();
-      if (motionState) 
+      const position = this.tempTransform.getOrigin();
+      const rotation = this.tempTransform.getRotation();
+      
+      const currentPos = new Vector3(position.x(), position.y(), position.z());
+      
+      // Check checkpoint collisions for progress tracking
+      const passedCheckpoint = podData.pod.checkCheckpointCollision(currentPos);
+      if (passedCheckpoint !== null) 
       {
+        console.log(`Pod ${podId} passed checkpoint ${passedCheckpoint}`);
+        
+        // Check if lap completed
+        if (podData.pod.isLapCompleted()) 
+        {
+          console.log(`Pod ${podId} completed a lap!`);
+          podData.pod.resetCheckpointProgress();
+          
+          // Trigger UI lap update if available
+          if ((window as any).racerUIManager) 
+          {
+            const currentLap = (window as any).racerUIManager.getCurrentRacerData().currentLap + 1;
+            (window as any).racerUIManager.updateLap(currentLap);
+          }
+        }
+        
+        // Trigger UI checkpoint passed event if available
+        if ((window as any).racerUIManager) 
+        {
+          (window as any).racerUIManager.onCheckpointPassed(`${passedCheckpoint + 1}`);
+        }
+      }
+      
+      // Check if respawn is needed
+      if (podData.pod.shouldRespawnPlayer(currentPos)) 
+      {
+        console.log(`Pod ${podId} needs respawn - Y position: ${currentPos.y}`);
+        const respawnPos = podData.pod.getRespawnPosition();
+        console.log(`Respawning pod ${podId} to:`, respawnPos);
+        const checkpointInfo = podData.pod.getCheckpointInfo();
+        console.log(`Pod ${podId} checkpoint info:`, checkpointInfo);
+        
+        this.resetPodPosition(podId);
+        
+        // Re-read transform after respawn to get updated position
         motionState.getWorldTransform(this.tempTransform);
+        const newPosition = this.tempTransform.getOrigin();
+        const newRotation = this.tempTransform.getRotation();
         
-        const position = this.tempTransform.getOrigin();
-        const rotation = this.tempTransform.getRotation();
-        
-        mesh.position.set(position.x(), position.y(), position.z());
+        // Update mesh to respawn position
+        mesh.position.set(newPosition.x(), newPosition.y(), newPosition.z());
         
         if (!mesh.rotationQuaternion) 
         {
           mesh.rotationQuaternion = new Quaternion();
         }
         
-        mesh.rotationQuaternion.set(rotation.x(), rotation.y(), rotation.z(), rotation.w());
+        mesh.rotationQuaternion.set(newRotation.x(), newRotation.y(), newRotation.z(), newRotation.w());
         mesh.addRotation(0, Math.PI, 0);
+        
+        return; // Skip normal position update since we just respawned
       }
-    });
-  }
+      
+      // Normal position and rotation update
+      mesh.position.set(currentPos.x, currentPos.y, currentPos.z);
+      
+      if (!mesh.rotationQuaternion) 
+      {
+        mesh.rotationQuaternion = new Quaternion();
+      }
+      
+      mesh.rotationQuaternion.set(rotation.x(), rotation.y(), rotation.z(), rotation.w());
+      mesh.addRotation(0, Math.PI, 0);
+    }
+  });
+}
 
   public getPerformanceInfo(): { deltaTime: number; fps: number; adjustedFPS: boolean } 
   {
@@ -510,9 +570,10 @@ public createPod(mesh: Mesh, podId: string, pod: RacerPod, initialPosition?: Vec
     
     const Ammo = this.ammoInstance;
     const rigidBody = podData.rigidBody;
-    const mesh = podData.mesh;
     
-    const currentPos = mesh.position;
+    // CHANGE THIS: Use checkpoint respawn instead of current position
+    const respawnPos = podData.pod.getRespawnPosition();
+    if (!respawnPos) return; // No valid respawn point
     
     rigidBody.setLinearVelocity(new Ammo.btVector3(0, 0, 0));
     rigidBody.setAngularVelocity(new Ammo.btVector3(0, 0, 0));
@@ -520,15 +581,17 @@ public createPod(mesh: Mesh, podId: string, pod: RacerPod, initialPosition?: Vec
     const resetTransform = new Ammo.btTransform();
     resetTransform.setIdentity();
     resetTransform.setOrigin(new Ammo.btVector3(
-      currentPos.x,
-      Math.max(currentPos.y + 2, 3),
-      currentPos.z
+      respawnPos.x,
+      respawnPos.y, // Already includes +3 height from getRespawnPosition()
+      respawnPos.z
     ));
     
     resetTransform.setRotation(new Ammo.btQuaternion(0, 0, 0, 1));
     
     rigidBody.setWorldTransform(resetTransform);
     rigidBody.activate(true);
+    
+    console.log(`Respawned pod ${podId} to checkpoint`);
   }
 
   public isPhysicsReady(): boolean 

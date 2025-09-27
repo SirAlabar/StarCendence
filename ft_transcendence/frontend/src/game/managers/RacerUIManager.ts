@@ -27,7 +27,7 @@ export class RacerUIManager
     totalLaps: 3,
     raceTime: '00:00.00',
     position: 1,
-    totalRacers: 8,
+    totalRacers: 4,
     speed: 0,
     maxSpeed: 600
   };
@@ -40,7 +40,7 @@ export class RacerUIManager
       showDebugInfo: false,
       maxSpeed: 600,
       totalLaps: 3,
-      totalRacers: 8,
+      totalRacers: 4,
       ...config
     };
     

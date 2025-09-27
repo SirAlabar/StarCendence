@@ -41,7 +41,7 @@ export class RacerHUD
               <div class="text-center">
                 <div class="text-xs text-blue-300 uppercase tracking-wide">Position</div>
                 <div class="text-xl font-bold">
-                  <span id="currentPosition">1</span>/<span id="totalRacers">8</span>
+                  <span id="currentPosition">1</span>/<span id="totalRacers">4</span>
                 </div>
               </div>
             </div>

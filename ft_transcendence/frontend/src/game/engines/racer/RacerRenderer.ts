@@ -237,6 +237,8 @@ export class RacerRenderer
         const playerStartPos = startPositions[0];
         
         pod.setPosition(playerStartPos);
+
+        pod.initializeCheckpoints(this.racerScene!);
         
         this.gameCanvas!.setPlayerPod(pod);
         

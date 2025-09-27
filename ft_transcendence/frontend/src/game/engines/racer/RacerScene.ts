@@ -20,6 +20,14 @@ export interface RacerSceneConfig
   fogDensity?: number;
 }
 
+export interface Checkpoint 
+{
+  id: number;
+  name: string;
+  position: Vector3;
+  passed: boolean;
+}
+
 const DEFAULT_CONFIG: RacerSceneConfig = 
 {
   trackSize: 5000,
@@ -38,6 +46,8 @@ export class RacerScene
   private config: RacerSceneConfig;
   private track: AbstractMesh | null = null;
   private isLoaded: boolean = false;
+  private checkpoints: Checkpoint[] = [];
+  private checkpointMeshes: AbstractMesh[] = [];
 
   public onTrackLoaded?: (track: AbstractMesh) => void;
   public onLoadingProgress?: (percentage: number, asset: string) => void;
@@ -162,6 +172,8 @@ export class RacerScene
             this.track = visualMesh;
             (this as any).collisionMesh = collisionMesh;
 
+            this.processCheckpoints(newMeshes, scale, position);
+
             if (this.onTrackLoaded) 
             {
               this.onTrackLoaded(this.track);
@@ -193,13 +205,69 @@ export class RacerScene
             }
           }
         },
-        (scene, message) => 
+        (_scene, message) => 
         {
           reject(new Error(`Failed to load polar pass: ${message}`));
         }
       );
     });
   }
+  
+private processCheckpoints(meshes: AbstractMesh[], trackScale: Vector3, trackPosition: Vector3): void 
+{
+  const checkpointMeshes: AbstractMesh[] = [];
+
+  // Find all meshes with checkpoint names
+  meshes.forEach((mesh) => 
+  {
+    if (mesh.name.toLowerCase().startsWith('check_point')) 
+    {
+      checkpointMeshes.push(mesh);
+    }
+  });
+
+  if (checkpointMeshes.length === 0) 
+  {
+    console.warn('No checkpoint meshes found in GLB file');
+    return;
+  }
+
+  // Sort checkpoints by name to ensure correct order
+  checkpointMeshes.sort((a, b) => a.name.localeCompare(b.name));
+
+  // Extract checkpoints with full data including IDs
+  this.checkpoints = [];
+  this.checkpointMeshes = [];
+
+  checkpointMeshes.forEach((mesh, index) => 
+  {
+    // Apply same transforms as track
+    mesh.position = trackPosition.clone();
+    mesh.rotation = Vector3.Zero();
+    mesh.scaling = trackScale.clone();
+
+    // Get world position after transforms
+    const worldPosition = mesh.getAbsolutePosition();
+
+    // Hide checkpoint mesh (make invisible)
+    mesh.visibility = 0;
+    mesh.isVisible = false;
+
+    // Create full checkpoint object with ID
+    const checkpoint: Checkpoint = {
+      id: index,
+      name: mesh.name,
+      position: worldPosition.clone(),
+      passed: false // This will be managed per-pod, but kept for compatibility
+    };
+
+    // Store checkpoint data
+    this.checkpoints.push(checkpoint);
+    this.checkpointMeshes.push(mesh);
+  });
+
+  console.log(`Processed ${this.checkpoints.length} shared checkpoints`);
+}
 
   private setupRacingEnvironment(): void 
   {
@@ -254,6 +322,40 @@ export class RacerScene
     };
   }
 
+  
+  public getCheckpoints(): Checkpoint[] 
+  {
+    return [...this.checkpoints]; // Return copy to prevent external modification
+  }
+
+  public getCheckpointPositions(): Vector3[] 
+  {
+    return this.checkpoints.map(cp => cp.position.clone());
+  }
+
+  public getCheckpointCount(): number 
+  {
+    return this.checkpoints.length;
+  }
+
+  public getCheckpointPosition(index: number): Vector3 | null 
+  {
+    if (index >= 0 && index < this.checkpoints.length) 
+    {
+      return this.checkpoints[index].position.clone();
+    }
+    return null;
+  }
+
+  public getCheckpointName(index: number): string | null 
+  {
+    if (index >= 0 && index < this.checkpoints.length) 
+    {
+      return this.checkpoints[index].name;
+    }
+    return null;
+  }
+
   public isTrackLoaded(): boolean 
   {
     return this.isLoaded && this.track !== null;
@@ -283,6 +385,16 @@ public getStartingPositions(count: number = 1): Vector3[]
   }
   
   return positions;
+}
+
+public getCheckpointMesh(index: number): AbstractMesh | null 
+{
+  // You'll need to store the meshes during processCheckpoints
+  if (index >= 0 && index < this.checkpointMeshes.length) 
+  {
+    return this.checkpointMeshes[index];
+  }
+  return null;
 }
 
   public getGameCanvas(): GameCanvas 
