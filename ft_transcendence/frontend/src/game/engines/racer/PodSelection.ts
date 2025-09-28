@@ -370,26 +370,22 @@ export class PodSelection extends BaseComponent
 
 private generateStars(): void 
 {
-  const starColors = ['#ffffff', '#fffacd', '#87ceeb', '#ffb6c1']; // branco, amarelo, azul, rosa
-  const numStars = 120; // Mais estrelas para tela toda
+  const starColors = ['#ffffff', '#fffacd', '#87ceeb', '#ffb6c1'];
+  const numStars = 120;
   const gradients: string[] = [];
 
   for (let i = 0; i < numStars; i++) 
   {
-    // TELA INTEIRA! 0% a 100% em ambas direções
-    const x = Math.random() * 100; // 0% a 100% da largura
-    const y = Math.random() * 100; // 0% a 100% da altura
+    const x = Math.random() * 100;
+    const y = Math.random() * 100;
     
-    // Estrelas bem maiores e variadas
-    const size = Math.random() * 8 + 1; // 1px a 9px
+    const size = Math.random() * 8 + 1;
     
-    // Cor aleatória
     const color = starColors[Math.floor(Math.random() * starColors.length)];
     
     gradients.push(`radial-gradient(${size}px ${size}px at ${x}% ${y}%, ${color}, transparent)`);
   }
 
-  // Define as estrelas
   document.documentElement.style.setProperty('--star-gradients', gradients.join(', '));
 }
 
