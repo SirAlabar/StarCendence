@@ -28,6 +28,9 @@ export class RacerPod
   private lastCheckpointPosition: Vector3 | null = null;
   private startPosition: Vector3 | null = null;
 
+  private lastDebugTime: number = 0;
+  private debugInterval: number = 2000; 
+
 
   public onLoaded?: (pod: RacerPod) => void;
   public onLoadingProgress?: (progress: number) => void;
@@ -167,41 +170,76 @@ export class RacerPod
     console.log(`Pod ${this.config.id} initialized with ${checkpointCount} checkpoints`);
   }
 
-public checkCheckpointCollision(playerPosition: Vector3): number | null 
-{
-  if (!this.racerScene) return null;
-  
-  // Get the next expected checkpoint position
-  const nextCheckpointPos = this.racerScene.getCheckpointPosition(this.currentCheckpointIndex);
-  if (!nextCheckpointPos) return null;
 
-  // Use distance-based collision instead of mesh intersection
-  const distanceToCheckpoint = Vector3.Distance(playerPosition, nextCheckpointPos);
-  const checkpointRadius = 15.0; // Adjust this value based on your checkpoint size
-  
-  if (distanceToCheckpoint <= checkpointRadius) 
+  public checkCheckpointCollision(playerPosition: Vector3): number | null
   {
-    // Store this checkpoint position as last known position for respawn
-    this.lastCheckpointPosition = nextCheckpointPos.clone();
+    if (!this.racerScene) 
+    {
+      return null;
+    }
+  
+    const checkpointRadius = 15.0;
+    const totalCheckpoints = this.checkpointsPassed.length;
+  
+    const checkRange = 5;
+    let foundCheckpoint: number | null = null;
+    let closestDistance = Infinity;
+  
+    for (let i = 0; i < checkRange; i++) 
+    {
+      const checkpointIndex = (this.currentCheckpointIndex + i) % totalCheckpoints;
+      const checkpointPos = this.racerScene.getCheckpointPosition(checkpointIndex);
     
-    // Mark checkpoint as passed for this pod
-    this.checkpointsPassed[this.currentCheckpointIndex] = true;
+      if (!checkpointPos) 
+      {
+        continue;
+      }
     
-    // Store this as last passed checkpoint for respawning
-    this.lastPassedCheckpointIndex = this.currentCheckpointIndex;
+      const distance = Vector3.Distance(playerPosition, checkpointPos);
     
-    // Move to next checkpoint (loop back to 0 for lap completion)
-    const passedCheckpointId = this.currentCheckpointIndex;
-    this.currentCheckpointIndex = (this.currentCheckpointIndex + 1) % this.checkpointsPassed.length;
+      if (distance <= checkpointRadius && distance < closestDistance) 
+      {
+        foundCheckpoint = checkpointIndex;
+        closestDistance = distance;
+      }
+    }
     
-    const checkpointName = this.racerScene.getCheckpointName(passedCheckpointId);
-    console.log(`Pod ${this.config.id} passed checkpoint ${passedCheckpointId} (${checkpointName})`);
+    if (foundCheckpoint !== null) 
+    {
+      // const skippedCount = foundCheckpoint - this.currentCheckpointIndex;
     
-    return passedCheckpointId;
+      // if (skippedCount > 0) 
+      // {
+      //   console.log(`Pod ${this.config.id} skipped ${skippedCount} checkpoints (${this.currentCheckpointIndex} → ${foundCheckpoint})`);
+      // }
+    
+      // Mark all checkpoints up to and including the found one as passed
+      for (let i = this.currentCheckpointIndex; i <= foundCheckpoint; i++) 
+      {
+        this.checkpointsPassed[i] = true;
+      }
+    
+      // Store this checkpoint position as last known position for respawn
+      const checkpointPos = this.racerScene.getCheckpointPosition(foundCheckpoint);
+      if (checkpointPos) 
+      {
+        this.lastCheckpointPosition = checkpointPos.clone();
+      }
+    
+      // Update last passed checkpoint for respawning
+      this.lastPassedCheckpointIndex = foundCheckpoint;
+    
+      // Move to next checkpoint after the found one
+      this.currentCheckpointIndex = (foundCheckpoint + 1) % totalCheckpoints;
+    
+      // const checkpointName = this.racerScene.getCheckpointName(foundCheckpoint);
+      // console.log(`Pod ${this.config.id} passed checkpoint ${foundCheckpoint + 1} (${checkpointName})`);
+    
+      return foundCheckpoint;
+    }
+    
+    return null;
   }
-
-  return null;
-}
 
   public isLapCompleted(): boolean 
   {
@@ -242,7 +280,7 @@ public checkCheckpointCollision(playerPosition: Vector3): number | null
     if (respawnIndex < 0 && this.startPosition) 
     {
       const safeStartPos = this.startPosition.clone();
-      safeStartPos.y += 5; // Spawn 5 units above start position
+      safeStartPos.y += 5;
       return safeStartPos;
     }
     
@@ -251,7 +289,7 @@ public checkCheckpointCollision(playerPosition: Vector3): number | null
     if (respawnPos) 
     {
       const safeRespawnPos = respawnPos.clone();
-      safeRespawnPos.y += 5; // Spawn 5 units above checkpoint
+      safeRespawnPos.y += 5;
       return safeRespawnPos;
     }
     

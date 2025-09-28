@@ -37,13 +37,13 @@ export const AVAILABLE_PODS: PodConfig[] = [
   {
     id: 'red_menace',
     name: "Red Menace",
-    pilot: 'Unknown',
+    pilot: 'Sebulba',
     modelPath: '/assets/models/racer/spaceship_clipper_v2_-_red_menace.glb'
   },
   {
     id: 'space_racer',
     name: "Space Racer",
-    pilot: 'Generic',
+    pilot: 'Dud Bolt',
     modelPath: '/assets/models/racer/racer_space_ship_model.glb'
   }
 ];

@@ -213,61 +213,57 @@ export class RacerScene
     });
   }
   
-private processCheckpoints(meshes: AbstractMesh[], trackScale: Vector3, trackPosition: Vector3): void 
-{
-  const checkpointMeshes: AbstractMesh[] = [];
-
-  // Find all meshes with checkpoint names
-  meshes.forEach((mesh) => 
+  private processCheckpoints(meshes: AbstractMesh[], trackScale: Vector3, trackPosition: Vector3): void 
   {
-    if (mesh.name.toLowerCase().startsWith('check_point')) 
+    const checkpointMeshes: AbstractMesh[] = [];
+
+    meshes.forEach((mesh) => 
     {
-      checkpointMeshes.push(mesh);
+      if (mesh.name.toLowerCase().startsWith('check_point')) 
+      {
+        checkpointMeshes.push(mesh);
+      }
+    });
+
+    if (checkpointMeshes.length === 0) 
+    {
+      console.warn('No checkpoint meshes found in GLB file');
+      return;
     }
-  });
 
-  if (checkpointMeshes.length === 0) 
-  {
-    console.warn('No checkpoint meshes found in GLB file');
-    return;
+    checkpointMeshes.sort((a, b) => a.name.localeCompare(b.name));
+
+    this.checkpoints = [];
+    this.checkpointMeshes = [];
+
+    checkpointMeshes.forEach((mesh, index) => 
+    {
+      const originalLocalPos = mesh.position.clone();
+      
+      const worldPosition = new Vector3(
+        (originalLocalPos.x * trackScale.x) + trackPosition.x,
+        (originalLocalPos.y * trackScale.y) + trackPosition.y,
+        (originalLocalPos.z * trackScale.z) + trackPosition.z
+      );
+           
+      mesh.position = trackPosition.clone();
+      mesh.rotation = Vector3.Zero();
+      mesh.scaling = trackScale.clone();
+      
+      mesh.visibility = 0;
+      mesh.isVisible = false;
+
+      const checkpoint: Checkpoint = {
+        id: index,
+        name: mesh.name,
+        position: worldPosition.clone(),
+        passed: false
+      };
+
+      this.checkpoints.push(checkpoint);
+      this.checkpointMeshes.push(mesh);
+    });
   }
-
-  // Sort checkpoints by name to ensure correct order
-  checkpointMeshes.sort((a, b) => a.name.localeCompare(b.name));
-
-  // Extract checkpoints with full data including IDs
-  this.checkpoints = [];
-  this.checkpointMeshes = [];
-
-  checkpointMeshes.forEach((mesh, index) => 
-  {
-    // Apply same transforms as track
-    mesh.position = trackPosition.clone();
-    mesh.rotation = Vector3.Zero();
-    mesh.scaling = trackScale.clone();
-
-    // Get world position after transforms
-    const worldPosition = mesh.getAbsolutePosition();
-
-    // Hide checkpoint mesh (make invisible)
-    mesh.visibility = 0;
-    mesh.isVisible = false;
-
-    // Create full checkpoint object with ID
-    const checkpoint: Checkpoint = {
-      id: index,
-      name: mesh.name,
-      position: worldPosition.clone(),
-      passed: false // This will be managed per-pod, but kept for compatibility
-    };
-
-    // Store checkpoint data
-    this.checkpoints.push(checkpoint);
-    this.checkpointMeshes.push(mesh);
-  });
-
-  console.log(`Processed ${this.checkpoints.length} shared checkpoints`);
-}
 
   private setupRacingEnvironment(): void 
   {
@@ -325,7 +321,7 @@ private processCheckpoints(meshes: AbstractMesh[], trackScale: Vector3, trackPos
   
   public getCheckpoints(): Checkpoint[] 
   {
-    return [...this.checkpoints]; // Return copy to prevent external modification
+    return [...this.checkpoints];
   }
 
   public getCheckpointPositions(): Vector3[] 
@@ -389,7 +385,6 @@ public getStartingPositions(count: number = 1): Vector3[]
 
 public getCheckpointMesh(index: number): AbstractMesh | null 
 {
-  // You'll need to store the meshes during processCheckpoints
   if (index >= 0 && index < this.checkpointMeshes.length) 
   {
     return this.checkpointMeshes[index];
