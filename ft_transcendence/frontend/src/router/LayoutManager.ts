@@ -130,17 +130,53 @@ function mountComponent(component: BaseComponent, selector: string): void
     }
 }
 
-// Show loading screen
 export function showLoading(): void 
 {
     const loading = document.createElement('div');
     loading.id = 'layout-loading';
     loading.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
     loading.innerHTML = `
-        <div class="bg-gray-800 rounded-lg p-6 text-center">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-            <p class="text-white">Loading...</p>
-        </div>
+        <div class="loader"></div>
+
+        <style>
+            .loader {
+                width: 60px;
+                height: 25px;
+                border: 3px solid #63eafe;
+                box-sizing: border-box;
+                border-radius: 50%;
+                display: grid;
+                animation: l2 2s infinite linear;
+                box-shadow: 0 0 8px #63eafe, inset 0 0 8px #63eafe;
+            }
+            
+            .loader:before,
+            .loader:after {
+                content: "";
+                grid-area: 1/1;
+                border: 3px solid;
+                border-radius: 50%;
+                animation: inherit;
+                animation-duration: 3s;
+            }
+            
+            .loader:before {
+                border-color: #a855f7;
+                box-shadow: 0 0 6px #a855f7, inset 0 0 6px #a855f7;
+            }
+            
+            .loader:after {
+                --s: -1;
+                border-color: #3b82f6;
+                box-shadow: 0 0 6px #3b82f6, inset 0 0 6px #3b82f6;
+            }
+            
+            @keyframes l2 {
+                100% { 
+                    transform: rotate(calc(var(--s, 1) * 1turn)); 
+                }
+            }
+        </style>
     `;
     document.body.appendChild(loading);
 }
