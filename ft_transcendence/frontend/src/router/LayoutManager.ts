@@ -34,14 +34,22 @@ export function renderDefault(component: BaseComponent, headerHtml: string): voi
     if (contentMountAfter) 
     {
         contentMountAfter.setAttribute('data-route-content', 'true');
-        contentMountAfter.className = 'pt-20';
-        // Use Layout's renderPageSection like your App.ts does
-        const pageContent = layout.renderPageSection(
-            'page-content', 
-            component.render(), 
-            true
-        );
-        contentMountAfter.innerHTML = pageContent;
+        const isLandingPage = component.constructor.name === 'LandingPage';
+        if (isLandingPage) 
+        {
+            contentMountAfter.className = 'pt-20';
+            const pageContent = layout.renderPageSection(
+                'page-content', 
+                component.render(), 
+                true
+            );
+            contentMountAfter.innerHTML = pageContent;
+        } 
+        else 
+        {
+            contentMountAfter.className = 'flex-1 flex flex-col pt-20';
+            contentMountAfter.innerHTML = layout.renderPageSection('page-content', component.render(), false);
+        }
     }
 
     // Call component mount if it exists
