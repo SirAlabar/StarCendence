@@ -110,7 +110,7 @@ export class RacerRenderer
       showDebugInfo: this.config.debugMode || false,
       maxSpeed: 600,
       totalLaps: 3,
-      totalRacers: 8
+      totalRacers: 4
     });
     
     this.racerUIManager.startRace();
