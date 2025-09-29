@@ -77,7 +77,7 @@ export class RacerScene
     {
       if (this.onLoadingProgress) 
       {
-        this.onLoadingProgress(10, 'Loading canyon.babylon...');
+        this.onLoadingProgress(10, 'Loading babylon...');
       }
 
       await this.loadCanyonTrack();
@@ -85,7 +85,7 @@ export class RacerScene
       
       if (this.onLoadingProgress) 
       {
-        this.onLoadingProgress(100, 'Canyon track ready');
+        this.onLoadingProgress(100, 'Track ready');
       }
 
       if (this.onLoadingComplete) 
@@ -97,7 +97,7 @@ export class RacerScene
     {
       if (this.onLoadingError) 
       {
-        this.onLoadingError([`Failed to load canyon track: ${error}`]);
+        this.onLoadingError([`Failed to load track: ${error}`]);
       }
     }
   }
@@ -219,7 +219,9 @@ export class RacerScene
 
     meshes.forEach((mesh) => 
     {
-      if (mesh.name.toLowerCase().startsWith('check_point')) 
+      const meshName = mesh.name.toLowerCase();
+      
+      if (meshName.startsWith('check_point') || meshName === 'start_line')
       {
         checkpointMeshes.push(mesh);
       }
@@ -246,12 +248,16 @@ export class RacerScene
         (originalLocalPos.z * trackScale.z) + trackPosition.z
       );
            
-      mesh.position = trackPosition.clone();
-      mesh.rotation = Vector3.Zero();
-      mesh.scaling = trackScale.clone();
+      const isStartLine = mesh.name.toLowerCase() === 'start_line';
       
-      mesh.visibility = 0;
-      mesh.isVisible = false;
+      if (!isStartLine)
+      {
+        mesh.position = trackPosition.clone();
+        mesh.rotation = Vector3.Zero();
+        mesh.scaling = trackScale.clone();
+        mesh.visibility = 0;
+        mesh.isVisible = false;
+      }
 
       const checkpoint: Checkpoint = {
         id: index,

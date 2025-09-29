@@ -28,9 +28,13 @@ export class RacerPod
   private lastCheckpointPosition: Vector3 | null = null;
   private startPosition: Vector3 | null = null;
 
-  private lastDebugTime: number = 0;
-  private debugInterval: number = 2000; 
-
+  private currentLap: number = 1;
+  private totalLaps: number = 3;
+  private lapStartTime: number = 0;
+  private lapTimes: number[] = [];
+  private raceStartTime: number = 0;
+  private isRaceFinished: boolean = false;
+  private readonly MIN_CHECKPOINTS_FOR_LAP = 10;
 
   public onLoaded?: (pod: RacerPod) => void;
   public onLoadingProgress?: (progress: number) => void;
@@ -159,32 +163,38 @@ export class RacerPod
     this.physicsEnabled = false;
   }
 
-  public initializeCheckpoints(racerScene: RacerScene): void 
+  public initializeCheckpoints(racerScene: RacerScene, totalLaps: number = 3): void 
   {
     this.racerScene = racerScene;
     const checkpointCount = racerScene.getCheckpointCount();
     this.checkpointsPassed = new Array(checkpointCount).fill(false);
     this.currentCheckpointIndex = 0;
     this.lastPassedCheckpointIndex = -1;
+
+    this.currentLap = 1;
+    this.totalLaps = totalLaps;
+    this.raceStartTime = Date.now();
+    this.lapStartTime = this.raceStartTime;
+    this.lapTimes = [];
+    this.isRaceFinished = false;
     
     console.log(`Pod ${this.config.id} initialized with ${checkpointCount} checkpoints`);
   }
 
-
   public checkCheckpointCollision(playerPosition: Vector3): number | null
   {
-    if (!this.racerScene) 
+    if (!this.racerScene || this.isRaceFinished) 
     {
       return null;
     }
-  
+
     const checkpointRadius = 15.0;
     const totalCheckpoints = this.checkpointsPassed.length;
-  
-    const checkRange = 5;
+
+    const checkRange = 15;
     let foundCheckpoint: number | null = null;
     let closestDistance = Infinity;
-  
+
     for (let i = 0; i < checkRange; i++) 
     {
       const checkpointIndex = (this.currentCheckpointIndex + i) % totalCheckpoints;
@@ -206,17 +216,33 @@ export class RacerPod
     
     if (foundCheckpoint !== null) 
     {
-      // const skippedCount = foundCheckpoint - this.currentCheckpointIndex;
-    
-      // if (skippedCount > 0) 
-      // {
-      //   console.log(`Pod ${this.config.id} skipped ${skippedCount} checkpoints (${this.currentCheckpointIndex} → ${foundCheckpoint})`);
-      // }
-    
-      // Mark all checkpoints up to and including the found one as passed
-      for (let i = this.currentCheckpointIndex; i <= foundCheckpoint; i++) 
+      // Check if this is the start/finish line (checkpoint 0)
+      const isStartFinishLine = foundCheckpoint === 0;
+      console.log(`🎯 Checkpoint ${foundCheckpoint} detected. Is start/finish: ${isStartFinishLine}`);
+      if (isStartFinishLine) 
       {
-        this.checkpointsPassed[i] = true;
+        const passedCount = this.getPassedCheckpointCount();
+        console.log(`📊 Crossed start/finish. Passed ${passedCount}/${this.MIN_CHECKPOINTS_FOR_LAP} checkpoints. Can complete: ${this.canCompleteLap()}`);
+        
+        if (this.canCompleteLap()) 
+        {
+          console.log(`✅ Completing lap ${this.currentLap}...`);
+          this.completeLap();
+        }
+        else
+        {
+          // Not enough checkpoints passed, ignore this crossing
+          console.log(`Pod ${this.config.id} crossed start/finish but only ${this.getPassedCheckpointCount()}/${this.MIN_CHECKPOINTS_FOR_LAP} checkpoints passed`);
+          return null;
+        }
+      }
+      else
+      {
+        // Regular checkpoint - mark as passed
+        for (let i = this.currentCheckpointIndex; i <= foundCheckpoint; i++) 
+        {
+          this.checkpointsPassed[i] = true;
+        }
       }
     
       // Store this checkpoint position as last known position for respawn
@@ -232,18 +258,63 @@ export class RacerPod
       // Move to next checkpoint after the found one
       this.currentCheckpointIndex = (foundCheckpoint + 1) % totalCheckpoints;
     
-      // const checkpointName = this.racerScene.getCheckpointName(foundCheckpoint);
-      // console.log(`Pod ${this.config.id} passed checkpoint ${foundCheckpoint + 1} (${checkpointName})`);
-    
       return foundCheckpoint;
     }
     
     return null;
   }
 
-  public isLapCompleted(): boolean 
+  private canCompleteLap(): boolean 
   {
-    return this.currentCheckpointIndex === 0 && this.checkpointsPassed.some(passed => passed);
+    const passedCount = this.getPassedCheckpointCount();
+    return passedCount >= this.MIN_CHECKPOINTS_FOR_LAP;
+  }
+
+  private getPassedCheckpointCount(): number 
+  {
+    return this.checkpointsPassed.filter(passed => passed).length;
+  }
+
+  private completeLap(): void 
+  {
+    const currentTime = Date.now();
+    const lapTime = currentTime - this.lapStartTime;
+    
+    this.lapTimes.push(lapTime);
+    
+    console.log(`Pod ${this.config.id} completed lap ${this.currentLap}/${this.totalLaps} in ${this.formatTime(lapTime)}`);
+    
+    if ((window as any).racerUIManager) 
+    {
+      (window as any).racerUIManager.onLapComplete(this.currentLap, lapTime);
+    }
+    
+    this.currentLap++;
+    
+    if (this.currentLap > this.totalLaps) 
+    {
+      this.finishRace();
+    }
+    else
+    {
+      this.resetCheckpointProgress();
+      this.lapStartTime = currentTime;
+      
+      if ((window as any).racerUIManager) 
+      {
+        (window as any).racerUIManager.updateLap(this.currentLap);
+      }
+    }
+  }
+
+  private finishRace(): void 
+  {
+    this.isRaceFinished = true;
+    const totalTime = Date.now() - this.raceStartTime;
+    
+    console.log(`Pod ${this.config.id} finished race!`);
+    console.log(`Total time: ${this.formatTime(totalTime)}`);
+    console.log(`Lap times: ${this.lapTimes.map(t => this.formatTime(t)).join(', ')}`);
   }
 
   public resetCheckpointProgress(): void 
@@ -251,6 +322,16 @@ export class RacerPod
     this.checkpointsPassed.fill(false);
     this.currentCheckpointIndex = 0;
     console.log(`Pod ${this.config.id} checkpoint progress reset for new lap`);
+  }
+
+  private formatTime(milliseconds: number): string 
+  {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const ms = Math.floor((milliseconds % 1000) / 10);
+    
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   }
 
   public getRaceProgress(): number 
@@ -342,6 +423,57 @@ public shouldRespawnPlayer(playerPosition: Vector3): boolean
   public getConfig(): PodConfig 
   {
     return this.config;
+  }
+
+  public getCurrentLap(): number 
+  {
+    return this.currentLap;
+  }
+
+  public getTotalLaps(): number 
+  {
+    return this.totalLaps;
+  }
+
+  public getLapTimes(): number[] 
+  {
+    return [...this.lapTimes];
+  }
+
+  public getBestLapTime(): number | null 
+  {
+    return this.lapTimes.length > 0 ? Math.min(...this.lapTimes) : null;
+  }
+
+  public getTotalRaceTime(): number 
+  {
+    return Date.now() - this.raceStartTime;
+  }
+
+  public isRaceComplete(): boolean 
+  {
+    return this.isRaceFinished;
+  }
+
+  public getRaceResults(): {
+    totalTime: number;
+    lapTimes: number[];
+    bestLap: number | null;
+    averageLapTime: number | null;
+  } 
+  {
+    const totalTime = Date.now() - this.raceStartTime;
+    const bestLap = this.getBestLapTime();
+    const averageLapTime = this.lapTimes.length > 0 
+      ? this.lapTimes.reduce((sum, time) => sum + time, 0) / this.lapTimes.length 
+      : null;
+    
+    return {
+      totalTime,
+      lapTimes: [...this.lapTimes],
+      bestLap,
+      averageLapTime
+    };
   }
 
   public dispose(): void 

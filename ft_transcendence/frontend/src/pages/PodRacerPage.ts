@@ -100,14 +100,10 @@ export default class PodRacerPage extends BaseComponent
         }
     }
 
-    // SINGLE RESPONSIBILITY: Call RacerRenderer
     private async startRace(): Promise<void> 
     {
         try 
         {
-            console.log('PODRACER-PAGE: Starting race...');
-            
-            // Create RacerRenderer
             this.racerRenderer = new RacerRenderer(
             {
                 debugMode: false,
@@ -115,14 +111,9 @@ export default class PodRacerPage extends BaseComponent
                 cameraMode: 'racing'
             });
             
-            // Initialize everything (RacerRenderer handles loading, UI, 3D scene, etc.)
             await this.racerRenderer.initialize('gameCanvas', this.selectedPodConfig);
             
-            // Start race (RacerRenderer handles HUD and all UI)
             await this.racerRenderer.startVisualRace();
-            
-            console.log('PODRACER-PAGE: Race started successfully');
-            
         } 
         catch (error) 
         {
@@ -135,8 +126,6 @@ export default class PodRacerPage extends BaseComponent
     // Back button handler
     public goBack(): void 
     {
-        console.log('PODRACER-PAGE: Going back to games...');
-        
         // Cleanup everything
         this.dispose();
         
@@ -161,7 +150,6 @@ export default class PodRacerPage extends BaseComponent
     {
         console.log('PODRACER-PAGE: Disposing...');
         
-        // RacerRenderer handles all cleanup (3D, UI, physics)
         if (this.racerRenderer) 
         {
             this.racerRenderer.dispose();

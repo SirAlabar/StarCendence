@@ -376,29 +376,12 @@ private updatePhysics(): void
       const passedCheckpoint = podData.pod.checkCheckpointCollision(currentPos);
       if (passedCheckpoint !== null) 
       {
-        console.log(`Pod ${podId} passed checkpoint ${passedCheckpoint}`);
-        
-        // Check if lap completed
-        if (podData.pod.isLapCompleted()) 
-        {
-          console.log(`Pod ${podId} completed a lap!`);
-          podData.pod.resetCheckpointProgress();
-          
-          // Trigger UI lap update if available
-          if ((window as any).racerUIManager) 
-          {
-            const currentLap = (window as any).racerUIManager.getCurrentRacerData().currentLap + 1;
-            (window as any).racerUIManager.updateLap(currentLap);
-          }
-        }
-        
-        // Trigger UI checkpoint passed event if available
         if ((window as any).racerUIManager) 
         {
           (window as any).racerUIManager.onCheckpointPassed(`${passedCheckpoint + 1}`);
         }
       }
-      
+            
       // Check if respawn is needed
       if (podData.pod.shouldRespawnPlayer(currentPos)) 
       {

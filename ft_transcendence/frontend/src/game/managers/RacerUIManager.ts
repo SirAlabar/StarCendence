@@ -66,8 +66,6 @@ export class RacerUIManager
   // Start racer UI (called when race begins)
   public startRace(): void 
   {
-    console.log('RACER-UI-MANAGER: Starting racer UI...');
-    
     this.isActive = true;
     this.startTime = Date.now();
     
@@ -90,8 +88,6 @@ export class RacerUIManager
   // Stop racer UI
   public stopRace(): void 
   {
-    console.log('RACER-UI-MANAGER: Stopping racer UI...');
-    
     this.isActive = false;
     
     if (this.updateInterval) 
