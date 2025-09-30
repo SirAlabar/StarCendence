@@ -6,6 +6,7 @@ export interface PodConfig
   name: string;
   pilot: string;
   modelPath: string;
+  isSecret?: boolean;
 }
 
 
@@ -14,7 +15,7 @@ export const AVAILABLE_PODS: PodConfig[] = [
     id: 'anakin_classic',
     name: "Anakin's Podracer",
     pilot: 'Anakin Skywalker',
-    modelPath: '/assets/models/racer/anakin_pod_racer.glb'
+    modelPath: '/assets/models/racer/old_worm.glb'
   },
   {
     id: 'anakin_galaxies',
@@ -48,10 +49,19 @@ export const AVAILABLE_PODS: PodConfig[] = [
   }
 ];
 
+export const SECRET_POD: PodConfig = {
+  id: 'ph-qw-4l-ec-ro-nx',
+  name: 'Millennium Falcon',
+  pilot: 'Han Solo',
+  modelPath: '/assets/models/racer/ph-qw-4l-ec-ro-nx.glb',
+  isSecret: true
+};
+
 // Simple helper to get pod by ID
 export function getPodById(id: string): PodConfig | undefined 
 {
-  return AVAILABLE_PODS.find(pod => pod.id === id);
+  const allPods = [...AVAILABLE_PODS, SECRET_POD];
+  return allPods.find(pod => pod.id === id);
 }
 
 // Default pod

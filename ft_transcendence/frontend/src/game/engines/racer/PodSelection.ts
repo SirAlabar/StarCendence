@@ -1,26 +1,33 @@
-
 import { BaseComponent } from '../../../components/BaseComponent';
-import { AVAILABLE_PODS, PodConfig, getPodById } from '../../utils/PodConfig';
+import { AVAILABLE_PODS, SECRET_POD, PodConfig, getPodById } from '../../utils/PodConfig';
 
 export interface PodSelectionEvent {
   selectedPod: PodConfig;
   onConfirm: () => void;
 }
 
-// Map pod IDs to their corresponding MP4 video files
+// Map pod IDs to their corresponding MP4 video files or PNG images
 const POD_VIDEOS: { [podId: string]: string } = {
-  'anakin_classic': 'assets/images/pods/anakin_pod1.mp4',    // Anakin's classic podracer
-  'anakin_galaxies': 'assets/images/pods/anakin_pod2.mp4',   // Star Wars Galaxies Anakin
-  'ben_quadinaros': 'assets/images/pods/ben_pod.mp4',        // Ben Quadinaros podracer
-  'ebe_endecotts': 'assets/images/pods/ebe_pod.mp4',          // Ebe Endocott podracer
-  'red_menace': 'assets/images/pods/red_pod.mp4',              // Mars Guo red podracer
-  'space_racer': 'assets/images/pods/space_pod.mp4'      // Teemto Pagalies space podracer
+  'anakin_classic': 'assets/images/pods/anakin_pod1.mp4',
+  'anakin_galaxies': 'assets/images/pods/anakin_pod2.mp4',
+  'ben_quadinaros': 'assets/images/pods/ben_pod.mp4',
+  'ebe_endecotts': 'assets/images/pods/ebe_pod.mp4',
+  'red_menace': 'assets/images/pods/red_pod.mp4',
+  'space_racer': 'assets/images/pods/space_pod.mp4',
+  'ph-qw-4l-ec-ro-nx': 'assets/images/pods/ph-qw-4l-ec-ro-nx.png'
 };
 
 export class PodSelection extends BaseComponent 
 {
   private selectedPodId: string = 'anakin_classic';
   private onPodSelected?: (event: PodSelectionEvent) => void;
+  
+  // Secret unlock system
+  private clickedPods: Set<string> = new Set();
+  private secretSequence: string[] = ['d', 's', 't', 'a', 'r', 'ArrowUp', 'ArrowDown'];
+  private currentSequence: string[] = [];
+  private secretUnlocked: boolean = false;
+  private sequenceTimeout: number | null = null;
 
   constructor(onPodSelected?: (event: PodSelectionEvent) => void) 
   {
@@ -59,6 +66,10 @@ export class PodSelection extends BaseComponent
               Cancel
             </button>
             
+            <!-- Secret Pod Container (initially hidden) -->
+            <div id="secretPodContainer" class="secret-pod-container" style="display: none;">
+            </div>
+            
             <button 
               onclick="podSelection.confirmSelection()"
               class="neon-button-primary px-8 py-3 rounded-lg font-bold transition-all duration-300"
@@ -70,6 +81,72 @@ export class PodSelection extends BaseComponent
         </div>
 
         <style>
+          /* Secret Pod Container */
+          .secret-pod-container {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+          }
+
+          /* Secret Pod Reveal Animation */
+          @keyframes secretReveal {
+            0% {
+              opacity: 0;
+              transform: scale(0.3) translateY(100px);
+            }
+            50% {
+              opacity: 1;
+              transform: scale(1.1) translateY(0);
+            }
+            100% {
+              opacity: 1;
+              transform: scale(1) translateY(0);
+            }
+          }
+
+          .secret-reveal-animation {
+            animation: secretReveal 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+          }
+
+          /* Secret Pod Card Styling */
+          .secret-pod-card {
+            background: linear-gradient(145deg, 
+              rgba(168, 85, 247, 0.2) 0%, 
+              rgba(59, 130, 246, 0.2) 100%);
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            position: relative;
+            box-shadow: 
+              0 0 30px rgba(168, 85, 247, 0.6),
+              0 0 60px rgba(99, 234, 254, 0.4),
+              inset 0 0 30px rgba(168, 85, 247, 0.2);
+          }
+
+          .secret-pod-card::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(45deg, 
+              #a855f7, #63eafe, #ec4899, #a855f7);
+            border-radius: inherit;
+            z-index: -1;
+            animation: secretBorderRotate 3s linear infinite;
+          }
+
+          @keyframes secretBorderRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+
+          .secret-pod-card:hover {
+            transform: scale(1.05);
+            box-shadow: 
+              0 0 40px rgba(168, 85, 247, 0.8),
+              0 0 80px rgba(99, 234, 254, 0.6),
+              inset 0 0 40px rgba(168, 85, 247, 0.3);
+          }
+
           /* Neon background  */
           .pod-selection-overlay {
             position: fixed;
@@ -292,7 +369,6 @@ export class PodSelection extends BaseComponent
     `;
   }
 
-
   private renderPodCards(): string 
   {
     return AVAILABLE_PODS.map(pod => 
@@ -316,13 +392,11 @@ export class PodSelection extends BaseComponent
               ${this.selectedPodId === pod.id ? 'autoplay' : ''}
             >
               <source src="${videoPath}" type="video/mp4">
-              <!-- Fallback for browsers that don't support video -->
               <div class="w-full h-full bg-gray-700 flex items-center justify-center">
                 <div class="text-4xl">🏎️</div>
               </div>
             </video>
             
-            <!-- Play indicator overlay -->
             <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
               <div class="bg-black/50 rounded-full p-2">
                 <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -331,7 +405,6 @@ export class PodSelection extends BaseComponent
               </div>
             </div>
 
-            <!-- Selection indicator -->
             ${this.selectedPodId === pod.id ? `
               <div class="absolute top-2 right-2">
                 <div class="selection-indicator text-white rounded-full p-1">
@@ -343,14 +416,12 @@ export class PodSelection extends BaseComponent
             ` : ''}
           </div>
 
-          <!-- Pod Info -->
           <div class="p-4">
             <div class="text-center">
               <h3 class="text-white font-bold text-lg mb-1">${pod.name}</h3>
               <p class="text-gray-400 text-sm mb-2">${pod.pilot}</p>
             </div>
 
-            <!-- Selection Status -->
             ${this.selectedPodId === pod.id ? `
               <div class="text-center mt-3">
                 <span class="selected-status text-sm font-bold">✓ SELECTED</span>
@@ -366,34 +437,139 @@ export class PodSelection extends BaseComponent
   {
     (window as any).podSelection = this;
     this.generateStars();
+    this.initializeSecretUnlock();
   }
 
-private generateStars(): void 
-{
-  const starColors = ['#ffffff', '#fffacd', '#87ceeb', '#ffb6c1'];
-  const numStars = 120;
-  const gradients: string[] = [];
-
-  for (let i = 0; i < numStars; i++) 
+  private generateStars(): void 
   {
-    const x = Math.random() * 100;
-    const y = Math.random() * 100;
-    
-    const size = Math.random() * 8 + 1;
-    
-    const color = starColors[Math.floor(Math.random() * starColors.length)];
-    
-    gradients.push(`radial-gradient(${size}px ${size}px at ${x}% ${y}%, ${color}, transparent)`);
+    const starColors = ['#ffffff', '#fffacd', '#87ceeb', '#ffb6c1'];
+    const numStars = 120;
+    const gradients: string[] = [];
+
+    for (let i = 0; i < numStars; i++) 
+    {
+      const x = Math.random() * 100;
+      const y = Math.random() * 100;
+      const size = Math.random() * 8 + 1;
+      const color = starColors[Math.floor(Math.random() * starColors.length)];
+      gradients.push(`radial-gradient(${size}px ${size}px at ${x}% ${y}%, ${color}, transparent)`);
+    }
+
+    document.documentElement.style.setProperty('--star-gradients', gradients.join(', '));
   }
 
-  document.documentElement.style.setProperty('--star-gradients', gradients.join(', '));
-}
+  private initializeSecretUnlock(): void 
+  {
+    document.addEventListener('keydown', this.handleSecretKeyPress.bind(this));
+  }
+
+  private handleSecretKeyPress(e: KeyboardEvent): void 
+  {
+    if (this.secretUnlocked)
+    {
+      return;
+    }
+
+    // Check if all pods have been clicked
+    if (this.clickedPods.size < AVAILABLE_PODS.length) 
+    {
+      return;
+    }
+
+    // Handle arrow keys differently
+    const key = e.key.startsWith('Arrow') ? e.key : e.key.toLowerCase();
+    
+    // Add to current sequence
+    this.currentSequence.push(key);
+
+    if (this.currentSequence.length > this.secretSequence.length) 
+    {
+      this.currentSequence.shift();
+    }
+
+    // Check if the last N keys match the secret sequence
+    if (this.currentSequence.length === this.secretSequence.length) 
+    {
+      const matches = this.currentSequence.every((key, index) => 
+        key === this.secretSequence[index]
+      );
+
+      if (matches) 
+      {
+        this.unlockSecretPod();
+      }
+    }
+  }
+
+  private unlockSecretPod(): void 
+  {
+    if (this.secretUnlocked) 
+    {
+      return;
+    }
+
+    this.secretUnlocked = true;
+    const container = document.getElementById('secretPodContainer');
+    if (!container) 
+    {
+      return;
+    }
+
+    const imagePath = POD_VIDEOS[SECRET_POD.id];
+    
+    container.innerHTML = `
+      <div class="secret-pod-card rounded-lg overflow-hidden cursor-pointer transition-all duration-300 w-64 secret-reveal-animation"
+           onclick="podSelection.selectPod('${SECRET_POD.id}')">
+        
+        <div class="video-container relative h-40 bg-gray-900">
+          <img 
+            src="${imagePath}"
+            class="w-full h-full object-cover"
+            alt="${SECRET_POD.name}"
+          />
+          
+          ${this.selectedPodId === SECRET_POD.id ? `
+            <div class="absolute top-2 right-2">
+              <div class="selection-indicator text-white rounded-full p-1">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                </svg>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="p-3">
+          <div class="text-center">
+            <h3 class="text-white font-bold text-base mb-1" style="text-shadow: 0 0 10px #63eafe, 0 0 20px #63eafe;">${SECRET_POD.name}</h3>
+            <p class="text-yellow-400 text-sm mb-2 font-semibold" style="text-shadow: 0 0 10px #fbbf24, 0 0 20px #fbbf24;">${SECRET_POD.pilot}</p>
+            <span class="text-white text-xs font-bold" style="text-shadow: 0 0 10px #63eafe, 0 0 20px #63eafe;">⭐ SECRET</span>
+          </div>
+
+          ${this.selectedPodId === SECRET_POD.id ? `
+            <div class="text-center mt-2">
+              <span class="selected-status text-xs font-bold">✓ SELECTED</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    container.style.display = 'block';
+  }
 
   selectPod(podId: string): void 
   {
+    // Track clicked pods for secret unlock
+    if (!this.secretUnlocked && AVAILABLE_PODS.find(p => p.id === podId)) 
+    {
+      this.clickedPods.add(podId);
+    }
+
+    // Remove old selection
     if (this.selectedPodId) 
     {
-      const oldCard = document.querySelector(`.pod-card.selected`);
+      const oldCard = document.querySelector(`.pod-card.selected, .secret-pod-card.selected`);
       if (oldCard) 
       {
         oldCard.classList.remove('selected');
@@ -413,44 +589,81 @@ private generateStars(): void
       }
     }
 
+    // Set new selection
     this.selectedPodId = podId;
-    const newCard = document.querySelector(`.pod-card[onclick*="${podId}"]`);
-    if (newCard) 
+    
+    // Handle secret pod selection
+    if (podId === SECRET_POD.id) 
     {
-      newCard.classList.add('selected');
-
-      const info = newCard.querySelector('.p-4 .text-center');
-      if (info) 
+      const secretCard = document.querySelector(`.secret-pod-card`);
+      if (secretCard) 
       {
-        const statusDiv = document.createElement('div');
-        statusDiv.className = "text-center mt-3";
-        statusDiv.innerHTML = `<span class="selected-status text-sm font-bold">✓ SELECTED</span>`;
-        info.appendChild(statusDiv);
+        secretCard.classList.add('selected');
+        
+        const info = secretCard.querySelector('.p-3 .text-center');
+        if (info) 
+        {
+          const statusDiv = document.createElement('div');
+          statusDiv.className = "text-center mt-2";
+          statusDiv.innerHTML = `<span class="selected-status text-xs font-bold">✓ SELECTED</span>`;
+          info.appendChild(statusDiv);
+        }
+
+        const videoContainer = secretCard.querySelector('.video-container');
+        if (videoContainer) 
+        {
+          const checkDiv = document.createElement('div');
+          checkDiv.className = "absolute top-2 right-2";
+          checkDiv.innerHTML = `
+            <div class="selection-indicator text-white rounded-full p-1">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+              </svg>
+            </div>
+          `;
+          videoContainer.appendChild(checkDiv);
+        }
+      }
+    } 
+    else 
+    {
+      const newCard = document.querySelector(`.pod-card[onclick*="${podId}"]`);
+      if (newCard) 
+      {
+        newCard.classList.add('selected');
+
+        const info = newCard.querySelector('.p-4 .text-center');
+        if (info) 
+        {
+          const statusDiv = document.createElement('div');
+          statusDiv.className = "text-center mt-3";
+          statusDiv.innerHTML = `<span class="selected-status text-sm font-bold">✓ SELECTED</span>`;
+          info.appendChild(statusDiv);
+        }
+
+        const videoContainer = newCard.querySelector('.video-container');
+        if (videoContainer) 
+        {
+          const checkDiv = document.createElement('div');
+          checkDiv.className = "absolute top-2 right-2";
+          checkDiv.innerHTML = `
+            <div class="selection-indicator text-white rounded-full p-1">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+              </svg>
+            </div>
+          `;
+          videoContainer.appendChild(checkDiv);
+        }
       }
 
-      const videoContainer = newCard.querySelector('.video-container');
-      if (videoContainer) 
+      const newVideo = document.getElementById(`video-${podId}`) as HTMLVideoElement;
+      if (newVideo) 
       {
-        const checkDiv = document.createElement('div');
-        checkDiv.className = "absolute top-2 right-2";
-        checkDiv.innerHTML = `
-          <div class="selection-indicator text-white rounded-full p-1">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
-            </svg>
-          </div>
-        `;
-        videoContainer.appendChild(checkDiv);
+        newVideo.play().catch(() => { });
       }
-    }
-
-    const newVideo = document.getElementById(`video-${podId}`) as HTMLVideoElement;
-    if (newVideo) 
-    {
-      newVideo.play().catch(() => { });
     }
   }
-
 
   confirmSelection(): void 
   {
@@ -484,6 +697,12 @@ private generateStars(): void
 
   dispose(): void 
   {
+    if (this.sequenceTimeout) {
+      clearTimeout(this.sequenceTimeout);
+    }
+    
+    document.removeEventListener('keydown', this.handleSecretKeyPress.bind(this));
+    
     if ((window as any).podSelection === this) 
     {
       delete (window as any).podSelection;
