@@ -112,10 +112,9 @@ export class RacerRenderer
       totalLaps: 3,
       totalRacers: 4
     });
-    
+
+    (window as any).racerUIManager = this.racerUIManager;
     this.racerUIManager.startRace();
-    
-    // Start HUD update loop for real-time speed display
     this.startHUDUpdateLoop();
   }
 
