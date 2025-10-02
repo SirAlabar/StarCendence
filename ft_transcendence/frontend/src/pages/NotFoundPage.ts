@@ -101,7 +101,6 @@ export default class NotFoundPage extends BaseComponent
     private ctx: CanvasRenderingContext2D | null = null;
     private game: GameState | null = null;
     
-    // Asset images - Star Wars ships
     private playerImg: HTMLImageElement | null = null;
     private enemyImages: HTMLImageElement[] = [];
     private assetsLoaded: boolean = false;
@@ -109,21 +108,21 @@ export default class NotFoundPage extends BaseComponent
     render(): string 
     {
         return `
-            <div class="min-h-screen flex flex-col items-center justify-center p-4">
+            <div class="min-h-screen flex flex-col items-center justify-center p-2 sm:p-4">
                 <!-- Header -->
-                <div class="text-center mb-6">
-                    <!-- Falcon Ship Image -->
-                    <div class="mb-4 flex justify-center">
+                <div class="text-center mb-4 sm:mb-6 px-2">
+                    <!-- Falcon Ship Image ABOVE 404 -->
+                    <div class="mb-3 sm:mb-4 flex justify-center">
                         <img 
                             src="/assets/images/falcon404.png" 
                             alt="Millennium Falcon" 
-                            class="w-24 h-24 object-contain animate-bounce"
+                            class="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 object-contain animate-bounce"
                             style="image-rendering: pixelated;"
                         />
                     </div>
                     
                     <!-- Neon 404 Text -->
-                    <h1 class="text-5xl font-bold mb-2" style="
+                    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2" style="
                         color: #fbbf24;
                         text-shadow: 
                             0 0 10px #fbbf24,
@@ -139,60 +138,68 @@ export default class NotFoundPage extends BaseComponent
                         404 - SPACE INVADERS
                     </h1>
                     
-                    <p class="text-xl text-gray-300 mb-2">
+                    <p class="text-base sm:text-lg lg:text-xl text-gray-300 mb-1 sm:mb-2">
                         Oh no! This page was destroyed by space invaders!
                     </p>
-                    <p class="text-md text-cyan-400">
+                    <p class="text-sm sm:text-md text-cyan-400">
                         Take revenge while we find your page...
                     </p>
                 </div>
 
                 <!-- Game Stats -->
-                <div class="flex gap-8 justify-center text-xl mb-4">
+                <div class="flex flex-wrap gap-3 sm:gap-8 justify-center text-base sm:text-lg lg:text-xl mb-3 sm:mb-4">
                     <span class="text-white">Score: <span id="game-score" class="text-yellow-400 font-bold">0</span></span>
                     <span class="text-white">Level: <span id="game-level" class="text-green-400 font-bold">1</span></span>
                     <span class="text-white">Lives: <span id="game-lives" class="text-red-400">❤️❤️❤️</span></span>
                 </div>
 
                 <!-- Game Canvas Container -->
-                <div class="relative">
+                <div class="relative w-full max-w-4xl px-2 sm:px-4">
                     <canvas 
                         id="game-canvas" 
                         width="800" 
                         height="600" 
-                        class="border-4 border-yellow-400 rounded-lg mb-4 bg-black/50 backdrop-blur-sm"
+                        class="w-full h-auto border-2 sm:border-4 border-yellow-400 rounded-lg mb-3 sm:mb-4 bg-black/50 backdrop-blur-sm"
+                        style="max-height: 70vh;"
                     ></canvas>
                     
                     <!-- Game Over / Level Complete Card -->
-                    <div id="game-card" class="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm rounded-lg">
-                        <div class="bg-gradient-to-br from-gray-800 to-gray-900 border-4 border-yellow-400 rounded-xl p-8 max-w-md text-center shadow-2xl">
+                    <div id="game-card" class="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm rounded-lg p-4">
+                        <div class="relative bg-gradient-to-br from-gray-800 to-gray-900 border-2 sm:border-4 border-yellow-400 rounded-xl p-4 sm:p-8 w-full max-w-sm sm:max-w-md text-center shadow-2xl">
+                            <!-- Falcon Icon in corner -->
+                            <img 
+                                src="/assets/images/falcon404.png" 
+                                alt="Millennium Falcon" 
+                                class="absolute -top-6 -right-6 sm:-top-8 sm:-right-8 w-16 h-16 sm:w-20 sm:h-20 object-contain"
+                                style="image-rendering: pixelated;"
+                            />
                             <div id="card-content"></div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Game Message -->
-                <div id="game-message" class="text-center mb-6">
-                    <p class="text-sm text-gray-400">Arrow Keys to move | SPACE to shoot</p>
+                <div id="game-message" class="text-center mb-4 sm:mb-6 px-2">
+                    <p class="text-xs sm:text-sm text-gray-400">Arrow Keys to move | SPACE to shoot</p>
                 </div>
 
                 <!-- Navigation Buttons -->
-                <div class="flex gap-4 flex-wrap justify-center max-w-2xl">
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 flex-wrap justify-center w-full max-w-2xl px-4">
                     <button 
                         onclick="navigateTo('/')" 
-                        class="bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700 font-bold transition"
+                        class="w-full sm:w-auto bg-cyan-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-cyan-700 font-bold transition text-sm sm:text-base"
                     >
                         🏠 Go Home
                     </button>
                     <button 
                         onclick="navigateTo('/games')" 
-                        class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-bold transition"
+                        class="w-full sm:w-auto bg-purple-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-purple-700 font-bold transition text-sm sm:text-base"
                     >
                         🎮 Play Games
                     </button>
                     <button 
                         onclick="history.back()" 
-                        class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 font-bold transition"
+                        class="w-full sm:w-auto bg-gray-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-700 font-bold transition text-sm sm:text-base"
                     >
                         ⬅️ Go Back
                     </button>
@@ -216,6 +223,11 @@ export default class NotFoundPage extends BaseComponent
                             text-shadow: none;
                         }
                     }
+                    
+                    /* Ensure canvas maintains aspect ratio */
+                    #game-canvas {
+                        aspect-ratio: 4 / 3;
+                    }
                 </style>
             </div>
         `;
@@ -229,39 +241,32 @@ export default class NotFoundPage extends BaseComponent
 
     private loadAssets(): void 
     {
-        console.log('Loading Star Wars assets...');
-        
-        // Load player ship using config
         this.playerImg = new Image();
         this.playerImg.crossOrigin = "anonymous";
         
         // Load enemy ships using config
-        this.enemyImages = ENEMY_SHIPS.map((ship, _index) => 
+        this.enemyImages = ENEMY_SHIPS.map(() => 
         {
             const img = new Image();
             img.crossOrigin = "anonymous";
-            console.log(`Loading ${ship.name} from ${ship.imagePath}`);
             return img;
         });
         
         // Wait for all images to load
         let imagesLoaded = 0;
-        const totalImages = 1 + ENEMY_SHIPS.length; // player + enemies
+        const totalImages = 1 + ENEMY_SHIPS.length;
         
-        const onImageLoad = (shipName: string) => 
+        const onImageLoad = () => 
         {
             return () => 
             {
                 imagesLoaded++;
-                console.log(`✓ Loaded: ${shipName} (${imagesLoaded}/${totalImages})`);
                 
                 if (imagesLoaded === totalImages) 
                 {
-                    // Add delay to ensure images are fully decoded
                     setTimeout(() => 
                     {
                         this.assetsLoaded = true;
-                        console.log('🚀 All Star Wars assets loaded successfully!');
                     }, 150);
                 }
             };
@@ -277,14 +282,13 @@ export default class NotFoundPage extends BaseComponent
                 if (imagesLoaded === totalImages) 
                 {
                     this.assetsLoaded = true;
-                    console.log('⚠️  Some assets failed, using fallback graphics');
                 }
             };
         };
         
         // Setup player image
         const playerShip = PLAYER_SHIPS[0];
-        this.playerImg.onload = onImageLoad(playerShip.name);
+        this.playerImg.onload = onImageLoad();
         this.playerImg.onerror = onImageError(playerShip.name, playerShip.imagePath);
         this.playerImg.src = playerShip.imagePath;
         
@@ -292,7 +296,7 @@ export default class NotFoundPage extends BaseComponent
         this.enemyImages.forEach((img, index) => 
         {
             const ship = ENEMY_SHIPS[index];
-            img.onload = onImageLoad(ship.name);
+            img.onload = onImageLoad();
             img.onerror = onImageError(ship.name, ship.imagePath);
             img.src = ship.imagePath;
         });
@@ -311,6 +315,11 @@ export default class NotFoundPage extends BaseComponent
         {
             return;
         }
+        
+        this.canvas.width = 800;
+        this.canvas.height = 600;
+        
+        this.ctx.imageSmoothingEnabled = false;
 
         // Initialize game state
         this.game = {
@@ -346,7 +355,7 @@ export default class NotFoundPage extends BaseComponent
         setTimeout(() => 
         {
             this.startGame();
-        }, 500); // Small delay to ensure everything is ready
+        }, 500);
     }
 
     private initStars(): void 
@@ -409,6 +418,12 @@ export default class NotFoundPage extends BaseComponent
             return;
         }
 
+        if (this.game.animationId) 
+        {
+            cancelAnimationFrame(this.game.animationId);
+            this.game.animationId = null;
+        }
+
         this.hideCard();
         this.game.state = 'playing';
         this.game.score = 0;
@@ -418,6 +433,14 @@ export default class NotFoundPage extends BaseComponent
         this.game.bullets = [];
         this.game.enemyBullets = [];
         this.game.enemySpeed = 1;
+        
+        // Clear canvas
+        if (this.ctx && this.canvas) 
+        {
+            this.ctx.fillStyle = '#000';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+        
         this.updateUI();
         this.createEnemies(1);
         this.gameLoop();
@@ -430,11 +453,26 @@ export default class NotFoundPage extends BaseComponent
             return;
         }
 
+        // Clear any existing animation frame
+        if (this.game.animationId) 
+        {
+            cancelAnimationFrame(this.game.animationId);
+            this.game.animationId = null;
+        }
+
         this.game.level++;
         this.game.state = 'playing';
         this.game.bullets = [];
         this.game.enemyBullets = [];
         this.game.enemySpeed = 1 + (this.game.level - 1) * 0.3;
+        
+        // Clear canvas
+        if (this.ctx && this.canvas) 
+        {
+            this.ctx.fillStyle = '#000';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+        
         this.updateUI();
         this.createEnemies(this.game.level);
         this.gameLoop();
@@ -464,7 +502,7 @@ export default class NotFoundPage extends BaseComponent
                     y: startY + row * spacing,
                     width: 40,
                     height: 40,
-                    type: row % 4  // 4 enemy types (0-3)
+                    type: row % 4
                 });
             }
         }
@@ -643,15 +681,6 @@ export default class NotFoundPage extends BaseComponent
             livesEl.textContent = '❤️'.repeat(this.game.lives);
         }
     }
-
-    private showMessage(html: string): void 
-    {
-        const messageEl = document.getElementById('game-message');
-        if (messageEl) 
-        {
-            messageEl.innerHTML = html;
-        }
-    }
     
     private showCard(content: string): void 
     {
@@ -803,13 +832,21 @@ export default class NotFoundPage extends BaseComponent
                 if (this.game!.lives <= 0) 
                 {
                     this.game!.state = 'gameover';
+                    
+                    // Stop game loop
+                    if (this.game!.animationId) 
+                    {
+                        cancelAnimationFrame(this.game!.animationId);
+                        this.game!.animationId = null;
+                    }
+                    
                     this.showCard(`
-                        <h2 class="text-4xl font-bold text-red-500 mb-4">GAME OVER</h2>
-                        <p class="text-2xl text-white mb-4">Final Score: <span class="text-yellow-400">${this.game!.score}</span></p>
-                        <p class="text-gray-400 mb-6">The Empire has won this battle...</p>
+                        <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-red-500 mb-3 sm:mb-4">GAME OVER</h2>
+                        <p class="text-lg sm:text-xl lg:text-2xl text-white mb-3 sm:mb-4">Final Score: <span class="text-yellow-400">${this.game!.score}</span></p>
+                        <p class="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6">The Empire has won this battle...</p>
                         <button 
                             id="restart-btn"
-                            class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-8 py-3 rounded-lg transition"
+                            class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 sm:px-8 py-2 sm:py-3 rounded-lg transition text-sm sm:text-base"
                         >
                             🔄 Restart Game
                         </button>
@@ -834,13 +871,21 @@ export default class NotFoundPage extends BaseComponent
         if (this.game.enemies.some((enemy: Enemy) => enemy.y + enemy.height >= this.game!.player.y)) 
         {
             this.game.state = 'gameover';
+            
+            // Stop game loop
+            if (this.game.animationId) 
+            {
+                cancelAnimationFrame(this.game.animationId);
+                this.game.animationId = null;
+            }
+            
             this.showCard(`
-                <h2 class="text-4xl font-bold text-red-500 mb-4">GAME OVER</h2>
-                <p class="text-2xl text-white mb-4">Final Score: <span class="text-yellow-400">${this.game.score}</span></p>
-                <p class="text-gray-400 mb-6">The Empire has invaded!</p>
+                <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-red-500 mb-3 sm:mb-4">GAME OVER</h2>
+                <p class="text-lg sm:text-xl lg:text-2xl text-white mb-3 sm:mb-4">Final Score: <span class="text-yellow-400">${this.game.score}</span></p>
+                <p class="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6">The Empire has invaded!</p>
                 <button 
                     id="restart-btn"
-                    class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-8 py-3 rounded-lg transition"
+                    class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 sm:px-8 py-2 sm:py-3 rounded-lg transition text-sm sm:text-base"
                 >
                     🔄 Restart Game
                 </button>
@@ -863,11 +908,19 @@ export default class NotFoundPage extends BaseComponent
         if (this.game.enemies.length === 0) 
         {
             this.game.state = 'levelComplete';
+            
+            // Stop game loop
+            if (this.game.animationId) 
+            {
+                cancelAnimationFrame(this.game.animationId);
+                this.game.animationId = null;
+            }
+            
             this.showCard(`
-                <h2 class="text-4xl font-bold text-green-500 mb-4">LEVEL ${this.game.level} COMPLETE!</h2>
-                <p class="text-2xl text-white mb-4">Score: <span class="text-yellow-400">${this.game.score}</span></p>
-                <p class="text-gray-400 mb-6">The Rebellion continues...</p>
-                <div class="text-cyan-400 text-lg animate-pulse">
+                <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-500 mb-3 sm:mb-4">LEVEL ${this.game.level} COMPLETE!</h2>
+                <p class="text-lg sm:text-xl lg:text-2xl text-white mb-3 sm:mb-4">Score: <span class="text-yellow-400">${this.game.score}</span></p>
+                <p class="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6">The Rebellion continues...</p>
+                <div class="text-cyan-400 text-base sm:text-lg animate-pulse">
                     Starting Level ${this.game.level + 1} in 3 seconds...
                 </div>
             `);
@@ -885,7 +938,7 @@ export default class NotFoundPage extends BaseComponent
         const messageEl = document.getElementById('game-message');
         if (messageEl && this.game.state === 'playing') 
         {
-            messageEl.innerHTML = '<p class="text-sm text-gray-400">Arrow Keys to move | SPACE to shoot</p>';
+            messageEl.innerHTML = '<p class="text-xs sm:text-sm text-gray-400">Arrow Keys to move | SPACE to shoot</p>';
         }
 
         this.game.animationId = requestAnimationFrame(this.gameLoop);
@@ -893,7 +946,6 @@ export default class NotFoundPage extends BaseComponent
 
     destroy(): void 
     {
-        // Clean up game loop when component is destroyed
         if (this.game?.animationId) 
         {
             cancelAnimationFrame(this.game.animationId);
