@@ -1,11 +1,9 @@
-import { Vector3, FreeCamera } from '@babylonjs/core';
+import { Vector3 } from '@babylonjs/core';
 import { RacerPhysics } from '../engines/racer/RacerPhysics';
-import '@babylonjs/inspector';
 
 export enum CameraMode 
 {
   RACING = 'racing',
-  FREE = 'free', 
   PLAYER = 'player'
 }
 
@@ -15,15 +13,10 @@ export interface InputState
   backward: boolean;
   left: boolean;
   right: boolean;
-  up: boolean;
-  down: boolean;
   
-  mouseDeltaX: number;
-  mouseDeltaY: number;
   mouseWheel: number;
   
   cameraSwitchPressed: boolean;
-  isMouseDown: boolean;
   mouseX: number;
   mouseY: number;
 }
@@ -32,7 +25,6 @@ export interface InputCallbacks
 {
   onMouseWheel?: (delta: number) => void;
   onCameraSwitch?: () => void;
-  onToggleInspector?: () => void;
 }
 
 export class InputManager 
@@ -42,13 +34,12 @@ export class InputManager
   private canvas: HTMLCanvasElement | null = null;
   private isActive: boolean = false;
   
-  private movementSpeed: number = 0.5;
-  private mouseSensitivity: number = 0.002;
+  private movementSpeed: number = 1.0;
   
   private currentCameraMode: CameraMode = CameraMode.PLAYER;
-  private freeCamera: FreeCamera | null = null;
   private racerPhysics: RacerPhysics | null = null;
   private playerPodId: string | null = null;
+  private allowPodMovement: boolean = true;
   
   constructor() 
   {
@@ -58,19 +49,13 @@ export class InputManager
       backward: false,
       left: false,
       right: false,
-      up: false,
-      down: false,
-      mouseDeltaX: 0,
-      mouseDeltaY: 0,
       mouseWheel: 0,
       cameraSwitchPressed: false,
-      isMouseDown: false,
       mouseX: 0,
       mouseY: 0
     };
     
     this.callbacks = {};
-    this.movementSpeed = 1.0;
   }
 
   public initialize(canvas: HTMLCanvasElement, callbacks: InputCallbacks): void 
@@ -84,11 +69,6 @@ export class InputManager
   public setCameraMode(mode: CameraMode): void 
   {
     this.currentCameraMode = mode;
-  }
-
-  public setFreeCamera(camera: FreeCamera | null): void 
-  {
-    this.freeCamera = camera;
   }
 
   public setPhysicsSystem(physics: RacerPhysics | null, podId: string | null): void 
@@ -107,11 +87,7 @@ export class InputManager
     document.addEventListener('keydown', this.onKeyDown.bind(this));
     document.addEventListener('keyup', this.onKeyUp.bind(this));
     
-    this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
-    this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
-    this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
     this.canvas.addEventListener('wheel', this.onMouseWheel.bind(this));
-    
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     
     this.canvas.tabIndex = 1;
@@ -128,49 +104,30 @@ export class InputManager
     switch (event.code) 
     {
       case 'KeyW':
+      case 'ArrowUp':
         this.inputState.forward = true;
         break;
       case 'KeyS':
+      case 'ArrowDown':
         this.inputState.backward = true;
         break;
       case 'KeyA':
+      case 'ArrowLeft':
         this.inputState.left = true;
         break;
       case 'KeyD':
+      case 'ArrowRight':
         this.inputState.right = true;
         break;
-      case 'Space':
-        this.inputState.up = true;
-        event.preventDefault();
-        break;
-      case 'ShiftLeft':
-      case 'ShiftRight':
-        this.inputState.down = true;
-        break;
         
-      case 'F1':
-        if (!this.inputState.cameraSwitchPressed) 
-        {
-          this.inputState.cameraSwitchPressed = true;
-          this.callbacks.onCameraSwitch?.();
-        }
-        event.preventDefault();
-        break;
-        case 'F12':
-        // Toggle Babylon.js Inspector
-        if (this.callbacks.onToggleInspector) {
-          this.callbacks.onToggleInspector();
-        }
-        event.preventDefault();
-        break;
-
-      case 'KeyI':
-        // Ctrl+I to toggle inspector (alternative)
-        if (event.ctrlKey && this.callbacks.onToggleInspector) {
-          this.callbacks.onToggleInspector();
-        }
-        event.preventDefault();
-        break;
+      // // case 'F1':
+      // //   if (!this.inputState.cameraSwitchPressed) 
+      // //   {
+      // //     this.inputState.cameraSwitchPressed = true;
+      // //     this.callbacks.onCameraSwitch?.();
+      // //   }
+      //   event.preventDefault();
+      //   break;
     }
   }
 
@@ -184,79 +141,25 @@ export class InputManager
     switch (event.code) 
     {
       case 'KeyW':
+      case 'ArrowUp':
         this.inputState.forward = false;
         break;
       case 'KeyS':
+      case 'ArrowDown':
         this.inputState.backward = false;
         break;
       case 'KeyA':
+      case 'ArrowLeft':
         this.inputState.left = false;
         break;
       case 'KeyD':
+      case 'ArrowRight':
         this.inputState.right = false;
         break;
-      case 'Space':
-        this.inputState.up = false;
-        break;
-      case 'ShiftLeft':
-      case 'ShiftRight':
-        this.inputState.down = false;
-        break;
         
-      case 'F1':
-        this.inputState.cameraSwitchPressed = false;
-        break;
-    }
-  }
-
-  private onMouseDown(event: MouseEvent): void 
-  {
-    if (!this.isActive) 
-    {
-      return;
-    }
-    
-    this.inputState.isMouseDown = true;
-    this.inputState.mouseX = event.clientX;
-    this.inputState.mouseY = event.clientY;
-    
-    // Request pointer lock for free camera
-    if (this.currentCameraMode === CameraMode.FREE && this.canvas) 
-    {
-      this.canvas.requestPointerLock();
-    }
-  }
-
-  private onMouseUp(_event: MouseEvent): void 
-  {
-    if (!this.isActive) 
-    {
-      return;
-    }
-    
-    this.inputState.isMouseDown = false;
-  }
-
-  private onMouseMove(event: MouseEvent): void 
-  {
-    if (!this.isActive) 
-    {
-      return;
-    }
-    
-    this.inputState.mouseDeltaX = event.movementX || (event.clientX - this.inputState.mouseX);
-    this.inputState.mouseDeltaY = event.movementY || (event.clientY - this.inputState.mouseY);
-    
-    this.inputState.mouseX = event.clientX;
-    this.inputState.mouseY = event.clientY;
-
-    // Handle free camera mouse look
-    if (this.currentCameraMode === CameraMode.FREE && this.freeCamera && this.inputState.isMouseDown) 
-    {
-      this.freeCamera.rotation.y += this.inputState.mouseDeltaX * this.mouseSensitivity;
-      this.freeCamera.rotation.x += this.inputState.mouseDeltaY * this.mouseSensitivity;
-      
-      this.freeCamera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.freeCamera.rotation.x));
+      // // case 'F1':
+      // //   this.inputState.cameraSwitchPressed = false;
+      //   break;
     }
   }
 
@@ -270,16 +173,7 @@ export class InputManager
     const delta = event.deltaY > 0 ? 1 : -1;
     this.inputState.mouseWheel = delta;
     
-    if (this.currentCameraMode === CameraMode.FREE && this.freeCamera) 
-    {
-      const forward = this.freeCamera.getDirection(new Vector3(0, 0, 1));
-      const movement = forward.scale(-delta * 2);
-      this.freeCamera.position.addInPlace(movement);
-    } 
-    else 
-    {
-      this.callbacks.onMouseWheel?.(delta);
-    }
+    this.callbacks.onMouseWheel?.(delta);
     
     event.preventDefault();
   }
@@ -291,7 +185,7 @@ export class InputManager
       return;
     }
     
-    const direction = { x: 0, y: 0, z: 0 };
+    const direction = { x: 0, z: 0 };
     
     if (this.inputState.forward) 
     {
@@ -309,42 +203,17 @@ export class InputManager
     {
       direction.x += this.movementSpeed;
     }
-    if (this.inputState.up) 
-    {
-      direction.y += this.movementSpeed;
-    }
-    if (this.inputState.down) 
-    {
-      direction.y -= this.movementSpeed;
-    }
     
-    if (direction.x !== 0 || direction.y !== 0 || direction.z !== 0) 
+    if (direction.x !== 0 || direction.z !== 0) 
     {
       this.handleMovement(direction);
     }
   }
 
-  private handleMovement(direction: { x: number; y: number; z: number }): void 
+  private handleMovement(direction: { x: number; z: number }): void 
   {
-    if (this.currentCameraMode === CameraMode.FREE && this.freeCamera) 
+    if (this.shouldSendToPhysics()) 
     {
-      // Free camera movement - handled locally
-      const moveVector = new Vector3(direction.x, direction.y, direction.z);
-      moveVector.scaleInPlace(0.5);
-      
-      const forward = this.freeCamera.getDirection(new Vector3(0, 0, 1));
-      const right = this.freeCamera.getDirection(new Vector3(1, 0, 0));
-      const up = Vector3.Up();
-      
-      const movement = forward.scale(moveVector.z)
-        .add(right.scale(moveVector.x))
-        .add(up.scale(moveVector.y));
-      
-      this.freeCamera.position.addInPlace(movement);
-    } 
-    else if (this.shouldSendToPhysics()) 
-    {
-      // Pod movement - send to physics
       const physicsInput = 
       {
         x: direction.x,
@@ -360,11 +229,16 @@ export class InputManager
 
   private shouldSendToPhysics(): boolean 
   {
-    return this.currentCameraMode !== CameraMode.FREE && 
+    return this.allowPodMovement &&
            this.racerPhysics !== null && 
            this.playerPodId !== null;
   }
 
+  public setAllowPodMovement(allow: boolean): void 
+  {
+    this.allowPodMovement = allow;
+  }
+  
   public setActive(active: boolean): void 
   {
     this.isActive = active;
@@ -381,9 +255,6 @@ export class InputManager
     this.inputState.backward = false;
     this.inputState.left = false;
     this.inputState.right = false;
-    this.inputState.up = false;
-    this.inputState.down = false;
-    this.inputState.isMouseDown = false;
     this.inputState.cameraSwitchPressed = false;
   }
 
@@ -396,19 +267,10 @@ export class InputManager
       document.removeEventListener('keydown', this.onKeyDown.bind(this));
       document.removeEventListener('keyup', this.onKeyUp.bind(this));
       
-      this.canvas.removeEventListener('mousedown', this.onMouseDown.bind(this));
-      this.canvas.removeEventListener('mouseup', this.onMouseUp.bind(this));
-      this.canvas.removeEventListener('mousemove', this.onMouseMove.bind(this));
       this.canvas.removeEventListener('wheel', this.onMouseWheel.bind(this));
     }
     
-    if (document.pointerLockElement === this.canvas) 
-    {
-      document.exitPointerLock();
-    }
-    
     this.canvas = null;
-    this.freeCamera = null;
     this.racerPhysics = null;
     this.playerPodId = null;
     this.resetInputState();

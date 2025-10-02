@@ -171,8 +171,6 @@ export class RacerPod
     this.lapStartTime = this.raceStartTime;
     this.lapTimes = [];
     this.isRaceFinished = false;
-    
-    console.log(`Pod ${this.config.id} initialized with ${checkpointCount} checkpoints`);
   }
 
 public checkCheckpointCollision(): number | null
@@ -262,10 +260,19 @@ private completeLap(): void
   {
     this.isRaceFinished = true;
     const totalTime = Date.now() - this.raceStartTime;
-    
-    console.log(`Pod ${this.config.id} finished race!`);
-    console.log(`Total time: ${this.formatTime(totalTime)}`);
-    console.log(`Lap times: ${this.lapTimes.map(t => this.formatTime(t)).join(', ')}`);
+
+    // Show finish screen through UI manager
+    if ((window as any).racerUIManager) 
+    {
+      (window as any).racerUIManager.showRaceFinishScreen({
+        position: 1,
+        totalTime: this.formatTime(totalTime),
+        lapTimes: this.lapTimes,
+        bestLap: this.getBestLapTime(),
+        playerName: 'Player',
+        avatarUrl: '/assets/images/default-avatar.jpeg'
+      });
+    }
   }
 
   public resetCheckpointProgress(): void 
@@ -331,7 +338,6 @@ public shouldRespawnPlayer(playerPosition: Vector3): boolean
 {
   if (playerPosition.y < -50) 
   {
-    console.log(`Pod ${this.config.id} fell into void at Y: ${playerPosition.y}`);
     return true;
   }
   

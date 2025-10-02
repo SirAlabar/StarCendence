@@ -2,10 +2,10 @@
 // PodRacerPage.ts - MINIMAL PAGE CONTAINER
 // ====================================================
 import { BaseComponent } from '../components/BaseComponent';
-import { PodSelection, PodSelectionEvent } from '../game/engines/racer/PodSelection';
+import { PodSelection, PodSelectionEvent } from './PodSelectionPage';
 import { RacerRenderer } from '../game/engines/racer/RacerRenderer';
 import { PodConfig, AVAILABLE_PODS } from '../game/utils/PodConfig';
-import { navigateTo } from '../router/router'; // Adjust path as needed
+import { navigateTo } from '../router/router';
 
 export default class PodRacerPage extends BaseComponent 
 {
@@ -41,8 +41,6 @@ export default class PodRacerPage extends BaseComponent
     // Show pod selection
     public showPodSelection(): void 
     {
-        console.log('PODRACER-PAGE: Showing pod selection...');
-        
         if (!this.podSelection) 
         {
             this.podSelection = new PodSelection((event: PodSelectionEvent) => 
@@ -67,8 +65,6 @@ export default class PodRacerPage extends BaseComponent
     // Pod selected - start race
     private onPodSelected(event: PodSelectionEvent): void 
     {
-        console.log(`PODRACER-PAGE: Pod selected: ${event.selectedPod.name}`);
-        
         this.selectedPodConfig = event.selectedPod;
         event.onConfirm();
         
@@ -148,8 +144,6 @@ export default class PodRacerPage extends BaseComponent
     // Cleanup
     dispose(): void 
     {
-        console.log('PODRACER-PAGE: Disposing...');
-        
         if (this.racerRenderer) 
         {
             this.racerRenderer.dispose();

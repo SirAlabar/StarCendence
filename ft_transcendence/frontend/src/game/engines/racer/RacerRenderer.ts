@@ -56,7 +56,7 @@ export class RacerRenderer
       await this.gameCanvas.initialize();
       
       this.updateLoadingProgress('Setting up camera controls...', 25, 'physics');
-      this.gameCanvas.initializeManagers(this.config.debugMode || false);
+      this.gameCanvas.initializeManagers();
       this.gameCanvas.startRenderLoop();
       
       await this.initializeVisualTrack();
@@ -114,8 +114,79 @@ export class RacerRenderer
     });
 
     (window as any).racerUIManager = this.racerUIManager;
+    
+    // Set up finish screen callbacks
+    this.racerUIManager.setFinishScreenCallbacks(
+      () => this.handleRestartRace(),
+      () => this.handleLeaveRace()
+    );
+    
+    // Get input manager and disable inputs during countdown
+    const inputManager = this.gameCanvas?.['inputManager'];
+    if (inputManager) 
+    {
+      inputManager.setActive(false);
+    }
+    
+    // Show countdown
+    await this.racerUIManager.showCountdown(5);
+    
+    // Enable inputs after countdown
+    if (inputManager) 
+    {
+      inputManager.setActive(true);
+    }
+    
+    // Start the race
     this.racerUIManager.startRace();
     this.startHUDUpdateLoop();
+  }
+
+  private handleRestartRace(): void 
+  {
+    // Hide finish screen
+    if (this.racerUIManager) 
+    {
+      this.racerUIManager.hideFinishScreen();
+      this.racerUIManager.dispose();
+      this.racerUIManager = null;
+    }
+
+    if (this.hudUpdateInterval) 
+    {
+      clearInterval(this.hudUpdateInterval);
+      this.hudUpdateInterval = null;
+    }
+    
+    // Reset player pod
+    if (this.playerPod && this.racerScene) 
+    {
+      const startPositions = this.racerScene.getStartingPositions(1);
+      const startPos = startPositions[0];
+      
+      this.playerPod.setPosition(startPos);
+      this.playerPod.initializeCheckpoints(this.racerScene, 3);
+      
+      // Re-enable physics
+      const physics = this.gameCanvas?.getPhysics();
+      if (physics) 
+      {
+        this.playerPod.disablePhysics();
+        this.playerPod.enablePhysics(physics, startPos);
+      }
+    }
+    
+    // Restart the race
+    this.startVisualRace();
+  }
+
+  private handleLeaveRace(): void 
+  {
+    // Clean up everything
+    this.dispose();
+    
+    // Navigate back
+    window.location.href = '/pod-selection';
   }
 
   private startHUDUpdateLoop(): void 
@@ -153,39 +224,25 @@ export class RacerRenderer
     this.racerUIManager.updateSpeed(speedKmh);
   }
 
-  public toggleDebugMode(): void 
+  private async setupLocalPhysics(): Promise<void> 
   {
-    this.config.debugMode = !this.config.debugMode;
-    
-    if (this.gameCanvas) 
-    {
-      const cameraManager = this.gameCanvas['cameraManager']; // Access private member
-      if (cameraManager && typeof cameraManager.setDevelopmentMode === 'function') 
-      {
-        cameraManager.setDevelopmentMode(this.config.debugMode);
-      }
-    }
+  if (!this.gameCanvas || !this.racerScene) 
+  {
+      return;
+  }
+  
+  const physics = this.gameCanvas.getPhysics();
+  if (!physics || !physics.isPhysicsReady()) 
+  {
+      return;
   }
 
-    private async setupLocalPhysics(): Promise<void> 
-    {
-    if (!this.gameCanvas || !this.racerScene) 
-    {
-        return;
-    }
-    
-    const physics = this.gameCanvas.getPhysics();
-    if (!physics || !physics.isPhysicsReady()) 
-    {
-        return;
-    }
-
-    const trackMesh = this.racerScene.getTrack();
-    if (trackMesh) 
-    {
-        await physics.setupTrackCollision(this.racerScene);
-    }
-    }
+  const trackMesh = this.racerScene.getTrack();
+  if (trackMesh) 
+  {
+      await physics.setupTrackCollision(this.racerScene);
+  }
+  }
   
   private async initializeVisualTrack(): Promise<void> 
   {
@@ -259,9 +316,7 @@ export class RacerRenderer
         {
           pod.enablePhysics(physics, playerStartPos);
         }
-        
-        console.log(`Player pod loaded at position: ${playerStartPos}`);
-        
+
         if (this.onPodLoaded) 
         {
           this.onPodLoaded(pod);

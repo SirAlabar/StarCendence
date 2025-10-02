@@ -372,28 +372,12 @@ private updatePhysics(): void
       
       const currentPos = new Vector3(position.x(), position.y(), position.z());
       
-      // Check checkpoint collisions for progress tracking
-      const passedCheckpoint = podData.pod.checkCheckpointCollision();
-      if (passedCheckpoint !== null) 
-      {
-        if ((window as any).racerUIManager) 
-        {
-          (window as any).racerUIManager.onCheckpointPassed(`${passedCheckpoint + 1}`);
-        }
-      }
+      podData.pod.checkCheckpointCollision();
             
       // Check if respawn is needed
       if (podData.pod.shouldRespawnPlayer(currentPos)) 
-      {
-        console.log(`Pod ${podId} needs respawn - Y position: ${currentPos.y}`);
-        const respawnPos = podData.pod.getRespawnPosition();
-        console.log(`Respawning pod ${podId} to:`, respawnPos);
-        const checkpointInfo = podData.pod.getCheckpointInfo();
-        console.log(`Pod ${podId} checkpoint info:`, checkpointInfo);
-        
+      { 
         this.resetPodPosition(podId);
-        
-        // Re-read transform after respawn to get updated position
         motionState.getWorldTransform(this.tempTransform);
         const newPosition = this.tempTransform.getOrigin();
         const newRotation = this.tempTransform.getRotation();
@@ -409,10 +393,9 @@ private updatePhysics(): void
         mesh.rotationQuaternion.set(newRotation.x(), newRotation.y(), newRotation.z(), newRotation.w());
         mesh.addRotation(0, Math.PI, 0);
         
-        return; // Skip normal position update since we just respawned
+        return;
       }
       
-      // Normal position and rotation update
       mesh.position.set(currentPos.x, currentPos.y, currentPos.z);
       
       if (!mesh.rotationQuaternion) 
@@ -573,8 +556,6 @@ private updatePhysics(): void
     
     rigidBody.setWorldTransform(resetTransform);
     rigidBody.activate(true);
-    
-    console.log(`Respawned pod ${podId} to checkpoint`);
   }
 
   public isPhysicsReady(): boolean 

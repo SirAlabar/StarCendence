@@ -1,5 +1,5 @@
-import { BaseComponent } from '../../../components/BaseComponent';
-import { AVAILABLE_PODS, SECRET_POD, PodConfig, getPodById } from '../../utils/PodConfig';
+import { BaseComponent } from '../components/BaseComponent';
+import { AVAILABLE_PODS, SECRET_POD, PodConfig, getPodById } from '../game/utils/PodConfig';
 
 export interface PodSelectionEvent {
   selectedPod: PodConfig;
