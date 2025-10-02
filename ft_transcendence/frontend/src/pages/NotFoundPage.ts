@@ -93,6 +93,7 @@ interface GameState
     enemySpeed: number;
     shootCooldown: number;
     animationId: number | null;
+    damageFlash: number;
 }
 
 export default class NotFoundPage extends BaseComponent 
@@ -342,7 +343,8 @@ export default class NotFoundPage extends BaseComponent
             enemyDirection: 1,
             enemySpeed: 1,
             shootCooldown: 0,
-            animationId: null
+            animationId: null,
+            damageFlash: 0
         };
 
         // Initialize stars
@@ -599,6 +601,34 @@ export default class NotFoundPage extends BaseComponent
         this.ctx.fillRect(this.game.player.x + 10, this.game.player.y + 15, 20, 5);
     }
 
+    private drawDamageEffect(): void 
+    {
+        if (!this.ctx || !this.canvas || !this.game) 
+        {
+            return;
+        }
+
+        if (this.game.damageFlash > 0) 
+        {
+            // Create pulsing red overlay
+            const alpha = (this.game.damageFlash / 30) * 0.4;
+            this.ctx.fillStyle = `rgba(255, 0, 0, ${alpha})`;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            
+            // Red border around player
+            this.ctx.strokeStyle = '#ff0000';
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeRect(
+                this.game.player.x - 5, 
+                this.game.player.y - 5, 
+                this.game.player.width + 10, 
+                this.game.player.height + 10
+            );
+            
+            this.game.damageFlash--;
+        }
+    }
+
     private drawEnemy(enemy: Enemy): void 
     {
         if (!this.ctx) 
@@ -749,7 +779,7 @@ export default class NotFoundPage extends BaseComponent
 
         // Draw player
         this.drawPlayer();
-
+        this.drawDamageEffect();
         // Update and draw bullets
         this.game.bullets = this.game.bullets.filter((bullet: Bullet) => 
         {
@@ -827,6 +857,7 @@ export default class NotFoundPage extends BaseComponent
             {
                 this.game!.enemyBullets.splice(index, 1);
                 this.game!.lives--;
+                this.game!.damageFlash = 30;
                 this.updateUI();
                 
                 if (this.game!.lives <= 0) 
