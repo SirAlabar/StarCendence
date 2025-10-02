@@ -373,7 +373,7 @@ private updatePhysics(): void
       const currentPos = new Vector3(position.x(), position.y(), position.z());
       
       // Check checkpoint collisions for progress tracking
-      const passedCheckpoint = podData.pod.checkCheckpointCollision(currentPos);
+      const passedCheckpoint = podData.pod.checkCheckpointCollision();
       if (passedCheckpoint !== null) 
       {
         if ((window as any).racerUIManager) 

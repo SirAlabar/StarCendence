@@ -26,9 +26,7 @@ export class RacerPod
   private lastPassedCheckpointIndex: number = -1;
   private checkpointsPassed: boolean[] = [];
   private racerScene: RacerScene | null = null;
-  private lastCheckpointPosition: Vector3 | null = null;
   private startPosition: Vector3 | null = null;
-  private previousPosition: Vector3 | null = null;
 
   private currentLap: number = 1;
   private totalLaps: number = 3;
@@ -47,7 +45,6 @@ export class RacerPod
     this.scene = scene;
     this.config = config;
     this.assetManager = new AssetManager(this.scene);
-    console.log(`Creating pod: ${config.name}`);
   }
 
 
@@ -57,9 +54,7 @@ export class RacerPod
     {
       return;
     }
-    
-    console.log(`Loading pod model: ${this.config.modelPath}`);
-    
+
     try 
     {
       const lastSlashIndex = this.config.modelPath.lastIndexOf('/');
@@ -111,9 +106,7 @@ export class RacerPod
     if (loadedMesh) 
     {
       this.mesh = loadedMesh;
-      
-      console.log('Pod asset loaded successfully');
-      
+            
       this.isLoaded = true;
       if (this.onLoaded) 
       {
@@ -151,7 +144,6 @@ export class RacerPod
     {
       this.startPosition = initialPosition.clone();
     }
-    console.log(`Physics enabled for pod: ${this.config.id} at position: ${initialPosition}`);
   }
 
   public disablePhysics(): void 
@@ -186,13 +178,12 @@ export class RacerPod
 public checkCheckpointCollision(): number | null
 {
   if (!this.racerScene || this.isRaceFinished || !this.mesh) return null;
-
+  
   const podMesh = this.mesh as Mesh;
   const podPos = podMesh.getAbsolutePosition();
   const CHECKPOINT_RADIUS = 30;
-
-
-  for (let i = 0; i < this.racerScene.getCheckpointCount(); i++) 
+  
+  for (let i = 0; i < this.racerScene.getCheckpointCount(); i++)
   {
     const checkpoints = this.racerScene.getCheckpoints();
     const checkpoint = checkpoints[i];
@@ -205,51 +196,28 @@ public checkCheckpointCollision(): number | null
     
     const checkpointMesh = this.racerScene.getCheckpointMesh(i);
     if (!checkpointMesh) continue;
-    if (isStartLine && distance < CHECKPOINT_RADIUS) 
+    
+    if (isStartLine)
     {
-      console.log(`🎯 START LINE within radius!`);
-      console.log(`  Mesh name: ${checkpointMesh.name}`);
-      console.log(`  isVisible: ${checkpointMesh.isVisible}`);
-      console.log(`  visibility: ${checkpointMesh.visibility}`);
-      console.log(`  Has geometry: ${checkpointMesh instanceof Mesh ? (checkpointMesh as Mesh).getTotalVertices() : 'not a mesh'}`);
-      console.log(`  Bounding box: ${checkpointMesh.getBoundingInfo().boundingBox.extendSize.toString()}`);
-    }
-    if (podMesh.intersectsMesh(checkpointMesh, false)) 
-    {
-      const storedPos = checkpoint.position;
-      const actualPos = checkpointMesh.getAbsolutePosition();
-      if (isStartLine) 
+      const passedCount = this.getPassedCheckpointCount();
+      
+      if (passedCount >= this.MIN_CHECKPOINTS_FOR_LAP)
       {
-        console.log(`START LINE - Stored: ${storedPos.toString()}, Actual: ${actualPos.toString()}`);
-        const passedCount = this.getPassedCheckpointCount();
-        console.log(`Start line crossed! Passed: ${passedCount}/${this.MIN_CHECKPOINTS_FOR_LAP}`);
-        
-        if (passedCount >= this.MIN_CHECKPOINTS_FOR_LAP) 
-        {
-          console.log(`LAP ${this.currentLap} COMPLETE!`);
-          this.completeLap();
-          return i;
-        }
-      }
-      else
-      {
-        this.checkpointsPassed[i] = true;
-        this.lastPassedCheckpointIndex = i;
-        console.log(`Checkpoint ${i} passed (${this.getPassedCheckpointCount()}/${this.MIN_CHECKPOINTS_FOR_LAP})`);
+        this.completeLap();
         return i;
       }
+    }
+    else if (podMesh.intersectsMesh(checkpointMesh, false))
+    {
+      this.checkpointsPassed[i] = true;
+      this.lastPassedCheckpointIndex = i;
+      return i;
     }
   }
   
   return null;
 }
 
-
-  private canCompleteLap(): boolean 
-  {
-    const passedCount = this.getPassedCheckpointCount();
-    return passedCount >= this.MIN_CHECKPOINTS_FOR_LAP;
-  }
 
   private getPassedCheckpointCount(): number 
   {
@@ -263,14 +231,8 @@ private completeLap(): void
   
   this.lapTimes.push(lapTime);
   
-  console.log(`Pod ${this.config.id} completed lap ${this.currentLap}/${this.totalLaps} in ${this.formatTime(lapTime)}`);
-  
-  // DEBUG: Check if UI manager exists
-  console.log('racerUIManager exists?', !!(window as any).racerUIManager);
-  
   if ((window as any).racerUIManager) 
   {
-    console.log('Calling onLapComplete with lap:', this.currentLap, 'time:', lapTime);
     (window as any).racerUIManager.onLapComplete(this.currentLap, lapTime);
   }
   else
@@ -291,7 +253,6 @@ private completeLap(): void
     
     if ((window as any).racerUIManager) 
     {
-      console.log('Calling updateLap with new lap:', this.currentLap);
       (window as any).racerUIManager.updateLap(this.currentLap);
     }
   }
@@ -311,7 +272,6 @@ private completeLap(): void
   {
     this.checkpointsPassed.fill(false);
     this.currentCheckpointIndex = 0;
-    console.log(`Pod ${this.config.id} checkpoint progress reset for new lap`);
   }
 
   private formatTime(milliseconds: number): string 
@@ -468,8 +428,6 @@ public shouldRespawnPlayer(playerPosition: Vector3): boolean
 
   public dispose(): void 
   {
-    console.log(`Disposing RacerPod: ${this.config.name}`);
-    
     this.disablePhysics();
     
     if (this.assetManager) 

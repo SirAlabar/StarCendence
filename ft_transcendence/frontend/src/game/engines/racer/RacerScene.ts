@@ -245,8 +245,6 @@ export class RacerScene
       
       skybox.renderingGroupId = 0;
       skybox.infiniteDistance = true;
-
-      console.log('Skybox loaded successfully');
     } 
     catch (error) 
     {
@@ -307,11 +305,18 @@ export class RacerScene
       
       const isStartLine = mesh.name.toLowerCase() === 'start_line';
 
+      if (isStartLine) 
+      {
+        const bbox = mesh.getBoundingInfo().boundingBox;
+        const localCenter = bbox.center;
+        
+        worldPosition.x = (localCenter.x * trackScale.x) + trackPosition.x;
+        worldPosition.y = (localCenter.y * trackScale.y) + trackPosition.y;
+        worldPosition.z = (localCenter.z * trackScale.z) + trackPosition.z;
+      }
+
       if (!isStartLine)
       {
-        // mesh.position = trackPosition.clone();
-        // mesh.rotation = Vector3.Zero();
-        // mesh.scaling = trackScale.clone();
         mesh.visibility = 0;
         mesh.isVisible = false;
       }
@@ -328,11 +333,7 @@ export class RacerScene
 
       this.checkpoints.push(checkpoint);
       this.checkpointMeshes.push(mesh);
-      
-      console.log(`Checkpoint ${index} (${mesh.name}): pos=${worldPosition.toString()}, normal=${checkpointNormal.toString()}`);
     });
-
-    console.log(`Processed ${this.checkpoints.length} checkpoints`);
   }
 
   private setupRacingEnvironment(): void 
