@@ -7,7 +7,8 @@
 @layer base {
   @font-face {
     font-family: 'Rebellion';
-    src: url('/assets/fonts/Rebellion.ttf') format('truetype');
+    src: url('/assets/fonts/Rebellion.woff2') format('woff2'),
+        url('/assets/fonts/Rebellion.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
     font-display: swap;

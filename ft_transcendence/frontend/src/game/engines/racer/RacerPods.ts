@@ -269,7 +269,7 @@ private completeLap(): void
         lapTimes: this.lapTimes,
         bestLap: this.getBestLapTime(),
         playerName: 'Player',
-        avatarUrl: '/assets/images/default-avatar.jpeg'
+        avatarUrl: (window as any).playerAvatarUrl || '/assets/images/default-avatar.jpeg'
       });
     }
   }

@@ -104,14 +104,18 @@ export class RacerRenderer
       throw new Error('RacerRenderer not initialized');
     }
     
-    this.racerUIManager = new RacerUIManager(
-    {
-      showHUD: true,
-      showDebugInfo: this.config.debugMode || false,
-      maxSpeed: 600,
-      totalLaps: 3,
-      totalRacers: 4
-    });
+    const userAvatarUrl = this.getUserAvatarUrl();
+    
+    const avatarToUse = await this.preloadAvatarImage(userAvatarUrl);
+
+      this.racerUIManager = new RacerUIManager(
+      {
+        showHUD: true,
+        showDebugInfo: this.config.debugMode || false,
+        maxSpeed: 600,
+        totalLaps: 3,
+        totalRacers: 4
+      });
 
     (window as any).racerUIManager = this.racerUIManager;
     
@@ -120,6 +124,8 @@ export class RacerRenderer
       () => this.handleRestartRace(),
       () => this.handleLeaveRace()
     );
+
+    (window as any).playerAvatarUrl = avatarToUse;
     
     // Get input manager and disable inputs during countdown
     const inputManager = this.gameCanvas?.['inputManager'];
@@ -279,7 +285,39 @@ export class RacerRenderer
     
     await this.racerScene.loadTrack();
   }
-  
+
+  private preloadAvatarImage(userAvatarUrl?: string): Promise<string> 
+  {
+    return new Promise((resolve) => 
+    {
+      const defaultAvatar = '/assets/images/default-avatar.jpeg';
+      
+      // If no user avatar provided, use default
+      if (!userAvatarUrl) 
+      {
+        const img = new Image();
+        img.src = defaultAvatar;
+        resolve(defaultAvatar);
+        return;
+      }
+      
+      // Try loading user avatar
+      const img = new Image();
+      img.onload = () => 
+      {
+        resolve(userAvatarUrl); // Success, use user's avatar
+      };
+      img.onerror = () => 
+      {
+        console.log('Failed to load user avatar, using default');
+        const fallbackImg = new Image();
+        fallbackImg.src = defaultAvatar;
+        resolve(defaultAvatar); // Fallback to default
+      };
+      img.src = userAvatarUrl;
+    });
+  }
+    
   private async loadPlayerPod(selectedPod: PodConfig): Promise<void> 
   {
     if (!this.gameCanvas || !this.racerScene) 
@@ -288,7 +326,7 @@ export class RacerRenderer
     }
     
     this.updateLoadingProgress(`Loading ${selectedPod.name}...`, 70, 'pod');
-    
+
     try 
     {
       if (this.playerPod) 
@@ -800,6 +838,13 @@ private createLoadingOverlay(): void
     animate();
   }
 
+  private getUserAvatarUrl(): string | undefined 
+  {
+    // TODO: Get from user profile/session/localStorage
+    // For now, returns undefined (will use default)
+    return undefined;
+  }
+  
   // Essential getters only
   public getGameCanvas(): GameCanvas | null 
   {
