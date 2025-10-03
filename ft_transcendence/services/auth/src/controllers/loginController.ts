@@ -17,7 +17,12 @@ export async function login(req: FastifyRequest<{ Body: LoginRequestBody }>, rep
 
 // Verify 2FA code and return JWTs
 export async function verifyTwoFA(req: FastifyRequest, reply: FastifyReply) {
-  const { tempToken, twoFACode } = req.body as { tempToken: string; twoFACode: string };
+  const tempToken = req.headers['authorization']?.split(' ')[1];
+  if (!tempToken) {
+    return reply.status(400).send({ error: 'Missing or invalid authorization header' });
+  }
+
+  const { twoFACode } = req.body as { twoFACode: string };
 
   const tokens = await authService.verifyTwoFA(tempToken, twoFACode);
 

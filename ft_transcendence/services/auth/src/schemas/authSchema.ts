@@ -5,7 +5,7 @@ export const registerSchema = {
     required: ['email', 'password', 'username'],
     properties: {
       email: { 
-        type: 'string', 
+        type: 'string',
         pattern: '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$',
         maxLength: 255
       },
@@ -27,18 +27,24 @@ export const registerSchema = {
 
 // 2FA verification schema
 export const twoFAVerifySchema = {
+  headers: {
+    type: 'object',
+    required: ['authorization'],
+    properties: {
+      'authorization': {
+        type: 'string',
+        pattern: '^Bearer\\s.+$'
+      }
+    }
+  },
   body: {
     type: 'object',
-    required: ['tempToken', 'twoFACode'],
+    required: ['twoFACode'],
     properties: {
-      tempToken: {
+      twoFACode: {
         type: 'string',
         minLength: 1
       },
-      twoFACode: {
-        type: 'string',
-        pattern: '^[0-9]{6}$'
-      }
     }
   }
 };
