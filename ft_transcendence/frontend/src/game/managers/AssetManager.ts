@@ -97,7 +97,6 @@ export class AssetManager
     {
       const errors: string[] = [];
       
-      // Add tasks to Babylon AssetsManager
       this.assetsToLoad.forEach(config => 
       {
         if (config.type === 'mesh') 
@@ -170,7 +169,7 @@ export class AssetManager
       };
 
       // Finish callback
-      this.babylonAssetsManager.onFinish = (tasks) => 
+      this.babylonAssetsManager.onFinish = () => 
       {
         const successful = this.loadedAssets.size;
         const failed = errors.length;

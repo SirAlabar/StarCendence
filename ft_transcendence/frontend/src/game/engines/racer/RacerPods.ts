@@ -3,7 +3,6 @@ import {
   AbstractMesh,
   Mesh,
   Vector3,
-  Matrix,
   Quaternion
 } from '@babylonjs/core';
 import { AssetManager } from '../../managers/AssetManager';

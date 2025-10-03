@@ -1,5 +1,7 @@
 import { BaseComponent } from '../components/BaseComponent';
 import { Layout } from '../components/common/Layout';
+import NotFoundPage from '../pages/NotFoundPage';
+
 
 // Module-level variables
 let layout: Layout;
@@ -202,19 +204,7 @@ export function hideLoading(): void
 // Show 404 page
 export function show404(): void 
 {
-    const app = document.querySelector('#app')!;
-    
-    app.innerHTML = `
-        <div class="min-h-screen bg-gray-900 flex items-center justify-center" data-route-content="true">
-            <div class="text-center">
-                <h1 class="text-6xl font-bold text-red-500 mb-4">404</h1>
-                <p class="text-xl text-gray-300 mb-8">Page not found</p>
-                <button onclick="navigateTo('/')" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
-                    Go Home
-                </button>
-            </div>
-        </div>
-    `;
+    renderNone(new NotFoundPage());
 }
 
 // Initialize when first imported

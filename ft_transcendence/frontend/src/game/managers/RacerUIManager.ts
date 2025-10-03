@@ -112,8 +112,9 @@ export class RacerUIManager
     this.pushUpdate();
   }
   
-  public updateLap(_currentLap: number): void 
+  public updateLap(currentLap: number): void 
   {
+    this.currentRacerData.currentLap = currentLap;
     this.pushUpdate();
   }
   
@@ -239,7 +240,6 @@ export class RacerUIManager
               0 0 80px #9333ea,
               0 0 120px #9333ea,
               0 0 160px #9333ea;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             letter-spacing: 0.05em;
           ">
             3

@@ -11,10 +11,12 @@ class RouterState
     public isNavigating = false;
 
     // Store event listeners for cleanup
+    private currentPageInstance: any = null;
     private clickListener: ((e: Event) => void) | null = null;
     private popstateListener: ((e: PopStateEvent) => void) | null = null;
 
-    private constructor() {}
+    private constructor() 
+    {}
 
     static getInstance(): RouterState
     {
@@ -25,13 +27,37 @@ class RouterState
         return RouterState.instance;
     }
 
-    cleanup()
+    setCurrentPageInstance(instance: any): void
     {
+        this.currentPageInstance = instance;
+    }
+
+    cleanupCurrentPage(): void
+    {
+        if (this.currentPageInstance)
+        {
+            if (typeof this.currentPageInstance.dispose === 'function')
+            {
+                this.currentPageInstance.dispose();
+            }
+            else if (typeof this.currentPageInstance.cleanup === 'function')
+            {
+                this.currentPageInstance.cleanup();
+            }
+            this.currentPageInstance = null;
+        }
+    }
+
+    cleanup(): void
+    {
+        this.cleanupCurrentPage();
+        
         if (this.clickListener)
         {
             document.removeEventListener('click', this.clickListener);
             this.clickListener = null;
         }
+        
         if (this.popstateListener)
         {
             window.removeEventListener('popstate', this.popstateListener);
@@ -39,7 +65,7 @@ class RouterState
         }
     }
 
-    setEventListeners(clickListener: (e: Event) => void, popstateListener: (e: PopStateEvent) => void)
+    setEventListeners(clickListener: (e: Event) => void, popstateListener: (e: PopStateEvent) => void): void
     {
         this.cleanup();
         this.clickListener = clickListener;
@@ -166,7 +192,6 @@ function isAuthenticated(): boolean
 // Main navigation function
 export async function navigateTo(path: string): Promise<void>
 {
-
     // Prevent navigation loops
     if (routerState.isNavigating)
     {
@@ -175,7 +200,6 @@ export async function navigateTo(path: string): Promise<void>
 
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
 
-
     // Prevent duplicate navigation
     if (routerState.currentRoute && routerState.currentRoute.path === cleanPath)
     {
@@ -183,6 +207,9 @@ export async function navigateTo(path: string): Promise<void>
     }
 
     routerState.isNavigating = true;
+
+    // Cleanup previous page before navigating
+    routerState.cleanupCurrentPage();
 
     const route = parseRoute(cleanPath);
 
@@ -217,6 +244,9 @@ export async function navigateTo(path: string): Promise<void>
         const ComponentClass = moduleImport.default || moduleImport;
         const component = new ComponentClass();
 
+        // Store the component instance
+        routerState.setCurrentPageInstance(component);
+
         // Reset game event listeners if switching away from game
         if (routerState.currentRoute?.headerType === 'game' && route.headerType !== 'game')
         {
@@ -238,7 +268,6 @@ export async function navigateTo(path: string): Promise<void>
         });
 
         routerState.currentRoute = { ...route, path: cleanPath };
-
     }
     catch (error)
     {
@@ -276,10 +305,12 @@ function updateActiveNavLinks(): void
     document.querySelectorAll('[data-link]').forEach(link =>
     {
         const href = link.getAttribute('href');
+        
         if (!href)
         {
             return;
         }
+        
         if (href === currentPath)
         {
             link.classList.add('active');
@@ -295,21 +326,26 @@ function updateActiveNavLinks(): void
 function handleLinkClick(e: Event): void
 {
     const target = e.target as HTMLElement;
+    
     if (!target)
     {
         return;
     }
 
     const link = target?.closest('a') as HTMLAnchorElement;
+    
     if (!link)
     {
         return;
     }
+    
     const href = link.getAttribute('href');
+    
     if (!href)
     {
         return;
     }
+    
     if (link.hasAttribute("data-link"))
     {
         e.preventDefault();
@@ -327,7 +363,11 @@ function handleLinkClick(e: Event): void
             navigateTo('/').then(() =>
             {
                 const section = document.querySelector(href);
-                section?.scrollIntoView({ behavior: 'smooth'});
+                
+                if (section)
+                {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
             });
         }
     }
@@ -345,11 +385,12 @@ function handlePopState(_e: PopStateEvent): void
 // Initialize router
 export function initRouter(): void
 {
-    if (document.readyState === 'loading') 
+    if (document.readyState === 'loading')
     {
         document.addEventListener('DOMContentLoaded', () => initRouter());
         return;
     }
+    
     // Prevent double initialization
     if (routerState.isInitialized)
     {

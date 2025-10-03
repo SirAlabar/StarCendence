@@ -1,4 +1,3 @@
-import { Vector3 } from '@babylonjs/core';
 import { RacerPhysics } from '../engines/racer/RacerPhysics';
 
 export enum CameraMode 
@@ -36,7 +35,6 @@ export class InputManager
   
   private movementSpeed: number = 1.0;
   
-  private currentCameraMode: CameraMode = CameraMode.PLAYER;
   private racerPhysics: RacerPhysics | null = null;
   private playerPodId: string | null = null;
   private allowPodMovement: boolean = true;
@@ -64,11 +62,6 @@ export class InputManager
     this.callbacks = callbacks;
     this.setupEventListeners();
     this.isActive = true;
-  }
-
-  public setCameraMode(mode: CameraMode): void 
-  {
-    this.currentCameraMode = mode;
   }
 
   public setPhysicsSystem(physics: RacerPhysics | null, podId: string | null): void 
@@ -119,15 +112,6 @@ export class InputManager
       case 'ArrowRight':
         this.inputState.right = true;
         break;
-        
-      // // case 'F1':
-      // //   if (!this.inputState.cameraSwitchPressed) 
-      // //   {
-      // //     this.inputState.cameraSwitchPressed = true;
-      // //     this.callbacks.onCameraSwitch?.();
-      // //   }
-      //   event.preventDefault();
-      //   break;
     }
   }
 
@@ -156,10 +140,6 @@ export class InputManager
       case 'ArrowRight':
         this.inputState.right = false;
         break;
-        
-      // // case 'F1':
-      // //   this.inputState.cameraSwitchPressed = false;
-      //   break;
     }
   }
 
