@@ -11,48 +11,57 @@ export function initHeaderManager(): void
     header = new Header();
 }
 
-// Get header HTML based on type
-export function getHeaderHtml(type: string): string 
+// Mount header based on type
+export function mountHeader(type: string, selector: string = '#header'): void 
 {
-    return getHeaderHtmlOnly(type);
-}
+    currentType = type;
 
-// Get just the HTML without setup
-function getHeaderHtmlOnly(type: string): string 
-{
+    if (header) 
+    {
+        header.resetEvents();
+    }
+    const container = document.querySelector(selector);
+    if (!container) 
+    {
+        console.error(`Header container "${selector}" not found`);
+        return;
+    }
+
     switch (type) 
     {
         case 'default':
-            return renderDefault();
+            mountDefault(selector);
+            break;
         case 'game':
-            return renderGame();
+            mountGame(container as HTMLElement);
+            break;
         case 'minimal':
-            return renderMinimal();
+            mountMinimal(container as HTMLElement);
+            break;
         case 'none':
-            return '';
+            container.innerHTML = '';
+            break;
         default:
-            return renderDefault();
+            mountDefault(selector);
     }
 }
 
-// Render default header (uses your existing Header.ts)
-function renderDefault(): string 
+// Mount default header using the component system
+function mountDefault(selector: string): void 
 {
-    currentType = 'default';
-    
     if (!header) 
     {
-        return '<div>Header not initialized</div>';
+        console.error('Header not initialized');
+        return;
     }
     
-    return header.render();
+    header.mount(selector);
 }
 
-// Render game header (minimal for fullscreen)
-function renderGame(): string 
+// Mount game header
+function mountGame(container: HTMLElement): void 
 {
-    currentType = 'game';
-    return `
+    container.innerHTML = `
         <header class="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur border-b border-gray-700">
             <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-2">
                 ${renderGameLogo()}
@@ -63,13 +72,14 @@ function renderGame(): string
             </nav>
         </header>
     `;
+    
+    requestAnimationFrame(() => setupGameHeaderEvents());
 }
 
-// Render minimal header (for auth pages)
-function renderMinimal(): string 
+// Mount minimal header
+function mountMinimal(container: HTMLElement): void 
 {
-    currentType = 'minimal';
-    return `
+    container.innerHTML = `
         <header class="fixed top-0 left-0 right-0 z-50 bg-gray-900/90 backdrop-blur">
             <nav class="mx-auto flex max-w-6xl items-center justify-center px-6 py-4">
                 ${renderMinimalLogo()}
@@ -78,7 +88,6 @@ function renderMinimal(): string
     `;
 }
 
-// Render game logo
 function renderGameLogo(): string 
 {
     return `
@@ -88,7 +97,6 @@ function renderGameLogo(): string
     `;
 }
 
-// Render game controls
 function renderGameControls(): string 
 {
     return `
@@ -133,7 +141,6 @@ function renderGameNavigation(): string
     `;
 }
 
-// Render minimal logo
 function renderMinimalLogo(): string 
 {
     return `
@@ -143,19 +150,10 @@ function renderMinimalLogo(): string
     `;
 }
 
-// Setup game header events - prevent duplicates
+// FIX: Adicionar export se está sendo usado em outro arquivo
 export function setupGameHeaderEvents(): void 
 {    
-    if (currentType !== 'game') 
-    {
-        return;
-    }
-
-    // Prevent duplicate event listeners
-    if (gameEventListenersAdded) 
-    {
-        return;
-    }
+    if (gameEventListenersAdded) return;
 
     const pauseBtn = document.getElementById('pause-game');
     const exitBtn = document.getElementById('exit-game');
@@ -172,7 +170,6 @@ export function setupGameHeaderEvents(): void
     }
 }
 
-// Separate event handlers
 function handlePauseGame(): void 
 {
     window.dispatchEvent(new CustomEvent('game:pause'));
@@ -187,11 +184,9 @@ function handleExitGame(): void
     }
 }
 
-// Reset game event listeners flag when switching away from game
 export function resetGameEventListeners(): void 
 {
     gameEventListenersAdded = false;
 }
 
-// Initialize when first imported
 initHeaderManager();

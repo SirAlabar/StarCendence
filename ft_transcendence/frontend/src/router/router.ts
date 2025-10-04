@@ -1,5 +1,5 @@
 import { renderDefault, renderGame, renderAuth, showLoading, hideLoading, show404 } from './LayoutManager';
-import { getHeaderHtml, setupGameHeaderEvents, resetGameEventListeners } from './HeaderManager';
+import { mountHeader, setupGameHeaderEvents, resetGameEventListeners } from './HeaderManager';
 
 // Singleton state - only one instance allowed
 class RouterState
@@ -192,7 +192,6 @@ function isAuthenticated(): boolean
 // Main navigation function
 export async function navigateTo(path: string): Promise<void>
 {
-    // Prevent navigation loops
     if (routerState.isNavigating)
     {
         return;
@@ -200,20 +199,16 @@ export async function navigateTo(path: string): Promise<void>
 
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
 
-    // Prevent duplicate navigation
     if (routerState.currentRoute && routerState.currentRoute.path === cleanPath)
     {
         return;
     }
 
     routerState.isNavigating = true;
-
-    // Cleanup previous page before navigating
     routerState.cleanupCurrentPage();
 
     const route = parseRoute(cleanPath);
 
-    // Check authentication
     if (route.requiresAuth && !isAuthenticated())
     {
         if (cleanPath !== '/login' && cleanPath !== '/register')
@@ -223,44 +218,39 @@ export async function navigateTo(path: string): Promise<void>
         }
     }
 
-    // Update page title
     document.title = route.title;
 
-    // Update URL in browser - only if different from current
     if (window.location.pathname !== cleanPath)
     {
         window.history.pushState({ path: cleanPath }, '', cleanPath);
     }
 
-    // Scroll to top
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
 
     try
     {
         showLoading();
 
-        // Dynamic import and component instantiation
         const moduleImport = await route.component();
         const ComponentClass = moduleImport.default || moduleImport;
         const component = new ComponentClass();
 
-        // Store the component instance
         routerState.setCurrentPageInstance(component);
 
-        // Reset game event listeners if switching away from game
         if (routerState.currentRoute?.headerType === 'game' && route.headerType !== 'game')
         {
             resetGameEventListeners();
         }
 
-        const headerHtml = getHeaderHtml(route.headerType);
+        renderWithLayout(component, route.layout);
 
-        renderWithLayout(component, route.layout, headerHtml);
+        if (route.layout !== 'game') 
+        {
+            mountHeader(route.headerType, '#header-mount');
+        }
 
-        // Scroll to top
         window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
 
-        // Setup events after DOM is ready
         requestAnimationFrame(() =>
         {
             setupGameHeaderEvents();
@@ -282,7 +272,7 @@ export async function navigateTo(path: string): Promise<void>
 }
 
 // Render function
-function renderWithLayout(component: any, layoutType: string, headerHtml: string): void
+function renderWithLayout(component: any, layoutType: string): void
 {
     switch (layoutType)
     {
@@ -290,13 +280,12 @@ function renderWithLayout(component: any, layoutType: string, headerHtml: string
             renderGame(component);
             break;
         case 'auth':
-            renderAuth(component, headerHtml);
+            renderAuth(component);
             break;
         default:
-            renderDefault(component, headerHtml);
+            renderDefault(component);
     }
 }
-
 // Update active nav links
 function updateActiveNavLinks(): void
 {

@@ -314,7 +314,6 @@ export class RacerRenderer
       };
       img.onerror = () => 
       {
-        console.log('Failed to load user avatar, using default');
         const fallbackImg = new Image();
         fallbackImg.src = defaultAvatar;
         resolve(defaultAvatar); // Fallback to default

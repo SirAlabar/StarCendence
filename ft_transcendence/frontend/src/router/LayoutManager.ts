@@ -13,7 +13,7 @@ export function initLayoutManager(): void
 }
 
 // Render default layout
-export function renderDefault(component: BaseComponent, headerHtml: string): void 
+export function renderDefault(component: BaseComponent): void 
 {
     const headerMount = document.querySelector('#header-mount');
     const contentMount = document.querySelector('#content-mount');
@@ -22,13 +22,6 @@ export function renderDefault(component: BaseComponent, headerHtml: string): voi
     if (!headerMount || !contentMount) 
     {
         layout.mount('#app');
-    }
-    
-    // Mount header to the existing #header-mount slot
-    const headerMountAfter = document.querySelector('#header-mount');
-    if (headerMountAfter) 
-    {
-        headerMountAfter.innerHTML = headerHtml;
     }
 
     // Mount content to existing #content-mount slot
@@ -66,48 +59,33 @@ export function renderGame(component: BaseComponent): void
 {
     const app = document.querySelector('#app')!;
     
-    // Only create game layout if it doesn't exist
-    if (!document.querySelector('#game-header-mount')) 
-    {
-        // Create custom game layout (fullscreen)
-        app.innerHTML = `
-            <div class="h-screen overflow-hidden bg-black" data-route-content="true">
-                <main class="h-full">
-                    <div id="game-content" class="h-full"></div>
-                </main>
-            </div>
-        `;
-    }
+    app.innerHTML = `
+        <div class="h-screen overflow-hidden bg-black" data-route-content="true">
+            <main class="h-full">
+                <div id="game-content" class="h-full"></div>
+            </main>
+        </div>
+    `;
 
     mountComponent(component, '#game-content');
 }
 
-// Render auth layout (centered)
-export function renderAuth(component: BaseComponent, headerHtml: string): void 
+// Render auth layout
+export function renderAuth(component: BaseComponent): void
 {
     const app = document.querySelector('#app')!;
-    
-    // Only create auth layout if it doesn't exist
-    if (!document.querySelector('#auth-header-mount')) 
+   
+    if (!document.querySelector('#auth-header-mount'))
     {
-        // Create custom auth layout (centered)
         app.innerHTML = `
             <div class="min-h-screen bg-gradient-to-br from-gray-900 to-purple-900" data-route-content="true">
-                <div id="auth-header-mount"></div>
+                <div id="header-mount"></div>
                 <main class="min-h-screen flex items-center justify-center">
                     <div id="auth-content" class="w-full max-w-md"></div>
                 </main>
             </div>
         `;
     }
-
-    // Mount header
-    const headerMount = document.querySelector('#auth-header-mount');
-    if (headerMount) 
-    {
-        headerMount.innerHTML = headerHtml;
-    }
-
     mountComponent(component, '#auth-content');
 }
 
