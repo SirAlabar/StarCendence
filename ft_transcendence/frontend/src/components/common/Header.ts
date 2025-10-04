@@ -38,7 +38,7 @@ export class Header extends BaseComponent
     private renderLogo(): string 
     {
         return `
-            <h1 class="text-2xl md:text-3xl font-bold font-game text-cyan-400 hover:text-purple-400 transition-colors duration-300">
+            <h1 class="text-2xl md:text-2xl lg:text-3xl font-bold font-game text-cyan-400 hover:text-purple-400 transition-colors duration-300 md:whitespace-nowrap">
                 <a href="/" data-link>42 Transcendence</a>
             </h1>
         `;
