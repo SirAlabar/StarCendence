@@ -166,8 +166,6 @@ export class RacerPod
 
     this.currentLap = 1;
     this.totalLaps = totalLaps;
-    this.raceStartTime = Date.now();
-    this.lapStartTime = this.raceStartTime;
     this.lapTimes = [];
     this.isRaceFinished = false;
   }
@@ -403,6 +401,12 @@ public shouldRespawnPlayer(playerPosition: Vector3): boolean
   public getTotalRaceTime(): number 
   {
     return Date.now() - this.raceStartTime;
+  }
+
+  public startRaceTimer(): void 
+  {
+    this.raceStartTime = Date.now();
+    this.lapStartTime = this.raceStartTime;
   }
 
   public isRaceComplete(): boolean 

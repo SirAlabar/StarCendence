@@ -104,46 +104,51 @@ export class RacerRenderer
       throw new Error('RacerRenderer not initialized');
     }
     
+    // Get user avatar
     const userAvatarUrl = this.getUserAvatarUrl();
-    
     const avatarToUse = await this.preloadAvatarImage(userAvatarUrl);
-
-      this.racerUIManager = new RacerUIManager(
-      {
-        showHUD: true,
-        showDebugInfo: this.config.debugMode || false,
-        maxSpeed: 600,
-        totalLaps: 3,
-        totalRacers: 4
-      });
+    
+    this.racerUIManager = new RacerUIManager(
+    {
+      showHUD: true,
+      showDebugInfo: this.config.debugMode || false,
+      maxSpeed: 600,
+      totalLaps: 1,
+      totalRacers: 4
+    });
 
     (window as any).racerUIManager = this.racerUIManager;
     
-    // Set up finish screen callbacks
     this.racerUIManager.setFinishScreenCallbacks(
       () => this.handleRestartRace(),
       () => this.handleLeaveRace()
     );
-
+    
     (window as any).playerAvatarUrl = avatarToUse;
     
-    // Get input manager and disable inputs during countdown
     const inputManager = this.gameCanvas?.['inputManager'];
     if (inputManager) 
     {
-      inputManager.setActive(false);
+      inputManager.setAllowPodMovement(false);
     }
     
-    // Show countdown
     await this.racerUIManager.showCountdown(5);
     
-    // Enable inputs after countdown
     if (inputManager) 
     {
-      inputManager.setActive(true);
+      inputManager.setAllowPodMovement(true);
     }
     
-    // Start the race
+    if (this.playerPod) 
+    {
+      this.playerPod.startRaceTimer();
+    }
+    
+    // if (this.raceManager) 
+    // {
+    //   this.raceManager.startRace();
+    // }
+    
     this.racerUIManager.startRace();
     this.startHUDUpdateLoop();
   }
@@ -844,7 +849,7 @@ private createLoadingOverlay(): void
     // For now, returns undefined (will use default)
     return undefined;
   }
-  
+
   // Essential getters only
   public getGameCanvas(): GameCanvas | null 
   {

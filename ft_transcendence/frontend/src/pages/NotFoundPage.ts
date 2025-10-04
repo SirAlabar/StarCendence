@@ -243,13 +243,11 @@ export default class NotFoundPage extends BaseComponent
     private loadAssets(): void 
     {
         this.playerImg = new Image();
-        this.playerImg.crossOrigin = "anonymous";
         
         // Load enemy ships using config
         this.enemyImages = ENEMY_SHIPS.map(() => 
         {
             const img = new Image();
-            img.crossOrigin = "anonymous";
             return img;
         });
         
