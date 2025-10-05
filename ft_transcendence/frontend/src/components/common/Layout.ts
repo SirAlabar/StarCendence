@@ -43,13 +43,11 @@ export class Layout extends BaseComponent
             <hr class="mx-auto w-1/2 h-0.5 bg-gradient-to-r from-purple-500 to-cyan-400 border-0 my-12" />
         `;
     }
-
+    
     private renderBackground(): string 
     {
         return `
             <div class="fixed inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 -z-10">
-                <!-- Animated stars background -->
-                <div class="absolute inset-0 bg-[url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="1" fill="white" opacity="0.3"/><circle cx="80" cy="40" r="0.8" fill="white" opacity="0.2"/><circle cx="40" cy="80" r="1.2" fill="white" opacity="0.4"/><circle cx="90" cy="90" r="0.5" fill="white" opacity="0.3"/></svg>')] bg-repeat opacity-40 animate-pulse-slow"></div>
             </div>
         `;
     }
