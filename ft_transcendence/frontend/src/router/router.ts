@@ -1,5 +1,5 @@
 import { renderDefault, renderGame, renderAuth, showLoading, hideLoading, show404 } from './LayoutManager';
-import { getHeaderHtml, setupGameHeaderEvents, resetGameEventListeners } from './HeaderManager';
+import { mountHeader, setupGameHeaderEvents, resetGameEventListeners } from './HeaderManager';
 
 // Singleton state - only one instance allowed
 class RouterState
@@ -11,10 +11,13 @@ class RouterState
     public isNavigating = false;
 
     // Store event listeners for cleanup
+    private currentPageInstance: any = null;
     private clickListener: ((e: Event) => void) | null = null;
+    private touchListener: ((e: Event) => void) | null = null; 
     private popstateListener: ((e: PopStateEvent) => void) | null = null;
 
-    private constructor() {}
+    private constructor() 
+    {}
 
     static getInstance(): RouterState
     {
@@ -25,13 +28,43 @@ class RouterState
         return RouterState.instance;
     }
 
-    cleanup()
+    setCurrentPageInstance(instance: any): void
     {
+        this.currentPageInstance = instance;
+    }
+
+    cleanupCurrentPage(): void
+    {
+        if (this.currentPageInstance)
+        {
+            if (typeof this.currentPageInstance.dispose === 'function')
+            {
+                this.currentPageInstance.dispose();
+            }
+            else if (typeof this.currentPageInstance.cleanup === 'function')
+            {
+                this.currentPageInstance.cleanup();
+            }
+            this.currentPageInstance = null;
+        }
+    }
+
+    cleanup(): void
+    {
+        this.cleanupCurrentPage();
+        
         if (this.clickListener)
         {
             document.removeEventListener('click', this.clickListener);
             this.clickListener = null;
         }
+
+        if (this.touchListener)
+        {
+            document.removeEventListener('touchend', this.touchListener);
+            this.touchListener = null;
+        }
+        
         if (this.popstateListener)
         {
             window.removeEventListener('popstate', this.popstateListener);
@@ -39,12 +72,14 @@ class RouterState
         }
     }
 
-    setEventListeners(clickListener: (e: Event) => void, popstateListener: (e: PopStateEvent) => void)
+    setEventListeners(clickListener: (e: Event) => void, popstateListener: (e: PopStateEvent) => void): void
     {
         this.cleanup();
         this.clickListener = clickListener;
+        this.touchListener = clickListener;
         this.popstateListener = popstateListener;
         document.addEventListener('click', clickListener);
+        document.addEventListener('touchend', clickListener);
         window.addEventListener('popstate', popstateListener);
     }
 }
@@ -166,8 +201,6 @@ function isAuthenticated(): boolean
 // Main navigation function
 export async function navigateTo(path: string): Promise<void>
 {
-
-    // Prevent navigation loops
     if (routerState.isNavigating)
     {
         return;
@@ -175,18 +208,16 @@ export async function navigateTo(path: string): Promise<void>
 
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
 
-
-    // Prevent duplicate navigation
     if (routerState.currentRoute && routerState.currentRoute.path === cleanPath)
     {
         return;
     }
 
     routerState.isNavigating = true;
+    routerState.cleanupCurrentPage();
 
     const route = parseRoute(cleanPath);
 
-    // Check authentication
     if (route.requiresAuth && !isAuthenticated())
     {
         if (cleanPath !== '/login' && cleanPath !== '/register')
@@ -196,41 +227,39 @@ export async function navigateTo(path: string): Promise<void>
         }
     }
 
-    // Update page title
     document.title = route.title;
 
-    // Update URL in browser - only if different from current
     if (window.location.pathname !== cleanPath)
     {
         window.history.pushState({ path: cleanPath }, '', cleanPath);
     }
 
-    // Scroll to top
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
 
     try
     {
         showLoading();
 
-        // Dynamic import and component instantiation
         const moduleImport = await route.component();
         const ComponentClass = moduleImport.default || moduleImport;
         const component = new ComponentClass();
 
-        // Reset game event listeners if switching away from game
+        routerState.setCurrentPageInstance(component);
+
         if (routerState.currentRoute?.headerType === 'game' && route.headerType !== 'game')
         {
             resetGameEventListeners();
         }
 
-        const headerHtml = getHeaderHtml(route.headerType);
+        renderWithLayout(component, route.layout);
 
-        renderWithLayout(component, route.layout, headerHtml);
+        if (route.layout !== 'game') 
+        {
+            mountHeader(route.headerType, '#header-mount');
+        }
 
-        // Scroll to top
         window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
 
-        // Setup events after DOM is ready
         requestAnimationFrame(() =>
         {
             setupGameHeaderEvents();
@@ -238,7 +267,6 @@ export async function navigateTo(path: string): Promise<void>
         });
 
         routerState.currentRoute = { ...route, path: cleanPath };
-
     }
     catch (error)
     {
@@ -253,7 +281,7 @@ export async function navigateTo(path: string): Promise<void>
 }
 
 // Render function
-function renderWithLayout(component: any, layoutType: string, headerHtml: string): void
+function renderWithLayout(component: any, layoutType: string): void
 {
     switch (layoutType)
     {
@@ -261,13 +289,12 @@ function renderWithLayout(component: any, layoutType: string, headerHtml: string
             renderGame(component);
             break;
         case 'auth':
-            renderAuth(component, headerHtml);
+            renderAuth(component);
             break;
         default:
-            renderDefault(component, headerHtml);
+            renderDefault(component);
     }
 }
-
 // Update active nav links
 function updateActiveNavLinks(): void
 {
@@ -276,10 +303,12 @@ function updateActiveNavLinks(): void
     document.querySelectorAll('[data-link]').forEach(link =>
     {
         const href = link.getAttribute('href');
+        
         if (!href)
         {
             return;
         }
+        
         if (href === currentPath)
         {
             link.classList.add('active');
@@ -295,21 +324,26 @@ function updateActiveNavLinks(): void
 function handleLinkClick(e: Event): void
 {
     const target = e.target as HTMLElement;
+    
     if (!target)
     {
         return;
     }
 
     const link = target?.closest('a') as HTMLAnchorElement;
+    
     if (!link)
     {
         return;
     }
+    
     const href = link.getAttribute('href');
+    
     if (!href)
     {
         return;
     }
+    
     if (link.hasAttribute("data-link"))
     {
         e.preventDefault();
@@ -327,7 +361,11 @@ function handleLinkClick(e: Event): void
             navigateTo('/').then(() =>
             {
                 const section = document.querySelector(href);
-                section?.scrollIntoView({ behavior: 'smooth'});
+                
+                if (section)
+                {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
             });
         }
     }
@@ -345,11 +383,12 @@ function handlePopState(_e: PopStateEvent): void
 // Initialize router
 export function initRouter(): void
 {
-    if (document.readyState === 'loading') 
+    if (document.readyState === 'loading')
     {
         document.addEventListener('DOMContentLoaded', () => initRouter());
         return;
     }
+    
     // Prevent double initialization
     if (routerState.isInitialized)
     {

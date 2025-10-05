@@ -1,11 +1,10 @@
 import { GameCanvas } from '../engines/racer/GameCanvas';
-import { Vector3, Scene, Camera, ArcRotateCamera, FreeCamera, FollowCamera } from '@babylonjs/core';
+import { Vector3, Scene, Camera, ArcRotateCamera, FollowCamera } from '@babylonjs/core';
 import { RacerPod } from '../engines/racer/RacerPods';
 
 export enum CameraMode 
 {
   RACING = 'racing',
-  FREE = 'free',
   PLAYER = 'player'
 }
 
@@ -21,10 +20,8 @@ export class CameraManager
   private gameCanvas: GameCanvas;
   private scene: Scene;
   private currentMode: CameraMode;
-  private developmentMode: boolean = false;
   
   private racingCamera: ArcRotateCamera | null = null;
-  private freeCamera: FreeCamera | null = null;
   private playerCamera: FollowCamera | null = null;
   
   private targetPod: RacerPod | null = null;
@@ -52,14 +49,6 @@ export class CameraManager
     this.racingCamera.lowerRadiusLimit = 10;
     this.racingCamera.upperRadiusLimit = 100;
 
-    // Free camera - development mode
-    this.freeCamera = new FreeCamera(
-      "freeCamera", 
-      new Vector3(0, 20, 30), 
-      this.scene
-    );
-    this.freeCamera.setTarget(Vector3.Zero());
-
     // Follow camera - automatically follows target
     this.playerCamera = new FollowCamera(
       "followCamera",
@@ -81,28 +70,8 @@ export class CameraManager
     this.switchToMode(this.currentMode);
   }
 
-  public setDevelopmentMode(enabled: boolean): void 
-  {
-    this.developmentMode = enabled;
-    
-    if (enabled) 
-    {
-      this.switchToMode(CameraMode.FREE);
-    } 
-    else 
-    {
-      this.switchToMode(CameraMode.PLAYER);
-    }
-  }
-
   public switchToMode(mode: CameraMode): void 
   {
-    if (mode === CameraMode.FREE && !this.developmentMode) 
-    {
-      console.warn('Free camera only available in development mode');
-      return;
-    }
-
     this.detachCurrentCamera();
     this.currentMode = mode;
 
@@ -116,18 +85,6 @@ export class CameraManager
           if (canvas) 
           {
             this.racingCamera.attachControl(canvas, true);
-          }
-        }
-        break;
-        
-      case CameraMode.FREE:
-        this.scene.activeCamera = this.freeCamera;
-        if (this.freeCamera) 
-        {
-          const canvas = this.gameCanvas.getCanvas();
-          if (canvas) 
-          {
-            this.freeCamera.attachControl(canvas, true);
           }
         }
         break;
@@ -152,16 +109,7 @@ export class CameraManager
 
   public cycleCameraMode(): void 
   {
-    let availableModes: CameraMode[];
-    
-    if (this.developmentMode) 
-    {
-      availableModes = [CameraMode.RACING, CameraMode.FREE, CameraMode.PLAYER];
-    } 
-    else 
-    {
-      availableModes = [CameraMode.RACING, CameraMode.PLAYER];
-    }
+    const availableModes: CameraMode[] = [CameraMode.RACING, CameraMode.PLAYER];
     
     const currentIndex = availableModes.indexOf(this.currentMode);
     const nextIndex = (currentIndex + 1) % availableModes.length;
@@ -174,7 +122,6 @@ export class CameraManager
     if (inputManager && typeof inputManager.setCameraMode === 'function') 
     {
       inputManager.setCameraMode(this.currentMode);
-      inputManager.setFreeCamera(this.freeCamera);
     }
   }
 
@@ -188,17 +135,11 @@ export class CameraManager
     return this.scene.activeCamera;
   }
 
-  public getFreeCamera(): FreeCamera | null 
-  {
-    return this.freeCamera;
-  }
-
   public getCameraInfo(mode: CameraMode): CameraInfo | null 
   {
     const infoMap = 
     {
       [CameraMode.RACING]: { mode, name: 'Racing Camera', description: 'Track overview' },
-      [CameraMode.FREE]: { mode, name: 'Free Camera', description: 'Free movement' },
       [CameraMode.PLAYER]: { mode, name: 'Follow Camera', description: 'Follow pod' }
     };
     
@@ -214,7 +155,7 @@ export class CameraManager
       this.attachToTarget();
     }
     
-    if (pod && !this.developmentMode) 
+    if (pod) 
     {
       this.switchToMode(CameraMode.PLAYER);
     }
@@ -232,7 +173,6 @@ export class CameraManager
     if (podMesh) 
     {
       this.playerCamera.lockedTarget = podMesh;
-      console.log(`FollowCamera locked to target: ${this.targetPod.getConfig().name}`);
     }
   }
 
@@ -271,31 +211,6 @@ export class CameraManager
       const upperLimit = followCamera.upperRadiusLimit ?? 1000;
       
       followCamera.radius = Math.max(lowerLimit, Math.min(upperLimit, followCamera.radius));
-    }
-    else if (this.currentMode === CameraMode.FREE && this.freeCamera) 
-    {
-      const forward = this.freeCamera.getDirection(new Vector3(0, 0, 1));
-      const movement = forward.scale(-delta * 2);
-      this.freeCamera.position.addInPlace(movement);
-    }
-  }
-
-  public handleMovement(direction: { x: number; y: number; z: number }): void 
-  {
-    if (this.currentMode === CameraMode.FREE && this.freeCamera) 
-    {
-      const moveVector = new Vector3(direction.x, direction.y, direction.z);
-      moveVector.scaleInPlace(0.5);
-      
-      const forward = this.freeCamera.getDirection(new Vector3(0, 0, 1));
-      const right = this.freeCamera.getDirection(new Vector3(1, 0, 0));
-      const up = Vector3.Up();
-      
-      const movement = forward.scale(moveVector.z)
-        .add(right.scale(moveVector.x))
-        .add(up.scale(moveVector.y));
-      
-      this.freeCamera.position.addInPlace(movement);
     }
   }
 
@@ -341,10 +256,8 @@ export class CameraManager
     {
       case CameraMode.RACING:
         return 'Mouse: Rotate View | Scroll: Zoom';
-      case CameraMode.FREE:
-        return 'WASD: Move Camera | Mouse: Look Around | Scroll: Speed';
       case CameraMode.PLAYER:
-        return 'WASD: Move Pod | Scroll: Distance | Mouse: Rotate Follow';
+        return 'WASD/Arrows: Move Pod | Scroll: Camera Distance';
       default:
         return '';
     }
@@ -358,12 +271,6 @@ export class CameraManager
     {
       this.racingCamera.dispose();
       this.racingCamera = null;
-    }
-    
-    if (this.freeCamera) 
-    {
-      this.freeCamera.dispose();
-      this.freeCamera = null;
     }
     
     if (this.playerCamera) 

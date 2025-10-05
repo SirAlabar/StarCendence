@@ -5,7 +5,7 @@ export class Layout extends BaseComponent
     render(): string 
     {
         return `
-            <div class="min-h-screen relative">
+            <div class="min-h-screen flex flex-col relative">
                 <!-- Fixed Space Background -->
                 ${this.renderBackground()}
                 
@@ -13,7 +13,7 @@ export class Layout extends BaseComponent
                 <div id="header-mount" class="relative z-20"></div>
                 
                 <!-- Main Content Area -->
-                <main id="main-content" class="relative z-10">
+                <main id="main-content" class="flex-1 relative z-10">
                     <div id="content-mount"></div>
                 </main>
                 
@@ -57,7 +57,7 @@ export class Layout extends BaseComponent
     private renderFooter(): string 
     {
         return `
-            <footer class="relative z-20 bg-gray-900/90 border-t border-purple-500/20 mt-12">
+            <footer class="relative z-20 bg-gray-900/90 border-t border-purple-500/20">
                 <div class="mx-auto max-w-4xl p-6">
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                         <div class="text-gray-400 text-sm">

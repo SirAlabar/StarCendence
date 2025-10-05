@@ -2,10 +2,10 @@
 // PodRacerPage.ts - MINIMAL PAGE CONTAINER
 // ====================================================
 import { BaseComponent } from '../components/BaseComponent';
-import { PodSelection, PodSelectionEvent } from '../game/engines/racer/PodSelection';
+import { PodSelection, PodSelectionEvent } from './PodSelectionPage';
 import { RacerRenderer } from '../game/engines/racer/RacerRenderer';
 import { PodConfig, AVAILABLE_PODS } from '../game/utils/PodConfig';
-import { navigateTo } from '../router/router'; // Adjust path as needed
+import { navigateTo } from '../router/router';
 
 export default class PodRacerPage extends BaseComponent 
 {
@@ -41,8 +41,6 @@ export default class PodRacerPage extends BaseComponent
     // Show pod selection
     public showPodSelection(): void 
     {
-        console.log('PODRACER-PAGE: Showing pod selection...');
-        
         if (!this.podSelection) 
         {
             this.podSelection = new PodSelection((event: PodSelectionEvent) => 
@@ -67,8 +65,6 @@ export default class PodRacerPage extends BaseComponent
     // Pod selected - start race
     private onPodSelected(event: PodSelectionEvent): void 
     {
-        console.log(`PODRACER-PAGE: Pod selected: ${event.selectedPod.name}`);
-        
         this.selectedPodConfig = event.selectedPod;
         event.onConfirm();
         
@@ -100,14 +96,10 @@ export default class PodRacerPage extends BaseComponent
         }
     }
 
-    // SINGLE RESPONSIBILITY: Call RacerRenderer
     private async startRace(): Promise<void> 
     {
         try 
         {
-            console.log('PODRACER-PAGE: Starting race...');
-            
-            // Create RacerRenderer
             this.racerRenderer = new RacerRenderer(
             {
                 debugMode: false,
@@ -115,14 +107,9 @@ export default class PodRacerPage extends BaseComponent
                 cameraMode: 'racing'
             });
             
-            // Initialize everything (RacerRenderer handles loading, UI, 3D scene, etc.)
             await this.racerRenderer.initialize('gameCanvas', this.selectedPodConfig);
             
-            // Start race (RacerRenderer handles HUD and all UI)
             await this.racerRenderer.startVisualRace();
-            
-            console.log('PODRACER-PAGE: Race started successfully');
-            
         } 
         catch (error) 
         {
@@ -135,8 +122,6 @@ export default class PodRacerPage extends BaseComponent
     // Back button handler
     public goBack(): void 
     {
-        console.log('PODRACER-PAGE: Going back to games...');
-        
         // Cleanup everything
         this.dispose();
         
@@ -159,9 +144,6 @@ export default class PodRacerPage extends BaseComponent
     // Cleanup
     dispose(): void 
     {
-        console.log('PODRACER-PAGE: Disposing...');
-        
-        // RacerRenderer handles all cleanup (3D, UI, physics)
         if (this.racerRenderer) 
         {
             this.racerRenderer.dispose();

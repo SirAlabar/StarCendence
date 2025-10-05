@@ -258,7 +258,7 @@ export class GameCanvas
     }
   }
 
-  public initializeManagers(developmentMode: boolean = false): void 
+  public initializeManagers(): void 
   {
     if (!this.scene || !this.canvas) 
     {
@@ -291,18 +291,10 @@ export class GameCanvas
           this.cameraManager.cycleCameraMode();
         }
       },
-      onToggleInspector: () => 
-      {
-        this.toggleInspector();  // Add this
-      }
     };
 
     this.inputManager.initialize(this.canvas, inputCallbacks);
     
-    if (this.cameraManager) 
-    {
-      this.cameraManager.setDevelopmentMode(developmentMode);
-    }
   }
 
   public startRenderLoop(): void 
@@ -343,38 +335,6 @@ export class GameCanvas
       this.engine.stopRenderLoop();
     }
     this.isRenderLoopRunning = false;
-  }
-
-  public showLoadingOverlay(isLoading: boolean, message?: string): void 
-  {
-    const overlay = document.getElementById('gameLoadingOverlay');
-    if (overlay) 
-    {
-      if (isLoading) 
-      {
-        overlay.style.display = 'flex';
-        overlay.style.opacity = '1';
-        
-        if (message) 
-        {
-          const messageElement = overlay.querySelector('.loading-message');
-          if (messageElement) 
-          {
-            messageElement.textContent = message;
-          }
-        }
-      } 
-      else 
-      {
-        overlay.style.opacity = '0';
-        overlay.style.transition = 'opacity 0.5s ease-out';
-        
-        setTimeout(() => 
-        {
-          overlay.style.display = 'none';
-        }, 500);
-      }
-    }
   }
 
   // Essential getters only

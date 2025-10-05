@@ -1,1 +1,0 @@
-// Game obstacle entities

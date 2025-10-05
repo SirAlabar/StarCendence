@@ -57,7 +57,6 @@ export class AssetManager
   {
     this.scene = scene;
     this.babylonAssetsManager = new BabylonAssetsManager(this.scene);
-    console.log('AssetManager initialized (using Babylon.js AssetsManager)');
   }
 
   // Add assets to load
@@ -93,14 +92,11 @@ export class AssetManager
       console.warn('No assets to load');
       return this.loadedAssets;
     }
-
-    console.log(`Loading ${this.assetsToLoad.length} assets using Babylon.js AssetsManager...`);
     
     return new Promise((resolve, reject) => 
     {
       const errors: string[] = [];
       
-      // Add tasks to Babylon AssetsManager
       this.assetsToLoad.forEach(config => 
       {
         if (config.type === 'mesh') 
@@ -122,7 +118,6 @@ export class AssetManager
               skeletons: task.loadedSkeletons,
               animationGroups: task.loadedAnimationGroups
             });
-            console.log(`✅ Loaded mesh: ${config.id}`);
           };
 
           meshTask.onError = (_task, message, exception) => 
@@ -145,7 +140,6 @@ export class AssetManager
               type: 'texture',
               texture: _task.texture
             });
-            console.log(`✅ Loaded texture: ${config.id}`);
           };
 
           textureTask.onError = (_task, message, exception) => 
@@ -175,13 +169,10 @@ export class AssetManager
       };
 
       // Finish callback
-      this.babylonAssetsManager.onFinish = (tasks) => 
+      this.babylonAssetsManager.onFinish = () => 
       {
         const successful = this.loadedAssets.size;
         const failed = errors.length;
-
-        console.log(`Loading complete: ${successful} success, ${failed} failed`);
-        console.log(`Completed tasks: ${tasks.length}`);
 
         // Call callbacks
         if (errors.length > 0 && this.callbacks.onError) 

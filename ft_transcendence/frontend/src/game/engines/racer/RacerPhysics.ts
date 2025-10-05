@@ -24,7 +24,7 @@ export class RacerPhysics
   private deltaTime: number = 0.016;
   private targetFPS: number = 60;
   private maxDeltaTime: number = 0.033; 
-  private minDeltaTime: number = 1/120;
+  private minDeltaTime: number = 1/90;
   
   private pods: Map<string, { 
     rigidBody: any,
@@ -240,7 +240,7 @@ public createPod(mesh: Mesh, podId: string, pod: RacerPod, initialPosition?: Vec
    
     if (input.x !== 0) 
     {
-      const turnForce = new Ammo.btVector3(0, input.x * 3.0, 0);
+      const turnForce = new Ammo.btVector3(0, input.x * 1.75, 0);
       rigidBody.setAngularVelocity(turnForce);
     } 
     else 
@@ -303,6 +303,13 @@ public createPod(mesh: Mesh, podId: string, pod: RacerPod, initialPosition?: Vec
       return;
     }
     const hoverPoints = podData.hoverPoints;
+    const currentFPS = 1 / this.deltaTime;
+    let fpsCompensation = 1.0;
+    if (currentFPS < 60) 
+    {
+      fpsCompensation = 60 / currentFPS; // Ex: 30fps = 2x força, 20fps = 3x força
+      fpsCompensation = Math.min(fpsCompensation, 6.0); // Max 6x
+    }
 
     for (let i = 0; i < hoverPoints.length; i++) 
     {
@@ -327,7 +334,7 @@ public createPod(mesh: Mesh, podId: string, pod: RacerPod, initialPosition?: Vec
       {
         const hoverStrength = Math.max(0, (this.HOVER_HEIGHT - distanceFromGround) / this.HOVER_HEIGHT);
         
-        const upwardForce = this.HOVER_FORCE * hoverStrength * this.HOVER_MULTIPLIER_PER_SECOND * this.deltaTime * 0.25;
+        const upwardForce = this.HOVER_FORCE * hoverStrength * this.HOVER_MULTIPLIER_PER_SECOND * this.deltaTime * 0.25 * fpsCompensation;
         
         const forcePosition = new Ammo.btVector3(
           localHoverPoint.x, 
@@ -353,35 +360,61 @@ public createPod(mesh: Mesh, podId: string, pod: RacerPod, initialPosition?: Vec
     return null;
   }
 
-  private updatePhysics(): void 
+private updatePhysics(): void 
+{
+  if (!this.physicsWorld) return;
+  
+  this.pods.forEach((podData, podId) => 
   {
-    if (!this.physicsWorld) return;
+    const mesh = podData.mesh;
+    const rigidBody = podData.rigidBody;
     
-    this.pods.forEach((podData, _podId) => 
+    const motionState = rigidBody.getMotionState();
+    if (motionState) 
     {
-      const mesh = podData.mesh;
-      const rigidBody = podData.rigidBody;
+      motionState.getWorldTransform(this.tempTransform);
       
-      const motionState = rigidBody.getMotionState();
-      if (motionState) 
-      {
+      const position = this.tempTransform.getOrigin();
+      const rotation = this.tempTransform.getRotation();
+      
+      const currentPos = new Vector3(position.x(), position.y(), position.z());
+      
+      podData.pod.checkCheckpointCollision();
+            
+      // Check if respawn is needed
+      if (podData.pod.shouldRespawnPlayer(currentPos)) 
+      { 
+        this.resetPodPosition(podId);
         motionState.getWorldTransform(this.tempTransform);
+        const newPosition = this.tempTransform.getOrigin();
+        const newRotation = this.tempTransform.getRotation();
         
-        const position = this.tempTransform.getOrigin();
-        const rotation = this.tempTransform.getRotation();
-        
-        mesh.position.set(position.x(), position.y(), position.z());
+        // Update mesh to respawn position
+        mesh.position.set(newPosition.x(), newPosition.y(), newPosition.z());
         
         if (!mesh.rotationQuaternion) 
         {
           mesh.rotationQuaternion = new Quaternion();
         }
         
-        mesh.rotationQuaternion.set(rotation.x(), rotation.y(), rotation.z(), rotation.w());
+        mesh.rotationQuaternion.set(newRotation.x(), newRotation.y(), newRotation.z(), newRotation.w());
         mesh.addRotation(0, Math.PI, 0);
+        
+        return;
       }
-    });
-  }
+      
+      mesh.position.set(currentPos.x, currentPos.y, currentPos.z);
+      
+      if (!mesh.rotationQuaternion) 
+      {
+        mesh.rotationQuaternion = new Quaternion();
+      }
+      
+      mesh.rotationQuaternion.set(rotation.x(), rotation.y(), rotation.z(), rotation.w());
+      mesh.addRotation(0, Math.PI, 0);
+    }
+  });
+}
 
   public getPerformanceInfo(): { deltaTime: number; fps: number; adjustedFPS: boolean } 
   {
@@ -510,9 +543,10 @@ public createPod(mesh: Mesh, podId: string, pod: RacerPod, initialPosition?: Vec
     
     const Ammo = this.ammoInstance;
     const rigidBody = podData.rigidBody;
-    const mesh = podData.mesh;
     
-    const currentPos = mesh.position;
+    // CHANGE THIS: Use checkpoint respawn instead of current position
+    const respawnPos = podData.pod.getRespawnPosition();
+    if (!respawnPos) return; // No valid respawn point
     
     rigidBody.setLinearVelocity(new Ammo.btVector3(0, 0, 0));
     rigidBody.setAngularVelocity(new Ammo.btVector3(0, 0, 0));
@@ -520,9 +554,9 @@ public createPod(mesh: Mesh, podId: string, pod: RacerPod, initialPosition?: Vec
     const resetTransform = new Ammo.btTransform();
     resetTransform.setIdentity();
     resetTransform.setOrigin(new Ammo.btVector3(
-      currentPos.x,
-      Math.max(currentPos.y + 2, 3),
-      currentPos.z
+      respawnPos.x,
+      respawnPos.y, // Already includes +3 height from getRespawnPosition()
+      respawnPos.z
     ));
     
     resetTransform.setRotation(new Ammo.btQuaternion(0, 0, 0, 1));

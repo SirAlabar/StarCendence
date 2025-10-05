@@ -3,6 +3,7 @@ import { RacerScene } from './RacerScene';
 import { RacerPod } from './RacerPods';
 import { RacerUIManager } from '../../managers/RacerUIManager';
 import { PodConfig } from '../../utils/PodConfig';
+import { RaceManager } from '../../managers/RaceManager';
 
 export interface RacerRendererConfig 
 {
@@ -22,6 +23,7 @@ export class RacerRenderer
   private config: RacerRendererConfig;
   private isInitialized: boolean = false;
   private hudUpdateInterval: number | null = null;
+  private raceManager: RaceManager | null = null;
   
   // Callbacks for UI updates
   public onLoadingProgress: ((message: string, progress: number, stage: string) => void) | null = null;
@@ -41,6 +43,8 @@ export class RacerRenderer
   
   public async initialize(canvasId: string, selectedPod: PodConfig): Promise<void> 
   {
+    const startTime = Date.now();
+    
     try 
     {
       this.createLoadingOverlay();
@@ -53,8 +57,8 @@ export class RacerRenderer
       this.gameCanvas = new GameCanvas(canvasId);
       await this.gameCanvas.initialize();
       
-      this.updateLoadingProgress('Setting up camera controls...', 20, 'physics');
-      this.gameCanvas.initializeManagers(this.config.debugMode || false);
+      this.updateLoadingProgress('Setting up camera controls...', 25, 'physics');
+      this.gameCanvas.initializeManagers();
       this.gameCanvas.startRenderLoop();
       
       await this.initializeVisualTrack();
@@ -62,12 +66,23 @@ export class RacerRenderer
       await this.loadPlayerPod(selectedPod);
       
       this.isInitialized = true;
-      this.updateLoadingProgress('Racing scene ready!', 100, 'pod');
+      this.updateLoadingProgress('Racing scene ready!', 95, 'pod');
+      
+      const elapsedTime = Date.now() - startTime;
+      const minLoadingTime = 5000;
+      
+      if (elapsedTime < minLoadingTime) 
+      {
+        const remainingTime = minLoadingTime - elapsedTime;
+        await new Promise(resolve => setTimeout(resolve, remainingTime));
+      }
+      
+      this.updateLoadingProgress('Ready to race!', 100, 'complete');
       
       setTimeout(() => 
       {
         this.hideLoading();
-      }, 1000);
+      }, 500);
       
     } 
     catch (error) 
@@ -82,8 +97,8 @@ export class RacerRenderer
       }
       throw error;
     }
-  }
-  
+  } 
+
   public async startVisualRace(): Promise<void> 
   {
     if (!this.isInitialized) 
@@ -91,19 +106,107 @@ export class RacerRenderer
       throw new Error('RacerRenderer not initialized');
     }
     
+    // Get user avatar
+    const userAvatarUrl = this.getUserAvatarUrl();
+    const avatarToUse = await this.preloadAvatarImage(userAvatarUrl);
+
+    this.raceManager = new RaceManager();
+    (window as any).raceManager = this.raceManager;
+
+    // Register player
+    if (this.playerPod) 
+    {
+      this.raceManager.registerRacer(this.playerPod);
+    }
+
+    // Start race
+    this.raceManager.startRace();
+    
     this.racerUIManager = new RacerUIManager(
     {
       showHUD: true,
       showDebugInfo: this.config.debugMode || false,
       maxSpeed: 600,
-      totalLaps: 3,
-      totalRacers: 8
+      totalLaps: this.raceManager.getTotalLaps(),
+      totalRacers: this.raceManager.getTotalRacers()
     });
+
+    (window as any).racerUIManager = this.racerUIManager;
     
+    this.racerUIManager.setFinishScreenCallbacks(
+      () => this.handleRestartRace(),
+      () => this.handleLeaveRace()
+    );
+    
+    (window as any).playerAvatarUrl = avatarToUse;
+    
+    const inputManager = this.gameCanvas?.['inputManager'];
+    if (inputManager) 
+    {
+      inputManager.setAllowPodMovement(false);
+    }
+    
+    await this.racerUIManager.showCountdown(5);
+    
+    if (inputManager) 
+    {
+      inputManager.setAllowPodMovement(true);
+    }
+ 
     this.racerUIManager.startRace();
-    
-    // Start HUD update loop for real-time speed display
     this.startHUDUpdateLoop();
+  }
+
+  private handleRestartRace(): void 
+  {
+    // Hide finish screen
+    if (this.racerUIManager) 
+    {
+      this.racerUIManager.hideFinishScreen();
+      this.racerUIManager.dispose();
+      this.racerUIManager = null;
+    }
+
+    if (this.hudUpdateInterval) 
+    {
+      clearInterval(this.hudUpdateInterval);
+      this.hudUpdateInterval = null;
+    }
+
+    if (this.raceManager) 
+    {
+      this.raceManager.reset();
+    }
+    
+    // Reset player pod
+    if (this.playerPod && this.racerScene) 
+    {
+      const startPositions = this.racerScene.getStartingPositions(1);
+      const startPos = startPositions[0];
+      
+      this.playerPod.setPosition(startPos);
+      this.playerPod.initializeCheckpoints(this.racerScene);
+      
+      // Re-enable physics
+      const physics = this.gameCanvas?.getPhysics();
+      if (physics) 
+      {
+        this.playerPod.disablePhysics();
+        this.playerPod.enablePhysics(physics, startPos);
+      }
+    }
+    
+    // Restart the race
+    this.startVisualRace();
+  }
+
+  private handleLeaveRace(): void 
+  {
+    // Clean up everything
+    this.dispose();
+    
+    // Navigate back
+    window.location.href = '/pod-selection';
   }
 
   private startHUDUpdateLoop(): void 
@@ -116,7 +219,13 @@ export class RacerRenderer
     this.hudUpdateInterval = setInterval(() => 
     {
       this.updateHUDFromPhysics();
-    }, 50) as unknown as number; // 20fps for HUD updates
+      
+      // Update race manager
+      if (this.raceManager && this.playerPod) 
+      {
+        this.raceManager.updateRacerProgress(this.playerPod.getConfig().id);
+      }
+    }, 100) as unknown as number;
   }
 
   private updateHUDFromPhysics(): void 
@@ -134,46 +243,38 @@ export class RacerRenderer
 
     const podId = this.playerPod.getConfig().id;
     const currentSpeed = physics.getSpeed(podId);
-    
-    // Convert to km/h for display
     const speedKmh = Math.round(currentSpeed * 3.6);
     
     this.racerUIManager.updateSpeed(speedKmh);
+    
+    if (this.raceManager) 
+    {
+      const position = this.raceManager.calculatePosition(podId);
+      this.racerUIManager.updatePosition(position);
+    }
   }
 
-  public toggleDebugMode(): void 
+
+
+  private async setupLocalPhysics(): Promise<void> 
   {
-    this.config.debugMode = !this.config.debugMode;
-    
-    if (this.gameCanvas) 
-    {
-      const cameraManager = this.gameCanvas['cameraManager']; // Access private member
-      if (cameraManager && typeof cameraManager.setDevelopmentMode === 'function') 
-      {
-        cameraManager.setDevelopmentMode(this.config.debugMode);
-      }
-    }
+  if (!this.gameCanvas || !this.racerScene) 
+  {
+      return;
+  }
+  
+  const physics = this.gameCanvas.getPhysics();
+  if (!physics || !physics.isPhysicsReady()) 
+  {
+      return;
   }
 
-    private async setupLocalPhysics(): Promise<void> 
-    {
-    if (!this.gameCanvas || !this.racerScene) 
-    {
-        return;
-    }
-    
-    const physics = this.gameCanvas.getPhysics();
-    if (!physics || !physics.isPhysicsReady()) 
-    {
-        return;
-    }
-
-    const trackMesh = this.racerScene.getTrack();
-    if (trackMesh) 
-    {
-        await physics.setupTrackCollision(this.racerScene);
-    }
-    }
+  const trackMesh = this.racerScene.getTrack();
+  if (trackMesh) 
+  {
+      await physics.setupTrackCollision(this.racerScene);
+  }
+  }
   
   private async initializeVisualTrack(): Promise<void> 
   {
@@ -210,7 +311,38 @@ export class RacerRenderer
     
     await this.racerScene.loadTrack();
   }
-  
+
+  private preloadAvatarImage(userAvatarUrl?: string): Promise<string> 
+  {
+    return new Promise((resolve) => 
+    {
+      const defaultAvatar = '/assets/images/default-avatar.jpeg';
+      
+      // If no user avatar provided, use default
+      if (!userAvatarUrl) 
+      {
+        const img = new Image();
+        img.src = defaultAvatar;
+        resolve(defaultAvatar);
+        return;
+      }
+      
+      // Try loading user avatar
+      const img = new Image();
+      img.onload = () => 
+      {
+        resolve(userAvatarUrl); // Success, use user's avatar
+      };
+      img.onerror = () => 
+      {
+        const fallbackImg = new Image();
+        fallbackImg.src = defaultAvatar;
+        resolve(defaultAvatar); // Fallback to default
+      };
+      img.src = userAvatarUrl;
+    });
+  }
+    
   private async loadPlayerPod(selectedPod: PodConfig): Promise<void> 
   {
     if (!this.gameCanvas || !this.racerScene) 
@@ -219,7 +351,7 @@ export class RacerRenderer
     }
     
     this.updateLoadingProgress(`Loading ${selectedPod.name}...`, 70, 'pod');
-    
+
     try 
     {
       if (this.playerPod) 
@@ -237,6 +369,8 @@ export class RacerRenderer
         const playerStartPos = startPositions[0];
         
         pod.setPosition(playerStartPos);
+
+        pod.initializeCheckpoints(this.racerScene!);
         
         this.gameCanvas!.setPlayerPod(pod);
         
@@ -245,9 +379,7 @@ export class RacerRenderer
         {
           pod.enablePhysics(physics, playerStartPos);
         }
-        
-        console.log(`Player pod loaded at position: ${playerStartPos}`);
-        
+
         if (this.onPodLoaded) 
         {
           this.onPodLoaded(pod);
@@ -273,70 +405,72 @@ export class RacerRenderer
     }
   }
   
-  private createLoadingOverlay(): void 
-  {
-    const loadingHTML = `
-      <div id="racerLoadingOverlay" class="fixed inset-0 bg-black/90 flex items-center justify-center" style="z-index: 2000;">
-        <canvas id="racerParticleCanvas" class="absolute inset-0 w-full h-full"></canvas>
-        
-        <div class="relative z-10 text-center">
-          <div class="relative w-32 h-32 mx-auto mb-8">
-            <svg class="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
-              <circle 
-                cx="60" 
-                cy="60" 
-                r="50" 
-                fill="none" 
-                stroke="rgb(75 85 99)" 
-                stroke-width="4"
-              />
-              <circle 
-                id="racerProgressCircle"
-                cx="60" 
-                cy="60" 
-                r="50" 
-                fill="none" 
-                stroke="rgb(147 51 234)" 
-                stroke-width="4"
-                stroke-linecap="round"
-                stroke-dasharray="314"
-                stroke-dashoffset="314"
-                class="transition-all duration-300 ease-out"
-              />
-            </svg>
-            <div class="absolute inset-0 flex items-center justify-center">
-              <span id="racerProgressPercent" class="text-white text-xl font-bold">0%</span>
-            </div>
-          </div>
-
-          <h3 class="text-white text-2xl font-bold mb-4">Loading Race</h3>
-          <p class="text-gray-300 text-lg" id="racerLoadingMessage">Preparing 3D scene...</p>
+private createLoadingOverlay(): void 
+{
+  const loadingHTML = `
+    <div id="racerLoadingOverlay" class="fixed inset-0 bg-black/95 flex items-center justify-center" style="z-index: 2000;">
+      <canvas id="racerParticleCanvas" class="absolute inset-0 w-full h-full"></canvas>
+      
+      <div class="relative z-10 text-center">
+        <!-- Progress Circle (bigger box) -->
+        <div class="relative w-40 h-40 mx-auto mb-8">
+          <svg class="w-40 h-40 transform -rotate-90" viewBox="0 0 160 160">
+            <!-- Background Circle -->
+            <circle 
+              cx="80" 
+              cy="80" 
+              r="60" 
+              fill="none" 
+              stroke="rgba(75, 85, 99, 0.3)" 
+              stroke-width="4"
+            />
+            <!-- Progress Circle -->
+            <circle 
+              id="racerProgressCircle"
+              cx="80" 
+              cy="80" 
+              r="60" 
+              fill="none" 
+              stroke="url(#progressGradient)" 
+              stroke-width="4"
+              stroke-linecap="round"
+              stroke-dasharray="377"
+              stroke-dashoffset="377"
+              class="transition-all duration-500 ease-out"
+              style="filter: drop-shadow(0 0 8px #a855f7);"
+            />
+            <!-- Gradient Definition -->
+            <defs>
+              <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#63eafe;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#9333ea;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+          </svg>
           
-          <div class="mt-6 flex justify-center space-x-4">
-            <div id="racerStageCanvas" class="flex items-center text-gray-500">
-              <div class="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
-              <span class="text-sm">Canvas</span>
-            </div>
-            <div id="racerStagePhysics" class="flex items-center text-gray-500">
-              <div class="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
-              <span class="text-sm">Physics</span>
-            </div>
-            <div id="racerStageTrack" class="flex items-center text-gray-500">
-              <div class="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
-              <span class="text-sm">Track</span>
-            </div>
-            <div id="racerStagePod" class="flex items-center text-gray-500">
-              <div class="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
-              <span class="text-sm">Pod</span>
-            </div>
+          <!-- Percentage Display -->
+          <div class="absolute inset-0 flex items-center justify-center">
+            <span id="racerProgressPercent" class="text-white text-xl font-bold">0%</span>
           </div>
         </div>
+
+        <!-- Title -->
+        <h3 class="text-white text-2xl font-bold mb-4">Loading Race</h3>
+        
+        <!-- Simple Loading Message -->
+        <p class="text-cyan-300 text-lg" id="racerLoadingMessage">
+          Fueling Pod...
+        </p>
       </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', loadingHTML);
-    this.loadingOverlay = document.getElementById('racerLoadingOverlay');
-  }
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', loadingHTML);
+  this.loadingOverlay = document.getElementById('racerLoadingOverlay');
+}
+
+
   
   private showLoading(): void 
   {
@@ -393,7 +527,17 @@ export class RacerRenderer
     const messageElement = document.getElementById('racerLoadingMessage');
     if (messageElement) 
     {
-      messageElement.textContent = message;
+      const simpleMessages = [
+        'Fueling Pod...',
+        'Checking engines...',
+        'Loading track data...',
+        'Racer positioning...',
+        'Systems online...',
+        'Ready to race!'
+      ];
+      
+      const messageIndex = Math.floor((progress / 100) * (simpleMessages.length - 1));
+      messageElement.textContent = simpleMessages[messageIndex];
     }
 
     const progressCircle = document.getElementById('racerProgressCircle');
@@ -401,21 +545,11 @@ export class RacerRenderer
     
     if (progressCircle && progressPercent) 
     {
-      const circumference = 314;
+      const circumference = 377;
       const offset = circumference - (progress / 100) * circumference;
+      
       progressCircle.style.strokeDashoffset = offset.toString();
       progressPercent.textContent = `${Math.round(progress)}%`;
-    }
-
-    const stageElement = document.getElementById(`racerStage${stage.charAt(0).toUpperCase() + stage.slice(1)}`);
-    if (stageElement) 
-    {
-      stageElement.className = 'flex items-center text-purple-400';
-      const dot = stageElement.querySelector('.w-3.h-3.rounded-full');
-      if (dot) 
-      {
-        dot.className = 'w-3 h-3 rounded-full bg-purple-400 mr-2 animate-pulse';
-      }
     }
     
     if (this.onLoadingProgress) 
@@ -423,7 +557,7 @@ export class RacerRenderer
       this.onLoadingProgress(message, progress, stage);
     }
   }
-  
+
   private initializeParticles(): void 
   {
     const canvas = document.getElementById('racerParticleCanvas') as HTMLCanvasElement;
@@ -441,54 +575,284 @@ export class RacerRenderer
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const particles: Array<
+    interface Particle 
     {
-      x: number; 
-      y: number; 
-      vx: number; 
-      vy: number; 
-      size: number; 
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
       opacity: number;
-    }> = [];
+      life: number;
+      maxLife: number;
+      isFighting: boolean;
+      trail: Array<{x: number; y: number; opacity: number}>;
+    }
 
-    for (let i = 0; i < 50; i++) 
+    const backgroundParticles: Particle[] = [];
+    const fightingParticles: Particle[] = [];
+    
+    // Create background particles
+    for (let i = 0; i < 30; i++) 
     {
-      particles.push(
-      {
+      backgroundParticles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        size: Math.random() * 2 + 1,
-        opacity: Math.random() * 0.5 + 0.2
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: (Math.random() - 0.5) * 0.6,
+        size: Math.random() * 3 + 2,
+        opacity: Math.random() * 0.6 + 0.4,
+        life: 1,
+        maxLife: 1,
+        isFighting: false,
+        trail: []
       });
     }
 
+    // Mouse trail creation
+    canvas.addEventListener('mousemove', (e) => 
+    {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Create fighting particles at mouse position
+        if (Math.random() > 0.7)
+        {
+        fightingParticles.push({
+          x: mouseX + (Math.random() - 0.5) * 30,
+          y: mouseY + (Math.random() - 0.5) * 30,
+          vx: (Math.random() - 0.5) * 6,
+          vy: (Math.random() - 0.5) * 6,
+          size: Math.random() * 4 + 3,
+          opacity: 1,
+          life: 150,
+          maxLife: 150,
+          isFighting: true,
+          trail: []
+        });
+      }
+    });
+
+    const getDistance = (p1: Particle, p2: Particle): number => 
+    {
+      return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+    };
+
+    const drawConnections = (particles: Particle[], maxDistance: number, color: string) => 
+    {
+      for (let i = 0; i < particles.length; i++) 
+      {
+        for (let j = i + 1; j < particles.length; j++) 
+        {
+          const distance = getDistance(particles[i], particles[j]);
+          
+          if (distance < maxDistance) 
+          {
+            const opacity = (1 - distance / maxDistance) * 0.3;
+            
+            ctx.globalAlpha = opacity;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+    };
+
     const animate = () => 
     {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillStyle = 'rgba(26, 26, 46, 0.1)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      particles.forEach(particle => 
+      backgroundParticles.forEach(particle => 
       {
+        particle.vx += (Math.random() - 0.5) * 0.02;
+        particle.vy += (Math.random() - 0.5) * 0.02;
+        
         particle.x += particle.vx;
         particle.y += particle.vy;
+        
+        particle.y += Math.sin(Date.now() * 0.001 + particle.x * 0.01) * 0.1;
 
-        if (particle.x < 0 || particle.x > canvas.width) 
-        {
-          particle.vx *= -1;
-        }
-        if (particle.y < 0 || particle.y > canvas.height) 
-        {
-          particle.vy *= -1;
-        }
+        // Wrap around screen
+        if (particle.x < -10) particle.x = canvas.width + 10;
+        if (particle.x > canvas.width + 10) particle.x = -10;
+        if (particle.y < -10) particle.y = canvas.height + 10;
+        if (particle.y > canvas.height + 10) particle.y = -10;
+        
+        // Apply damping to prevent excessive speed
+        particle.vx *= 0.98;
+        particle.vy *= 0.98;
+      });
 
-        ctx.globalAlpha = particle.opacity;
+      // Update fighting particles
+      for (let i = fightingParticles.length - 1; i >= 0; i--) 
+      {
+        const particle = fightingParticles[i];
+        
+        // Add current position to trail
+        particle.trail.unshift({
+          x: particle.x,
+          y: particle.y,
+          opacity: particle.opacity
+        });
+        
+        // Limit trail length
+        if (particle.trail.length > 15) 
+        {
+          particle.trail.pop();
+        }
+        
+        // Update trail opacity
+        particle.trail.forEach((point, index) => 
+        {
+          point.opacity = (particle.opacity * (1 - index / particle.trail.length)) * 0.8;
+        });
+        
+        // Fighting behavior - erratic movement
+        particle.vx += (Math.random() - 0.5) * 0.8;
+        particle.vy += (Math.random() - 0.5) * 0.8;
+        
+        // Limit speed
+        const maxSpeed = 5;
+        const speed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+        if (speed > maxSpeed) 
+        {
+          particle.vx = (particle.vx / speed) * maxSpeed;
+          particle.vy = (particle.vy / speed) * maxSpeed;
+        }
+        
+        // Apply friction
+        particle.vx *= 0.96;
+        particle.vy *= 0.96;
+        
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        
+        // Update life
+        particle.life--;
+        particle.opacity = particle.life / particle.maxLife;
+
+        // Remove dead particles
+        if (particle.life <= 0) 
+        {
+          fightingParticles.splice(i, 1);
+        }
+      }
+
+      // Draw connections for background particles
+      drawConnections(backgroundParticles, 120, 'rgba(168, 85, 247, 0.3)');
+
+      // Draw connections for fighting particles
+      drawConnections(fightingParticles, 80, 'rgba(99, 234, 254, 0.6)');
+
+      // Draw background particles
+      backgroundParticles.forEach(particle => 
+      {
+        // Calculate pulsing effect
+        const time = Date.now() * 0.002;
+        const pulseEffect = 0.5 + 0.5 * Math.sin(time + particle.x * 0.01 + particle.y * 0.01);
+        const currentOpacity = particle.opacity * (0.6 + 0.4 * pulseEffect);
+        
+        ctx.globalAlpha = currentOpacity;
+        
+        // Enhanced glow effect with pulsing
+        const glowSize = particle.size * (2 + pulseEffect);
+        const gradient = ctx.createRadialGradient(
+          particle.x, particle.y, 0,
+          particle.x, particle.y, glowSize
+        );
+        gradient.addColorStop(0, `rgba(168, 85, 247, ${currentOpacity})`);
+        gradient.addColorStop(0.4, `rgba(168, 85, 247, ${currentOpacity * 0.6})`);
+        gradient.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, glowSize, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Core particle with pulsing size
+        const coreSize = particle.size * (0.8 + 0.2 * pulseEffect);
         ctx.fillStyle = '#a855f7';
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, coreSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Bright center
+        ctx.fillStyle = `rgba(255, 255, 255, ${currentOpacity * 0.8})`;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, coreSize * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Draw fighting particles with comet trails
+      fightingParticles.forEach(particle => 
+      {
+        // Draw comet trail
+        particle.trail.forEach((point, index) => 
+        {
+          if (point.opacity > 0.05) 
+          {
+            ctx.globalAlpha = point.opacity;
+            
+            const trailSize = particle.size * (1 - index / particle.trail.length) * 0.8;
+            
+            // Trail glow
+            const trailGradient = ctx.createRadialGradient(
+              point.x, point.y, 0,
+              point.x, point.y, trailSize * 2
+            );
+            trailGradient.addColorStop(0, '#63eafe');
+            trailGradient.addColorStop(1, 'transparent');
+            
+            ctx.fillStyle = trailGradient;
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, trailSize * 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Trail core
+            ctx.fillStyle = '#63eafe';
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, trailSize, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+        
+        // Draw main particle (comet head)
+        ctx.globalAlpha = particle.opacity;
+        
+        // Main glow effect
+        const gradient = ctx.createRadialGradient(
+          particle.x, particle.y, 0,
+          particle.x, particle.y, particle.size * 3
+        );
+        gradient.addColorStop(0, '#63eafe');
+        gradient.addColorStop(0.3, '#9333ea');
+        gradient.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size * 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Core particle (bright center)
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Outer core
+        ctx.fillStyle = '#63eafe';
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fill();
       });
+
+      ctx.globalAlpha = 1;
 
       if (this.isLoadingActive) 
       {
@@ -497,6 +861,13 @@ export class RacerRenderer
     };
 
     animate();
+  }
+
+  private getUserAvatarUrl(): string | undefined 
+  {
+    // TODO: Get from user profile/session/localStorage
+    // For now, returns undefined (will use default)
+    return undefined;
   }
 
   // Essential getters only
@@ -554,6 +925,12 @@ export class RacerRenderer
 
       this.gameCanvas.dispose();
       this.gameCanvas = null;
+    }
+
+    if (this.raceManager) 
+    {
+      this.raceManager.dispose();
+      this.raceManager = null;
     }
 
     this.isInitialized = false;

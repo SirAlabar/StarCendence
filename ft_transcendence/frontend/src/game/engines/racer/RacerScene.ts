@@ -5,7 +5,11 @@ import {
   Color3,
   Mesh,
   SceneLoader,
-  VertexBuffer
+  Texture,
+  MeshBuilder,
+  StandardMaterial,
+  VertexBuffer,
+  Quaternion
 } from '@babylonjs/core';
 import { GameCanvas } from './GameCanvas';
 
@@ -18,6 +22,15 @@ export interface RacerSceneConfig
   enableFog?: boolean;
   fogColor?: Color3;
   fogDensity?: number;
+}
+
+export interface Checkpoint 
+{
+  id: number;
+  name: string;
+  position: Vector3;
+  normal: Vector3;
+  passed: boolean;
 }
 
 const DEFAULT_CONFIG: RacerSceneConfig = 
@@ -38,6 +51,8 @@ export class RacerScene
   private config: RacerSceneConfig;
   private track: AbstractMesh | null = null;
   private isLoaded: boolean = false;
+  private checkpoints: Checkpoint[] = [];
+  private checkpointMeshes: AbstractMesh[] = [];
 
   public onTrackLoaded?: (track: AbstractMesh) => void;
   public onLoadingProgress?: (percentage: number, asset: string) => void;
@@ -67,15 +82,16 @@ export class RacerScene
     {
       if (this.onLoadingProgress) 
       {
-        this.onLoadingProgress(10, 'Loading canyon.babylon...');
+        this.onLoadingProgress(10, 'Loading babylon...');
       }
 
-      await this.loadCanyonTrack();
+      await this.loadRacerTrack();
+      this.setupSkybox();
       this.setupRacingEnvironment();
       
       if (this.onLoadingProgress) 
       {
-        this.onLoadingProgress(100, 'Canyon track ready');
+        this.onLoadingProgress(100, 'Track ready');
       }
 
       if (this.onLoadingComplete) 
@@ -87,7 +103,7 @@ export class RacerScene
     {
       if (this.onLoadingError) 
       {
-        this.onLoadingError([`Failed to load canyon track: ${error}`]);
+        this.onLoadingError([`Failed to load track: ${error}`]);
       }
     }
   }
@@ -97,7 +113,7 @@ export class RacerScene
     return (this as any).collisionMesh || null;
   }
 
-  private async loadCanyonTrack(): Promise<void> 
+  private async loadRacerTrack(): Promise<void> 
   {
     return new Promise((resolve, reject) => 
     {
@@ -162,6 +178,8 @@ export class RacerScene
             this.track = visualMesh;
             (this as any).collisionMesh = collisionMesh;
 
+            this.processCheckpoints(newMeshes, scale, position);
+
             if (this.onTrackLoaded) 
             {
               this.onTrackLoaded(this.track);
@@ -193,11 +211,128 @@ export class RacerScene
             }
           }
         },
-        (scene, message) => 
+        (_scene, message) => 
         {
           reject(new Error(`Failed to load polar pass: ${message}`));
         }
       );
+    });
+  }
+
+  private setupSkybox(): void 
+  {
+    try 
+    {
+      const skybox = MeshBuilder.CreateSphere(
+        "skybox", 
+        { diameter: 10000, segments: 32 }, 
+        this.scene
+      );
+
+      const skyboxTexture = new Texture(
+        "/assets/images/backgrounds/skybox_hoth.jpg",
+        this.scene
+      );
+
+      const skyboxMaterial = new StandardMaterial("skyboxMaterial", this.scene);
+      
+      skyboxMaterial.emissiveTexture = skyboxTexture;
+      skyboxMaterial.disableLighting = true;
+      skyboxMaterial.backFaceCulling = false;
+      skyboxMaterial.fogEnabled = false;
+      
+      skybox.material = skyboxMaterial;
+      
+      skybox.renderingGroupId = 0;
+      skybox.infiniteDistance = true;
+    } 
+    catch (error) 
+    {
+      console.error('Failed to load skybox:', error);
+    }
+  }
+  
+  private processCheckpoints(meshes: AbstractMesh[], trackScale: Vector3, trackPosition: Vector3): void 
+  {
+    const checkpointMeshes: AbstractMesh[] = [];
+
+    meshes.forEach((mesh) => 
+    {
+      const meshName = mesh.name.toLowerCase();
+      
+      if (meshName.startsWith('check_point') || meshName === 'start_line')
+      {
+        checkpointMeshes.push(mesh);
+      }
+    });
+
+    if (checkpointMeshes.length === 0) 
+    {
+      console.warn('No checkpoint meshes found in GLB file');
+      return;
+    }
+
+    checkpointMeshes.sort((a, b) => a.name.localeCompare(b.name));
+
+    this.checkpoints = [];
+    this.checkpointMeshes = [];
+
+    checkpointMeshes.forEach((mesh, index) => 
+    {
+      const originalLocalPos = mesh.position.clone();
+      
+      const worldPosition = new Vector3(
+        (originalLocalPos.x * trackScale.x) + trackPosition.x,
+        (originalLocalPos.y * trackScale.y) + trackPosition.y,
+        (originalLocalPos.z * trackScale.z) + trackPosition.z
+      );
+
+      const localForward = new Vector3(0, 0, 1);
+      
+      let checkpointNormal = localForward;
+      
+      if (mesh.rotationQuaternion) 
+      {
+        checkpointNormal = localForward.applyRotationQuaternion(mesh.rotationQuaternion);
+      } 
+      else if (mesh.rotation) 
+      {
+        const quat = Quaternion.RotationYawPitchRoll(mesh.rotation.y, mesh.rotation.x, mesh.rotation.z);
+        checkpointNormal = localForward.applyRotationQuaternion(quat);
+      }
+      
+      checkpointNormal.normalize();
+      
+      const isStartLine = mesh.name.toLowerCase() === 'start_line';
+
+      if (isStartLine) 
+      {
+        const bbox = mesh.getBoundingInfo().boundingBox;
+        const localCenter = bbox.center;
+        
+        worldPosition.x = (localCenter.x * trackScale.x) + trackPosition.x;
+        worldPosition.y = (localCenter.y * trackScale.y) + trackPosition.y;
+        worldPosition.z = (localCenter.z * trackScale.z) + trackPosition.z;
+      }
+
+      if (!isStartLine)
+      {
+        mesh.visibility = 0;
+        mesh.isVisible = false;
+      }
+      
+      mesh.checkCollisions = false;
+
+      const checkpoint: Checkpoint = {
+        id: index,
+        name: mesh.name,
+        position: worldPosition.clone(),
+        normal: checkpointNormal.clone(),
+        passed: false
+      };
+
+      this.checkpoints.push(checkpoint);
+      this.checkpointMeshes.push(mesh);
     });
   }
 
@@ -220,7 +355,6 @@ export class RacerScene
   {
     return this.track;
   }
-
 
   public getTrackCenter(): Vector3 
   {
@@ -254,36 +388,83 @@ export class RacerScene
     };
   }
 
+  public getCheckpoints(): Checkpoint[] 
+  {
+    return [...this.checkpoints];
+  }
+
+  public getCheckpointCount(): number 
+  {
+    return this.checkpoints.length;
+  }
+
+  public getCheckpointPosition(index: number): Vector3 | null 
+  {
+    if (index >= 0 && index < this.checkpoints.length) 
+    {
+      return this.checkpoints[index].position.clone();
+    }
+    return null;
+  }
+
+  public getCheckpointNormal(index: number): Vector3 | null 
+  {
+    if (index >= 0 && index < this.checkpoints.length) 
+    {
+      return this.checkpoints[index].normal.clone();
+    }
+    return null;
+  }
+
+  public getCheckpointName(index: number): string | null 
+  {
+    if (index >= 0 && index < this.checkpoints.length) 
+    {
+      return this.checkpoints[index].name;
+    }
+    return null;
+  }
+
   public isTrackLoaded(): boolean 
   {
     return this.isLoaded && this.track !== null;
   }
 
-public getStartingPositions(count: number = 1): Vector3[] 
-{
-  const positions: Vector3[] = [];
-  
-  if (count <= 0) 
+  public getStartingPositions(count: number = 1): Vector3[] 
   {
-    count = 1;
+    const positions: Vector3[] = [];
+    
+    if (count <= 0) 
+    {
+      count = 1;
+    }
+    const fixedX = 50;
+    const fixedY = 10;
+    
+    const availablePositions = [
+      new Vector3(fixedX, fixedY, -20),
+      new Vector3(fixedX, fixedY, -6.67),
+      new Vector3(fixedX, fixedY, 6.67),
+      new Vector3(fixedX, fixedY, 20)
+    ];
+    
+    for (let i = 0; i < count; i++) 
+    {
+      const randomIndex = Math.floor(Math.random() * availablePositions.length);
+      positions.push(availablePositions[randomIndex].clone());
+    }
+    
+    return positions;
   }
-  const fixedX = 50;
-  const fixedY = 10;
-  
-  const availablePositions = [
-    new Vector3(fixedX, fixedY, -20),
-    new Vector3(fixedX, fixedY, -6.67),
-    new Vector3(fixedX, fixedY, 6.67),
-    new Vector3(fixedX, fixedY, 20)
-  ];
-  for (let i = 0; i < count; i++) 
+
+  public getCheckpointMesh(index: number): AbstractMesh | null 
   {
-    const randomIndex = Math.floor(Math.random() * availablePositions.length);
-    positions.push(availablePositions[randomIndex].clone());
+    if (index >= 0 && index < this.checkpointMeshes.length) 
+    {
+      return this.checkpointMeshes[index];
+    }
+    return null;
   }
-  
-  return positions;
-}
 
   public getGameCanvas(): GameCanvas 
   {
@@ -298,12 +479,5 @@ public getStartingPositions(count: number = 1): Vector3[]
       this.track = null;
     }
     this.isLoaded = false;
-  }
-
-  public static async createCanyonTrack(gameCanvas: GameCanvas, config?: RacerSceneConfig): Promise<RacerScene> 
-  {
-    const racerScene = new RacerScene(gameCanvas, config);
-    await racerScene.loadTrack();
-    return racerScene;
   }
 }

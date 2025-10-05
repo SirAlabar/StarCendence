@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import { resolve } from 'path'
 
 export default defineConfig({
+  base: '/',
   // Development server config
   server: {
     host: true, // Listen on all addresses (for Docker)
