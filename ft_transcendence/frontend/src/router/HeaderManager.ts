@@ -27,7 +27,7 @@ export function mountHeader(type: string, selector: string = '#header'): void
         return;
     }
 
-    switch (type) 
+    switch (currentType) 
     {
         case 'default':
             mountDefault(selector);

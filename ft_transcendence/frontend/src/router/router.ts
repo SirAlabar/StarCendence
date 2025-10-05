@@ -13,6 +13,7 @@ class RouterState
     // Store event listeners for cleanup
     private currentPageInstance: any = null;
     private clickListener: ((e: Event) => void) | null = null;
+    private touchListener: ((e: Event) => void) | null = null; 
     private popstateListener: ((e: PopStateEvent) => void) | null = null;
 
     private constructor() 
@@ -57,6 +58,12 @@ class RouterState
             document.removeEventListener('click', this.clickListener);
             this.clickListener = null;
         }
+
+        if (this.touchListener)
+        {
+            document.removeEventListener('touchend', this.touchListener);
+            this.touchListener = null;
+        }
         
         if (this.popstateListener)
         {
@@ -69,8 +76,10 @@ class RouterState
     {
         this.cleanup();
         this.clickListener = clickListener;
+        this.touchListener = clickListener;
         this.popstateListener = popstateListener;
         document.addEventListener('click', clickListener);
+        document.addEventListener('touchend', clickListener);
         window.addEventListener('popstate', popstateListener);
     }
 }
