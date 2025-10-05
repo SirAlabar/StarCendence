@@ -150,6 +150,7 @@ private setupHamburgerMenu(): void
     if (hamburgerButton && mobileMenu) 
     {
         hamburgerButton.addEventListener('click', this.handleHamburgerClick.bind(this));
+        hamburgerButton.addEventListener('touchstart', this.handleHamburgerClick.bind(this));
         
         document.addEventListener('click', this.handleOutsideClick.bind(this));
         window.addEventListener('resize', this.handleWindowResize.bind(this));

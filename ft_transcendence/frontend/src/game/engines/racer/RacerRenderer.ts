@@ -3,6 +3,7 @@ import { RacerScene } from './RacerScene';
 import { RacerPod } from './RacerPods';
 import { RacerUIManager } from '../../managers/RacerUIManager';
 import { PodConfig } from '../../utils/PodConfig';
+import { RaceManager } from '../../managers/RaceManager';
 
 export interface RacerRendererConfig 
 {
@@ -22,6 +23,7 @@ export class RacerRenderer
   private config: RacerRendererConfig;
   private isInitialized: boolean = false;
   private hudUpdateInterval: number | null = null;
+  private raceManager: RaceManager | null = null;
   
   // Callbacks for UI updates
   public onLoadingProgress: ((message: string, progress: number, stage: string) => void) | null = null;
@@ -107,14 +109,26 @@ export class RacerRenderer
     // Get user avatar
     const userAvatarUrl = this.getUserAvatarUrl();
     const avatarToUse = await this.preloadAvatarImage(userAvatarUrl);
+
+    this.raceManager = new RaceManager();
+    (window as any).raceManager = this.raceManager;
+
+    // Register player
+    if (this.playerPod) 
+    {
+      this.raceManager.registerRacer(this.playerPod);
+    }
+
+    // Start race
+    this.raceManager.startRace();
     
     this.racerUIManager = new RacerUIManager(
     {
       showHUD: true,
       showDebugInfo: this.config.debugMode || false,
       maxSpeed: 600,
-      totalLaps: 1,
-      totalRacers: 4
+      totalLaps: this.raceManager.getTotalLaps(),
+      totalRacers: this.raceManager.getTotalRacers()
     });
 
     (window as any).racerUIManager = this.racerUIManager;
@@ -138,17 +152,7 @@ export class RacerRenderer
     {
       inputManager.setAllowPodMovement(true);
     }
-    
-    if (this.playerPod) 
-    {
-      this.playerPod.startRaceTimer();
-    }
-    
-    // if (this.raceManager) 
-    // {
-    //   this.raceManager.startRace();
-    // }
-    
+ 
     this.racerUIManager.startRace();
     this.startHUDUpdateLoop();
   }
@@ -168,6 +172,11 @@ export class RacerRenderer
       clearInterval(this.hudUpdateInterval);
       this.hudUpdateInterval = null;
     }
+
+    if (this.raceManager) 
+    {
+      this.raceManager.reset();
+    }
     
     // Reset player pod
     if (this.playerPod && this.racerScene) 
@@ -176,7 +185,7 @@ export class RacerRenderer
       const startPos = startPositions[0];
       
       this.playerPod.setPosition(startPos);
-      this.playerPod.initializeCheckpoints(this.racerScene, 3);
+      this.playerPod.initializeCheckpoints(this.racerScene);
       
       // Re-enable physics
       const physics = this.gameCanvas?.getPhysics();
@@ -210,7 +219,13 @@ export class RacerRenderer
     this.hudUpdateInterval = setInterval(() => 
     {
       this.updateHUDFromPhysics();
-    }, 50) as unknown as number; // 20fps for HUD updates
+      
+      // Update race manager
+      if (this.raceManager && this.playerPod) 
+      {
+        this.raceManager.updateRacerProgress(this.playerPod.getConfig().id);
+      }
+    }, 100) as unknown as number;
   }
 
   private updateHUDFromPhysics(): void 
@@ -228,12 +243,18 @@ export class RacerRenderer
 
     const podId = this.playerPod.getConfig().id;
     const currentSpeed = physics.getSpeed(podId);
-    
-    // Convert to km/h for display
     const speedKmh = Math.round(currentSpeed * 3.6);
     
     this.racerUIManager.updateSpeed(speedKmh);
+    
+    if (this.raceManager) 
+    {
+      const position = this.raceManager.calculatePosition(podId);
+      this.racerUIManager.updatePosition(position);
+    }
   }
+
+
 
   private async setupLocalPhysics(): Promise<void> 
   {
@@ -904,6 +925,12 @@ private createLoadingOverlay(): void
 
       this.gameCanvas.dispose();
       this.gameCanvas = null;
+    }
+
+    if (this.raceManager) 
+    {
+      this.raceManager.dispose();
+      this.raceManager = null;
     }
 
     this.isInitialized = false;

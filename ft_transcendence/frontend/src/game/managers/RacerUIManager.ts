@@ -2,6 +2,7 @@
 // RacerUIManager.ts - UI COORDINATOR FOR RACER INTERFACE
 // ====================================================
 import { RacerHUD, RacerData } from '../engines/racer/RacerHUD';
+import { RaceManager } from '../managers/RaceManager';
 
 export interface RacerUIConfig 
 {
@@ -19,6 +20,8 @@ export class RacerUIManager
   private isActive: boolean = false;
   private startTime: number = 0;
   private updateInterval: ReturnType<typeof setInterval> | null = null;
+  private raceManager: RaceManager | null = null;
+
 
   private countdownOverlay: HTMLElement | null = null;
   private finishScreen: HTMLElement | null = null;
@@ -48,7 +51,11 @@ export class RacerUIManager
       totalRacers: 4,
       ...config
     };
-    
+
+    this.raceManager = new RaceManager();
+    this.currentRacerData.totalLaps = this.raceManager.getTotalLaps();
+    this.currentRacerData.totalRacers = this.raceManager.getTotalRacers()
+    this.currentRacerData.maxSpeed = this.config.maxSpeed;
     this.initializeUI();
   }
   
@@ -142,7 +149,7 @@ export class RacerUIManager
     const elapsed = Date.now() - this.startTime;
     this.currentRacerData.raceTime = this.formatTime(elapsed);
   }
-  
+
   private formatTime(milliseconds: number): string 
   {
     const totalSeconds = Math.floor(milliseconds / 1000);
@@ -343,186 +350,132 @@ export class RacerUIManager
     });
   }
 
- private createFinishScreen(): void 
+private createFinishScreen(): void 
 {
   const finishHTML = `
-    <div id="racerFinishScreen" class="fixed inset-0 flex items-center justify-center" style="z-index: 3000; display: none; backdrop-filter: blur(8px); background: rgba(0, 0, 0, 0.5);">
-      <div class="relative max-w-5xl w-full mx-8" style="
+    <div id="racerFinishScreen" class="fixed inset-0 flex items-center justify-center p-4" style="z-index: 3000; display: none; backdrop-filter: blur(8px); background: rgba(0, 0, 0, 0.5);">
+      <div class="relative w-full max-w-6xl h-full max-h-[95vh] flex flex-col" style="
         background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(20, 20, 35, 0.95) 100%);
         border-radius: 24px;
-        border: 3px solid transparent;
-        background-clip: padding-box;
-        box-shadow: 
-          0 0 40px rgba(99, 234, 254, 0.3),
-          0 0 80px rgba(147, 51, 234, 0.2),
-          inset 0 0 60px rgba(99, 234, 254, 0.05);
+        box-shadow: 0 0 40px rgba(99, 234, 254, 0.3), 0 0 80px rgba(147, 51, 234, 0.2);
       ">
-        <!-- Neon border effect -->
-        <div style="
-          position: absolute;
-          inset: -3px;
-          border-radius: 24px;
-          padding: 3px;
+        <!-- Neon border -->
+        <div class="absolute -inset-1 rounded-3xl pointer-events-none opacity-60" style="
           background: linear-gradient(135deg, #63eafe 0%, #9333ea 50%, #ec4899 100%);
           -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
           -webkit-mask-composite: xor;
           mask-composite: exclude;
-          pointer-events: none;
-          opacity: 0.6;
         "></div>
 
         <!-- Header -->
-        <div style="
-          background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
-          padding: 24px;
-          border-radius: 20px 20px 0 0;
-          text-align: center;
-          position: relative;
-          overflow: hidden;
-        ">
-          <div style="
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            animation: shimmer 2s infinite;
-          "></div>
-          <h2 class="text-4xl font-bold text-white" style="text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
-            🏁 Race Complete!
-          </h2>
+        <div class="flex-shrink-0 px-6 py-4 text-center rounded-t-3xl" style="background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);">
+          <h2 class="text-2xl md:text-3xl lg:text-4xl font-bold text-white">🏁 RACE COMPLETE!</h2>
         </div>
 
         <!-- Content -->
-        <div class="p-8">
-          <!-- 4 Player Grid -->
-          <div class="grid grid-cols-2 gap-6 mb-6">
+        <div class="flex-1 p-4 md:p-6 lg:p-8 flex flex-col min-h-0">
+          <!-- Players Grid -->
+          <div class="grid grid-cols-2 gap-3 md:gap-4 lg:gap-6 flex-1 min-h-0">
             <!-- Player 1 (User) -->
-            <div id="finishPlayer1" class="relative p-6 rounded-xl flex flex-col items-center" style="
-              background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(99, 234, 254, 0.1) 100%);
-              border: 2px solid #a855f7;
-              box-shadow: 0 0 20px rgba(168, 85, 247, 0.3), inset 0 0 20px rgba(168, 85, 247, 0.1);
+            <div class="relative p-3 md:p-4 lg:p-6 rounded-xl flex flex-col items-center border-2 border-purple-500" style="
+              background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(99, 234, 254, 0.1));
+              box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
             ">
-              <div class="absolute top-4 left-4 text-6xl font-bold" style="
-                color: #fbbf24;
-                text-shadow: 0 0 20px #fbbf24, 0 0 40px #f59e0b;
-              ">1st</div>
+              <div class="absolute top-2 left-2 md:top-3 md:left-3 lg:top-4 lg:left-4 text-4xl md:text-5xl lg:text-6xl font-bold" style="color: #fbbf24; text-shadow: 0 0 20px #fbbf24;">1st</div>
               
-              <!-- Centered Avatar -->
-              <div class="flex flex-col items-center mt-8 mb-4">
-                <img id="finishAvatar1" src="/assets/images/default-avatar.jpeg" alt="Player" class="w-32 h-32 rounded-full mb-3" style="
-                  border: 4px solid #63eafe;
-                  box-shadow: 0 0 30px rgba(99, 234, 254, 0.6), 0 0 60px rgba(147, 51, 234, 0.4);
-                "/>
-                <div class="text-center">
-                  <div id="finishPlayerName1" class="text-white text-2xl font-bold mb-2">You</div>
-                  <div id="finishTotalTime1" class="text-cyan-400 text-xl font-semibold" style="text-shadow: 0 0 10px #63eafe;">02:45.32</div>
-                </div>
-              </div>
+              <img id="finishAvatar1" src="/assets/images/default-avatar.jpeg" alt="Player" 
+                class="w-20 h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 rounded-full mb-2 md:mb-3 border-4 border-cyan-400" 
+                style="box-shadow: 0 0 30px rgba(99, 234, 254, 0.6);"
+                onerror="this.src='/assets/images/default-avatar.jpeg'"/>
               
-              <div class="w-full mt-4 pt-4 border-t border-gray-600">
-                <div class="text-gray-400 text-sm mb-2 text-center">Lap Times:</div>
-                <div id="finishLapTimes1" class="space-y-1 text-sm">
-                  <!-- Lap times inserted here -->
-                </div>
+              <div id="finishPlayerName1" class="text-white text-lg md:text-xl lg:text-2xl font-bold mb-1 md:mb-2">You</div>
+              <div id="finishTotalTime1" class="text-cyan-400 text-base md:text-lg lg:text-xl font-semibold mb-2 md:mb-3" style="text-shadow: 0 0 10px #63eafe;">02:45.32</div>
+              
+              <div class="w-full mt-2 md:mt-3 lg:mt-4 pt-2 md:pt-3 lg:pt-4 border-t border-gray-600">
+                <div class="text-gray-400 text-xs md:text-sm mb-1 md:mb-2 text-center">Lap Times:</div>
+                <div id="finishLapTimes1" class="space-y-1 text-xs md:text-sm text-center text-white"></div>
               </div>
             </div>
 
             <!-- Player 2 (AI) -->
-            <div id="finishPlayer2" class="relative p-6 rounded-xl flex flex-col items-center" style="
-              background: rgba(60, 60, 80, 0.4);
-              border: 2px solid #6b7280;
-              box-shadow: 0 0 15px rgba(107, 114, 128, 0.2);
-            ">
-              <div class="absolute top-4 left-4 text-5xl font-bold text-gray-400">2nd</div>
+            <div class="relative p-3 md:p-4 lg:p-6 rounded-xl flex flex-col items-center bg-gray-700/40 border-2 border-gray-500">
+              <div class="absolute top-2 left-2 md:top-3 md:left-3 lg:top-4 lg:left-4 text-3xl md:text-4xl lg:text-5xl font-bold text-gray-400">2nd</div>
               
-              <div class="flex flex-col items-center mt-8 mb-4">
-                <img src="/assets/images/default-avatar.jpeg" alt="AI" class="w-32 h-32 rounded-full mb-3 opacity-60" style="
-                  border: 3px solid #6b7280;
-                "/>
-                <div class="text-center">
-                  <div class="text-gray-300 text-2xl font-bold mb-2">AI Racer 1</div>
-                  <div class="text-gray-400 text-xl">02:47.10</div>
+              <img src="/assets/images/default-avatar.jpeg" class="w-20 h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 rounded-full mb-2 md:mb-3 opacity-60 border-3 border-gray-500"/>
+              
+              <div class="text-gray-300 text-lg md:text-xl lg:text-2xl font-bold mb-1 md:mb-2">AI Racer 1</div>
+              <div class="text-gray-400 text-base md:text-lg lg:text-xl mb-2 md:mb-3">02:47.10</div>
+              
+              <div class="w-full mt-2 md:mt-3 lg:mt-4 pt-2 md:pt-3 lg:pt-4 border-t border-gray-600">
+                <div class="text-gray-500 text-xs md:text-sm mb-1 md:mb-2 text-center">Lap Times:</div>
+                <div class="text-gray-500 text-xs md:text-sm text-center space-y-0.5">
+                  <div>Lap 1: 00:55.20</div>
+                  <div>Lap 2: 00:56.10</div>
+                  <div>Lap 3: 00:55.80</div>
                 </div>
               </div>
             </div>
 
             <!-- Player 3 (AI) -->
-            <div id="finishPlayer3" class="relative p-6 rounded-xl flex flex-col items-center" style="
-              background: rgba(60, 60, 80, 0.4);
-              border: 2px solid #6b7280;
-              box-shadow: 0 0 15px rgba(107, 114, 128, 0.2);
-            ">
-              <div class="absolute top-4 left-4 text-5xl font-bold text-gray-400">3rd</div>
+            <div class="relative p-3 md:p-4 lg:p-6 rounded-xl flex flex-col items-center bg-gray-700/40 border-2 border-gray-500">
+              <div class="absolute top-2 left-2 md:top-3 md:left-3 lg:top-4 lg:left-4 text-3xl md:text-4xl lg:text-5xl font-bold text-gray-400">3rd</div>
               
-              <div class="flex flex-col items-center mt-8 mb-4">
-                <img src="/assets/images/default-avatar.jpeg" alt="AI" class="w-32 h-32 rounded-full mb-3 opacity-60" style="
-                  border: 3px solid #6b7280;
-                "/>
-                <div class="text-center">
-                  <div class="text-gray-300 text-2xl font-bold mb-2">AI Racer 2</div>
-                  <div class="text-gray-400 text-xl">02:49.85</div>
+              <img src="/assets/images/default-avatar.jpeg" class="w-20 h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 rounded-full mb-2 md:mb-3 opacity-60 border-3 border-gray-500"/>
+              
+              <div class="text-gray-300 text-lg md:text-xl lg:text-2xl font-bold mb-1 md:mb-2">AI Racer 2</div>
+              <div class="text-gray-400 text-base md:text-lg lg:text-xl mb-2 md:mb-3">02:49.85</div>
+              
+              <div class="w-full mt-2 md:mt-3 lg:mt-4 pt-2 md:pt-3 lg:pt-4 border-t border-gray-600">
+                <div class="text-gray-500 text-xs md:text-sm mb-1 md:mb-2 text-center">Lap Times:</div>
+                <div class="text-gray-500 text-xs md:text-sm text-center space-y-0.5">
+                  <div>Lap 1: 00:56.45</div>
+                  <div>Lap 2: 00:57.20</div>
+                  <div>Lap 3: 00:56.20</div>
                 </div>
               </div>
             </div>
 
             <!-- Player 4 (AI) -->
-            <div id="finishPlayer4" class="relative p-6 rounded-xl flex flex-col items-center" style="
-              background: rgba(60, 60, 80, 0.4);
-              border: 2px solid #6b7280;
-              box-shadow: 0 0 15px rgba(107, 114, 128, 0.2);
-            ">
-              <div class="absolute top-4 left-4 text-5xl font-bold text-gray-400">4th</div>
+            <div class="relative p-3 md:p-4 lg:p-6 rounded-xl flex flex-col items-center bg-gray-700/40 border-2 border-gray-500">
+              <div class="absolute top-2 left-2 md:top-3 md:left-3 lg:top-4 lg:left-4 text-3xl md:text-4xl lg:text-5xl font-bold text-gray-400">4th</div>
               
-              <div class="flex flex-col items-center mt-8 mb-4">
-                <img src="/assets/images/default-avatar.jpeg" alt="AI" class="w-32 h-32 rounded-full mb-3 opacity-60" style="
-                  border: 3px solid #6b7280;
-                "/>
-                <div class="text-center">
-                  <div class="text-gray-300 text-2xl font-bold mb-2">AI Racer 3</div>
-                  <div class="text-gray-400 text-xl">02:52.43</div>
+              <img src="/assets/images/default-avatar.jpeg" class="w-20 h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 rounded-full mb-2 md:mb-3 opacity-60 border-3 border-gray-500"/>
+              
+              <div class="text-gray-300 text-lg md:text-xl lg:text-2xl font-bold mb-1 md:mb-2">AI Racer 3</div>
+              <div class="text-gray-400 text-base md:text-lg lg:text-xl mb-2 md:mb-3">02:52.43</div>
+              
+              <div class="w-full mt-2 md:mt-3 lg:mt-4 pt-2 md:pt-3 lg:pt-4 border-t border-gray-600">
+                <div class="text-gray-500 text-xs md:text-sm mb-1 md:mb-2 text-center">Lap Times:</div>
+                <div class="text-gray-500 text-xs md:text-sm text-center space-y-0.5">
+                  <div>Lap 1: 00:57.80</div>
+                  <div>Lap 2: 00:57.63</div>
+                  <div>Lap 3: 00:57.00</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Best Lap Info -->
-          <div class="mb-6 p-4 rounded-lg text-center" style="
-            background: rgba(99, 234, 254, 0.1);
-            border: 1px solid rgba(99, 234, 254, 0.3);
-          ">
-            <div class="text-gray-400 text-sm mb-1">Your Best Lap</div>
-            <div id="finishBestLap" class="text-cyan-400 text-2xl font-bold" style="text-shadow: 0 0 15px #63eafe;">00:54.21</div>
+          <!-- Best Lap - NOW OUTSIDE THE GRID -->
+          <div class="flex-shrink-0 mt-3 md:mt-4 lg:mt-6 p-3 md:p-4 rounded-lg text-center bg-cyan-400/10 border border-cyan-400/30">
+            <div class="text-gray-400 text-xs md:text-sm mb-1">Your Best Lap</div>
+            <div id="finishBestLap" class="text-cyan-400 text-xl md:text-2xl font-bold" style="text-shadow: 0 0 15px #63eafe;">00:54.21</div>
           </div>
 
-          <!-- Action Buttons -->
-          <div class="flex gap-4">
-            <button id="finishRestartBtn" class="flex-1 font-bold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-3" style="
+          <!-- Buttons -->
+          <div class="flex gap-3 md:gap-4 mt-3 md:mt-4 lg:mt-6 flex-shrink-0">
+            <button id="finishRestartBtn" class="flex-1 font-bold py-3 md:py-4 px-4 md:px-6 rounded-xl text-sm md:text-base transition-all flex items-center justify-center gap-2 text-white border-2" style="
               background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
-              color: white;
-              box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
-              border: 2px solid rgba(168, 85, 247, 0.5);
-            " onmouseover="this.style.boxShadow='0 0 30px rgba(168, 85, 247, 0.6)'" onmouseout="this.style.boxShadow='0 0 20px rgba(168, 85, 247, 0.4)'">
-              <img src="/assets/images/restart_icon.png" alt="Restart" class="w-6 h-6" style="filter: brightness(0) invert(1);" />
-              <span>Race Again</span>
+              border-color: rgba(168, 85, 247, 0.5);
+            ">
+              🔄 Race Again
             </button>
-            <button id="finishLeaveBtn" class="flex-1 font-bold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-3" style="
-              background: rgba(75, 85, 99, 0.5);
-              color: white;
-              border: 2px solid #6b7280;
-            " onmouseover="this.style.background='rgba(75, 85, 99, 0.7)'" onmouseout="this.style.background='rgba(75, 85, 99, 0.5)'">
-              <img src="/assets/images/exit_icon.png" alt="Exit" class="w-6 h-6" style="filter: brightness(0) invert(1);" />
-              <span>Leave Race</span>
+            <button id="finishLeaveBtn" class="flex-1 font-bold py-3 md:py-4 px-4 md:px-6 rounded-xl text-sm md:text-base transition-all flex items-center justify-center gap-2 text-white bg-gray-600/50 border-2 border-gray-500 hover:bg-gray-600/70">
+              🚪 Leave Race
             </button>
           </div>
         </div>
       </div>
     </div>
-
-    <style>
-      @keyframes shimmer {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(100%); }
-      }
-    </style>
   `;
   
   document.body.insertAdjacentHTML('beforeend', finishHTML);
@@ -535,10 +488,7 @@ export class RacerUIManager
   {
     restartBtn.addEventListener('click', () => 
     {
-      if (this.onRestartCallback) 
-      {
-        this.onRestartCallback();
-      }
+      if (this.onRestartCallback) this.onRestartCallback();
     });
   }
   
@@ -546,10 +496,7 @@ export class RacerUIManager
   {
     leaveBtn.addEventListener('click', () => 
     {
-      if (this.onLeaveCallback) 
-      {
-        this.onLeaveCallback();
-      }
+      if (this.onLeaveCallback) this.onLeaveCallback();
     });
   }
 }

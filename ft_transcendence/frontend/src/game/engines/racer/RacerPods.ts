@@ -27,14 +27,6 @@ export class RacerPod
   private racerScene: RacerScene | null = null;
   private startPosition: Vector3 | null = null;
 
-  private currentLap: number = 1;
-  private totalLaps: number = 3;
-  private lapStartTime: number = 0;
-  private lapTimes: number[] = [];
-  private raceStartTime: number = 0;
-  private isRaceFinished: boolean = false;
-  private readonly MIN_CHECKPOINTS_FOR_LAP = 10;
-
   public onLoaded?: (pod: RacerPod) => void;
   public onLoadingProgress?: (progress: number) => void;
   public onLoadingError?: (error: string) => void;
@@ -156,23 +148,18 @@ export class RacerPod
     this.physicsEnabled = false;
   }
 
-  public initializeCheckpoints(racerScene: RacerScene, totalLaps: number = 3): void 
+  public initializeCheckpoints(racerScene: RacerScene): void 
   {
     this.racerScene = racerScene;
     const checkpointCount = racerScene.getCheckpointCount();
     this.checkpointsPassed = new Array(checkpointCount).fill(false);
     this.currentCheckpointIndex = 0;
     this.lastPassedCheckpointIndex = -1;
-
-    this.currentLap = 1;
-    this.totalLaps = totalLaps;
-    this.lapTimes = [];
-    this.isRaceFinished = false;
   }
 
 public checkCheckpointCollision(): number | null
 {
-  if (!this.racerScene || this.isRaceFinished || !this.mesh) return null;
+  if (!this.racerScene || !this.mesh) return null;
   
   const podMesh = this.mesh as Mesh;
   const podPos = podMesh.getAbsolutePosition();
@@ -194,18 +181,23 @@ public checkCheckpointCollision(): number | null
     
     if (isStartLine)
     {
-      const passedCount = this.getPassedCheckpointCount();
-      
-      if (passedCount >= this.MIN_CHECKPOINTS_FOR_LAP)
+      // Notify RaceManager
+      if ((window as any).raceManager) 
       {
-        this.completeLap();
-        return i;
+        (window as any).raceManager.onCheckpointPassed(this.config.id, true);
       }
+      return i;
     }
     else if (podMesh.intersectsMesh(checkpointMesh, false))
     {
       this.checkpointsPassed[i] = true;
       this.lastPassedCheckpointIndex = i;
+      
+      // Notify RaceManager
+      if ((window as any).raceManager) 
+      {
+        (window as any).raceManager.onCheckpointPassed(this.config.id, false);
+      }
       return i;
     }
   }
@@ -213,79 +205,10 @@ public checkCheckpointCollision(): number | null
   return null;
 }
 
-
-  private getPassedCheckpointCount(): number 
-  {
-    return this.checkpointsPassed.filter(passed => passed).length;
-  }
-
-private completeLap(): void 
-{
-  const currentTime = Date.now();
-  const lapTime = currentTime - this.lapStartTime;
-  
-  this.lapTimes.push(lapTime);
-  
-  if ((window as any).racerUIManager) 
-  {
-    (window as any).racerUIManager.onLapComplete(this.currentLap, lapTime);
-  }
-  else
-  {
-    console.error('racerUIManager not found on window!');
-  }
-  
-  this.currentLap++;
-  
-  if (this.currentLap > this.totalLaps) 
-  {
-    this.finishRace();
-  }
-  else
-  {
-    this.resetCheckpointProgress();
-    this.lapStartTime = currentTime;
-    
-    if ((window as any).racerUIManager) 
-    {
-      (window as any).racerUIManager.updateLap(this.currentLap);
-    }
-  }
-}
-
-  private finishRace(): void 
-  {
-    this.isRaceFinished = true;
-    const totalTime = Date.now() - this.raceStartTime;
-
-    // Show finish screen through UI manager
-    if ((window as any).racerUIManager) 
-    {
-      (window as any).racerUIManager.showRaceFinishScreen({
-        position: 1,
-        totalTime: this.formatTime(totalTime),
-        lapTimes: this.lapTimes,
-        bestLap: this.getBestLapTime(),
-        playerName: 'Player',
-        avatarUrl: (window as any).playerAvatarUrl || '/assets/images/default-avatar.jpeg'
-      });
-    }
-  }
-
   public resetCheckpointProgress(): void 
   {
     this.checkpointsPassed.fill(false);
     this.currentCheckpointIndex = 0;
-  }
-
-  private formatTime(milliseconds: number): string 
-  {
-    const totalSeconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    const ms = Math.floor((milliseconds % 1000) / 10);
-    
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   }
 
   public getRaceProgress(): number 
@@ -376,63 +299,6 @@ public shouldRespawnPlayer(playerPosition: Vector3): boolean
   public getConfig(): PodConfig 
   {
     return this.config;
-  }
-
-  public getCurrentLap(): number 
-  {
-    return this.currentLap;
-  }
-
-  public getTotalLaps(): number 
-  {
-    return this.totalLaps;
-  }
-
-  public getLapTimes(): number[] 
-  {
-    return [...this.lapTimes];
-  }
-
-  public getBestLapTime(): number | null 
-  {
-    return this.lapTimes.length > 0 ? Math.min(...this.lapTimes) : null;
-  }
-
-  public getTotalRaceTime(): number 
-  {
-    return Date.now() - this.raceStartTime;
-  }
-
-  public startRaceTimer(): void 
-  {
-    this.raceStartTime = Date.now();
-    this.lapStartTime = this.raceStartTime;
-  }
-
-  public isRaceComplete(): boolean 
-  {
-    return this.isRaceFinished;
-  }
-
-  public getRaceResults(): {
-    totalTime: number;
-    lapTimes: number[];
-    bestLap: number | null;
-    averageLapTime: number | null;
-  } 
-  {
-    const totalTime = Date.now() - this.raceStartTime;
-    const bestLap = this.getBestLapTime();
-    const averageLapTime = this.lapTimes.length > 0 
-      ? this.lapTimes.reduce((sum, time) => sum + time, 0) / this.lapTimes.length 
-      : null;
-    
-    return {
-      totalTime,
-      lapTimes: [...this.lapTimes],
-      bestLap,
-      averageLapTime
-    };
   }
 
   public dispose(): void 
