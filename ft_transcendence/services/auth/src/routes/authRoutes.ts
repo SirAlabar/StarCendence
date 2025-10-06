@@ -24,7 +24,6 @@ export async function authRoutes(fastify: FastifyInstance){
   },
   loginController.verifyTwoFA);
 
-  // no schema needed?
   fastify.post('/logout',
   {
     preHandler: [verifyUserToken],

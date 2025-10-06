@@ -4,6 +4,10 @@ import * as userSchema from '../schemas/userSchema';
 
 
 export async function internalRoutes(fastify: FastifyInstance) {
-  fastify.post('/create-user', { schema: userSchema.createUserSchema }, userController.createUser);
-  fastify.get('/users/:id', { schema: userSchema.getUserByIdSchema }, userController.getUserById);
+  fastify.post('/create-user',
+  {
+    schema: userSchema.createUserSchema
+  },
+  userController.createUser);
+
 }

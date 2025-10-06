@@ -2,21 +2,6 @@ import {FastifyReply, FastifyRequest} from "fastify";
 import {readFileSync} from "fs";
 import {HttpError} from "../utils/HttpError";
 
-// Extend Fastify request interface
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: {
-      sub: string;      // User ID
-      email: string;
-      username: string;
-      type: string;
-      iat?: number;     // Issued at
-      exp?: number;     // Expires at
-      iss?: string;     // Issuer
-    };
-  }
-}
-
 // Get internal API key from Docker secret
 function getInternalApiKey(): string {
 	const apiKey: string = readFileSync('/run/secrets/internal_api_key', 'utf8').trim();
