@@ -17,6 +17,8 @@ export class AIRacerController
   private stuckTimer: number = 0;
   private lastPosition: Vector3 = Vector3.Zero();
   
+  private enabled: boolean = false;  // NEW: AI starts disabled
+  
   constructor(
     pod: RacerPod,
     physics: RacerPhysics,
@@ -30,21 +32,35 @@ export class AIRacerController
     this.config = AIDifficulty.getConfig(difficulty);
     
     const startPos = pod.getPosition();
-    this.currentWaypointIndex = waypoints.getClosestWaypoint(startPos);
     
-    const nextWaypoint = waypoints.getNextWaypoint(startPos, this.currentWaypointIndex);
-    this.targetWaypoint = nextWaypoint.position;
+    // Start at waypoint 1 (first checkpoint), skip waypoint 0 (start_line)
+    // because bot spawns past the start line
+    this.currentWaypointIndex = 1;
+    
+    const firstWaypoint = waypoints.getNextWaypoint(startPos, 1);
+    this.targetWaypoint = firstWaypoint.position;
     this.lastPosition = startPos.clone();
+    
+    console.log(`[AI ${pod.getConfig().name}] Initialized targeting waypoint 1 (${firstWaypoint.position.x.toFixed(0)}, ${firstWaypoint.position.z.toFixed(0)})`);
   }
   
   public update(deltaTime: number): void 
   {
+    // NEW: Don't update if disabled (during countdown)
+    if (!this.enabled) 
+    {
+      return;
+    }
+    
     const podPos = this.pod.getPosition();
     
     const waypointUpdate = this.waypoints.getNextWaypoint(podPos, this.currentWaypointIndex);
     
+    const distanceToWaypoint = Vector3.Distance(podPos, waypointUpdate.position);
+    
     if (waypointUpdate.index !== this.currentWaypointIndex) 
     {
+      console.log(`[AI ${this.pod.getConfig().name}] Reached waypoint ${this.currentWaypointIndex}, moving to ${waypointUpdate.index}`);
       this.currentWaypointIndex = waypointUpdate.index;
     }
     
@@ -52,6 +68,16 @@ export class AIRacerController
     
     const steering = this.calculateSteering(podPos);
     const throttle = this.calculateThrottle(podPos);
+    
+    // Debug log every 60 frames (~1 second at 60fps)
+    if (Math.random() < 0.016) 
+    {
+      console.log(`[AI ${this.pod.getConfig().name}] Waypoint: ${this.currentWaypointIndex}/${this.waypoints.getWaypointCount()}`);
+      console.log(`  Position: (${podPos.x.toFixed(1)}, ${podPos.y.toFixed(1)}, ${podPos.z.toFixed(1)})`);
+      console.log(`  Target: (${this.targetWaypoint.x.toFixed(1)}, ${this.targetWaypoint.y.toFixed(1)}, ${this.targetWaypoint.z.toFixed(1)})`);
+      console.log(`  Distance to waypoint: ${distanceToWaypoint.toFixed(1)}`);
+      console.log(`  Steering: ${steering.toFixed(2)}, Throttle: ${throttle.toFixed(2)}`);
+    }
     
     this.physics.movePod(this.pod.getConfig().id, 
     {
@@ -109,12 +135,17 @@ export class AIRacerController
     
     let throttle = this.config.speedMultiplier;
     
-    if (alignment < 0.7) 
+    // Only slow down in VERY sharp turns
+    if (alignment < 0.5) 
     {
-      throttle *= 0.75;
+      throttle *= 0.85;
+    }
+    else if (alignment < 0.7) 
+    {
+      throttle *= 0.95;
     }
     
-    return Math.max(0.3, throttle);
+    return Math.max(0.5, throttle);
   }
   
   private checkStuck(currentPos: Vector3, deltaTime: number): void 
@@ -125,10 +156,22 @@ export class AIRacerController
     {
       this.stuckTimer += deltaTime;
       
-      if (this.stuckTimer > 2.0) 
+      if (this.stuckTimer > 5.0) 
       {
+        console.error(`[AI ${this.pod.getConfig().name}] STUCK DETECTED!`);
+        console.error(`  Position: (${currentPos.x.toFixed(1)}, ${currentPos.y.toFixed(1)}, ${currentPos.z.toFixed(1)})`);
+        console.error(`  Moved only: ${moved.toFixed(3)} units in 2 seconds`);
+        console.error(`  Physics ID: ${this.pod.getConfig().id}`);
+        
+        // Try to get current speed from physics
+        const speed = this.physics.getSpeed(this.pod.getConfig().id);
+        console.error(`  Current speed: ${speed.toFixed(2)}`);
+        
+        // Jump to next waypoint
         this.currentWaypointIndex = (this.currentWaypointIndex + 1) % this.waypoints.getWaypointCount();
         this.stuckTimer = 0;
+        
+        console.warn(`  Skipping to waypoint ${this.currentWaypointIndex}`);
       }
     } 
     else 
@@ -142,6 +185,25 @@ export class AIRacerController
   public getPod(): RacerPod 
   {
     return this.pod;
+  }
+  
+  public setEnabled(enabled: boolean): void 
+  {
+    this.enabled = enabled;
+    
+    if (enabled) 
+    {
+      console.log(`[AI ${this.pod.getConfig().name}] Enabled - ready to race!`);
+    }
+    else 
+    {
+      console.log(`[AI ${this.pod.getConfig().name}] Disabled - waiting for countdown`);
+    }
+  }
+  
+  public isEnabled(): boolean 
+  {
+    return this.enabled;
   }
   
   public dispose(): void 

@@ -16,12 +16,25 @@ export class AIWaypointSystem
   {
     const checkpoints = racerScene.getCheckpoints();
     
+    console.log(`[Waypoints] Found ${checkpoints.length} checkpoints in scene`);
+    
     this.waypoints = checkpoints.map((checkpoint, index) => 
-    ({
-      id: index,
-      position: checkpoint.position.clone(),
-      radius: 30
-    }));
+    {
+      // Use the checkpoint position that was already calculated correctly
+      // in RacerScene.processCheckpoints() - it's already in world space
+      const targetPosition = checkpoint.position.clone();
+      
+      console.log(`[Waypoints] Checkpoint ${index} (${checkpoint.name}):`, 
+        `Position: (${targetPosition.x.toFixed(1)}, ${targetPosition.y.toFixed(1)}, ${targetPosition.z.toFixed(1)})`);
+      
+      return {
+        id: index,
+        position: targetPosition,
+        radius: 7
+      };
+    });
+    
+    console.log(`[Waypoints] Generated ${this.waypoints.length} waypoints successfully`);
   }
   
   public getNextWaypoint(currentPos: Vector3, currentIndex: number): { index: number; position: Vector3 } 

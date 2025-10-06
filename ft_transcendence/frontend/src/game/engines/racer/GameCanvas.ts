@@ -313,6 +313,12 @@ export class GameCanvas
         this.inputManager.update();
       }
 
+      if ((window as any).aiBots) 
+      {
+        const deltaTime = this.engine!.getDeltaTime() / 1000;
+        (window as any).aiBots.forEach((ai: any) => ai.update(deltaTime));
+      }
+
       if (this.scene) 
       {
         this.scene.render();

@@ -334,6 +334,24 @@ export class RacerScene
       this.checkpoints.push(checkpoint);
       this.checkpointMeshes.push(mesh);
     });
+
+    const startLineIndex = this.checkpoints.findIndex(cp => cp.name.toLowerCase() === 'start_line');
+  
+    if (startLineIndex > 0) 
+    {
+      const startLineCheckpoint = this.checkpoints.splice(startLineIndex, 1)[0];
+      const startLineMesh = this.checkpointMeshes.splice(startLineIndex, 1)[0];
+      
+      this.checkpoints.unshift(startLineCheckpoint);
+      this.checkpointMeshes.unshift(startLineMesh);
+      
+      this.checkpoints.forEach((cp, i) => 
+      {
+        cp.id = i;
+      });
+      
+      console.log('[RacerScene] Reordered: start_line is now waypoint 0');
+    }
   }
 
   private setupRacingEnvironment(): void 
@@ -448,10 +466,9 @@ export class RacerScene
       new Vector3(fixedX, fixedY, 20)
     ];
     
-    for (let i = 0; i < count; i++) 
+    for (let i = 0; i < Math.min(count, availablePositions.length); i++) 
     {
-      const randomIndex = Math.floor(Math.random() * availablePositions.length);
-      positions.push(availablePositions[randomIndex].clone());
+      positions.push(availablePositions[i].clone());
     }
     
     return positions;

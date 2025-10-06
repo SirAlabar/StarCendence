@@ -154,13 +154,19 @@ export class RacerRenderer
     {
       inputManager.setAllowPodMovement(false);
     }
-    
+
+    this.aiBots.forEach(ai => ai.setEnabled(false));
+    console.log('[AI] All bots disabled for countdown');
+
     await this.racerUIManager.showCountdown(5);
     
     if (inputManager) 
     {
       inputManager.setAllowPodMovement(true);
     }
+
+    this.aiBots.forEach(ai => ai.setEnabled(true));
+    console.log('[AI] All bots enabled - race started!');
  
     this.racerUIManager.startRace();
     this.startHUDUpdateLoop();
@@ -170,6 +176,7 @@ export class RacerRenderer
   {
     if (!this.racerScene || !this.gameCanvas || !this.waypointSystem) 
     {
+      console.error('[AI] Missing dependencies for loading AI bots');
       return;
     }
     
@@ -178,8 +185,11 @@ export class RacerRenderer
     
     if (!physics || !scene) 
     {
+      console.error('[AI] Physics or scene not ready');
       return;
     }
+    
+    const NUMBER_OF_BOTS = 1;
     
     const startPositions = this.racerScene.getStartingPositions(4);
     
@@ -187,52 +197,46 @@ export class RacerRenderer
     const playerPodId = this.playerPod!.getConfig().id;
     const availableForAI = AVAILABLE_PODS.filter(pod => pod.id !== playerPodId);
     
-    // Shuffle and pick 3 random pods
-    const shuffled = [...availableForAI].sort(() => Math.random() - 0.5);
-    const selectedPods = shuffled.slice(0, 3);
-    
-    // AI configurations
-    const aiConfigs = [
-      { 
-        difficulty: AIDifficultyLevel.HARD, 
-        position: startPositions[1],
-        podConfig: selectedPods[0]
-      },
-      { 
-        difficulty: AIDifficultyLevel.MEDIUM, 
-        position: startPositions[2],
-        podConfig: selectedPods[1]
-      },
-      { 
-        difficulty: AIDifficultyLevel.EASY, 
-        position: startPositions[3],
-        podConfig: selectedPods[2]
-      }
-    ];
-    
-    for (let i = 0; i < aiConfigs.length; i++) 
+    if (availableForAI.length < NUMBER_OF_BOTS) 
     {
-      const config = aiConfigs[i];
+      console.error(`[AI] Not enough pods available. Need ${NUMBER_OF_BOTS}, have ${availableForAI.length}`);
+      return;
+    }
+    
+    // Shuffle pods randomly
+    const shuffledPods = [...availableForAI].sort(() => Math.random() - 0.5);
+    
+    // Available difficulties
+    const difficulties = [AIDifficultyLevel.EASY, AIDifficultyLevel.MEDIUM, AIDifficultyLevel.HARD];
+    
+    console.log(`[AI] Loading ${NUMBER_OF_BOTS} AI bots...`);
+    
+    for (let i = 0; i < NUMBER_OF_BOTS; i++) 
+    {
+      // Random difficulty for each bot
+      const randomDifficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
       
-      // Use the pod config directly, just change the id
       const aiPodConfig: PodConfig = 
       {
-        ...config.podConfig,
+        ...shuffledPods[i],
         id: `ai_bot_${i + 1}`
       };
+      
+      console.log(`[AI] Bot ${i + 1}: ${aiPodConfig.name} (${randomDifficulty})`);
+      console.log(`[AI] Starting at position ${i + 1}:`, startPositions[i + 1]);
       
       const aiPod = new RacerPod(scene, aiPodConfig);
       await aiPod.loadModel();
       
-      aiPod.setPosition(config.position);
+      aiPod.setPosition(startPositions[i + 1]);
       aiPod.initializeCheckpoints(this.racerScene);
-      aiPod.enablePhysics(physics, config.position);
+      aiPod.enablePhysics(physics, startPositions[i + 1]);
       
       const aiController = new AIRacerController(
         aiPod,
         physics,
         this.waypointSystem,
-        config.difficulty
+        randomDifficulty
       );
       
       this.aiBots.push(aiController);
@@ -243,7 +247,9 @@ export class RacerRenderer
       }
     }
     
-    console.log(`Loaded ${this.aiBots.length} AI bots`);
+    console.log(`[AI] Loaded ${this.aiBots.length} AI bots successfully`);
+    
+    (window as any).aiBots = this.aiBots;
   }
 
   private handleRestartRace(): void 
@@ -312,8 +318,6 @@ export class RacerRenderer
     {
       this.updateHUDFromPhysics();
 
-      this.aiBots.forEach(ai => ai.update(0.1));
-      
       // Update race manager
       if (this.raceManager && this.playerPod) 
       {
