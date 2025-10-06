@@ -25,3 +25,16 @@ export const createUserSchema = {
     }
   }
 };
+
+// User profile update schema for PUT /profile
+export const updateUserProfileSchema = {
+  body: {
+    type: 'object',
+    required: ['bio', 'avatarUrl'],
+    additionalProperties: false,
+    properties: {
+      bio: { type: 'string', maxLength: 160, nullable: true },
+      avatarUrl: { type: 'string', format: 'uri', nullable: true }
+    },
+  }
+};

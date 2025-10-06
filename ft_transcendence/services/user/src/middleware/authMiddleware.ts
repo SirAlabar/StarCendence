@@ -31,7 +31,7 @@ export async function verifyUserToken(req: FastifyRequest, reply: FastifyReply) 
   });
 
   if (!response.ok) {
-    return reply.status(401).send({ error: 'Invalid token or API key' });
+    return reply.status(401).send({ error: 'Invalid or expired token' });
   }
 
   const data = await response.json();
