@@ -30,11 +30,11 @@ export const createUserSchema = {
 export const updateUserProfileSchema = {
   body: {
     type: 'object',
-    required: ['bio', 'avatarUrl'],
+    required: ['bio'],
     additionalProperties: false,
     properties: {
       bio: { type: 'string', maxLength: 160, nullable: true },
-      avatarUrl: { type: 'string', format: 'uri', nullable: true }
     },
   }
 };
+

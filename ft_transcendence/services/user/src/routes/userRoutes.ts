@@ -16,4 +16,10 @@ export async function userRoutes(fastify: FastifyInstance) {
     schema: updateUserProfileSchema
   },
   userController.updateUserProfile);
+
+  fastify.post('/profile-img',
+  {
+    preHandler: [verifyUserToken]
+  },
+  userController.uploadProfileImage);
 }
