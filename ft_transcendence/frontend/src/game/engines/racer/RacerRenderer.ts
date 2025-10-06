@@ -2,8 +2,12 @@ import { GameCanvas } from './GameCanvas';
 import { RacerScene } from './RacerScene';
 import { RacerPod } from './RacerPods';
 import { RacerUIManager } from '../../managers/RacerUIManager';
-import { PodConfig } from '../../utils/PodConfig';
+import { AVAILABLE_PODS, PodConfig } from '../../utils/PodConfig';
 import { RaceManager } from '../../managers/RaceManager';
+import { AIWaypointSystem } from '../../ai/AIWaypointSystem';
+import { AIRacerController } from '../../ai/AIRacerController';
+import { AIDifficultyLevel } from '../../ai/AIDifficulty';
+
 
 export interface RacerRendererConfig 
 {
@@ -24,6 +28,8 @@ export class RacerRenderer
   private isInitialized: boolean = false;
   private hudUpdateInterval: number | null = null;
   private raceManager: RaceManager | null = null;
+  private aiBots: AIRacerController[] = [];
+  private waypointSystem: AIWaypointSystem | null = null;
   
   // Callbacks for UI updates
   public onLoadingProgress: ((message: string, progress: number, stage: string) => void) | null = null;
@@ -119,6 +125,9 @@ export class RacerRenderer
       this.raceManager.registerRacer(this.playerPod);
     }
 
+    this.waypointSystem = new AIWaypointSystem(this.racerScene!);
+    await this.loadAIBots();
+
     // Start race
     this.raceManager.startRace();
     
@@ -157,6 +166,86 @@ export class RacerRenderer
     this.startHUDUpdateLoop();
   }
 
+  private async loadAIBots(): Promise<void> 
+  {
+    if (!this.racerScene || !this.gameCanvas || !this.waypointSystem) 
+    {
+      return;
+    }
+    
+    const physics = this.gameCanvas.getPhysics();
+    const scene = this.gameCanvas.getScene();
+    
+    if (!physics || !scene) 
+    {
+      return;
+    }
+    
+    const startPositions = this.racerScene.getStartingPositions(4);
+    
+    // Get available pods excluding player's pod
+    const playerPodId = this.playerPod!.getConfig().id;
+    const availableForAI = AVAILABLE_PODS.filter(pod => pod.id !== playerPodId);
+    
+    // Shuffle and pick 3 random pods
+    const shuffled = [...availableForAI].sort(() => Math.random() - 0.5);
+    const selectedPods = shuffled.slice(0, 3);
+    
+    // AI configurations
+    const aiConfigs = [
+      { 
+        difficulty: AIDifficultyLevel.HARD, 
+        position: startPositions[1],
+        podConfig: selectedPods[0]
+      },
+      { 
+        difficulty: AIDifficultyLevel.MEDIUM, 
+        position: startPositions[2],
+        podConfig: selectedPods[1]
+      },
+      { 
+        difficulty: AIDifficultyLevel.EASY, 
+        position: startPositions[3],
+        podConfig: selectedPods[2]
+      }
+    ];
+    
+    for (let i = 0; i < aiConfigs.length; i++) 
+    {
+      const config = aiConfigs[i];
+      
+      // Use the pod config directly, just change the id
+      const aiPodConfig: PodConfig = 
+      {
+        ...config.podConfig,
+        id: `ai_bot_${i + 1}`
+      };
+      
+      const aiPod = new RacerPod(scene, aiPodConfig);
+      await aiPod.loadModel();
+      
+      aiPod.setPosition(config.position);
+      aiPod.initializeCheckpoints(this.racerScene);
+      aiPod.enablePhysics(physics, config.position);
+      
+      const aiController = new AIRacerController(
+        aiPod,
+        physics,
+        this.waypointSystem,
+        config.difficulty
+      );
+      
+      this.aiBots.push(aiController);
+      
+      if (this.raceManager) 
+      {
+        this.raceManager.registerRacer(aiPod);
+      }
+    }
+    
+    console.log(`Loaded ${this.aiBots.length} AI bots`);
+  }
+
   private handleRestartRace(): void 
   {
     // Hide finish screen
@@ -177,6 +266,9 @@ export class RacerRenderer
     {
       this.raceManager.reset();
     }
+
+    this.aiBots.forEach(ai => ai.dispose());
+    this.aiBots = [];
     
     // Reset player pod
     if (this.playerPod && this.racerScene) 
@@ -219,6 +311,8 @@ export class RacerRenderer
     this.hudUpdateInterval = setInterval(() => 
     {
       this.updateHUDFromPhysics();
+
+      this.aiBots.forEach(ai => ai.update(0.1));
       
       // Update race manager
       if (this.raceManager && this.playerPod) 
@@ -889,6 +983,14 @@ private createLoadingOverlay(): void
     {
       clearInterval(this.hudUpdateInterval);
       this.hudUpdateInterval = null;
+    }
+
+    this.aiBots.forEach(ai => ai.dispose());
+    this.aiBots = [];
+    
+    if (this.waypointSystem) 
+    {
+      this.waypointSystem = null;
     }
     
     if (this.loadingOverlay) 
