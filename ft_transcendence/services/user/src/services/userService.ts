@@ -1,6 +1,8 @@
 import { HttpError } from "../utils/HttpError";
 import * as userRepository from "../repositories/userRepository";
 import { UserProfile } from "../types/user.types";
+import path from "path";
+import fs from 'fs/promises';
 
 // Create a new user profile
 export async function createUserProfile(authId: string, email: string, username: string) {
@@ -21,10 +23,37 @@ export async function findUserProfileById(id: string) {
 }
 
 // Update user profile
-export async function updateUserProfile(id: string, updatedData: UserProfile) {
+export async function updateUserProfile(id: string, updatedData: Partial<UserProfile>) {
   const user = await userRepository.updateUserProfile(id, updatedData);
   if (!user) {
     throw new HttpError('User not found', 404);
   }
   return user;
+}
+
+// Upload or update user profile image
+export async function uploadProfileImage(id: string, image: any) : Promise<string> {
+  if (!image) {
+    throw new HttpError('No image provided', 400);
+  }
+
+  const ext = path.extname(image.filename).toLowerCase();
+  if (!['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) {
+    throw new HttpError('Invalid image format. Only JPG, PNG, and GIF are allowed.', 400);
+  }
+  
+  const uniqueName = `${id}-${Date.now()}${ext}`;
+
+  const uploadPath = path.join(__dirname, '../../uploads/avatars', uniqueName);
+  await fs.mkdir(path.dirname(uploadPath), { recursive: true });
+
+  const buffer = await image.toBuffer();
+  await fs.writeFile(uploadPath, buffer);
+
+  const user = await userRepository.uploadProfileImage(id, uniqueName);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+
+  return user.avatarUrl ?? '';
 }

@@ -17,6 +17,5 @@ export interface UserProfile {
 }
 
 export interface UpdateUserBody {
-  bio?: string;
-  avatarUrl?: string;
+  bio?: string | null;
 }

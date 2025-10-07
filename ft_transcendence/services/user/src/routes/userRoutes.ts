@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { verifyUserToken } from '../middleware/authMiddleware';
 import * as userController from '../controllers/userController';
 import { updateUserProfileSchema } from '../schemas/userSchema';
+import { UpdateUserBody } from '../types/user.types';
 
 export async function userRoutes(fastify: FastifyInstance) {
   fastify.get('/profile',
@@ -10,14 +11,15 @@ export async function userRoutes(fastify: FastifyInstance) {
   },
   userController.getUserProfile);
 
-  fastify.put('/profile',
+  fastify.put<{ Body: UpdateUserBody }>
+  ('/profile',
   {
     preHandler: [verifyUserToken],
     schema: updateUserProfileSchema
   },
   userController.updateUserProfile);
 
-  fastify.post('/profile-img',
+  fastify.post('/profile-image',
   {
     preHandler: [verifyUserToken]
   },

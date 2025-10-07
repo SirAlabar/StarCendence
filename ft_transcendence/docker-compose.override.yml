@@ -41,6 +41,7 @@ services:
       - ./services/user:/app
       - /app/node_modules
       - user_data:/app/data
+      - user_avatars:/app/uploads/avatars
     environment:
       - PRISMA_STUDIO=1
       - PRISMA_STUDIO_PORT=5004

@@ -22,9 +22,19 @@ export async function findUserProfileById(id: string) {
 }
 
 // Update user profile
-export async function updateUserProfile(id: string, updatedData: UserProfile) {
+export async function updateUserProfile(id: string, updatedData: Partial<UserProfile>) {
   return prisma.userProfile.update({
     where: { id },
     data: updatedData
+  });
+}
+
+// Upload or update user profile image
+export async function uploadProfileImage(id:string, filename: string) {
+  return prisma.userProfile.update({
+    where: { id },
+    data: {
+      avatarUrl: `/avatars/${filename}`
+    }
   });
 }

@@ -1,6 +1,7 @@
 import Fastify, { FastifyRequest, FastifyReply } from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
+import fastifyMultipart from '@fastify/multipart'
 import { internalEndpointProtection } from './middleware/securityMiddleware'
 import { fastifyErrorHandler } from './handlers/errorHandler'
 import { internalRoutes } from './routes/internalRoutes'
@@ -12,6 +13,9 @@ export async function buildApp() {
   // Register plugins
   await fastify.register(cors)
   await fastify.register(helmet)
+  await fastify.register(fastifyMultipart, {
+    limits: { fileSize: 5 * 1024 * 1024 }
+  })
 
   // Global error handler and security hook
   fastify.setErrorHandler(fastifyErrorHandler);

@@ -43,15 +43,22 @@ export async function updateUserProfile( req: FastifyRequest<{ Body: UpdateUserB
   return reply.send({ user: updatedUser });
 }
 
-// POST /profile-img - Upload or update user's profile image (requires authentication)
+// POST /profile-image - Upload or update user's profile image (requires authentication)
 export async function uploadProfileImage(req: FastifyRequest, reply: FastifyReply) {
   const userId = req.user?.sub;
   if (!userId) {
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
   }
 
-  const image = req.body;
+  const image = await req.file({ limits: { fileSize: 5 * 1024 * 1024 } });
   if (!image) {
     return reply.status(400).send({ error: 'No image provided' });
   }
+
+  const imageUrl: Promise<string> = userService.uploadProfileImage(userId, image);
+  if (!imageUrl) {
+    return reply.status(404).send({ error: 'User not found' });
+  }
+
+  return reply.send({ imageUrl });
 }

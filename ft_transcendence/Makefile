@@ -33,6 +33,7 @@ FRONTEND_VOLUME = $(DOCKER_DATA_DIR)/frontend
 REDIS_VOLUME = $(DOCKER_DATA_DIR)/redis
 USER_VOLUME = $(DOCKER_DATA_DIR)/user
 AUTH_VOLUME = $(DOCKER_DATA_DIR)/auth
+USER_AVATARS_VOLUME = $(DOCKER_DATA_DIR)/user/avatars
 
 
 ################################################################################
@@ -128,11 +129,13 @@ create-volumes:
 	@mkdir -p $(REDIS_VOLUME)
 	@mkdir -p $(USER_VOLUME)
 	@mkdir -p $(AUTH_VOLUME)
+	@mkdir -p $(USER_AVATARS_VOLUME)
 	@printf "$(GREEN)✅ Volume directories created:$(DEFAULT)\n"
 	@printf "  - $(FRONTEND_VOLUME)\n"
 	@printf "  - $(REDIS_VOLUME)\n"
 	@printf "  - $(USER_VOLUME)\n"
 	@printf "  - $(AUTH_VOLUME)\n"
+	@printf "  - $(USER_AVATARS_VOLUME)\n"
 
 .PHONY: setup-env
 setup-env:
@@ -326,7 +329,7 @@ quick: create-volumes start health
 #                               BACKEND DEVELOPMENT                            #
 ################################################################################
 
-.PHONY : user_service_restart auth_service_restart db_clean npm_run
+.PHONY : user_service_restart auth_service_restart db_clean nginx_service_restart
 user_service_restart:
 	@printf "$(YELLOW)🔄 Restarting user-service...$(DEFAULT)\n"
 	@docker compose build --no-cache user-service
@@ -345,8 +348,8 @@ db_clean:
 	@docker compose exec -it auth-service sh -c 'for tbl in $$(sqlite3 /app/data/auth.db ".tables"); do [ $$tbl != "sqlite_sequence" ] && sqlite3 /app/data/auth.db "DELETE FROM '\''$$tbl'\'';"; done'
 	@printf "$(GREEN)✅ All user-service tables cleaned!$(DEFAULT)\n"
 
-npm_run:
-	@printf "$(YELLOW)🔄 Running npm commands in backend services...$(DEFAULT)\n"
-	@docker compose exec user-service npm run dev
-	@docker compose exec auth-service npm run dev
-	@printf "$(GREEN)✅ npm commands executed in backend services!$(DEFAULT)\n"
+nginx_service_restart:
+	@printf "$(YELLOW)🔄 Restarting nginx...$(DEFAULT)\n"
+	@docker compose build --no-cache nginx
+	@docker compose up nginx -d --force-recreate
+	@printf "$(GREEN)✅ nginx restarted!$(DEFAULT)\n"
