@@ -30,14 +30,14 @@ model UserProfile {
 // Friendship model to represent friend requests and relationships
 model Friendship {
   id         Int      @id @default(autoincrement())
-  requester  UserProfile @relation("FriendRequestsSent", fields: [requesterId], references: [id])
-  requesterId String
+  sender  UserProfile @relation("FriendRequestsSent", fields: [senderId], references: [id])
+  senderId String
   recipient  UserProfile @relation("FriendRequestsReceived", fields: [recipientId], references: [id])
   recipientId String
   status      String
   createdAt  DateTime @default(now())
 
-  @@unique([requesterId, recipientId])
+  @@unique([senderId, recipientId])
   @@map("friendships")
 }
 

@@ -6,6 +6,7 @@ import { internalEndpointProtection } from './middleware/securityMiddleware'
 import { fastifyErrorHandler } from './handlers/errorHandler'
 import { internalRoutes } from './routes/internalRoutes'
 import { userRoutes } from './routes/userRoutes'
+import { friendRoutes } from './routes/friendRoutes'
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
@@ -26,7 +27,7 @@ export async function buildApp() {
   fastify.register(internalRoutes, { prefix: '/internal' });
   
   fastify.register(userRoutes);
-  // fastify.register(friendRoutes);
+  fastify.register(friendRoutes);
 
   return fastify
 }

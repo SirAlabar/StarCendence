@@ -2,7 +2,7 @@
 export enum FriendRequestStatus {
   PENDING = 'PENDING',
   ACCEPTED = 'ACCEPTED',
-  REJECTED = 'REJECTED',
+  REJECTED = 'REJECTED'
 }
 
 export interface FriendRequest {

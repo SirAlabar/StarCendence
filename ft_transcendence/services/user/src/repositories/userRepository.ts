@@ -21,6 +21,13 @@ export async function findUserProfileById(id: string) {
   });
 }
 
+// Find user profile by username
+export async function findUserProfileByUsername(username: string) {
+  return prisma.userProfile.findUnique({
+    where: { username }
+  });
+}
+
 // Update user profile
 export async function updateUserProfile(id: string, updatedData: Partial<UserProfile>) {
   return prisma.userProfile.update({
