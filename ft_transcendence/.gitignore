@@ -57,7 +57,7 @@ secrets/
 *.crt
 
 # Avatars
-services/uploads/
+services/user/uploads/
 
 # Backup files
 *.bak
