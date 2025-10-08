@@ -5,30 +5,38 @@ import * as friendsController from './friendController';
 
 
 export async function friendRoutes(fastify: FastifyInstance) {
-  // fastify.get('/friends',
-  // {
-  //   preHandler: [verifyUserToken]
-  // },
-  // friendsController.getFriends);
 
-  // fastify.get('/friend-requests',
-  // {
-  //   preHandler: [verifyUserToken]
-  // },
-  // friendsController.getFriendRequests);
+  fastify.get('/friends',
+  {
+    preHandler: [verifyUserToken]
+  },
+  friendsController.getFriends);
 
-  // fastify.get('/friend-requests/sent',
-  // {
-  //   preHandler: [verifyUserToken]
-  // },
-  // friendsController.getSentFriendRequests);
+  fastify.get('/friend-requests',
+  {
+    preHandler: [verifyUserToken]
+  },
+  friendsController.getFriendRequests);
 
-  fastify.post('/friend-requests',
+  fastify.get('/friend-requests/sent',
+  {
+    preHandler: [verifyUserToken]
+  },
+  friendsController.getSentFriendRequests);
+
+  fastify.post('/friend-request',
   {
     preHandler: [verifyUserToken],
     schema: friendSchema.sendFriendRequestSchema
   },
   friendsController.sendFriendRequest);
+
+  fastify.post('/friend-request/:requestId/accept',
+  {
+    preHandler: [verifyUserToken],
+    schema: friendSchema.acceptFriendRequestSchema
+  },
+  friendsController.acceptFriendRequest);
 }
 
 // export async function friendRoutes(fastify: FastifyInstance) {

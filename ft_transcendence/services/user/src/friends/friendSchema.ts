@@ -1,4 +1,5 @@
 
+// Send a friend request schema
 export const sendFriendRequestSchema = {
   body: {
     type: 'object',
@@ -8,3 +9,17 @@ export const sendFriendRequestSchema = {
     }
   }
 };
+
+// Accept a friend request schema
+export const acceptFriendRequestSchema = {
+  params: {
+    type: 'object',
+    required: ['requestId'],
+    properties: {
+      requestId: { type: 'integer' }
+    }
+  }
+};
+
+
+
