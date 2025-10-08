@@ -1,8 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import * as userService from '../services/userService'
-import { CreateUserBody, UpdateUserBody } from '../types/user.types'
-import { UserProfile } from '../types/user.types'
-
+import * as userService from './userService'
+import { CreateUserBody, UpdateUserBody } from './user.types'
+import { UserProfile } from './user.types'
 
 // POST /internal/create-user - Create new user
 export async function createUser( req: FastifyRequest<{ Body: CreateUserBody }>, reply: FastifyReply ) {

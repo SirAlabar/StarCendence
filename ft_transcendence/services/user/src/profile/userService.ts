@@ -1,6 +1,6 @@
 import { HttpError } from "../utils/HttpError";
-import * as userRepository from "../repositories/userRepository";
-import { UserProfile } from "../types/user.types";
+import * as userRepository from "./userRepository";
+import { UserProfile } from "./user.types";
 import path from "path";
 import fs from 'fs/promises';
 

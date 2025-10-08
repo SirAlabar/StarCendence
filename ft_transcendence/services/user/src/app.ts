@@ -4,9 +4,9 @@ import helmet from '@fastify/helmet'
 import fastifyMultipart from '@fastify/multipart'
 import { internalEndpointProtection } from './middleware/securityMiddleware'
 import { fastifyErrorHandler } from './handlers/errorHandler'
-import { internalRoutes } from './routes/internalRoutes'
-import { userRoutes } from './routes/userRoutes'
-import { friendRoutes } from './routes/friendRoutes'
+import { internalRoutes } from './internal/internalRoutes'
+import { userRoutes } from './profile/userRoutes'
+import { friendRoutes } from './friends/friendRoutes'
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })

@@ -1,6 +1,6 @@
 //  Friends management
 import { FastifyRequest, FastifyReply } from 'fastify';
-import * as friendService from '../services/friendService';
+import * as friendService from './friendService';
 
 
 // Send a friend request to another user

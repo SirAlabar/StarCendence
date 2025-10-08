@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { FriendRequestStatus } from '../types/friends.types';
+import { FriendRequestStatus } from './friend.types';
 
 const prisma = new PrismaClient();
 

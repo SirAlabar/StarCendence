@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { UserProfile } from '../types/user.types';
+import { UserProfile } from './user.types';
 
 const prisma = new PrismaClient();
 

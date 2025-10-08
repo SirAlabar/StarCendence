@@ -1,6 +1,6 @@
 import { HttpError } from "../utils/HttpError";
-import * as userRepository from "../repositories/userRepository";
-import * as friendRepository from "../repositories/friendRepository";
+import * as userRepository from "../profile/userRepository";
+import * as friendRepository from "./friendRepository";
 
 // Send a friend request to a user by their username
 export async function sendFriendRequest(id: string, username: string) {

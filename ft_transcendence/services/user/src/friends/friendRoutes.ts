@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { verifyUserToken } from '../middleware/authMiddleware';
-import * as friendSchema from '../schemas/friendSchema';
-import * as friendsController from '../controllers/friendsController';
+import * as friendSchema from './friendSchema';
+import * as friendsController from './friendController';
 
 
 export async function friendRoutes(fastify: FastifyInstance) {

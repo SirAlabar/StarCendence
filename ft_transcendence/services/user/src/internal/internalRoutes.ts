@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import * as userController from '../controllers/userController';
-import * as userSchema from '../schemas/userSchema';
+import * as userController from '../profile/userController';
+import * as userSchema from '../profile/userSchema';
 
 
 export async function internalRoutes(fastify: FastifyInstance) {

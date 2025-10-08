@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { verifyUserToken } from '../middleware/authMiddleware';
-import * as userController from '../controllers/userController';
-import { updateUserProfileSchema } from '../schemas/userSchema';
-import { UpdateUserBody } from '../types/user.types';
+import * as userController from './userController';
+import { updateUserProfileSchema } from './userSchema';
+import { UpdateUserBody } from './user.types';
 
 export async function userRoutes(fastify: FastifyInstance) {
   fastify.get('/profile',
