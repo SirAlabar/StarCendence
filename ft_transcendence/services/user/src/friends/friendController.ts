@@ -71,3 +71,54 @@ export async function acceptFriendRequest(req: FastifyRequest, reply: FastifyRep
 
   reply.send({ message: 'Friend request accepted' });
 }
+
+// POST /friend-requests/:requestId/decline - Decline a friend request
+export async function declineFriendRequest(req: FastifyRequest, reply: FastifyReply) {
+  const { requestId } = req.params as { requestId: number };
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  }
+
+  if (!requestId) {
+    return reply.status(400).send({ error: 'Request ID is required' });
+  }
+  
+  await friendService.rejectFriendRequest(requestId, userId);
+
+  reply.send({ message: 'Friend request declined' });
+}
+
+// DELETE /friend-requests/:requestId - Cancel a sent friend request
+export async function cancelFriendRequest(req: FastifyRequest, reply: FastifyReply) {
+  const { requestId } = req.params as { requestId: number };
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  }
+  
+  if (!requestId) {
+    return reply.status(400).send({ error: 'Request ID is required' });
+  }
+
+  await friendService.cancelFriendRequest(requestId, userId);
+  
+  reply.send({ message: 'Friend request canceled' });
+}
+
+// DELETE /friends/:friendId - Unfriend a user
+export async function unfriend(req: FastifyRequest, reply: FastifyReply) {
+  const { friendId } = req.params as { friendId: string };
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  }
+
+  if (!friendId) {
+    return reply.status(400).send({ error: 'Friend ID is required' });
+  }
+
+  await friendService.unfriend(friendId, userId);
+
+  reply.send({ message: 'Unfriended successfully' });
+}

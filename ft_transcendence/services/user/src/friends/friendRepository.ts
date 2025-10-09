@@ -3,6 +3,11 @@ import { FriendRequestStatus } from './friend.types';
 
 const prisma = new PrismaClient();
 
+// Get all friendships
+export async function findAllFriendships() {
+  return prisma.friendship.findMany();
+}
+
 // Get friends for a user
 export async function findFriendsByUserId(userId: string) {
   return prisma.friendship.findMany({
@@ -54,12 +59,12 @@ export async function findFriendRequest(senderId: string, recipientId: string) {
 }
 
 // Find a friendship by user and friend IDs
-export async function findFriendship(senderId: string, recipientId: string) {
-  return prisma.friendship.findFirst({
+export async function findFriendship(user1: string, user2: string) {
+   return prisma.friendship.findFirst({
     where: {
       OR: [
-        { senderId, recipientId },
-        { recipientId, senderId },
+        { senderId: user1, recipientId: user2 },
+        { recipientId: user1, senderId: user2 },
       ],
       status: FriendRequestStatus.ACCEPTED,
     },
@@ -78,7 +83,7 @@ export async function createFriendRequest(senderId: string, recipientId: string)
 }
 
 // Update the friend request status
-export async function updateFriendRequestStatus(requestId: number, newStatus: FriendRequestStatus) : Promise<void> {
+export async function updateFriendRequestStatus(requestId: number, newStatus: FriendRequestStatus) {
   return prisma.friendship.update({
     where: { id: requestId },
     data: {

@@ -15,8 +15,8 @@ export interface FriendRequest {
 }
 
 export interface Friend {
-  id: string;
+  requestId: number;
+  userId: string;
   username: string;
-  avatarUrl?: string;
+  avatarUrl: string | null;
 }
-

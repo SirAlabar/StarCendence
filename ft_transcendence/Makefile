@@ -344,9 +344,10 @@ auth_service_restart:
 
 db_clean:
 	@printf "$(YELLOW)🧹 Cleaning all data in user-service...$(DEFAULT)\n"
-	@docker compose exec -it user-service sh -c 'for tbl in $$(sqlite3 /app/data/user.db ".tables"); do [ $$tbl != "sqlite_sequence" ] && sqlite3 /app/data/user.db "DELETE FROM '\''$$tbl'\'';"; done'
-	@docker compose exec -it auth-service sh -c 'for tbl in $$(sqlite3 /app/data/auth.db ".tables"); do [ $$tbl != "sqlite_sequence" ] && sqlite3 /app/data/auth.db "DELETE FROM '\''$$tbl'\'';"; done'
-	@printf "$(GREEN)✅ All user-service tables cleaned!$(DEFAULT)\n"
+	@docker compose exec -it user-service sh -c "for tbl in \$$(sqlite3 /app/data/user.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/user.db \"DELETE FROM '\$$tbl'\"; fi; done; sqlite3 /app/data/user.db 'DELETE FROM sqlite_sequence';"
+	@docker compose exec -it auth-service sh -c "for tbl in \$$(sqlite3 /app/data/auth.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/auth.db \"DELETE FROM '\$$tbl'\"; fi; done;"
+	@printf "$(GREEN)✅ All user-service tables cleaned and autoincrement reset where applicable!$(DEFAULT)\n"
+
 
 nginx_service_restart:
 	@printf "$(YELLOW)🔄 Restarting nginx...$(DEFAULT)\n"

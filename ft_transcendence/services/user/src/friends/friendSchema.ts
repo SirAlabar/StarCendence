@@ -11,7 +11,7 @@ export const sendFriendRequestSchema = {
 };
 
 // Accept a friend request schema
-export const acceptFriendRequestSchema = {
+export const requestIdSchema = {
   params: {
     type: 'object',
     required: ['requestId'],
@@ -21,5 +21,14 @@ export const acceptFriendRequestSchema = {
   }
 };
 
-
+// Unfriend schema
+export const friendIdSchema = {
+  params: {
+    type: 'object',
+    required: ['friendId'],
+    properties: {
+      friendId: { type: 'string', format: 'uuid' }
+    }
+  }
+};
 
