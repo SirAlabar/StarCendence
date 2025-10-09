@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import * as tokenService from '../services/tokenService';
+import * as tokenService from './tokenService';
 
 interface RefreshTokenRequestBody {
   refreshToken: string;

@@ -1,7 +1,7 @@
 // JWT token validation middleware
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { HttpError } from '../utils/HttpError';
-import { verifyAccessToken } from '../services/tokenService';
+import { verifyAccessToken } from '../token/tokenService';
 import { AccessTokenPayload } from '../types/fastify';
 
 

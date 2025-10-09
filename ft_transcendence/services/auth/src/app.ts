@@ -2,9 +2,9 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import { fastifyErrorHandler } from './handlers/errorHandler'
-import { authRoutes } from './routes/authRoutes'
-import { twoFactorRoutes } from './routes/twoFactorRoutes'
-import { tokenRoutes } from './routes/tokenRoutes'
+import { authRoutes } from './auth/authRoutes'
+import { twoFactorRoutes } from './twoFactor/twoFactorRoutes'
+import { tokenRoutes } from './token/tokenRoutes'
 import { internalEndpointProtection } from './middleware/securityMiddleware'
 
 export async function buildApp() {

@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import * as refreshController from '../controllers/refreshController';
-import * as authSchema from '../schemas/authSchema';
-import  * as tokenController from '../controllers/tokenController';
+import * as refreshController from './refreshController';
+import * as authSchema from '../auth/authSchema';
+import  * as tokenController from './tokenController';
   
 export async function tokenRoutes(fastify: FastifyInstance) {
 

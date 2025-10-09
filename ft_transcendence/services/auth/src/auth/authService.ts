@@ -2,9 +2,9 @@
 import * as bcrypt from 'bcrypt';
 import * as userServiceClient from '../clients/userServiceClient';
 import { HttpError } from '../utils/HttpError';
-import * as tokenService from './tokenService';
-import * as userRepository from '../repositories/userRepository';
-import * as refreshTokenRepository from '../repositories/refreshTokenRepository';
+import * as tokenService from '../token/tokenService';
+import * as userRepository from './userRepository';
+import * as refreshTokenRepository from '../token/refreshTokenRepository';
 
 // Register a new user
 export async function registerUser(email: string, password: string, username: string) {

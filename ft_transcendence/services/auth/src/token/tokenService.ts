@@ -3,8 +3,7 @@ import * as crypto from 'crypto';
 import * as speakeasy from 'speakeasy';
 import { HttpError } from '../utils/HttpError';
 import { readFileSync } from 'fs';
-import * as refreshTokenRepository from '../repositories/refreshTokenRepository';
-import * as twoFactorRepository from '../repositories/twoFactorRepository';
+import * as refreshTokenRepository from './refreshTokenRepository';
 
 export interface TokenPair {
   accessToken: string;

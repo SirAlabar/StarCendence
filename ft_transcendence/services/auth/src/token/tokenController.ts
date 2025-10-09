@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { HttpError } from '../utils/HttpError';
-import { verifyAccessToken } from '../services/tokenService';
+import { verifyAccessToken } from './tokenService';
 
 export async function tokenVerify(req: FastifyRequest, reply: FastifyReply) {
   const authHeader = req.headers.authorization;

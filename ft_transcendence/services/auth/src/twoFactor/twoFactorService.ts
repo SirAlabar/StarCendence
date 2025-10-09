@@ -1,4 +1,4 @@
-import * as twoFactorRepository from '../repositories/twoFactorRepository';
+import * as twoFactorRepository from './twoFactorRepository';
 import { HttpError } from '../utils/HttpError';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
@@ -10,7 +10,13 @@ export async function setupTwoFactor(req: FastifyRequest, reply: FastifyReply) {
     if (!user) {
         throw new HttpError('Unauthorized', 401);
     }
-    
+
+    const isEnabled = await twoFactorRepository.isTwoFactorEnabled(user.sub);
+    console.log("isEnabled:", isEnabled);
+    if (isEnabled) {
+        throw new HttpError('2FA is already enabled', 400);
+    }
+
     const secret = speakeasy.generateSecret({
         name: `StarCendence (${user.email})`
     });

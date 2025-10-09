@@ -1,6 +1,6 @@
 // 2FA management
 import { FastifyReply, FastifyRequest } from 'fastify';
-import * as twoFactorService from '../services/twoFactorService';
+import * as twoFactorService from './twoFactorService';
 
 // Setup 2FA: Generate secret and QR code
 export async function setupTwoFactor(req: FastifyRequest, reply: FastifyReply) {
