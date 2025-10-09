@@ -1,1 +1,41 @@
 // Pong paddle entity
+
+export class paddle
+{
+    x: number;                                                      //position on x
+    y: number;                                                      //position on y
+    width : number;                                                 //size
+    height : number;                                                //size
+    speed : number;                                                 //speed        
+    directionY: number;                                             //direction on y
+    
+    constructor(side: "left" | "right", canvas: HTMLCanvasElement)
+    {
+        this.width = 10;
+        this.height = 100;
+        this.speed = 6;
+        this.directionY = 0;
+        this.x = 0;
+        this.y = (canvas.height - this.height) /2;                  //Position on center of the screen
+
+        if(side === 'left')                                         //if constructor called with left position left paddle
+            this.x = 30;
+        if(side === 'right')                                        //if constructor called with right position right paddle
+            this.x = canvas.width - this.width - 30;
+    }
+
+    update(canvas: HTMLCanvasElement)                       
+    {
+        this.y += this.directionY * this.speed;                     //update position on y
+
+        if(this.y < 0) this.y = 0;                                  //if on top off the screen
+        if(this.y + this.height > canvas.height)                    //if on bottom part of the screen
+            this.y = canvas.height - this.height;
+    }
+
+    draw(ctx: CanvasRenderingContext2D)
+    {
+        ctx.fillStyle = "red";
+        ctx.fillRect(this.x, this.y, this.width, this.height)
+    }
+}

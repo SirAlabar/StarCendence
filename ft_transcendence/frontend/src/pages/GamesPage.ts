@@ -19,7 +19,7 @@ export default class GamesPage extends BaseComponent
                         <div class="aspect-video bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-2xl flex items-center justify-center mb-8">
                             <div class="text-8xl opacity-70 group-hover:scale-110 transition-transform">🏓</div>
                         </div>
-                        <h3 class="text-3xl font-bold text-cyan-400 mb-4">3D Pong</h3>
+                        <h3 class="text-3xl font-bold text-cyan-400 mb-4"> Pong</h3>
                             <p class="text-gray-300 mb-8 text-lg">
                                 Classic Pong reimagined in stunning 3D. Battle friends or AI opponents in real-time multiplayer matches.
                             </p>                        

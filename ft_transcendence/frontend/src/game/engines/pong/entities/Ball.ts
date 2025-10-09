@@ -1,29 +1,27 @@
 import { Entity } from "./Entity.js";
 
-export class Ball extends Entity
+export class Ball 
 {
-    vx:     number;
-    vy:     number;
-    radius: number;
+        x: number;
+        y: number;
+        radius: number;
+        dx: number;
+        dy: number;
 
-    constructor(x: number, y:number, radius:number)
-    {
-        super(x, y);
-        this.vx = 150;
-        this.vy = 150;
+  constructor(x: number, y: number, radius: number) 
+  {
+        this.x = x;
+        this.y = y;
         this.radius = radius;
-    }
+        this.dx = 3; // velocity x
+        this.dy = 3; // velocity y
+  }
 
-    update(delta: number): void
-    {
-        this.x += this.vx * delta;
-        this.y += this.vy * delta;
-    }
-    render(ctx: CanvasRenderingContext2D): void
-    {
+  draw(ctx: CanvasRenderingContext2D) 
+  {
+        ctx.fillStyle = "white";
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = "white";
         ctx.fill();
-    }
+  }
 }
