@@ -38,7 +38,7 @@ export async function getSentFriendRequests(req: FastifyRequest, reply: FastifyR
   return reply.send(requests);
 }
 
-// POST /friend-request - Send a friend request
+// POST /friend-request - Send a friend request, if reciprocal request exists, accept it
 export async function sendFriendRequest(req: FastifyRequest, reply: FastifyReply) {
   const { username } = req.body as { username: string };
   const senderId = req.user?.sub;
@@ -50,9 +50,13 @@ export async function sendFriendRequest(req: FastifyRequest, reply: FastifyReply
     return reply.status(400).send({ error: 'Username is required' });
   }
 
-  await friendService.sendFriendRequest(senderId, username);
+  const result = await friendService.sendFriendRequest(senderId, username);
 
-  reply.send({ message: `Friend request sent to ${username}` });
+  if (result === 'ACCEPTED') {
+    reply.send({ message: `Friend request accepted` });
+  } else {
+    reply.send({ message: `Friend request sent to ${username}` });
+  }
 }
 
 // POST /friend-requests/:requestId/accept - Accept a friend request

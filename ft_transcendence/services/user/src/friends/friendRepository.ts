@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { FriendRequestStatus } from './friend.types';
+import { FriendshipStatus } from './friend.types';
 
 const prisma = new PrismaClient();
 
@@ -16,7 +16,7 @@ export async function findFriendsByUserId(userId: string) {
         { senderId: userId },
         { recipientId: userId },
       ],
-      status: FriendRequestStatus.ACCEPTED,
+      status: FriendshipStatus.ACCEPTED,
     },
   });
 }
@@ -33,7 +33,7 @@ export async function findIncomingFriendRequests(userId: string) {
   return prisma.friendship.findMany({
     where: {
       recipientId: userId,
-      status: FriendRequestStatus.PENDING,
+      status: FriendshipStatus.PENDING,
     },
   });
 }
@@ -43,7 +43,7 @@ export async function findSentFriendRequests(userId: string) {
   return prisma.friendship.findMany({
     where: {
       senderId: userId,
-      status: FriendRequestStatus.PENDING,
+      status: FriendshipStatus.PENDING,
     },
   });
 }
@@ -66,7 +66,7 @@ export async function findFriendship(user1: string, user2: string) {
         { senderId: user1, recipientId: user2 },
         { recipientId: user1, senderId: user2 },
       ],
-      status: FriendRequestStatus.ACCEPTED,
+      status: FriendshipStatus.ACCEPTED,
     },
   });
 }
@@ -77,13 +77,13 @@ export async function createFriendRequest(senderId: string, recipientId: string)
     data: {
       senderId,
       recipientId,
-      status: FriendRequestStatus.PENDING,
+      status: FriendshipStatus.PENDING,
     },
   });
 }
 
 // Update the friend request status
-export async function updateFriendRequestStatus(requestId: number, newStatus: FriendRequestStatus) {
+export async function updateFriendshipStatus(requestId: number, newStatus: FriendshipStatus) {
   return prisma.friendship.update({
     where: { id: requestId },
     data: {

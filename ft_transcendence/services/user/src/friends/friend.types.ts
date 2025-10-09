@@ -1,15 +1,16 @@
 //  Friends types
-export enum FriendRequestStatus {
+
+export enum FriendshipStatus {
   PENDING = 'PENDING',
   ACCEPTED = 'ACCEPTED',
-  REJECTED = 'REJECTED'
+  REJECTED = 'REJECTED',
 }
 
 export interface FriendRequest {
   id: string;
   senderId: string;
   recipientId: string;
-  status: FriendRequestStatus;
+  status: FriendshipStatus;
   createdAt: Date;
   updatedAt: Date;
 }

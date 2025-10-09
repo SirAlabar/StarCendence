@@ -1,7 +1,7 @@
 import { HttpError } from "../utils/HttpError";
 import * as userRepository from "../profile/userRepository";
 import * as friendRepository from "./friendRepository";
-import { Friend, FriendRequestStatus } from './friend.types'
+import { Friend, FriendshipStatus } from './friend.types'
 
 // Get friends list for a user
 export async function getFriends(userId: string) {
@@ -77,6 +77,12 @@ export async function sendFriendRequest(id: string, username: string) {
     throw new HttpError('Cannot send friend request to yourself', 400);
   }
 
+  const exitisingRequestFromRecipient = await friendRepository.findFriendRequest(recipient.id, id);
+  if (exitisingRequestFromRecipient && exitisingRequestFromRecipient.status === FriendshipStatus.PENDING) {
+    await friendRepository.updateFriendshipStatus(exitisingRequestFromRecipient.id, FriendshipStatus.ACCEPTED);
+    return 'ACCEPTED';
+  }
+
   const existingRequest = await friendRepository.findFriendRequest(id, recipient.id);
   if (existingRequest) {
     throw new HttpError('Friend request already sent', 400);
@@ -88,7 +94,7 @@ export async function sendFriendRequest(id: string, username: string) {
   }
 
   await friendRepository.createFriendRequest(id, recipient.id);
-  return;
+  return 'SENT';
 }
 
 // Accept a friend request
@@ -98,11 +104,11 @@ export async function acceptFriendRequest(requestId: number, userId: string) {
     throw new HttpError('Friend request not found', 404);
   }
   
-  if (request.status === FriendRequestStatus.ACCEPTED) {
+  if (request.status === FriendshipStatus.ACCEPTED) {
     throw new HttpError('Friend request is already accepted', 400);
   }
 
-  if (request.status !== FriendRequestStatus.PENDING) {
+  if (request.status !== FriendshipStatus.PENDING) {
     throw new HttpError('Friend request is not pending', 400);
   }
 
@@ -110,7 +116,7 @@ export async function acceptFriendRequest(requestId: number, userId: string) {
     throw new HttpError('Unauthorized to accept this friend request', 403);
   }
 
-  await friendRepository.updateFriendRequestStatus(requestId, FriendRequestStatus.ACCEPTED);
+  await friendRepository.updateFriendshipStatus(requestId, FriendshipStatus.ACCEPTED);
   return;
 }
 
@@ -121,7 +127,7 @@ export async function rejectFriendRequest(requestId: number, userId: string) {
     throw new HttpError('Friend request not found', 404);
   }
 
-  if (request.status !== FriendRequestStatus.PENDING) {
+  if (request.status !== FriendshipStatus.PENDING) {
     throw new HttpError('Friend request is not pending', 400);
   }
 
@@ -129,7 +135,7 @@ export async function rejectFriendRequest(requestId: number, userId: string) {
     throw new HttpError('Unauthorized to reject this friend request', 403);
   }
 
-  await friendRepository.updateFriendRequestStatus(requestId, FriendRequestStatus.REJECTED);
+  await friendRepository.updateFriendshipStatus(requestId, FriendshipStatus.REJECTED);
   return;
 }
 
@@ -140,7 +146,7 @@ export async function cancelFriendRequest(requestId: number, userId: string) {
     throw new HttpError('Friend request not found', 404);
   }
 
-  if (request.status !== FriendRequestStatus.PENDING) {
+  if (request.status !== FriendshipStatus.PENDING) {
     throw new HttpError('Friend request is not pending', 400);
   }
 

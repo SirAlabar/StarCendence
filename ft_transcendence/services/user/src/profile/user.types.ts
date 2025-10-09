@@ -1,5 +1,12 @@
 //  Core user types
 
+export enum UserStatus {
+  ONLINE = 'ONLINE',
+  OFFLINE = 'OFFLINE',
+  IN_GAME = 'IN_GAME',
+  AWAY = 'AWAY'
+}
+
 export interface CreateUserBody {
   authId: string
   email: string
