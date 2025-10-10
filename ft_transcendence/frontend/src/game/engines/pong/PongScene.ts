@@ -212,7 +212,7 @@ export class PongScene
     private drawScore()
     {
         const ctx = this.ctx;
-        ctx.fillStyle = "white";
+        ctx.fillStyle = "Black";
         ctx.font = "48px 'Press Start To Play', monospace";
         ctx.textAlign = "center";
 

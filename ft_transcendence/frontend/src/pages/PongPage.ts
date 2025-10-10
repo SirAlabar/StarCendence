@@ -30,7 +30,7 @@ export default class PongPage extends BaseComponent
               </button>
             </div>
 
-            <button id="backBtn" class="mt-6 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
+            <button id="backBtn" class="mt-6 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
               Back to Games
             </button>
           </div>
@@ -50,6 +50,7 @@ export default class PongPage extends BaseComponent
     const start2D = document.getElementById("start2DPongBtn");
     const start3D = document.getElementById("start3DPongBtn");
     const backBtn = document.getElementById("backBtn");
+    
 
     if (start2D) start2D.addEventListener("click", () => this.show2DModeSelection());
     if (start3D) start3D.addEventListener("click", () => this.start3DPong());
@@ -63,21 +64,29 @@ export default class PongPage extends BaseComponent
     if (!mainMenu) return;
 
     
-    mainMenu.innerHTML = `
-      <button id="playWithAI" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
+   mainMenu.innerHTML = `
+    <div class="flex justify-between w-full px-12 items-center">
+    <!-- Left side -->
+    <div class="flex flex-col space-y-10 text-left">
+      <button id="playMultiplayer" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 w-56">
+        Multiplayer
+      </button>
+      <button id="tournament" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 w-56">
+        Tournament
+      </button>
+    </div>
+    <!-- Right side -->
+    <div class="flex justify-between w-full px-6 items-center">
+      <button id="playWithAI" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700 w-56">
         Play vs AI
-      </button>
-      <button id="playMultiplayer" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700">
-        Multiplayer (2 Players)
-      </button>
-      <button id="backToMainMenu" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-        ← Back
-      </button>
-    `;
+        </div>
+  </div>
+ `;
 
     // Rebind event listeners for new buttons
     document.getElementById("playWithAI")?.addEventListener("click", () => this.start2DPong("ai"));
     document.getElementById("playMultiplayer")?.addEventListener("click", () => this.start2DPong("multiplayer"));
+    document.getElementById("tournament")?.addEventListener("click", () => this.tournamentbtn());
     document.getElementById("backToMainMenu")?.addEventListener("click", () => this.renderMainMenu());
   }
 
@@ -142,6 +151,11 @@ export default class PongPage extends BaseComponent
   private start3DPong(): void 
   {
     alert("🚧 3D Pong coming soon!");
+  }
+
+  private tournamentbtn(): void
+  {
+    alert("🚧 Tournament coming soon!")
   }
 
   private goBack(): void 

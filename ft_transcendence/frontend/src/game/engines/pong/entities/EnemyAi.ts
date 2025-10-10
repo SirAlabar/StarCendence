@@ -22,15 +22,21 @@ export class enemy
     update(ball: Ball, canvas: HTMLCanvasElement) 
     {
         // Simple AI: follow the ball
-        if (ball.y < this.y + this.height / 2) 
-            this.y -= this.speed;
-        if (ball.y > this.y + this.height / 2) 
-            this.y += this.speed;
-
-        // Clamp within screen
-        if (this.y < 0) 
-            this.y = 0;
-        if (this.y + this.height > canvas.height) 
+        if(ball.dx > 0)
+        {
+            if (ball.y < this.y + this.height / 2) 
+                this.y -= this.speed;
+            if (ball.y > this.y + this.height / 2) 
+                this.y += this.speed;
+        }
+        else 
+        {
+            const targetY = canvas.height / 2 - this.height / 2;
+            if (this.y < targetY) this.y += this.speed / 2;
+            else if (this.y > targetY) this.y -= this.speed / 2;
+        }
+        if (this.y < 0) this.y = 0;
+        if (this.y + this.height > canvas.height)
             this.y = canvas.height - this.height;
     }
 
