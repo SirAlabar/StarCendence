@@ -5,7 +5,7 @@ import { navigateTo } from '@/router/router';
 import { enemy } from "./entities/EnemyAi";
 
 // PongScene.ts - main game engine
-
+//pong 2d
 
 
 export class PongScene 
@@ -53,7 +53,7 @@ export class PongScene
     
     start():void
     {
-        console.log("here")
+        //update every frama
         this.update();
     }   
 
@@ -112,23 +112,15 @@ export class PongScene
         if(this.mode === "multiplayer")
         {
             if(this.keys['ArrowUp'] && this.paddle_right.y > 0)
-            {
                 this.paddle_right.y -= this.paddle_right.speed;
-            }
             if(this.keys['ArrowDown'] && this.paddle_right.y + this.paddle_right.height < this.canvas.height)
-            {
                 this.paddle_right.y += this.paddle_right.speed;
-            }
         }
         //right paddle
         if(this.keys['w'] && this.paddle_left.y > 0)
-        {
             this.paddle_left.y -= this.paddle_left.speed;
-        }
         if(this.keys['s'] && this.paddle_left.y + this.paddle_left.height < this.canvas.height)
-        {
             this.paddle_left.y += this.paddle_left.speed;
-        }
     }
 
     private InputHandler():void
@@ -232,9 +224,7 @@ export class PongScene
             return;
         }
 
-        // Score display
         ctx.fillText(`${this.player1?.score ?? 0}`, this.canvas.width / 4, 50);
-
         if (this.mode === "multiplayer") 
         {
             ctx.fillText(`${this.player2?.score ?? 0}`, (this.canvas.width / 4) * 3, 50);

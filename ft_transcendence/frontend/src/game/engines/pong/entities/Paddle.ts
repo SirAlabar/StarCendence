@@ -1,5 +1,6 @@
 // Pong paddle entity
 
+//paddle for 2d
 export class paddle
 {
     x: number;                                                      //position on x

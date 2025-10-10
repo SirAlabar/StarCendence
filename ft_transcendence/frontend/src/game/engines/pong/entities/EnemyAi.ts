@@ -1,5 +1,6 @@
 import { Ball } from "./Ball";
 
+//enemy ai for 2d
 export class enemy 
 {
     x: number;

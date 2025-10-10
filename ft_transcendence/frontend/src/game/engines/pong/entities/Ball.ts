@@ -1,4 +1,4 @@
-
+//ball 2d
 export class Ball 
 {
         x: number;
