@@ -15,7 +15,7 @@ export async function createUser( req: FastifyRequest<{ Body: CreateUserBody }>,
 
   const user: UserProfile = await userService.findUserProfileById(authId);
 
-  return reply.status(201).send({ user });
+  return reply.status(201).send(user);
 }
 
 // PUT /internal/update-user-status - Update user status (internal)
@@ -38,7 +38,23 @@ export async function getUserProfile(req: FastifyRequest, reply: FastifyReply) {
   }
   const user: UserProfile = await userService.findUserProfileById(userId);
 
-  return reply.send({ user });
+  return reply.send(user);
+}
+
+// GET /profile/:username - Get user's profile by username (requires authentication)
+export async function getUserProfileByUsername(req: FastifyRequest, reply: FastifyReply) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  }
+  const { username } = req.params as { username: string };
+  if (!username) {
+    return reply.status(400).send({ error: 'Username is required' });
+  }
+
+  const user: UserProfile = await userService.findUserProfileByUsername(username);
+
+  return reply.send(user);
 }
 
 // PUT /profile - Update user's profile (requires authentication)
@@ -50,10 +66,6 @@ export async function updateUserProfile( req: FastifyRequest<{ Body: UpdateUserB
 
   const updatedData = req.body;
   const updatedUser: UserProfile = await userService.updateUserProfile(userId, updatedData);
-
-  if (!updatedUser) {
-    return reply.status(404).send({ error: 'User not found' });
-  }
 
   return reply.send(updatedUser);
 }
@@ -75,5 +87,5 @@ export async function uploadProfileImage(req: FastifyRequest, reply: FastifyRepl
     return reply.status(404).send({ error: 'User not found' });
   }
 
-  return reply.send({ imageUrl });
+  return reply.send(imageUrl);
 }

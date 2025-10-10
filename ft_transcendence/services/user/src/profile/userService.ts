@@ -31,6 +31,15 @@ export async function findUserProfileById(id: string) {
   return user;
 }
 
+// Find user profile by username
+export async function findUserProfileByUsername(username: string) {
+  const user = await userRepository.findUserProfileByUsername(username);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+  return user;
+}
+
 // Update user profile
 export async function updateUserProfile(id: string, updatedData: Partial<UserProfile>) {
   const user = await userRepository.updateUserProfile(id, updatedData);
@@ -39,8 +48,6 @@ export async function updateUserProfile(id: string, updatedData: Partial<UserPro
   }
   return user;
 }
-
-
 
 // Upload or update user profile image
 export async function uploadProfileImage(id: string, image: any) : Promise<string> {
@@ -68,3 +75,5 @@ export async function uploadProfileImage(id: string, image: any) : Promise<strin
 
   return user.avatarUrl ?? '';
 }
+
+
