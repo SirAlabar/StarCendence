@@ -1,7 +1,6 @@
 import { Ball } from "./entities/Ball"
 import { paddle } from "./entities/Paddle";
 import { player } from "./entities/Player";
-import { navigateTo } from '@/router/router';
 import { enemy } from "./entities/EnemyAi";
 
 // PongScene.ts - main game engine
@@ -22,10 +21,12 @@ export class PongScene
     private keys: { [key: string]: boolean } = {};          //keys (w,s arrowup, arrowdown)
     private mode?: "multiplayer" | "ai";                    //mode , multiplayer or enemyai
     private gamestate: boolean;                             //game state (true game ended)
+    private paused : boolean
         
     constructor(ctx: CanvasRenderingContext2D, mode: "multiplayer" | "ai") 
     {
         this.ctx = ctx;
+        this.paused = false;
         this.canvas = ctx.canvas;
         this.mode = mode;
         this.ball = new Ball(this.canvas.width /2 , this.canvas.height /2 , 10);
@@ -49,17 +50,24 @@ export class PongScene
 
         this.gamestate = false;
         this.InputHandler();
+        window.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'p') {
+                this.togglePause();
+            }
+        });
     }
     
     start():void
     {
-        //update every frama
+        //update every frame
+        if(this.paused)
+            this.paused = false; //unpause
         this.update();
     }   
 
    private update = (): void => 
     {
-        if (this.gamestate) 
+        if (this.gamestate || this.paused) 
             return;
         this.clear();
         this.updatePaddle();
@@ -103,7 +111,12 @@ export class PongScene
 
     stop():void
     {
-        if(this.animationFrameId)cancelAnimationFrame(this.animationFrameId);
+        if(this.animationFrameId)
+        {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+        this.paused = true;
     }
 
     private updatePaddle():void
@@ -204,7 +217,7 @@ export class PongScene
     private drawScore()
     {
         const ctx = this.ctx;
-        ctx.fillStyle = "Black";
+        ctx.fillStyle = "white";
         ctx.font = "48px 'Press Start To Play', monospace";
         ctx.textAlign = "center";
 
@@ -240,8 +253,30 @@ export class PongScene
         this.gamestate = true;
         this.stop();
         setTimeout(() => {
-            navigateTo("games");
+            window.location.href = '/games';
         }, 2000);  
     }
+
+    togglePause(): void {
+        this.paused = !this.paused;
+        if (!this.paused) {
+            this.update();
+        } else {
+            this.drawPauseOverlay();
+        }
+    }
+
+    private drawPauseOverlay() {
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.7;
+        this.ctx.fillStyle = "black";
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.globalAlpha = 1;
+        this.ctx.fillStyle = "white";
+        this.ctx.font = "48px 'Press Start To Play', monospace";
+        this.ctx.textAlign = "center";
+        this.ctx.fillText("Paused", this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.restore();
+    }
 }
-  
+

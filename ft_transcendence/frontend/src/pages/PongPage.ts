@@ -1,27 +1,26 @@
 import { BaseComponent } from '../components/BaseComponent';
-import { navigateTo } from '@/router/router';
+
 import { PongScene } from '@/game/engines/pong/PongScene';
 import { neonBackgroundStyles } from '@/game/engines/pong/entities/backgroundcolor';
 
 export default class PongPage extends BaseComponent 
 {
   private pongScene: PongScene | null = null;
+  private resizeListener: (() => void) | null = null;
 
   render(): string {
     return `
-      <div class="pong-selection-overlay fixed inset-0 z-50 flex items-center justify-center neon-background">
-        <div class="max-w-4xl w-full p-8 relative">
-          <canvas 
-            id="pongCanvas" 
-            class="w-full h-full block"
-            style="background: transparent; display: none;"
-          ></canvas>
-
+      <div class="relative w-full h-[80vh] max-w-4xl mx-auto flex items-center justify-center">
+        <canvas 
+          id="pongCanvas" 
+          class="w-full h-full rounded-2xl border border-cyan-500 bg-black"
+        ></canvas>
+        <div id="pongMenuContainer" class="absolute inset-0 flex flex-col items-center justify-center text-center space-y-4 z-40">
           <!-- Main Menu Container -->
-          <div id="pongMenuContainer" class="flex flex-col items-center justify-center h-full text-center space-y-4">
+          <div id="mainMenu" class="flex flex-col space-y-3">
             <h1 class="text-5xl font-bold mb-6 text-white">🏓 Pong Game</h1>
 
-            <div id="mainMenu" class="flex flex-col space-y-3">
+            <div class="flex flex-col space-y-3">
               <button id="start2DPongBtn" class="bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700">
                 Play 2D Pong
               </button>
@@ -35,8 +34,8 @@ export default class PongPage extends BaseComponent
             </button>
           </div>
         </div>
-        <style>${neonBackgroundStyles}</style>
       </div>
+      <style>${neonBackgroundStyles}</style>
     `;
   }
 
@@ -111,41 +110,42 @@ export default class PongPage extends BaseComponent
   
  
   private start2DPong(mode: "ai" | "multiplayer"): void 
+{
+  const menu = document.getElementById("pongMenuContainer");
+  const canvas = document.getElementById("pongCanvas") as HTMLCanvasElement;
+  if (menu) menu.style.display = "none";
+
+  if (canvas) 
   {
-    const menu = document.getElementById("pongMenuContainer");
-    const canvas = document.getElementById("pongCanvas") as HTMLCanvasElement;
-    if (menu) menu.style.display = "none";
+    this.resize(canvas);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    if (canvas) 
-    {
-      this.resize(canvas);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+    this.pongScene = new PongScene(ctx, mode);
+    this.pongScene.start();
 
-      this.pongScene = new PongScene(ctx, mode);
-      console.log(`Starting 2D Pong in mode: ${mode}`);
-      this.pongScene.start();
-    }
-    window.addEventListener("resize", () => 
+    // Remove previous listener if any
+    if (this.resizeListener) 
+      window.removeEventListener("resize", this.resizeListener);
+
+    // Pause only, do not auto-resume
+    this.resizeListener = () => 
     {
-      if (canvas && this.pongScene) {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+      if (this.pongScene)
+      {
+        this.pongScene.stop(); // Pause on resize
       }
-    });
+      this.resize(canvas);
+      // Do NOT call start() here!
+    };
+    window.addEventListener("resize", this.resizeListener);
   }
+}
 
   resize(canvas: HTMLCanvasElement) 
   {
-    canvas.style.display = "block";
-    canvas.style.position = "fixed";
-    canvas.style.top = "0";
-    canvas.style.left = "0";
-    canvas.style.width = "100vw";
-    canvas.style.height = "100vh";
-    canvas.style.zIndex = "999";
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
   }
 
   private start3DPong(): void 
@@ -161,7 +161,7 @@ export default class PongPage extends BaseComponent
   private goBack(): void 
   {
     this.dispose();
-    navigateTo('/games');
+    window.location.href = '/games';
   }
 
   public dispose(): void 
