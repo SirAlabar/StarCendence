@@ -124,20 +124,29 @@ export class PongScene
         });
     }
 
-    private checkPaddleCollision(paddle: paddle): void 
+    private checkPaddleCollision(paddle: paddle): void {
+    if (
+        this.ball.x - this.ball.radius <= paddle.x + paddle.width &&
+        this.ball.x + this.ball.radius >= paddle.x &&
+        this.ball.y >= paddle.y &&
+        this.ball.y <= paddle.y + paddle.height
+    ) 
     {
-        if (this.ball.x - this.ball.radius <= paddle.x + paddle.width &&
-            this.ball.x + this.ball.radius >= paddle.x &&
-            this.ball.y >= paddle.y &&
-            this.ball.y <= paddle.y + paddle.height) 
+        const speedIncrease = 1.05; 
+        this.ball.dx = -this.ball.dx * speedIncrease;
+        const relativeIntersectY = (this.ball.y - (paddle.y + paddle.height / 2)) / (paddle.height / 2);
+        this.ball.dy += relativeIntersectY * 2;
+        const maxSpeed = 15;
+        const currentSpeed = Math.sqrt(this.ball.dx ** 2 + this.ball.dy ** 2);
+        if (currentSpeed > maxSpeed) 
         {
-            this.ball.dx = this.ball.dx * -1.1;
-            const hitPos = (this.ball.y - paddle.y) / paddle.height;
-            this.ball.dy = (hitPos - 0.5) * 10;
-            console.log("Velocity in X : ", this.ball.dx);
-            console.log("Velocity in y : ", this.ball.dy);
+            const scale = maxSpeed / currentSpeed;
+            this.ball.dx *= scale;
+            this.ball.dy *= scale;
         }
+        console.log(`Hit paddle at ${relativeIntersectY.toFixed(2)} → dx=${this.ball.dx}, dy=${this.ball.dy}`);
     }
+}
 
     private checkBallCollision(ball : Ball, ): void
     {
@@ -150,8 +159,8 @@ export class PongScene
             this.player1.score += 1;
             console.log("Player 1 Score: ", this.player1.score);
             this.ball = new Ball(this.canvas.width /2 , this.canvas.height /2 , 10);
-            this.ball.dx = -3;
-            this.ball.dy = -3;
+            this.ball.dx = -5;
+            this.ball.dy = -5;
             
         }
         if(ball.x - ball.radius < 0)                                                // left side wall

@@ -12,8 +12,8 @@ export class Ball
         this.x = x;
         this.y = y;
         this.radius = radius;
-        this.dx = 5; // velocity x
-        this.dy = 5; // velocity y
+        this.dx = 5;          // velocity x
+        this.dy = 5;          // velocity y
   }
 
   draw(ctx: CanvasRenderingContext2D) 
