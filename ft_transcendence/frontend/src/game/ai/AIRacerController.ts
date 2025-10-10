@@ -1,4 +1,4 @@
-import { Vector3 } from '@babylonjs/core';
+import { Vector3, Ray } from '@babylonjs/core';
 import { RacerPod } from '../engines/racer/RacerPods';
 import { RacerPhysics } from '../engines/racer/RacerPhysics';
 import { AIWaypointSystem } from './AIWaypointSystem';
@@ -97,6 +97,15 @@ export class AIRacerController
       return 0;
     }
     
+    // Check for obstacles ahead
+    const obstacle = this.detectObstacleAhead();
+    
+    if (obstacle.hasObstacle) 
+    {
+      // Emergency avoidance - steer away from obstacle
+      return obstacle.direction * 0.9;
+    }
+    
     const toTarget = this.targetWaypoint.subtract(currentPos);
     toTarget.y = 0;
     toTarget.normalize();
@@ -109,10 +118,75 @@ export class AIRacerController
     const turnDirection = cross.y > 0 ? 1 : -1;
     
     const dot = Vector3.Dot(forward, toTarget);
-    const turnIntensity = (1.0 - dot) * this.config.turnSkill;
+    
+    let turnIntensity = (1.0 - dot) * this.config.turnSkill;
+    turnIntensity = Math.min(turnIntensity, 0.8);
     
     return turnDirection * turnIntensity;
   }
+  
+private detectObstacleAhead(): { hasObstacle: boolean; direction: number } 
+{
+  const mesh = this.pod.getMesh();
+  
+  if (!mesh) 
+  {
+    return { hasObstacle: false, direction: 0 };
+  }
+  
+  const position = mesh.getAbsolutePosition();
+  const forward = mesh.getDirection(new Vector3(-1, 0, 0));
+  forward.y = 0;
+  forward.normalize();
+  
+  const rayDistance = 30;
+  const scene = mesh.getScene();
+  
+  // Center ray
+  const centerRay = new Ray(position, forward, rayDistance);
+  const centerHit = scene.pickWithRay(centerRay, (m) => m.name !== mesh.name);
+  
+  // Left ray (20 degrees)
+  const leftAngle = -0.35;
+  const leftDir = forward.clone();
+  leftDir.x = forward.x * Math.cos(leftAngle) - forward.z * Math.sin(leftAngle);
+  leftDir.z = forward.x * Math.sin(leftAngle) + forward.z * Math.cos(leftAngle);
+  leftDir.normalize();
+  
+  const leftRay = new Ray(position, leftDir, rayDistance);
+  const leftHit = scene.pickWithRay(leftRay, (m) => m.name !== mesh.name);
+  
+  // Right ray (20 degrees)
+  const rightAngle = 0.35;
+  const rightDir = forward.clone();
+  rightDir.x = forward.x * Math.cos(rightAngle) - forward.z * Math.sin(rightAngle);
+  rightDir.z = forward.x * Math.sin(rightAngle) + forward.z * Math.cos(rightAngle);
+  rightDir.normalize();
+  
+  const rightRay = new Ray(position, rightDir, rayDistance);
+  const rightHit = scene.pickWithRay(rightRay, (m) => m.name !== mesh.name);
+  
+  // Check distances
+  const centerDist = centerHit?.hit ? centerHit.distance : Infinity;
+  const leftDist = leftHit?.hit ? leftHit.distance : Infinity;
+  const rightDist = rightHit?.hit ? rightHit.distance : Infinity;
+  
+  // If obstacle detected within 70% of ray distance
+  if (centerDist < rayDistance * 0.7) 
+  {
+    // Turn toward clearer side
+    if (leftDist > rightDist) 
+    {
+      return { hasObstacle: true, direction: -1 }; // Turn left
+    } 
+    else 
+    {
+      return { hasObstacle: true, direction: 1 }; // Turn right
+    }
+  }
+  
+  return { hasObstacle: false, direction: 0 };
+}
   
   private calculateThrottle(currentPos: Vector3): number 
   {
@@ -156,7 +230,7 @@ export class AIRacerController
     {
       this.stuckTimer += deltaTime;
       
-      if (this.stuckTimer > 5.0) 
+      if (this.stuckTimer > 2.0) 
       {
         console.error(`[AI ${this.pod.getConfig().name}] STUCK DETECTED!`);
         console.error(`  Position: (${currentPos.x.toFixed(1)}, ${currentPos.y.toFixed(1)}, ${currentPos.z.toFixed(1)})`);
