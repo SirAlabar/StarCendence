@@ -5,6 +5,7 @@ import { HttpError } from '../utils/HttpError';
 import * as tokenService from '../token/tokenService';
 import * as userRepository from './userRepository';
 import * as refreshTokenRepository from '../token/refreshTokenRepository';
+import { TokenPair, TokenType } from '../token/token.types';
 
 // Register a new user
 export async function registerUser(email: string, password: string, username: string) {
@@ -34,7 +35,7 @@ export async function loginUser(email: string, password: string) {
 
   if (user.twoFactorEnabled) {
     const tempToken = await tokenService.generateTempToken(user.id);
-    return { twoFactorRequired: true, tempToken };
+    return { tempToken, type: TokenType.TEMP };
   }
 
   const existingTokens = await refreshTokenRepository.findByUserId(user.id);

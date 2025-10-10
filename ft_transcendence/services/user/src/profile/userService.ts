@@ -1,16 +1,25 @@
 import { HttpError } from "../utils/HttpError";
 import * as userRepository from "./userRepository";
-import { UserProfile } from "./user.types";
+import { UserProfile, UserStatus } from "./user.types";
 import path from "path";
 import fs from 'fs/promises';
 
-// Create a new user profile
+// Create a new user profile (internal)
 export async function createUserProfile(authId: string, email: string, username: string) {
   if (!authId || !email || !username) {
     throw new HttpError('Auth ID, email, and username are required', 400);
   }
 
   await userRepository.createUserProfile(authId, email, username);
+}
+
+// Update user status (internal)
+export async function updateUserStatus(id: string, status: UserStatus) : Promise<UserProfile> {
+  const user = await userRepository.updateUserStatus(id, status);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+  return user;
 }
 
 // Find user profile by ID
@@ -30,6 +39,8 @@ export async function updateUserProfile(id: string, updatedData: Partial<UserPro
   }
   return user;
 }
+
+
 
 // Upload or update user profile image
 export async function uploadProfileImage(id: string, image: any) : Promise<string> {

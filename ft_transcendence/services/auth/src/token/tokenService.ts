@@ -4,11 +4,8 @@ import * as speakeasy from 'speakeasy';
 import { HttpError } from '../utils/HttpError';
 import { readFileSync } from 'fs';
 import * as refreshTokenRepository from './refreshTokenRepository';
+import { TokenType, TokenPair } from './token.types';
 
-export interface TokenPair {
-  accessToken: string;
-  refreshToken: string;
-}
 
 // Load JWT secret from Docker secret file
 function getJwtSecret(): string {
@@ -20,7 +17,7 @@ function getJwtSecret(): string {
 }
 
 // Generate access and refresh tokens
-export async function generateTokens(userId: string, email: string, username: string): Promise<TokenPair> {
+export async function generateTokens(userId: string, email: string, username: string) {
   const jwtSecret = getJwtSecret();
   
   const accessToken = jwt.sign(
@@ -44,7 +41,7 @@ export async function generateTokens(userId: string, email: string, username: st
   
   await refreshTokenRepository.create(userId, refreshToken, expiresAt);
 
-  return { accessToken, refreshToken };
+  return { accessToken, refreshToken, type: TokenType.ACCESS };
 }
 
 // Verify access token (for protected routes)

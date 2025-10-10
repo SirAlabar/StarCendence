@@ -1,6 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import * as authService from './authService';
 import { LoginRequestBody, RegisterRequestBody } from './auth.types';
+import { TokenPair, TokenType } from '../token/token.types';
+import { updateUserStatus } from '../clients/userServiceClient';
+import * as userRepository from '../auth/userRepository';
 
 
 // POST /register - Register a new user
@@ -22,7 +25,14 @@ export async function login(req: FastifyRequest<{ Body: LoginRequestBody }>, rep
     return reply.status(400).send({ error: 'Email and password are required' });
   }
 
-  const token = await authService.loginUser(email, password);
+  const token: Partial<TokenPair> = await authService.loginUser(email, password);
+  if (token.type === TokenType.ACCESS) {
+    const user = await userRepository.findUserByEmail(email);
+    if (!user) {
+      return reply.status(404).send({ error: 'User not found' });
+    }
+    await updateUserStatus(user.id, 'ONLINE');
+  }
 
   return reply.send({ token });
 }
@@ -53,6 +63,12 @@ export async function logout(req: FastifyRequest, reply: FastifyReply) {
   }
 
   await authService.logoutUser(accessToken);
+  
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(400).send({ error: 'Invalid user' });
+  }
+  await updateUserStatus(userId, 'OFFLINE');
 
   return reply.send({
     success: true,

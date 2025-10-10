@@ -1,7 +1,12 @@
 import { PrismaClient } from '@prisma/client';
-import { UserProfile } from './user.types';
+import { UserProfile, UserStatus } from './user.types';
 
 const prisma = new PrismaClient();
+
+// Find all user profiles -- DEBUG PURPOSES
+export async function findAllUserProfiles() {
+  return prisma.userProfile.findMany();
+}
 
 // Create a new user profile
 export async function createUserProfile(authId: string, email: string, username: string) {
@@ -11,6 +16,14 @@ export async function createUserProfile(authId: string, email: string, username:
       email,
       username
     }
+  });
+}
+
+// Update user status
+export async function updateUserStatus(id: string, status: UserStatus) {
+  return prisma.userProfile.update({
+    where: { id },
+    data: { status }
   });
 }
 

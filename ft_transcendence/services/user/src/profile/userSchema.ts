@@ -1,4 +1,6 @@
 // User creation in user service, internal route /create-user
+import { UserStatus } from "./user.types";
+
 export const createUserSchema = {
   body: {
     type: 'object',
@@ -38,3 +40,14 @@ export const updateUserProfileSchema = {
   }
 };
 
+
+export const updateUserStatusSchema = {
+  body: {
+    type: 'object',
+    required: ['userId', 'status'],
+    properties: {
+      userId: { type: 'string', format: 'uuid' },
+      status: { type: 'string', enum: Object.values(UserStatus)}
+    }
+  },
+}
