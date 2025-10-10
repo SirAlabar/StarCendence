@@ -2,7 +2,7 @@ import { Ball } from "./entities/Ball"
 import { paddle } from "./entities/Paddle";
 import { player } from "./entities/Player";
 import { navigateTo } from '@/router/router';
-
+import { enemy } from "./entities/EnemyAi";
 
 // PongScene.ts - main game engine
 
@@ -10,33 +10,45 @@ import { navigateTo } from '@/router/router';
 
 export class PongScene 
 {
-    private ctx: CanvasRenderingContext2D;
-    private canvas: HTMLCanvasElement;
-    private ball:  Ball;
-    private paddle_left : paddle;
-    private paddle_right : paddle;
-    private animationFrameId: number | null = null;
-    private player1: player;
-    private player2: player;
-    private keys: { [key: string]: boolean } = {};
-    private gamestate: boolean;
-    
-    
-  
-    constructor(ctx: CanvasRenderingContext2D) 
+    private ctx: CanvasRenderingContext2D;                  //page
+    private canvas: HTMLCanvasElement;                      //canvas
+    private ball:  Ball;                                    //game ball
+    private paddle_left! : paddle;                          //paddles
+    private paddle_right! : paddle;
+    private animationFrameId: number | null = null;         //frames
+    private player1!: player;                               //players
+    private player2!: player;
+    private enemy!: enemy;                                  //enemy ai
+    private keys: { [key: string]: boolean } = {};          //keys (w,s arrowup, arrowdown)
+    private mode?: "multiplayer" | "ai";                    //mode , multiplayer or enemyai
+    private gamestate: boolean;                             //game state (true game ended)
+        
+    constructor(ctx: CanvasRenderingContext2D, mode: "multiplayer" | "ai") 
     {
-        this.ctx = ctx;                     //get page and canvas
+        this.ctx = ctx;
         this.canvas = ctx.canvas;
+        this.mode = mode;
         this.ball = new Ball(this.canvas.width /2 , this.canvas.height /2 , 10);
         this.paddle_left = new paddle("left" , this.canvas);
-        this.paddle_right = new paddle("right", this.canvas);
-        this.player1 = new player();
-        this.player2 = new player();
-        this.player1.score = 0;
-        this.player2.score = 0;
+
+        if (mode === "multiplayer") 
+        {
+            this.paddle_right = new paddle("right", this.canvas);
+            this.player1 = new player();
+            this.player2 = new player();
+            this.player1.score = 0;
+            this.player2.score = 0;
+        } 
+        else 
+        { 
+            this.enemy = new enemy(this.canvas); // make sure EnemyAi expects canvas
+            this.player1 = new player();
+            this.player1.score = 0;
+            this.enemy.score = 0;
+        }
+
         this.gamestate = false;
         this.InputHandler();
-        
     }
     
     start():void
@@ -45,39 +57,43 @@ export class PongScene
         this.update();
     }   
 
-    private update = ():void => 
+   private update = (): void => 
     {
-        if(this.gamestate == true)
+        if (this.gamestate) 
             return;
         this.clear();
         this.updatePaddle();
         this.checkBallCollision(this.ball);
         this.drawScore();
-        if(this.player1.score >= 3)
+
+        if (this.player1.score >= 3 || (this.mode === "multiplayer" && this.player2.score >= 3) || (this.mode === "ai" && this.enemy.score >= 3)) 
         {
-            console.log("here?");
-            console.log("Player 1 Won the game!");
+            const winner = this.player1.score >= 3 ? "Player 1" : "Opponent";
+            console.log(`${winner} won the game!`);
             this.drawScore();
             this.endGame();
             return;
         }
-        if(this.player2.score >= 3)
-        {
-            console.log("here?");
-            console.log("Player 2 Won the game!");
-            this.drawScore();
-            this.endGame();
-            return;
-        }
+
         this.ball.draw(this.ctx);
         this.paddle_left.update(this.canvas);
         this.paddle_left.draw(this.ctx);
-        this.paddle_right.update(this.canvas);
-        this.paddle_right.draw(this.ctx);
+
+        if (this.mode === "multiplayer" && this.paddle_right) 
+        {
+            this.paddle_right.update(this.canvas);
+            this.paddle_right.draw(this.ctx);
+            this.checkPaddleCollision(this.paddle_right);
+        } 
+        else if (this.mode === "ai" && this.enemy) 
+        {
+            this.enemy.update(this.ball, this.canvas);
+            this.enemy.draw(this.ctx);
+            this.checkPaddleCollision(this.enemy);
+        }
+
         this.checkPaddleCollision(this.paddle_left);
-        this.checkPaddleCollision(this.paddle_right);
         this.animationFrameId = requestAnimationFrame(this.update);
-        
     };
 
     private clear() 
@@ -93,13 +109,16 @@ export class PongScene
     private updatePaddle():void
     {
         //left paddle
-        if(this.keys['ArrowUp'] && this.paddle_right.y > 0)
+        if(this.mode === "multiplayer")
         {
-            this.paddle_right.y -= this.paddle_right.speed;
-        }
-        if(this.keys['ArrowDown'] && this.paddle_right.y + this.paddle_right.height < this.canvas.height)
-        {
-            this.paddle_right.y += this.paddle_right.speed;
+            if(this.keys['ArrowUp'] && this.paddle_right.y > 0)
+            {
+                this.paddle_right.y -= this.paddle_right.speed;
+            }
+            if(this.keys['ArrowDown'] && this.paddle_right.y + this.paddle_right.height < this.canvas.height)
+            {
+                this.paddle_right.y += this.paddle_right.speed;
+            }
         }
         //right paddle
         if(this.keys['w'] && this.paddle_left.y > 0)
@@ -124,58 +143,70 @@ export class PongScene
         });
     }
 
-    private checkPaddleCollision(paddle: paddle): void {
-    if (
-        this.ball.x - this.ball.radius <= paddle.x + paddle.width &&
-        this.ball.x + this.ball.radius >= paddle.x &&
-        this.ball.y >= paddle.y &&
-        this.ball.y <= paddle.y + paddle.height
-    ) 
+    private checkPaddleCollision(paddle: paddle): void 
     {
-        const speedIncrease = 1.05; 
-        this.ball.dx = -this.ball.dx * speedIncrease;
-        const relativeIntersectY = (this.ball.y - (paddle.y + paddle.height / 2)) / (paddle.height / 2);
-        this.ball.dy += relativeIntersectY * 2;
-        const maxSpeed = 15;
-        const currentSpeed = Math.sqrt(this.ball.dx ** 2 + this.ball.dy ** 2);
-        if (currentSpeed > maxSpeed) 
+        if (
+            this.ball.x - this.ball.radius <= paddle.x + paddle.width &&
+            this.ball.x + this.ball.radius >= paddle.x &&
+            this.ball.y >= paddle.y &&
+            this.ball.y <= paddle.y + paddle.height
+        ) 
         {
-            const scale = maxSpeed / currentSpeed;
-            this.ball.dx *= scale;
-            this.ball.dy *= scale;
-        }
-        console.log(`Hit paddle at ${relativeIntersectY.toFixed(2)} → dx=${this.ball.dx}, dy=${this.ball.dy}`);
+            const speedIncrease = 1.05; 
+            this.ball.dx = -this.ball.dx * speedIncrease;
+            const relativeIntersectY = (this.ball.y - (paddle.y + paddle.height / 2)) / (paddle.height / 2);
+            this.ball.dy += relativeIntersectY * 2;
+            const maxSpeed = 15;
+            const currentSpeed = Math.sqrt(this.ball.dx ** 2 + this.ball.dy ** 2);
+            if (currentSpeed > maxSpeed) 
+            {
+                const scale = maxSpeed / currentSpeed;
+                this.ball.dx *= scale;
+                this.ball.dy *= scale;
+            }
+            console.log(`Hit paddle at ${relativeIntersectY.toFixed(2)} → dx=${this.ball.dx}, dy=${this.ball.dy}`);
+            }
     }
-}
 
-    private checkBallCollision(ball : Ball, ): void
+    private checkBallCollision(ball: Ball): void 
     {
-
         ball.x += ball.dx;
         ball.y += ball.dy;
-        if (ball.x + ball.radius > this.canvas.width)                               //right side wall
+
+        if (ball.x + ball.radius > this.canvas.width) 
         {
+            // Right wall hit
             this.stop();
             this.player1.score += 1;
-            console.log("Player 1 Score: ", this.player1.score);
-            this.ball = new Ball(this.canvas.width /2 , this.canvas.height /2 , 10);
-            this.ball.dx = -5;
-            this.ball.dy = -5;
-            
+            this.resetBall(-5, -5);
         }
-        if(ball.x - ball.radius < 0)                                                // left side wall
+
+        if (ball.x - ball.radius < 0) 
         {
+            // Left wall hit
             this.stop();
-            this.player2.score += 1;
-            console.log("Player 2 Score: ", this.player2.score);
-            this.ball = new Ball(this.canvas.width /2 , this.canvas.height /2 , 10);
+            if (this.mode === "multiplayer") 
+            {
+                this.player2.score += 1;
+            } 
+            else if (this.mode === "ai" && this.enemy) 
+            {
+                this.enemy.score += 1;
+            }
+            this.resetBall(5, 5);
         }
-        if (ball.y + ball.radius > this.canvas.height || ball.y - ball.radius < 0) //celling or floor
+
+        if (ball.y + ball.radius > this.canvas.height || ball.y - ball.radius < 0) 
         {
-            ball.dy = ball.dy  * (-1);
-            console.log("Velocity in X : ", this.ball.dx);
-            console.log("Velocity in y : ", this.ball.dy);
+            ball.dy *= -1;
         }
+    }
+
+    private resetBall(dx: number, dy: number) 
+    {
+        this.ball = new Ball(this.canvas.width / 2, this.canvas.height / 2, 10);
+        this.ball.dx = dx;
+        this.ball.dy = dy;
     }
 
     private drawScore()
@@ -185,20 +216,33 @@ export class PongScene
         ctx.font = "48px 'Press Start To Play', monospace";
         ctx.textAlign = "center";
 
-        if(this.player1.score == 3)
-        {
+        // Win messages depending on mode
+        if (this.player1 && this.player1.score === 3) {
             ctx.fillText("Player 1 Wins the game", this.canvas.width / 2, this.canvas.height / 2);
             return;
         }
-        if(this.player2.score == 3)
-        {
+
+        if (this.mode === "multiplayer" && this.player2 && this.player2.score === 3) {
             ctx.fillText("Player 2 Wins the game", this.canvas.width / 2, this.canvas.height / 2);
             return;
         }
-        //left player score
-        ctx.fillText(`${this.player1.score}`, this.canvas.width / 4, 50);
-        //right player score
-        ctx.fillText(`${this.player2.score}`, (this.canvas.width / 4) * 3, 50);
+
+        if (this.mode === "ai" && this.enemy && this.enemy.score === 3) {
+            ctx.fillText("Bot John Wins the game", this.canvas.width / 2, this.canvas.height / 2);
+            return;
+        }
+
+        // Score display
+        ctx.fillText(`${this.player1?.score ?? 0}`, this.canvas.width / 4, 50);
+
+        if (this.mode === "multiplayer") 
+        {
+            ctx.fillText(`${this.player2?.score ?? 0}`, (this.canvas.width / 4) * 3, 50);
+        } 
+        else if (this.mode === "ai") 
+        {
+            ctx.fillText(`${this.enemy?.score ?? 0}`, (this.canvas.width / 4) * 3, 50);
+        }
     }
 
     private endGame()

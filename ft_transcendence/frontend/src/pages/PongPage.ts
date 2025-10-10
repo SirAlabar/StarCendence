@@ -100,25 +100,25 @@ export default class PongPage extends BaseComponent
   }
 
   
+ 
   private start2DPong(mode: "ai" | "multiplayer"): void 
   {
     const menu = document.getElementById("pongMenuContainer");
     const canvas = document.getElementById("pongCanvas") as HTMLCanvasElement;
-
     if (menu) menu.style.display = "none";
-    if (canvas) {
+
+    if (canvas) 
+    {
       this.resize(canvas);
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      // You can pass mode info to PongScene later (e.g., AI logic)
-      this.pongScene = new PongScene(ctx);
+      this.pongScene = new PongScene(ctx, mode);
       console.log(`Starting 2D Pong in mode: ${mode}`);
       this.pongScene.start();
     }
-
     window.addEventListener("resize", () => 
-      {
+    {
       if (canvas && this.pongScene) {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;

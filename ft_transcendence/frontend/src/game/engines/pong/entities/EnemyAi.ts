@@ -1,0 +1,42 @@
+import { Ball } from "./Ball";
+
+export class enemy 
+{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    speed: number;
+    score: number;
+
+    constructor(canvas: HTMLCanvasElement) 
+    {
+        this.width = 10;
+        this.height = 100;
+        this.x = canvas.width - this.width - 20; // right side
+        this.y = canvas.height / 2 - this.height / 2;
+        this.speed = 6;
+        this.score = 0;
+    }
+
+    update(ball: Ball, canvas: HTMLCanvasElement) 
+    {
+        // Simple AI: follow the ball
+        if (ball.y < this.y + this.height / 2) 
+            this.y -= this.speed;
+        if (ball.y > this.y + this.height / 2) 
+            this.y += this.speed;
+
+        // Clamp within screen
+        if (this.y < 0) 
+            this.y = 0;
+        if (this.y + this.height > canvas.height) 
+            this.y = canvas.height - this.height;
+    }
+
+    draw(ctx: CanvasRenderingContext2D) 
+    {
+        ctx.fillStyle = "red";
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+    }
+}
