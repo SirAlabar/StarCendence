@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./user.db"
+  url      = "file:/app/data/user.db"
 }
 
 // Core user model
@@ -13,8 +13,41 @@ model UserProfile {
   id        String   @id // same as AuthUser id
   email     String   @unique
   username  String   @unique
+  bio       String?
+  avatarUrl String?
+  status    String   @default("OFFLINE")
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  friendRequestSent    Friendship[] @relation("FriendRequestsSent")
+  friendRequestReceived Friendship[] @relation("FriendRequestsReceived")
+
+  // TO IMPLEMENT MATCH HISTORY LATER
+
   @@map("users")
+}
+
+// Friendship model to represent friend requests and relationships
+model Friendship {
+  id         Int      @id @default(autoincrement())
+  sender  UserProfile @relation("FriendRequestsSent", fields: [senderId], references: [id])
+  senderId String
+  recipient  UserProfile @relation("FriendRequestsReceived", fields: [recipientId], references: [id])
+  recipientId String
+  status      String  @default("PENDING")
+  createdAt  DateTime @default(now())
+
+  @@unique([senderId, recipientId])
+  @@map("friendships")
+}
+
+model MatchHistory {
+  id         Int      @id @default(autoincrement())
+  player1Id  String
+  player2Id  String
+  result     String
+  playedAt   DateTime @default(now())
+
+  @@map("match_history")
 }

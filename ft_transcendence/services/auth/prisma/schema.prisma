@@ -5,10 +5,10 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./auth.db"
+  url      = "file:/app/data/auth.db"
 }
 
-// Core user model
+// User model representing authenticated users
 model AuthUser {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -20,17 +20,17 @@ model AuthUser {
   twoFactorSecret   String?
   twoFactorEnabled  Boolean  @default(false)
 
-  RefreshTokens RefreshToken[]
+  refreshToken RefreshToken?  // updated to singular
 
   @@map("users")
 }
 
-// Refresh tokens for session management
+// RefreshToken model representing refresh tokens for users
 model RefreshToken {
   id        String   @id @default(uuid())
   token     String   @unique
-  userId    String
-  user      AuthUser     @relation(fields: [userId], references: [id])
+  userId    String   @unique
+  user      AuthUser @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   expiresAt DateTime
 

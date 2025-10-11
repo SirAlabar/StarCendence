@@ -25,6 +25,7 @@ services:
       - "443:443"
     volumes:
       - frontend_dist:/var/www/html
+      - user_avatars:/services/user/uploads/avatars:ro
     networks:
       - transcendence_network
     secrets:
@@ -163,12 +164,12 @@ volumes:
       device: ${HOME}/data/frontend
       o: bind
 
-  # auth_data:
-  #   driver: local
-  #   driver_opts:
-  #     type: none
-  #     device: ${HOME}/data/auth
-  #     o: bind
+  auth_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOME}/data/auth
+      o: bind
 
   # game_data:
   #   driver: local
@@ -184,12 +185,19 @@ volumes:
   #     device: ${HOME}/data/chat
   #     o: bind
 
-  # user_data:
-  #   driver: local
-  #   driver_opts:
-  #     type: none
-  #     device: ${HOME}/data/user
-  #     o: bind
+  user_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOME}/data/user
+      o: bind
+
+  user_avatars:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOME}/data/user/avatars
+      o: bind
 
 networks:
   transcendence_network:
