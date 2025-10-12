@@ -44,7 +44,7 @@ export class PodSelection extends BaseComponent
   {
     return `
       <div class="pod-selection-overlay fixed inset-0 z-50 flex items-center justify-center neon-background p-4 sm:p-8">
-        <div class="w-full h-full flex flex-col overflow-hidden">
+        <div class="w-full flex flex-col overflow-hidden items-center justify-center">
           
           <!-- Header -->
           <div class="text-center mb-8 flex-shrink-0">
@@ -54,7 +54,7 @@ export class PodSelection extends BaseComponent
 
           <!-- Pod Grid Container com Scroll -->
           <div class="flex-1 overflow-y-auto overflow-x-hidden mb-8 px-4">
-            <div class="grid grid-cols-2 lg:grid-cols-3 gap-6 max-w-[520px] lg:max-w-4xl mx-auto">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-8 px-2 md:px-4 lg:px-8 mx-auto w-full max-w-6xl">
               ${this.renderPodCards()}
             </div>
           </div>
