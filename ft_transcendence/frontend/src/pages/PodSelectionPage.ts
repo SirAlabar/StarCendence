@@ -43,18 +43,18 @@ export class PodSelection extends BaseComponent
   render(): string 
   {
     return `
-      <div class="pod-selection-overlay fixed inset-0 z-50 flex items-center justify-center neon-background p-4 sm:p-8">
-        <div class="w-full flex flex-col overflow-hidden items-center justify-center">
+      <div class="pod-selection-overlay fixed inset-0 z-50 flex items-center justify-center neon-background">
+        <div class="max-w-4xl w-full p-8">
           
           <!-- Header -->
-          <div class="text-center mb-8 flex-shrink-0">
+          <div class="text-center mb-8">
             <h1 class="text-4xl font-bold text-white mb-2 glow-text">Choose Your Podracer</h1>
             <p class="text-gray-300">Select your racing machine</p>
           </div>
 
           <!-- Pod Grid Container com Scroll -->
-          <div class="flex-1 overflow-y-auto overflow-x-hidden mb-8 px-4">
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-8 px-2 md:px-4 lg:px-8 mx-auto w-full max-w-6xl">
+          <div class="flex-1 mb-8 px-4 overflow-visible">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-8 mx-auto w-full max-w-6xl overflow-visible">
               ${this.renderPodCards()}
             </div>
           </div>
@@ -384,11 +384,11 @@ export class PodSelection extends BaseComponent
       const videoPath = POD_VIDEOS[pod.id];
       
       return `
-        <div class="pod-card rounded-lg overflow-hidden cursor-pointer transition-all duration-300 ${
-          this.selectedPodId === pod.id ? 'selected' : ''
-        }" 
-        onclick="podSelection.selectPod('${pod.id}')">
-          
+          <div class="pod-card rounded-lg cursor-pointer transition-all duration-300 transform hover:scale-[1.04] ${
+            this.selectedPodId === pod.id ? 'selected' : ''
+          }" 
+          onclick="podSelection.selectPod('${pod.id}')">
+
           <!-- Pod Video Preview -->
           <div class="video-container relative h-32 bg-gray-900">
             <video 
