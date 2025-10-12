@@ -202,11 +202,10 @@ export class RacerRenderer
 
   private handleLeaveRace(): void 
   {
-    // Clean up everything
     this.dispose();
     
     // Navigate back
-    window.location.href = '/pod-selection';
+    window.location.href = '/games';
   }
 
   private startHUDUpdateLoop(): void 
