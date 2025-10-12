@@ -15,8 +15,8 @@ export class Hero extends BaseComponent
     private renderContent(): string 
     {
         return `
-            <article class="sm:w-1/2">
-                <h2 class="max-w-md text-center text-4xl font-bold font-game text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-400 sm:text-left sm:text-5xl">
+            <article class="sm:w-2/3">
+                <h2 class="max-w-lg text-center text-4xl font-bold font-game text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-400 sm:text-left sm:text-5xl lg:text-6xl">
                     TRANSCENDENCE
                 </h2>
                 <p class="mt-4 max-w-md text-center text-2xl text-gray-300 sm:text-left">

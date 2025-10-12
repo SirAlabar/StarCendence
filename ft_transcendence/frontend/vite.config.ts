@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import { resolve } from 'path'
 
 export default defineConfig({
+  base: '/',
   // Development server config
   server: {
     host: true, // Listen on all addresses (for Docker)
@@ -26,9 +27,12 @@ export default defineConfig({
       output: {
         manualChunks: {
           // Separate Babylon.js into its own chunk for better caching
-          babylon: ['@babylonjs/core', '@babylonjs/materials', '@babylonjs/loaders']
+          babylon: ['@babylonjs/core', '@babylonjs/materials', '@babylonjs/loaders'],
         }
       }
+    },
+    commonjsOptions: {
+      transformMixedEsModules: true
     }
   },
 
@@ -60,7 +64,14 @@ export default defineConfig({
     include: [
       '@babylonjs/core',
       '@babylonjs/materials', 
-      '@babylonjs/loaders'
-    ]
-  }
+      '@babylonjs/loaders',
+      'ammojs-typed'
+    ],
+    exclude: [],
+    esbuildOptions: {
+      target: 'es2020'
+    }
+  },
+
+  assetsInclude: ['**/*.wasm']
 })

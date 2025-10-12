@@ -13,11 +13,12 @@
   },
   "dependencies": {
     "@babylonjs/core": "^8.21.0",
+    "@babylonjs/inspector": "^8.26.0",
+    "@babylonjs/loaders": "^8.21.0",
     "@babylonjs/materials": "^8.21.0",
-    "@babylonjs/loaders": "^8.21.0"
+    "ammojs-typed": "^1.0.6"
   },
   "devDependencies": {
-    "ammo.js": "^0.0.10",
     "@types/node": "^20.5.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",

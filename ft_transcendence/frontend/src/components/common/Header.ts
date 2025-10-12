@@ -38,7 +38,7 @@ export class Header extends BaseComponent
     private renderLogo(): string 
     {
         return `
-            <h1 class="text-2xl md:text-3xl font-bold font-game text-cyan-400 hover:text-purple-400 transition-colors duration-300">
+            <h1 class="text-2xl md:text-2xl lg:text-3xl font-bold font-game text-cyan-400 hover:text-purple-400 transition-colors duration-300 md:whitespace-nowrap">
                 <a href="/" data-link>42 Transcendence</a>
             </h1>
         `;
@@ -86,16 +86,19 @@ export class Header extends BaseComponent
     private renderHamburgerButton(): string 
     {
         return `
-            <button id="hamburger-button" class="
+            <button id="hamburger-button" type="button" class="
                 md:hidden p-2 rounded-lg
                 bg-white/10 backdrop-blur-sm
                 border border-white/20
                 text-white
                 hover:bg-white/20
+                active:bg-white/30
                 transition-all duration-300
                 relative z-50
-            ">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                touch-manipulation
+                cursor-pointer
+            " aria-label="Menu" aria-expanded="false">
+                <svg class="w-6 h-6 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                 </svg>
             </button>
@@ -128,50 +131,46 @@ export class Header extends BaseComponent
         `;
     }
 
-    // Only setup events once
-    protected afterMount(): void 
+protected afterMount(): void 
+{
+    if (!this.eventsSetup) 
     {
-        if (!this.eventsSetup) 
-        {
-            setTimeout(() => {
-                this.setupHamburgerMenu();
-                this.eventsSetup = true;
-            }, 50);
-        }
+        setTimeout(() => {
+            this.setupHamburgerMenu();
+            this.eventsSetup = true;
+        }, 50);
     }
+}
 
-    // Better event management
-    private setupHamburgerMenu(): void 
+private setupHamburgerMenu(): void 
+{
+    const hamburgerButton = document.getElementById('hamburger-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    if (hamburgerButton && mobileMenu) 
     {
-        const hamburgerButton = document.getElementById('hamburger-button');
-        const mobileMenu = document.getElementById('mobile-menu');
+        hamburgerButton.addEventListener('click', this.handleHamburgerClick.bind(this));
+        hamburgerButton.addEventListener('touchstart', this.handleHamburgerClick.bind(this));
+        
+        document.addEventListener('click', this.handleOutsideClick.bind(this));
+        window.addEventListener('resize', this.handleWindowResize.bind(this));
 
-        if (hamburgerButton && mobileMenu) 
+        const mobileLinks = mobileMenu.querySelectorAll('a');
+        mobileLinks.forEach(link => 
         {
-            // Setup event handlers
-            hamburgerButton.addEventListener('click', this.handleHamburgerClick.bind(this));
-            document.addEventListener('click', this.handleOutsideClick.bind(this));
-            window.addEventListener('resize', this.handleWindowResize.bind(this));
-
-            // Setup mobile menu link clicks
-            const mobileLinks = mobileMenu.querySelectorAll('a');
-            mobileLinks.forEach(link => 
-            {
-                link.addEventListener('click', this.handleMobileMenuClick.bind(this));
-            });
-        }
+            link.addEventListener('click', this.handleMobileMenuClick.bind(this));
+        });
     }
-
+}
     // Event handler methods
-    private handleHamburgerClick(): void 
+private handleHamburgerClick(): void 
+{
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenu) 
     {
-        const mobileMenu = document.getElementById('mobile-menu');
-        if (mobileMenu) 
-        {
-            mobileMenu.classList.toggle('hidden');
-        }
+        mobileMenu.classList.toggle('hidden');
     }
-
+}
     private handleOutsideClick(event: Event): void 
     {
         const hamburgerButton = document.getElementById('hamburger-button');

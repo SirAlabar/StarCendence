@@ -6,6 +6,7 @@ export interface PodConfig
   name: string;
   pilot: string;
   modelPath: string;
+  isSecret?: boolean;
 }
 
 
@@ -37,21 +38,30 @@ export const AVAILABLE_PODS: PodConfig[] = [
   {
     id: 'red_menace',
     name: "Red Menace",
-    pilot: 'Unknown',
+    pilot: 'Sebulba',
     modelPath: '/assets/models/racer/spaceship_clipper_v2_-_red_menace.glb'
   },
   {
     id: 'space_racer',
     name: "Space Racer",
-    pilot: 'Generic',
+    pilot: 'Dud Bolt',
     modelPath: '/assets/models/racer/racer_space_ship_model.glb'
   }
 ];
 
+export const SECRET_POD: PodConfig = {
+  id: 'ph-qw-4l-ec-ro-nx',
+  name: 'Millennium falcon',
+  pilot: 'Han Solo',
+  modelPath: '/assets/models/racer/ph-qw-4l-ec-ro-nx.glb',
+  isSecret: true
+};
+
 // Simple helper to get pod by ID
 export function getPodById(id: string): PodConfig | undefined 
 {
-  return AVAILABLE_PODS.find(pod => pod.id === id);
+  const allPods = [...AVAILABLE_PODS, SECRET_POD];
+  return allPods.find(pod => pod.id === id);
 }
 
 // Default pod
