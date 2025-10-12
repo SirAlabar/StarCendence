@@ -9,21 +9,47 @@ interface NavItem
 
 export class Header extends BaseComponent 
 {
-    private navItems: NavItem[] = [
-        { label: 'Main', href: '#hero' },
-        { label: 'Team', href: '#team' },
-        { label: 'Features', href: '#features' },
-        { label: 'About', href: '#about' },
-        { label: 'Games', href: '/games' },
-        { label: 'Leaderboard', href: '/leaderboard' },
-        { label: 'Login', href: '/login', primary: true }
-    ];
+    private navItems: NavItem[] = [];
 
     // Track if events are already setup
     private eventsSetup = false;
 
+    private updateNavItems(): void 
+    {
+        const isLoggedIn = localStorage.getItem('access_token') !== null;
+        
+        if (isLoggedIn) 
+        {
+            // Navigation for LOGGED IN users
+            this.navItems = [
+                { label: 'Main', href: '#hero' },
+                { label: 'Team', href: '#team' },
+                { label: 'Features', href: '#features' },
+                { label: 'About', href: '#about' },
+                { label: 'Games', href: '/games' },
+                { label: 'Leaderboard', href: '/leaderboard' },
+                { label: 'Profile', href: '/profile', primary: true },
+                { label: 'Logout', href: '/logout', primary: false }
+            ];
+        } 
+        else 
+        {
+            // Navigation for LOGGED OUT users
+            this.navItems = [
+                { label: 'Main', href: '#hero' },
+                { label: 'Team', href: '#team' },
+                { label: 'Features', href: '#features' },
+                { label: 'About', href: '#about' },
+                { label: 'Games', href: '/games' },
+                { label: 'Leaderboard', href: '/leaderboard' },
+                { label: 'Login', href: '/login', primary: true }
+            ];
+        }
+    }
+
     render(): string 
     {
+        this.updateNavItems();
         return `
             <header class="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-gray-900/20 border-b border-white/10 shadow-lg">
                 <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
@@ -147,6 +173,7 @@ private setupHamburgerMenu(): void
     const hamburgerButton = document.getElementById('hamburger-button');
     const mobileMenu = document.getElementById('mobile-menu');
 
+
     if (hamburgerButton && mobileMenu) 
     {
         hamburgerButton.addEventListener('click', this.handleHamburgerClick.bind(this));
@@ -161,16 +188,26 @@ private setupHamburgerMenu(): void
             link.addEventListener('click', this.handleMobileMenuClick.bind(this));
         });
     }
+    const logoutLinks = document.querySelectorAll('a[href="/logout"]');
+    logoutLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.handleLogout();
+        });
+    });
 }
+
     // Event handler methods
-private handleHamburgerClick(): void 
-{
-    const mobileMenu = document.getElementById('mobile-menu');
-    if (mobileMenu) 
+    private handleHamburgerClick(): void 
     {
-        mobileMenu.classList.toggle('hidden');
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (mobileMenu) 
+        {
+            mobileMenu.classList.toggle('hidden');
+        }
     }
-}
+
     private handleOutsideClick(event: Event): void 
     {
         const hamburgerButton = document.getElementById('hamburger-button');
@@ -192,6 +229,39 @@ private handleHamburgerClick(): void
         {
             mobileMenu.classList.add('hidden');
         }
+    }
+
+    public refresh(): void 
+    {
+        // Update nav items based on current auth state
+        this.updateNavItems();
+        
+        const header = document.querySelector('header');
+        if (header) 
+        {
+            header.outerHTML = this.render();
+            this.eventsSetup = false;
+            this.afterMount();
+        }
+    }
+
+    private handleLogout(): void 
+    {
+        // Show confirmation dialog
+        if (!confirm('Are you sure you want to logout?')) 
+        {
+            return;
+        }
+        
+        // Clear token
+        localStorage.removeItem('access_token');
+        
+        // Dispatch logout event
+        window.dispatchEvent(new CustomEvent('auth:logout'));
+        
+        this.refresh();
+        
+        (window as any).navigateTo('/');
     }
 
     private handleMobileMenuClick(): void 

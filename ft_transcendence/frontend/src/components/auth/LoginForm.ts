@@ -198,10 +198,12 @@ export class LoginForm
             {
                 if (data.token) 
                 {
-                    localStorage.setItem('auth_token', data.token);
+                    localStorage.setItem('access_token', data.token);
                 }
                 
                 this.showMessage('Login successful! Redirecting to profile...', 'success');
+
+                window.dispatchEvent(new CustomEvent('auth:login'));
                 
                 setTimeout(() => {
                     (window as any).navigateTo('/profile');
