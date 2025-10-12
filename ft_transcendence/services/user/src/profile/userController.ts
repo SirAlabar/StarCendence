@@ -71,21 +71,34 @@ export async function updateUserProfile( req: FastifyRequest<{ Body: UpdateUserB
 }
 
 // POST /profile-image - Upload or update user's profile image (requires authentication)
-export async function uploadProfileImage(req: FastifyRequest, reply: FastifyReply) {
+export async function uploadProfileImage(req: FastifyRequest, reply: FastifyReply) 
+{
   const userId = req.user?.sub;
-  if (!userId) {
+  if (!userId) 
+  {
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
   }
 
   const image = await req.file({ limits: { fileSize: 5 * 1024 * 1024 } });
-  if (!image) {
+  if (!image) 
+  {
     return reply.status(400).send({ error: 'No image provided' });
   }
 
-  const imageUrl: Promise<string> = userService.uploadProfileImage(userId, image);
-  if (!imageUrl) {
-    return reply.status(404).send({ error: 'User not found' });
+  const validMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  if (!validMimeTypes.includes(image.mimetype)) 
+  {
+    return reply.status(400).send({
+      error: 'Invalid file type. Only JPG, PNG, GIF, and WEBP are allowed.'
+    });
   }
 
-  return reply.send(imageUrl);
+  const imageUrl = await userService.uploadProfileImage(userId, image);
+  
+  if (!imageUrl) 
+  {
+    return reply.status(500).send({ error: 'Failed to upload image' });
+  }
+
+  return reply.send({ avatarUrl: imageUrl });
 }

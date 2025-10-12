@@ -129,13 +129,14 @@ class UserService
             throw new Error('Not authenticated');
         }
 
-        // Validate file
-        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!validTypes.includes(file.type)) 
         {
-            throw new Error('Invalid file type. Only JPG, PNG, and GIF are allowed.');
+            throw new Error('Invalid file type. Only JPG, PNG, GIF, and WEBP are allowed.');
         }
 
+        // Validate file size
         const maxSize = 5 * 1024 * 1024; // 5MB
         if (file.size > maxSize) 
         {
@@ -145,11 +146,12 @@ class UserService
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch(`${API_BASE_URL}/profile-image`, {
+        const response = await fetch(`${API_BASE_URL}/profile-image`, 
+        {
             method: 'POST',
-            headers: {
+            headers: 
+            {
                 'Authorization': `Bearer ${token}`
-                // Don't set Content-Type, browser will set it with boundary
             },
             body: formData
         });
@@ -162,8 +164,19 @@ class UserService
                 window.dispatchEvent(new CustomEvent('auth:logout'));
                 throw new Error('Session expired');
             }
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to upload avatar');
+            
+            let errorMessage = 'Failed to upload avatar';
+            try 
+            {
+                const error = await response.json();
+                errorMessage = error.message || error.error || errorMessage;
+            } 
+            catch 
+            {
+                errorMessage = `Upload failed: ${response.statusText}`;
+            }
+            
+            throw new Error(errorMessage);
         }
 
         const data = await response.json();

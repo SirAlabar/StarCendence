@@ -118,15 +118,15 @@ export default class ProfilePage extends BaseComponent
         `;
     }
 
-    private renderProfileCard(): string 
+    private renderProfileCard(): string
     {
-        if (!this.userProfile) 
+        if (!this.userProfile)
         {
             return '';
         }
 
-        const avatarUrl = this.userProfile.avatarUrl 
-            ? `http://localhost:3004${this.userProfile.avatarUrl}` 
+        const avatarUrl = this.userProfile.avatarUrl
+            ? `http://localhost:3004${this.userProfile.avatarUrl}`
             : null;
 
         const statusColor = this.getStatusColor(this.userProfile.status);
@@ -134,7 +134,7 @@ export default class ProfilePage extends BaseComponent
 
         return `
             <div class="bg-gray-800/20 backdrop-blur-md rounded-lg p-8 border border-gray-700/50 text-center">
-                ${avatarUrl 
+                ${avatarUrl
                     ? `<img src="${avatarUrl}" alt="Avatar" class="w-32 h-32 rounded-full mx-auto mb-6 object-cover border-4 border-cyan-500/50">`
                     : `<div class="w-32 h-32 rounded-full mx-auto mb-6 flex items-center justify-center text-5xl profile-avatar bg-gradient-to-br from-cyan-500 to-purple-600">
                         <svg class="w-20 h-20 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
@@ -142,16 +142,16 @@ export default class ProfilePage extends BaseComponent
                         </svg>
                     </div>`
                 }
-                
+            
                 <h2 class="text-3xl font-bold text-cyan-400 mb-4 tracking-wider">
                     ${this.escapeHtml(this.userProfile.username).toUpperCase()}
                 </h2>
-                
+            
                 <div class="flex items-center justify-center gap-3 mb-6">
                     <span class="inline-block w-4 h-4 rounded-full ${statusColor}"></span>
                     <span class="text-gray-300 text-sm font-bold tracking-wide">${statusText}</span>
                 </div>
-                
+            
                 <div class="space-y-3 text-sm mb-6">
                     <div class="flex justify-between items-center py-2 border-b border-gray-700/50">
                         <span class="text-gray-400 font-medium">TRANSMISSION:</span>
@@ -162,11 +162,17 @@ export default class ProfilePage extends BaseComponent
                         <span class="text-cyan-300">${this.formatDate(this.userProfile.createdAt)}</span>
                     </div>
                 </div>
-                
+            
                 <button id="upload-avatar-btn" class="neon-border-purple w-full px-4 py-3 rounded-lg font-bold text-red-400 tracking-wide">
                     UPDATE HOLOGRAM
                 </button>
-                <input type="file" id="avatar-input" accept="image/*" class="hidden">
+                <input 
+                    type="file" 
+                    id="avatar-input" 
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" 
+                    class="hidden"
+                >
+                <p class="text-xs text-gray-500 mt-2">JPG, PNG, GIF, or WEBP (max 5MB)</p>
             </div>
         `;
     }
@@ -444,9 +450,33 @@ export default class ProfilePage extends BaseComponent
 
     private async handleUploadAvatar(file: File): Promise<void> 
     {
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!validTypes.includes(file.type)) 
+        {
+            this.showMessage('❌ Invalid file type. Only JPG, PNG, GIF, and WEBP are allowed.', 'error');
+            return;
+        }
+
+        // Validate file size
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) 
+        {
+            this.showMessage('❌ File size must be less than 5MB', 'error');
+            return;
+        }
+
+        // Validate if it's actually an image
+        const isValidImage = await this.validateImageFile(file);
+        if (!isValidImage) 
+        {
+            this.showMessage('❌ File is not a valid image. Please upload a real image file.', 'error');
+            return;
+        }
+
         try 
         {
-            this.showMessage('Uploading avatar...', 'success');
+            this.showMessage('📤 Uploading avatar...', 'success');
             const avatarUrl = await UserService.uploadAvatar(file);
             
             if (this.userProfile) 
@@ -454,13 +484,49 @@ export default class ProfilePage extends BaseComponent
                 this.userProfile.avatarUrl = avatarUrl;
             }
             
-            this.showMessage('Avatar uploaded successfully', 'success');
+            this.showMessage('✅ Avatar uploaded successfully!', 'success');
             this.rerender();
         } 
         catch (err) 
         {
-            this.showMessage((err as Error).message, 'error');
+            const errorMessage = (err as Error).message;
             console.error('Failed to upload avatar:', err);
+            
+            if (errorMessage.includes('Session expired')) 
+            {
+                this.showMessage('❌ Session expired. Please login again.', 'error');
+                setTimeout(() => 
+                {
+                    (window as any).navigateTo('/login');
+                }, 2000);
+            }
+            else 
+            {
+                this.showMessage(`❌ ${errorMessage}`, 'error');
+            }
         }
     }
+
+    private validateImageFile(file: File): Promise<boolean> 
+    {
+        return new Promise((resolve) => 
+        {
+            const img = new Image();
+            const objectUrl = URL.createObjectURL(file);
+            
+            img.onload = () => 
+            {
+                URL.revokeObjectURL(objectUrl);
+                resolve(true);
+            };
+            
+            img.onerror = () => 
+            {
+                URL.revokeObjectURL(objectUrl);
+                resolve(false);
+            };
+            
+            img.src = objectUrl;
+        });
+}
 }
