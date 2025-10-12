@@ -1,9 +1,13 @@
 import { BaseComponent } from '../components/BaseComponent';
-import { RegisterForm } from '../components/auth/RegisterForm';
 
 export default class RegisterPage extends BaseComponent 
 {
-    private registerForm: RegisterForm | null = null;
+    private usernameInput: HTMLInputElement | null = null;
+    private emailInput: HTMLInputElement | null = null;
+    private passwordInput: HTMLInputElement | null = null;
+    private confirmPasswordInput: HTMLInputElement | null = null;
+    private submitButton: HTMLButtonElement | null = null;
+    private messageContainer: HTMLElement | null = null;
 
     render(): string 
     {
@@ -15,7 +19,65 @@ export default class RegisterPage extends BaseComponent
                         <p class="text-gray-300">Create your gaming account</p>
                     </div>
                     
-                    <div id="register-form-container"></div>
+                    <form class="space-y-6" id="register-form">
+                        <div id="message-container" class="mb-4"></div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Username</label>
+                            <input 
+                                type="text" 
+                                id="username-input"
+                                name="username"
+                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none" 
+                                placeholder="Choose a username" 
+                                required
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                            <input 
+                                type="email" 
+                                id="email-input"
+                                name="email"
+                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none" 
+                                placeholder="your@email.com" 
+                                required
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                            <input 
+                                type="password" 
+                                id="password-input"
+                                name="password"
+                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none" 
+                                placeholder="••••••••" 
+                                required
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Confirm Password</label>
+                            <input 
+                                type="password" 
+                                id="confirm-password-input"
+                                name="confirmPassword"
+                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-purple-400 focus:outline-none" 
+                                placeholder="••••••••" 
+                                required
+                            >
+                        </div>
+                        
+                        <button 
+                            type="submit" 
+                            id="submit-button"
+                            class="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white py-3 rounded-lg font-bold hover:scale-105 transition-transform"
+                        >
+                            Create Account
+                        </button>
+                    </form>
                     
                     <div class="mt-6 text-center">
                         <p class="text-gray-400">Already have an account?</p>
@@ -36,26 +98,187 @@ export default class RegisterPage extends BaseComponent
 
     protected afterMount(): void 
     {
-        setTimeout(() => {
-            this.initializeRegisterForm();
-        }, 50);
+        this.initializeElements();
+        this.attachEventListeners();
     }
 
-    private initializeRegisterForm(): void 
+    private initializeElements(): void 
     {
-        const container = document.getElementById('register-form-container');
-        if (container) 
+        this.usernameInput = document.getElementById('username-input') as HTMLInputElement;
+        this.emailInput = document.getElementById('email-input') as HTMLInputElement;
+        this.passwordInput = document.getElementById('password-input') as HTMLInputElement;
+        this.confirmPasswordInput = document.getElementById('confirm-password-input') as HTMLInputElement;
+        this.submitButton = document.getElementById('submit-button') as HTMLButtonElement;
+        this.messageContainer = document.getElementById('message-container');
+    }
+
+    private attachEventListeners(): void 
+    {
+        const form = document.getElementById('register-form');
+        if (form) 
         {
-            this.registerForm = new RegisterForm(container);
+            form.addEventListener('submit', (e) => this.handleSubmit(e));
         }
     }
 
-    destroy(): void 
+    private showMessage(message: string, type: 'success' | 'error'): void 
     {
-        if (this.registerForm) 
+        if (!this.messageContainer) 
         {
-            this.registerForm.destroy();
-            this.registerForm = null;
+            return;
+        }
+        
+        const bgColor = type === 'success' ? 'bg-green-500/20 border-green-500' : 'bg-red-500/20 border-red-500';
+        const textColor = type === 'success' ? 'text-green-300' : 'text-red-300';
+        
+        this.messageContainer.innerHTML = `
+            <div class="${bgColor} border rounded-lg p-3 mb-4">
+                <p class="${textColor} text-sm">${message}</p>
+            </div>
+        `;
+    }
+
+    private validateUsername(username: string): string | null 
+    {
+        if (!username) 
+        {
+            return 'Username is required';
+        }
+        if (username.length < 3) 
+        {
+            return 'Username must be at least 3 characters';
+        }
+        if (username.length > 30) 
+        {
+            return 'Username must be less than 30 characters';
+        }
+        if (!/^[a-zA-Z0-9._-]+$/.test(username)) 
+        {
+            return 'Username can only contain letters, numbers, dots, underscores, and hyphens';
+        }
+        return null;
+    }
+
+    private validateEmail(email: string): string | null 
+    {
+        if (!email) 
+        {
+            return 'Email is required';
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) 
+        {
+            return 'Please enter a valid email address';
+        }
+        return null;
+    }
+
+    private validatePassword(password: string): string | null 
+    {
+        if (!password) 
+        {
+            return 'Password is required';
+        }
+        if (password.length < 8) 
+        {
+            return 'Password must be at least 8 characters';
+        }
+        
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]{8,}$/;
+        if (!passwordRegex.test(password)) 
+        {
+            return 'Password must contain uppercase, lowercase, number, and special character';
+        }
+        return null;
+    }
+
+    private async handleSubmit(event: Event): Promise<void> 
+    {
+        event.preventDefault();
+        
+        if (!this.usernameInput || !this.emailInput || !this.passwordInput || !this.confirmPasswordInput) 
+        {
+            return;
+        }
+
+        const username = this.usernameInput.value.trim();
+        const email = this.emailInput.value.trim();
+        const password = this.passwordInput.value;
+        const confirmPassword = this.confirmPasswordInput.value;
+
+        // Validate username
+        const usernameError = this.validateUsername(username);
+        if (usernameError) 
+        {
+            this.showMessage(usernameError, 'error');
+            return;
+        }
+
+        // Validate email
+        const emailError = this.validateEmail(email);
+        if (emailError) 
+        {
+            this.showMessage(emailError, 'error');
+            return;
+        }
+
+        // Validate password
+        const passwordError = this.validatePassword(password);
+        if (passwordError) 
+        {
+            this.showMessage(passwordError, 'error');
+            return;
+        }
+
+        // Validate password match
+        if (password !== confirmPassword) 
+        {
+            this.showMessage('Passwords do not match', 'error');
+            return;
+        }
+
+        if (this.submitButton) 
+        {
+            this.submitButton.disabled = true;
+            this.submitButton.textContent = 'Creating Account...';
+        }
+
+        try 
+        {
+            const response = await fetch('http://localhost:3001/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) 
+            {
+                console.log('🎉 Registration successful');
+                this.showMessage(`${data.message} Redirecting to login...`, 'success');
+                
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2000);
+            } 
+            else 
+            {
+                this.showMessage(data.message || 'Registration failed', 'error');
+            }
+        } 
+        catch (error) 
+        {
+            console.error('Registration error:', error);
+            this.showMessage('Network error. Please try again.', 'error');
+        } 
+        finally 
+        {
+            if (this.submitButton) 
+            {
+                this.submitButton.disabled = false;
+                this.submitButton.textContent = 'Create Account';
+            }
         }
     }
 }

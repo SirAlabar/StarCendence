@@ -318,16 +318,20 @@ export default class ProfilePage extends BaseComponent
 
     protected async afterMount(): Promise<void> 
     {
+        console.log('📄 PROFILE PAGE: afterMount called');
         await this.loadProfile();
         this.setupEventListeners();
     }
 
     private async loadProfile(): Promise<void> 
     {
+        console.log('📄 PROFILE PAGE: loadProfile started');
         try 
         {
             this.loading = true;
+            console.log('📄 PROFILE PAGE: Calling UserService.getProfile()');
             this.userProfile = await UserService.getProfile();
+            console.log('📄 PROFILE PAGE: Profile loaded successfully:', this.userProfile);
             this.error = null;
         } 
         catch (err) 

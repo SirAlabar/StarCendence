@@ -116,9 +116,9 @@ export class LoginService
       }
 
       // Store tokens
-      if (data.token) 
+      if (data.accessToken) 
       {
-        this.setTokens(data.token, data.refreshToken);
+          this.setTokens(data.accessToken, data.refreshToken);
       }
 
       return data;
