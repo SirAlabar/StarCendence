@@ -326,21 +326,9 @@ export default class ProfilePage extends BaseComponent
     {
         try 
         {
-        this.loading = true;
-        
-        // MOCK DATA para teste
-        this.userProfile = {
-            id: '1',
-            username: 'TestUser',
-            email: 'test@example.com',
-            bio: 'This is a test bio',
-            avatarUrl: null,
-            status: 'ONLINE',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        
-        this.error = null;
+            this.loading = true;
+            this.userProfile = await UserService.getProfile();
+            this.error = null;
         } 
         catch (err) 
         {
