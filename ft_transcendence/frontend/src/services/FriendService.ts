@@ -1,0 +1,269 @@
+import { UserProfile } from '../types/user.types';
+
+const API_BASE_URL = 'http://localhost:3004';
+
+interface FriendRequest 
+{
+    id: number;
+    senderId: string;
+    receiverId: string;
+    status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+    createdAt: string;
+    sender?: UserProfile;
+    receiver?: UserProfile;
+}
+
+class FriendService 
+{
+    private getToken(): string | null 
+    {
+        return localStorage.getItem('access_token');
+    }
+
+    private getHeaders(): HeadersInit 
+    {
+        const token = this.getToken();
+        return {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+        };
+    }
+
+    // GET /friends - Get user's friends list
+    async getFriends(): Promise<UserProfile[]> 
+    {
+        const token = this.getToken();
+        if (!token) 
+        {
+            throw new Error('Not authenticated');
+        }
+
+        const response = await fetch(`${API_BASE_URL}/friends`, {
+            method: 'GET',
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) 
+        {
+            if (response.status === 401) 
+            {
+                localStorage.removeItem('access_token');
+                window.dispatchEvent(new CustomEvent('auth:logout'));
+                throw new Error('Session expired');
+            }
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to get friends');
+        }
+
+        return await response.json();
+    }
+
+    // GET /friend-requests - Get received friend requests
+    async getFriendRequests(): Promise<FriendRequest[]> 
+    {
+        const token = this.getToken();
+        if (!token) 
+        {
+            throw new Error('Not authenticated');
+        }
+
+        const response = await fetch(`${API_BASE_URL}/friend-requests`, {
+            method: 'GET',
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) 
+        {
+            if (response.status === 401) 
+            {
+                localStorage.removeItem('access_token');
+                window.dispatchEvent(new CustomEvent('auth:logout'));
+                throw new Error('Session expired');
+            }
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to get friend requests');
+        }
+
+        return await response.json();
+    }
+
+    // GET /friend-requests/sent - Get sent friend requests
+    async getSentRequests(): Promise<FriendRequest[]> 
+    {
+        const token = this.getToken();
+        if (!token) 
+        {
+            throw new Error('Not authenticated');
+        }
+
+        const response = await fetch(`${API_BASE_URL}/friend-requests/sent`, {
+            method: 'GET',
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) 
+        {
+            if (response.status === 401) 
+            {
+                localStorage.removeItem('access_token');
+                window.dispatchEvent(new CustomEvent('auth:logout'));
+                throw new Error('Session expired');
+            }
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to get sent requests');
+        }
+
+        return await response.json();
+    }
+
+    // POST /friend-request - Send friend request
+    async sendFriendRequest(username: string): Promise<FriendRequest> 
+    {
+        const token = this.getToken();
+        if (!token) 
+        {
+            throw new Error('Not authenticated');
+        }
+
+        if (!username || username.length < 3) 
+        {
+            throw new Error('Invalid username');
+        }
+
+        const response = await fetch(`${API_BASE_URL}/friend-request`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify({ username })
+        });
+
+        if (!response.ok) 
+        {
+            if (response.status === 401) 
+            {
+                localStorage.removeItem('access_token');
+                window.dispatchEvent(new CustomEvent('auth:logout'));
+                throw new Error('Session expired');
+            }
+            if (response.status === 400) 
+            {
+                const error = await response.json();
+                throw new Error(error.message || 'Cannot send friend request');
+            }
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to send friend request');
+        }
+
+        return await response.json();
+    }
+
+    // POST /friend-request/:id/accept - Accept friend request
+    async acceptRequest(requestId: number): Promise<void> 
+    {
+        const token = this.getToken();
+        if (!token) 
+        {
+            throw new Error('Not authenticated');
+        }
+
+        const response = await fetch(`${API_BASE_URL}/friend-request/${requestId}/accept`, {
+            method: 'POST',
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) 
+        {
+            if (response.status === 401) 
+            {
+                localStorage.removeItem('access_token');
+                window.dispatchEvent(new CustomEvent('auth:logout'));
+                throw new Error('Session expired');
+            }
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to accept friend request');
+        }
+    }
+
+    // POST /friend-request/:id/decline - Decline friend request
+    async declineRequest(requestId: number): Promise<void> 
+    {
+        const token = this.getToken();
+        if (!token) 
+        {
+            throw new Error('Not authenticated');
+        }
+
+        const response = await fetch(`${API_BASE_URL}/friend-request/${requestId}/decline`, {
+            method: 'POST',
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) 
+        {
+            if (response.status === 401) 
+            {
+                localStorage.removeItem('access_token');
+                window.dispatchEvent(new CustomEvent('auth:logout'));
+                throw new Error('Session expired');
+            }
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to decline friend request');
+        }
+    }
+
+    // DELETE /friend-request/:id - Cancel sent friend request
+    async cancelRequest(requestId: number): Promise<void> 
+    {
+        const token = this.getToken();
+        if (!token) 
+        {
+            throw new Error('Not authenticated');
+        }
+
+        const response = await fetch(`${API_BASE_URL}/friend-request/${requestId}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) 
+        {
+            if (response.status === 401) 
+            {
+                localStorage.removeItem('access_token');
+                window.dispatchEvent(new CustomEvent('auth:logout'));
+                throw new Error('Session expired');
+            }
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to cancel friend request');
+        }
+    }
+
+    // DELETE /friends/:id - Remove friend
+    async unfriend(friendId: string): Promise<void> 
+    {
+        const token = this.getToken();
+        if (!token) 
+        {
+            throw new Error('Not authenticated');
+        }
+
+        const response = await fetch(`${API_BASE_URL}/friends/${friendId}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
+        });
+
+        if (!response.ok) 
+        {
+            if (response.status === 401) 
+            {
+                localStorage.removeItem('access_token');
+                window.dispatchEvent(new CustomEvent('auth:logout'));
+                throw new Error('Session expired');
+            }
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to remove friend');
+        }
+    }
+}
+
+// Export singleton instance
+export default new FriendService();

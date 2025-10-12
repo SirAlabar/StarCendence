@@ -43,22 +43,24 @@ export class PodSelection extends BaseComponent
   render(): string 
   {
     return `
-      <div class="pod-selection-overlay fixed inset-0 z-50 flex items-center justify-center neon-background">
-        <div class="max-w-4xl w-full p-8">
+      <div class="pod-selection-overlay fixed inset-0 z-50 flex items-center justify-center neon-background p-4 sm:p-8">
+        <div class="w-full h-full flex flex-col overflow-hidden">
           
           <!-- Header -->
-          <div class="text-center mb-8">
+          <div class="text-center mb-8 flex-shrink-0">
             <h1 class="text-4xl font-bold text-white mb-2 glow-text">Choose Your Podracer</h1>
             <p class="text-gray-300">Select your racing machine</p>
           </div>
 
-          <!-- Pod Grid -->
-          <div class="grid grid-cols-3 gap-6 mb-8">
-            ${this.renderPodCards()}
+          <!-- Pod Grid Container com Scroll -->
+          <div class="flex-1 overflow-y-auto overflow-x-hidden mb-8 px-4">
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-6 max-w-[520px] lg:max-w-4xl mx-auto">
+              ${this.renderPodCards()}
+            </div>
           </div>
 
           <!-- Action Buttons -->
-          <div class="flex justify-between items-center">
+          <div class="flex justify-between items-center flex-shrink-0 px-4 max-w-4xl mx-auto w-full">
             <button 
               onclick="navigateTo('/games')"
               class="neon-button-secondary px-6 py-3 rounded-lg transition-all duration-300"
@@ -87,6 +89,25 @@ export class PodSelection extends BaseComponent
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
+          }
+
+          /* Custom Scrollbar */
+          .overflow-y-auto::-webkit-scrollbar {
+            width: 8px;
+          }
+
+          .overflow-y-auto::-webkit-scrollbar-track {
+            background: rgba(31, 41, 55, 0.5);
+            border-radius: 4px;
+          }
+
+          .overflow-y-auto::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            border-radius: 4px;
+          }
+
+          .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #9333ea 0%, #db2777 100%);
           }
 
           /* Secret Pod Reveal Animation */
@@ -351,19 +372,6 @@ export class PodSelection extends BaseComponent
               text-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
             }
           }
-
-          /* Responsive adjustments */
-          @media (max-width: 768px) {
-            .grid-cols-3 {
-              grid-template-columns: repeat(2, 1fr);
-            }
-          }
-
-          @media (max-width: 640px) {
-            .grid-cols-3 {
-              grid-template-columns: 1fr;
-            }
-          }
         </style>
       </div>
     `;
@@ -393,7 +401,7 @@ export class PodSelection extends BaseComponent
             >
               <source src="${videoPath}" type="video/mp4">
               <div class="w-full h-full bg-gray-700 flex items-center justify-center">
-                <div class="text-4xl">🏎️</div>
+                <div class="text-4xl">🎮</div>
               </div>
             </video>
             
