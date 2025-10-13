@@ -59,7 +59,7 @@ export async function uploadProfileImage(id: string, image: any) : Promise<strin
   if (!['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) {
     throw new HttpError('Invalid image format. Only JPG, PNG, and GIF are allowed.', 400);
   }
-  
+   
   const uniqueName = `${id}-${Date.now()}${ext}`;
 
   const uploadPath = path.join(__dirname, '../../uploads/avatars', uniqueName);

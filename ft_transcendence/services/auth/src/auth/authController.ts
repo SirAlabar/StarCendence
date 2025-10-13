@@ -34,7 +34,7 @@ export async function login(req: FastifyRequest<{ Body: LoginRequestBody }>, rep
     await updateUserStatus(user.id, 'ONLINE');
   }
 
-  return reply.send({ token });
+  return reply.send(token);
 }
 
 // POST /2fa/verify - Verify 2FA code and return JWT tokens
@@ -51,7 +51,7 @@ export async function verifyTwoFA(req: FastifyRequest, reply: FastifyReply) {
 
   const tokens = await authService.verifyTwoFA(tempToken, twoFACode);
 
-  return reply.send({ tokens });
+  return reply.send(tokens);
 }
 
 
