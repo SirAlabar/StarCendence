@@ -23,7 +23,7 @@ export const createMatchHistorySchema = {
         result: { type: 'string', enum: Object.values(MatchResult) },
         player1Score: { type: 'number' },
         player2Score: { type: 'number' },
-        createdAt: { type: 'string', format: 'date-time' }
+        playedAt: { type: 'string', format: 'date-time' }
       }
     }
   }

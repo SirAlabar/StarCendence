@@ -52,8 +52,10 @@ model MatchHistory {
   player1Id String
   player2  UserProfile @relation("Player2", fields: [player2Id], references: [id])
   player2Id String
-  result     String
+  player1Score Int
+  player2Score Int
   playedAt   DateTime @default(now())
+  result     String
 
   @@map("match_history")
 }
