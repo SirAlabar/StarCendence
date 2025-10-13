@@ -28,7 +28,7 @@ export async function userRoutes(fastify: FastifyInstance) {
   },
   userController.getUserProfileByUsername);
 
-  fastify.put<{ Body: UpdateUserBody }>
+  fastify.patch<{ Body: UpdateUserBody }>
   ('/profile',
   {
     preHandler: [verifyUserToken],

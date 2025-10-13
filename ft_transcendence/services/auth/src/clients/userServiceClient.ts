@@ -57,7 +57,7 @@ export async function updateUserStatus(authId: string, status: string) {
   }
 
   const response = await fetch('http://user-service:3004/internal/update-user-status', {
-    method: 'PUT',
+    method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       'X-API-Key': getInternalApiKey()
