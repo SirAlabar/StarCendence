@@ -58,3 +58,26 @@ export async function uploadProfileImage(id:string, filename: string) {
     }
   });
 }
+
+// Search users by username (minimum 2 characters)
+export async function searchUsersByUsername(query: string)
+{
+  return prisma.userProfile.findMany(
+  {
+    where: 
+    {
+      username: 
+      {
+        contains: query
+      }
+    },
+    select: 
+    {
+      id: true,
+      username: true,
+      avatarUrl: true,
+      status: true
+    },
+    take: 10
+  });
+}

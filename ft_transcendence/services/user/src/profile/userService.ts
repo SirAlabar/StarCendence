@@ -91,4 +91,15 @@ export async function uploadProfileImage(id: string, image: any): Promise<string
   return user.avatarUrl ?? '';
 }
 
+// Search users by username
+export async function searchUsers(query: string)
+{
+  if (!query || query.trim().length < 2)
+  {
+    throw new HttpError('Search query must be at least 2 characters', 400);
+  }
+
+  const users = await userRepository.searchUsersByUsername(query.trim());
+  return users;
+}
 

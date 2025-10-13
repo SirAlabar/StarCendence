@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { verifyUserToken } from '../middleware/authMiddleware';
 import * as userController from './userController';
-import { searchUserByUsernameSchema, updateUserProfileSchema } from './userSchema';
+import { searchUserByUsernameSchema, updateUserProfileSchema, searchUsersSchema } from './userSchema';
 import { UpdateUserBody } from './user.types';
 import * as userRepository from './userRepository';
 import path from 'path';
@@ -31,6 +31,15 @@ export async function userRoutes(fastify: FastifyInstance)
       schema: searchUserByUsernameSchema
     },
     userController.getUserProfileByUsername
+  );
+
+  // GET /users/search - Search users by username
+  fastify.get('/users/search',
+    {
+      preHandler: [verifyUserToken],
+      schema: searchUsersSchema
+    },
+    userController.searchUsers
   );
 
   fastify.put<{ Body: UpdateUserBody }>('/profile',

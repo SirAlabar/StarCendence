@@ -1,16 +1,35 @@
-import { UserProfile } from '../types/user.types';
-
 const API_BASE_URL = 'http://localhost:3004';
 
-interface FriendRequest 
+export interface Friend 
 {
-    id: number;
-    senderId: string;
-    receiverId: string;
-    status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
-    createdAt: string;
-    sender?: UserProfile;
-    receiver?: UserProfile;
+    requestId: number;
+    userId: string;
+    username: string;
+    avatarUrl: string | null;
+}
+
+export interface FriendsResponse 
+{
+    userId: string;
+    username: string;
+    avatarUrl: string | null;
+    friends: Friend[];
+}
+
+export interface FriendRequestsResponse 
+{
+    userId: string;
+    username: string;
+    avatarUrl: string | null;
+    receivedRequests: Friend[];
+}
+
+export interface SentRequestsResponse 
+{
+    userId: string;
+    username: string;
+    avatarUrl: string | null;
+    sentRequests: Friend[];
 }
 
 class FriendService 
@@ -30,7 +49,7 @@ class FriendService
     }
 
     // GET /friends - Get user's friends list
-    async getFriends(): Promise<UserProfile[]> 
+    async getFriends(): Promise<FriendsResponse> 
     {
         const token = this.getToken();
         if (!token) 
@@ -51,15 +70,25 @@ class FriendService
                 window.dispatchEvent(new CustomEvent('auth:logout'));
                 throw new Error('Session expired');
             }
+            if (response.status === 404) 
+            {
+                // No friends yet - return empty structure
+                return {
+                    userId: '',
+                    username: '',
+                    avatarUrl: null,
+                    friends: []
+                };
+            }
             const error = await response.json();
-            throw new Error(error.message || 'Failed to get friends');
+            throw new Error(error.error || error.message || 'Failed to get friends');
         }
 
         return await response.json();
     }
 
     // GET /friend-requests - Get received friend requests
-    async getFriendRequests(): Promise<FriendRequest[]> 
+    async getFriendRequests(): Promise<FriendRequestsResponse> 
     {
         const token = this.getToken();
         if (!token) 
@@ -80,15 +109,25 @@ class FriendService
                 window.dispatchEvent(new CustomEvent('auth:logout'));
                 throw new Error('Session expired');
             }
+            if (response.status === 404) 
+            {
+                // No requests yet - return empty structure
+                return {
+                    userId: '',
+                    username: '',
+                    avatarUrl: null,
+                    receivedRequests: []
+                };
+            }
             const error = await response.json();
-            throw new Error(error.message || 'Failed to get friend requests');
+            throw new Error(error.error || error.message || 'Failed to get friend requests');
         }
 
         return await response.json();
     }
 
     // GET /friend-requests/sent - Get sent friend requests
-    async getSentRequests(): Promise<FriendRequest[]> 
+    async getSentRequests(): Promise<SentRequestsResponse> 
     {
         const token = this.getToken();
         if (!token) 
@@ -109,15 +148,25 @@ class FriendService
                 window.dispatchEvent(new CustomEvent('auth:logout'));
                 throw new Error('Session expired');
             }
+            if (response.status === 404) 
+            {
+                // No sent requests yet - return empty structure
+                return {
+                    userId: '',
+                    username: '',
+                    avatarUrl: null,
+                    sentRequests: []
+                };
+            }
             const error = await response.json();
-            throw new Error(error.message || 'Failed to get sent requests');
+            throw new Error(error.error || error.message || 'Failed to get sent requests');
         }
 
         return await response.json();
     }
 
     // POST /friend-request - Send friend request
-    async sendFriendRequest(username: string): Promise<FriendRequest> 
+    async sendFriendRequest(username: string): Promise<void> 
     {
         const token = this.getToken();
         if (!token) 
@@ -144,16 +193,12 @@ class FriendService
                 window.dispatchEvent(new CustomEvent('auth:logout'));
                 throw new Error('Session expired');
             }
-            if (response.status === 400) 
-            {
-                const error = await response.json();
-                throw new Error(error.message || 'Cannot send friend request');
-            }
             const error = await response.json();
-            throw new Error(error.message || 'Failed to send friend request');
+            throw new Error(error.error || error.message || 'Failed to send friend request');
         }
 
-        return await response.json();
+        const data = await response.json();
+        console.log('✅ Friend request:', data.message);
     }
 
     // POST /friend-request/:id/accept - Accept friend request
@@ -179,7 +224,7 @@ class FriendService
                 throw new Error('Session expired');
             }
             const error = await response.json();
-            throw new Error(error.message || 'Failed to accept friend request');
+            throw new Error(error.error || error.message || 'Failed to accept friend request');
         }
     }
 
@@ -206,7 +251,7 @@ class FriendService
                 throw new Error('Session expired');
             }
             const error = await response.json();
-            throw new Error(error.message || 'Failed to decline friend request');
+            throw new Error(error.error || error.message || 'Failed to decline friend request');
         }
     }
 
@@ -233,7 +278,7 @@ class FriendService
                 throw new Error('Session expired');
             }
             const error = await response.json();
-            throw new Error(error.message || 'Failed to cancel friend request');
+            throw new Error(error.error || error.message || 'Failed to cancel friend request');
         }
     }
 
@@ -260,7 +305,7 @@ class FriendService
                 throw new Error('Session expired');
             }
             const error = await response.json();
-            throw new Error(error.message || 'Failed to remove friend');
+            throw new Error(error.error || error.message || 'Failed to remove friend');
         }
     }
 }

@@ -160,6 +160,14 @@ const routeConfig: Record<string, any> =
         headerType: 'default',
         requiresAuth: true
     },
+    '/user/:username':
+    {
+        component: () => import('../pages/UserPublicPage'),
+        title: 'User Profile - Transcendence',
+        layout: 'default',
+        headerType: 'default',
+        requiresAuth: true
+    },
     '/settings':
     {
         component: () => import('../pages/SettingsPage'),

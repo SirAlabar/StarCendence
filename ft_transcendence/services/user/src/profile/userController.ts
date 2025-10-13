@@ -102,3 +102,23 @@ export async function uploadProfileImage(req: FastifyRequest, reply: FastifyRepl
 
   return reply.send({ avatarUrl: imageUrl });
 }
+
+// GET /users/search?q=query - Search users by username (requires authentication)
+export async function searchUsers(req: FastifyRequest, reply: FastifyReply)
+{
+  const userId = req.user?.sub;
+  if (!userId)
+  {
+    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  }
+
+  const { q } = req.query as { q?: string };
+  
+  if (!q || q.trim().length < 2)
+  {
+    return reply.status(400).send({ error: 'Search query must be at least 2 characters' });
+  }
+
+  const users = await userService.searchUsers(q);
+  return reply.send(users);
+}
