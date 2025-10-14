@@ -22,3 +22,4 @@ export interface matchHistoryEntry {
   player2Score: number
   playedAt: Date
 }
+

@@ -23,10 +23,26 @@ model UserProfile {
   friendRequestSent    Friendship[] @relation("FriendRequestsSent")
   friendRequestReceived Friendship[] @relation("FriendRequestsReceived")
 
-  matchHistoriesAsPlayer1 MatchHistory[] @relation("Player1")
-  matchHistoriesAsPlayer2 MatchHistory[] @relation("Player2")
+  matchHistoryAsPlayer1 MatchHistory[] @relation("Player1")
+  matchHistoryAsPlayer2 MatchHistory[] @relation("Player2")
 
-  tournaments TournamentParticipant[]
+  tournamentMatchAsPlayer1 TournamentMatch[] @relation("TournamentPlayer1")
+  tournamentMatchAsPlayer2 TournamentMatch[] @relation("TournamentPlayer2")
+
+
+  tournamentsWon Tournament[] @relation("TournamentWinner")
+  tournamentParticipant TournamentParticipant[]
+
+  tournamentWins Int @default(0)
+  tournamentParticipations Int @default(0)
+
+  totalGames Int @default(0)
+  totalWins Int @default(0)
+  totalLosses Int @default(0)
+  totalDraws Int @default(0)
+
+  // rank Int @default(1000)
+  // points Int @default(0)
 
   @@map("users")
 }
@@ -38,6 +54,7 @@ model Friendship {
   senderId String
   recipient  UserProfile @relation("FriendRequestsReceived", fields: [recipientId], references: [id])
   recipientId String
+
   status      String  @default("PENDING")
   createdAt  DateTime @default(now())
 
@@ -52,11 +69,12 @@ model MatchHistory {
   player1Id String
   player2  UserProfile @relation("Player2", fields: [player2Id], references: [id])
   player2Id String
+
   player1Score Int
   player2Score Int
+
   playedAt   DateTime @default(now())
   result     String
-
 
   @@map("match_history")
 }
@@ -64,22 +82,62 @@ model MatchHistory {
 // Tournament model to manage tournaments | a tournament can have many participants
 model Tournament {
   id          Int      @id @default(autoincrement())
-  
-  
-  createdAt   DateTime @default(now())
-  participants TournamentParticipant[]
+  gameServiceId String?
+  createdAt   DateTime?
 
-  @@map("tournaments")
+  winnerId   String?
+  winner     UserProfile? @relation("TournamentWinner", fields: [winnerId], references: [id])
+
+  participants TournamentParticipant[]
+  rounds      Round[]
+
+  @@map("tournament")
 }
 
 // Join table for many-to-many relationship between Tournaments and Users
 model TournamentParticipant {
   tournament   Tournament @relation(fields: [tournamentId], references: [id])
   tournamentId Int
+
   user         UserProfile @relation(fields: [userId], references: [id])
   userId       String
-  joinedAt     DateTime   @default(now())
+
+  placement    Int
+  joinedAt     DateTime?
 
   @@unique([tournamentId, userId])
   @@map("tournament_participants")
+}
+
+model Round {
+  id          Int      @id @default(autoincrement())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  tournamentId Int
+
+  roundNumber Int
+  playedAt   DateTime?
+
+  matches     TournamentMatch[]
+
+  @@unique([tournamentId, roundNumber])
+  @@map("tournament_rounds")
+}
+
+model TournamentMatch {
+  id          Int      @id @default(autoincrement())
+  round       Round    @relation(fields: [roundId], references: [id])
+  roundId     Int
+
+  player1     UserProfile @relation("TournamentPlayer1", fields: [player1Id], references: [id])
+  player1Id   String
+  player2     UserProfile @relation("TournamentPlayer2", fields: [player2Id], references: [id])
+  player2Id   String
+
+  player1Score Int
+  player2Score Int
+
+  playedAt    DateTime?
+  result      String
+
+  @@map("tournament_matches")
 }

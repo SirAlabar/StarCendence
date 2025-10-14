@@ -14,7 +14,7 @@ export async function matchHistoryRoutes(fastify: FastifyInstance) {
   {
     preHandler: [verifyUserToken],
   },
-  matchHistoryController.getMatchHistories)
+  matchHistoryController.getMatchHistory)
 
   fastify.get('/match-history/:id',
   {
