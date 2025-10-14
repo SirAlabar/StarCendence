@@ -23,7 +23,7 @@ export async function getMatchHistories(req: FastifyRequest, reply: FastifyReply
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
   }
 
-  const matchHistory: types.matchHistory = await matchHistoryService.getMatchHistory(userId)
+  const matchHistory: types.matchHistoryBody[] = await matchHistoryService.getMatchHistory(userId)
 
   return reply.status(200).send(matchHistory)
 }

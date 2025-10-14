@@ -57,14 +57,16 @@ model MatchHistory {
   playedAt   DateTime @default(now())
   result     String
 
+
   @@map("match_history")
 }
 
 // Tournament model to manage tournaments | a tournament can have many participants
 model Tournament {
   id          Int      @id @default(autoincrement())
-  name        String
-  date       DateTime?
+  
+  
+  createdAt   DateTime @default(now())
   participants TournamentParticipant[]
 
   @@map("tournaments")

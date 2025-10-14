@@ -22,7 +22,3 @@ export interface matchHistoryEntry {
   player2Score: number
   playedAt: Date
 }
-
-export interface matchHistory {
-  entries: matchHistoryEntry[]
-}
