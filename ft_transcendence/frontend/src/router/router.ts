@@ -197,7 +197,33 @@ function getCurrentPath(): string
 // Function to parse route
 function parseRoute(path: string): any
 {
-    return routeConfig[path] || routeConfig['/404'];
+    // First try exact match
+    if (routeConfig[path]) 
+    {
+        return routeConfig[path];
+    }
+    
+    // Then try dynamic routes
+    const dynamicRoute = matchDynamicRoute(path);
+    if (dynamicRoute) 
+    {
+        return dynamicRoute;
+    }
+    
+    // Finally return 404
+    return routeConfig['/404'];
+}
+
+// Function to match dynamic routes
+function matchDynamicRoute(path: string): any 
+{
+    // Check for /user/:username pattern
+    if (path.startsWith('/user/')) 
+    {
+        return routeConfig['/user/:username'];
+    }
+    
+    return null;
 }
 
 // Check if user is authenticated
