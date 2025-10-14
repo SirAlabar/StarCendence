@@ -22,6 +22,8 @@ export class PongScene
     private mode?: "multiplayer" | "ai";                    //mode , multiplayer or enemyai
     private gamestate: boolean;                             //game state (true game ended)
     private paused : boolean
+    private aiDecisionInterval: number = 1000;
+    private lastAiDecisionTime: number = 0;
         
     constructor(ctx: CanvasRenderingContext2D, mode: "multiplayer" | "ai") 
     {
@@ -30,7 +32,10 @@ export class PongScene
         this.canvas = ctx.canvas;
         this.mode = mode;
         this.ball = new Ball(this.canvas.width /2 , this.canvas.height /2 , 10);
+        this.ball.dx = 3;
+        this.ball.dy = 3;
         this.paddle_left = new paddle("left" , this.canvas);
+        this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
 
         if (mode === "multiplayer") 
         {
@@ -42,7 +47,7 @@ export class PongScene
         } 
         else 
         { 
-            this.enemy = new enemy(this.canvas); // make sure EnemyAi expects canvas
+            this.enemy = new enemy(this.canvas); 
             this.player1 = new player();
             this.player1.score = 0;
             this.enemy.score = 0;
@@ -62,6 +67,10 @@ export class PongScene
         //update every frame
         if(this.paused)
             this.paused = false; //unpause
+        if (this.mode === "ai" && this.enemy) 
+        {
+            this.aiMovement(true); // pass true = force decision
+        }
         this.update();
     }   
 
@@ -69,11 +78,7 @@ export class PongScene
     {
         if (this.gamestate || this.paused) 
             return;
-        this.clear();
-        this.updatePaddle();
-        this.checkBallCollision(this.ball);
-        this.drawScore();
-
+        this.updateFrame();
         if (this.player1.score >= 3 || (this.mode === "multiplayer" && this.player2.score >= 3) || (this.mode === "ai" && this.enemy.score >= 3)) 
         {
             const winner = this.player1.score >= 3 ? "Player 1" : "Opponent";
@@ -82,11 +87,7 @@ export class PongScene
             this.endGame();
             return;
         }
-
-        this.ball.draw(this.ctx);
-        this.paddle_left.update(this.canvas);
-        this.paddle_left.draw(this.ctx);
-
+        this.updateBallPaddle();
         if (this.mode === "multiplayer" && this.paddle_right) 
         {
             this.paddle_right.update(this.canvas);
@@ -95,11 +96,10 @@ export class PongScene
         } 
         else if (this.mode === "ai" && this.enemy) 
         {
-            this.enemy.update(this.ball, this.canvas);
+            //this.enemy.update(this.ball, this.canvas);
             this.enemy.draw(this.ctx);
             this.checkPaddleCollision(this.enemy);
         }
-
         this.checkPaddleCollision(this.paddle_left);
         this.animationFrameId = requestAnimationFrame(this.update);
     };
@@ -107,6 +107,21 @@ export class PongScene
     private clear() 
     {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    private updateFrame()
+    {
+        this.clear();
+        this.updatePaddle();
+        this.checkBallCollision(this.ball);
+        this.drawScore();
+    }
+
+    private updateBallPaddle()
+    {
+        this.ball.draw(this.ctx);
+        this.paddle_left.update(this.canvas);
+        this.paddle_left.draw(this.ctx);
     }
 
     stop():void
@@ -131,9 +146,42 @@ export class PongScene
         }
         //right paddle
         if(this.keys['w'] && this.paddle_left.y > 0)
+        {
+            
             this.paddle_left.y -= this.paddle_left.speed;
+        }
         if(this.keys['s'] && this.paddle_left.y + this.paddle_left.height < this.canvas.height)
-            this.paddle_left.y += this.paddle_left.speed;
+        {
+                this.paddle_left.y += this.paddle_left.speed;
+        }
+        if (this.mode === "ai" && this.enemy) 
+        {
+            this.aiMovement()
+        }
+    }
+
+    private aiMovement(atstart: boolean = false)
+    {
+        const now = Date.now();
+
+        if (atstart || now - this.lastAiDecisionTime > this.aiDecisionInterval) 
+        {
+            this.lastAiDecisionTime = now;
+            this.keys['ArrowUp'] = false;
+            this.keys['ArrowDown'] = false;
+
+            const ball = this.ball;
+            const paddleCenter = this.enemy.y + this.enemy.height / 2;
+
+            if (ball.y < paddleCenter - 20)
+                this.keys['ArrowUp'] = true;
+            else if (ball.y > paddleCenter + 20)
+                this.keys['ArrowDown'] = true;
+        }
+        if (this.keys['ArrowUp'] && this.enemy.y > 0)
+            this.enemy.y -= this.enemy.speed;
+        if (this.keys['ArrowDown'] && this.enemy.y + this.enemy.height < this.canvas.height)
+            this.enemy.y += this.enemy.speed;
     }
 
     private InputHandler():void
@@ -148,7 +196,7 @@ export class PongScene
         });
     }
 
-    private checkPaddleCollision(paddle: paddle): void 
+    private checkPaddleCollision(paddle: paddle | enemy): void 
     {
         if (
             this.ball.x - this.ball.radius <= paddle.x + paddle.width &&
@@ -157,10 +205,10 @@ export class PongScene
             this.ball.y <= paddle.y + paddle.height
         ) 
         {
-            const speedIncrease = 1.05; 
+            const speedIncrease = 1.10; 
             this.ball.dx = -this.ball.dx * speedIncrease;
             const relativeIntersectY = (this.ball.y - (paddle.y + paddle.height / 2)) / (paddle.height / 2);
-            this.ball.dy += relativeIntersectY * 2;
+            this.ball.dy += relativeIntersectY * 4;
             const maxSpeed = 15;
             const currentSpeed = Math.sqrt(this.ball.dx ** 2 + this.ball.dy ** 2);
             if (currentSpeed > maxSpeed) 
@@ -170,7 +218,7 @@ export class PongScene
                 this.ball.dy *= scale;
             }
             console.log(`Hit paddle at ${relativeIntersectY.toFixed(2)} → dx=${this.ball.dx}, dy=${this.ball.dy}`);
-            }
+        }
     }
 
     private checkBallCollision(ball: Ball): void 
@@ -183,7 +231,8 @@ export class PongScene
             // Right wall hit
             this.stop();
             this.player1.score += 1;
-            this.resetBall(-5, -5);
+            this.resetBall(-3, -3);
+            this.resetPlayer();
         }
 
         if (ball.x - ball.radius < 0) 
@@ -193,12 +242,15 @@ export class PongScene
             if (this.mode === "multiplayer") 
             {
                 this.player2.score += 1;
+                this.resetBall(3, 3);
+                this.resetPlayer();
             } 
             else if (this.mode === "ai" && this.enemy) 
             {
                 this.enemy.score += 1;
+                this.resetBall(5, 5);
+                this.resetPlayer();
             }
-            this.resetBall(5, 5);
         }
 
         if (ball.y + ball.radius > this.canvas.height || ball.y - ball.radius < 0) 
@@ -214,6 +266,25 @@ export class PongScene
         this.ball.dy = dy;
     }
 
+    private resetPlayer()
+    {
+        if (this.paddle_left) 
+        {
+            this.paddle_left.x = 20;
+            this.paddle_left.y = this.canvas.height / 2 - this.paddle_left.height / 2;
+        }
+        if (this.mode === "multiplayer" && this.paddle_right) 
+        {
+            this.paddle_right.x = this.canvas.width - this.paddle_right.width - 20;
+            this.paddle_right.y = this.canvas.height / 2 - this.paddle_right.height / 2;
+        } 
+        else if (this.mode === "ai" && this.enemy) 
+        {
+            this.enemy.x = this.canvas.width - this.enemy.width - 20;
+            this.enemy.y = this.canvas.height / 2 - this.enemy.height / 2;
+        }
+    }
+
     private drawScore()
     {
         const ctx = this.ctx;
@@ -222,21 +293,22 @@ export class PongScene
         ctx.textAlign = "center";
 
         // Win messages depending on mode
-        if (this.player1 && this.player1.score === 3) {
+        if (this.player1 && this.player1.score === 3) 
+        {
             ctx.fillText("Player 1 Wins the game", this.canvas.width / 2, this.canvas.height / 2);
             return;
         }
-
-        if (this.mode === "multiplayer" && this.player2 && this.player2.score === 3) {
+        if (this.mode === "multiplayer" && this.player2 && this.player2.score === 3)     
+        {
             ctx.fillText("Player 2 Wins the game", this.canvas.width / 2, this.canvas.height / 2);
             return;
         }
 
-        if (this.mode === "ai" && this.enemy && this.enemy.score === 3) {
+        if (this.mode === "ai" && this.enemy && this.enemy.score === 3) 
+        {
             ctx.fillText("Bot John Wins the game", this.canvas.width / 2, this.canvas.height / 2);
             return;
         }
-
         ctx.fillText(`${this.player1?.score ?? 0}`, this.canvas.width / 4, 50);
         if (this.mode === "multiplayer") 
         {
@@ -252,21 +324,23 @@ export class PongScene
     {
         this.gamestate = true;
         this.stop();
-        setTimeout(() => {
+        setTimeout(() => 
+        {
             window.location.href = '/games';
         }, 2000);  
     }
 
-    togglePause(): void {
+    togglePause(): void 
+    {
         this.paused = !this.paused;
-        if (!this.paused) {
-            this.update();
-        } else {
+        if (!this.paused)
+            this.update(); 
+        else 
             this.drawPauseOverlay();
-        }
     }
 
-    private drawPauseOverlay() {
+    private drawPauseOverlay() 
+    {
         this.ctx.save();
         this.ctx.globalAlpha = 0.7;
         this.ctx.fillStyle = "black";

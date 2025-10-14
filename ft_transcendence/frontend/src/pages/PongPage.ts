@@ -136,7 +136,7 @@ export default class PongPage extends BaseComponent
         this.pongScene.stop(); // Pause on resize
       }
       this.resize(canvas);
-      // Do NOT call start() here!
+      
     };
     window.addEventListener("resize", this.resizeListener);
   }
@@ -166,6 +166,10 @@ export default class PongPage extends BaseComponent
 
   public dispose(): void 
   {
+    if(this.pongScene)
+    {
+      this.pongScene.stop();
+    }
     this.pongScene = null;
   }
 }
