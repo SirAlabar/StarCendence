@@ -1,0 +1,30 @@
+import { FastifyInstance } from 'fastify';
+import * as  authSchema  from './authSchema';
+import { verifyUserToken } from '../middleware/authMiddleware';
+import * as authController from './authController';
+
+export async function authRoutes(fastify: FastifyInstance){
+  fastify.post('/register',
+  {
+    schema: authSchema.registerSchema
+  },
+  authController.register);
+
+  fastify.post('/login',
+  {
+    schema: authSchema.loginSchema
+  },
+  authController.login);
+
+  fastify.post('/login/2fa-verify',
+  {
+    schema: authSchema.twoFAVerifySchema
+  },
+  authController.verifyTwoFA);
+
+  fastify.post('/logout',
+  {
+    preHandler: [verifyUserToken],
+  },
+  authController.logout);
+}

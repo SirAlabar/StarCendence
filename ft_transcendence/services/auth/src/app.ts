@@ -1,43 +1,29 @@
-// Fastify app configuration
 import Fastify from 'fastify'
-import { FastifyRequest, FastifyReply } from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import { fastifyErrorHandler } from './handlers/errorHandler'
-import * as registerController from './controllers/registerController'
-import * as loginController from './controllers/loginController'
-import * as logoutController from './controllers/logoutController'
-import * as refreshController from './controllers/refreshController'
-import { authenticateToken } from './middleware/authMiddleware'
-import * as twoFactorController from './controllers/twoFactorController'
-import * as verifyController from './controllers/verifyController'
-import * as twoFactorSchema from './schemas/twoFactorSchema'
+import { authRoutes } from './auth/authRoutes'
+import { twoFactorRoutes } from './twoFactor/twoFactorRoutes'
+import { tokenRoutes } from './token/tokenRoutes'
+import { internalEndpointProtection } from './middleware/securityMiddleware'
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
-  
+
   // Register plugins
   await fastify.register(cors)
   await fastify.register(helmet)
 
   // Global error handler
   fastify.setErrorHandler(fastifyErrorHandler);
+  fastify.addHook('preHandler', internalEndpointProtection);
   
   fastify.get('/health', async () => ({ status: 'Health is Ok!' }))
 
-  fastify.post('/register', { schema: registerController.registerSchema }, registerController.register);
-  fastify.post('/login', { schema: loginController.loginSchema }, loginController.login);
-
-  fastify.post('/refresh', { schema: refreshController.refreshTokenSchema }, refreshController.refreshAccessToken);
-
-  fastify.post('/logout', { schema: logoutController.logoutSchema }, logoutController.logout);
-  fastify.post('/logout-all', { schema: logoutController.logoutAllDevicesSchema }, logoutController.logoutAllDevices);
-
-  fastify.get('/verify', { preHandler: [authenticateToken], schema: verifyController.verifySchema }, verifyController.verify);
-
-  fastify.post('/2fa/setup', { preHandler: [authenticateToken], schema: twoFactorSchema.setupTwoFactorSchema }, twoFactorController.setupTwoFactor);
-  fastify.post('/2fa/verify', { preHandler: [authenticateToken], schema: twoFactorSchema.verifyTwoFactorSchema }, twoFactorController.verifyTwoFactor);
-  fastify.post('/2fa/disable', { preHandler: [authenticateToken], schema: twoFactorSchema.disableTwoFactorSchema }, twoFactorController.disableTwoFactor);
+  fastify.register(authRoutes);
+  fastify.register(twoFactorRoutes, { prefix: '/2fa' });
+  fastify.register(tokenRoutes);
+  // fastify.register(internalRoutes, { prefix: '/internal' });
 
   return fastify; 
 }

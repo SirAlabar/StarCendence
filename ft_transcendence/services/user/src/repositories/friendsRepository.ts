@@ -1,1 +1,0 @@
-// Friends data operations
