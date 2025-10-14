@@ -1,11 +1,10 @@
 import { Ball } from "./entities/Ball"
 import { paddle } from "./entities/Paddle";
 import { player } from "./entities/Player";
-import { enemy } from "./entities/EnemyAi";
+import { enemy, AiDifficulty } from "./entities/EnemyAi";
 
 // PongScene.ts - main game engine
 //pong 2d
-
 
 export class PongScene 
 {
@@ -24,8 +23,9 @@ export class PongScene
     private paused : boolean
     private aiDecisionInterval: number = 1000;
     private lastAiDecisionTime: number = 0;
+    private aiCurrentDirection: 'up' | 'down' | 'stay' = 'stay'; // Store AI decision
         
-    constructor(ctx: CanvasRenderingContext2D, mode: "multiplayer" | "ai") 
+    constructor(ctx: CanvasRenderingContext2D, mode: "multiplayer" | "ai", aiDifficulty: AiDifficulty = 'medium') 
     {
         this.ctx = ctx;
         this.paused = false;
@@ -47,7 +47,7 @@ export class PongScene
         } 
         else 
         { 
-            this.enemy = new enemy(this.canvas); 
+            this.enemy = new enemy(this.canvas, aiDifficulty); // Pass difficulty here
             this.player1 = new player();
             this.player1.score = 0;
             this.enemy.score = 0;
@@ -96,7 +96,6 @@ export class PongScene
         } 
         else if (this.mode === "ai" && this.enemy) 
         {
-            //this.enemy.update(this.ball, this.canvas);
             this.enemy.draw(this.ctx);
             this.checkPaddleCollision(this.enemy);
         }
@@ -136,7 +135,7 @@ export class PongScene
 
     private updatePaddle():void
     {
-        //left paddle
+        //right paddle (multiplayer mode)
         if(this.mode === "multiplayer")
         {
             if(this.keys['ArrowUp'] && this.paddle_right.y > 0)
@@ -144,44 +143,45 @@ export class PongScene
             if(this.keys['ArrowDown'] && this.paddle_right.y + this.paddle_right.height < this.canvas.height)
                 this.paddle_right.y += this.paddle_right.speed;
         }
-        //right paddle
+        
+        //left paddle (player controls)
         if(this.keys['w'] && this.paddle_left.y > 0)
         {
-            
             this.paddle_left.y -= this.paddle_left.speed;
         }
         if(this.keys['s'] && this.paddle_left.y + this.paddle_left.height < this.canvas.height)
         {
-                this.paddle_left.y += this.paddle_left.speed;
+            this.paddle_left.y += this.paddle_left.speed;
         }
+        
+        // AI movement (replaces old logic)
         if (this.mode === "ai" && this.enemy) 
         {
-            this.aiMovement()
+            this.aiMovement();
         }
     }
 
-    private aiMovement(atstart: boolean = false)
+    private aiMovement(forceDecision: boolean = false): void
     {
         const now = Date.now();
 
-        if (atstart || now - this.lastAiDecisionTime > this.aiDecisionInterval) 
+        // Make decision every 1 second (or at start)
+        if (forceDecision || now - this.lastAiDecisionTime >= this.aiDecisionInterval) 
         {
             this.lastAiDecisionTime = now;
-            this.keys['ArrowUp'] = false;
-            this.keys['ArrowDown'] = false;
-
-            const ball = this.ball;
-            const paddleCenter = this.enemy.y + this.enemy.height / 2;
-
-            if (ball.y < paddleCenter - 20)
-                this.keys['ArrowUp'] = true;
-            else if (ball.y > paddleCenter + 20)
-                this.keys['ArrowDown'] = true;
+            
+            // AI makes a smart decision based on ball prediction
+            this.aiCurrentDirection = this.enemy.makeDecision(
+                this.ball, 
+                this.canvas.width, 
+                this.canvas.height
+            );
+            
+            console.log(`AI Decision: ${this.aiCurrentDirection} (Ball: ${this.ball.x.toFixed(0)}, ${this.ball.y.toFixed(0)})`);
         }
-        if (this.keys['ArrowUp'] && this.enemy.y > 0)
-            this.enemy.y -= this.enemy.speed;
-        if (this.keys['ArrowDown'] && this.enemy.y + this.enemy.height < this.canvas.height)
-            this.enemy.y += this.enemy.speed;
+
+        // Execute the current decision every frame
+        this.enemy.move(this.aiCurrentDirection, this.canvas.height);
     }
 
     private InputHandler():void
@@ -353,4 +353,3 @@ export class PongScene
         this.ctx.restore();
     }
 }
-
