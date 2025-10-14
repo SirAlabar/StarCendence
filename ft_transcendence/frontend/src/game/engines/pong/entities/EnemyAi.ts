@@ -34,6 +34,7 @@ export class enemy
         this.targetY = this.y;
         this.difficulty = difficulty;
         this.settings = this.getDifficultySettings(difficulty);
+        console.log("AI Difficulty:", this.difficulty);
     }
 
     private getDifficultySettings(difficulty: AiDifficulty): DifficultySettings 
@@ -60,18 +61,19 @@ export class enemy
         }
     }
 
-    makeDecision(ball: Ball, canvasWidth: number, canvasHeight: number): 'up' | 'down' | 'stay' 
+    makeDecision(ball: Ball, canvasHeight: number): 'up' | 'down' | 'stay' 
     {
         // Random chance to intentionally miss
         if (Math.random() < this.settings.missChance) 
         {
+            console.log("AI will miss", this.shouldMiss);
             this.shouldMiss = true;
             this.targetY = this.getRandomMissPosition(canvasHeight);
         }
         else 
         {
             this.shouldMiss = false;
-            this.targetY = this.predictBallPosition(ball, canvasWidth, canvasHeight);
+            this.targetY = this.predictBallPosition(ball, canvasHeight);
         }
 
         // Add error margin (imperfect positioning)
@@ -87,7 +89,7 @@ export class enemy
 
     
 
-    private predictBallPosition(ball: Ball, canvasWidth: number, canvasHeight: number): number {
+    private predictBallPosition(ball: Ball, canvasHeight: number): number {
         
         // Only predict if ball is moving towards the AI paddle
         if (ball.dx <= 0) 
@@ -158,7 +160,7 @@ export class enemy
     }
 
     // Movement executed every frame
-    move(direction: 'up' | 'down' | 'stay', canvasHeight: number): void 
+    move(canvasHeight: number): void 
     {
             const centerY = this.y + this.height / 2;
             const threshold = 10; // Smaller = more responsive

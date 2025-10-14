@@ -174,14 +174,13 @@ export class PongScene
             this.aiCurrentDirection = this.enemy.makeDecision(
                 this.ball, 
                 this.canvas.width, 
-                this.canvas.height
             );
             
             console.log(`AI Decision: ${this.aiCurrentDirection} (Ball: ${this.ball.x.toFixed(0)}, ${this.ball.y.toFixed(0)})`);
         }
 
         // Execute the current decision every frame
-        this.enemy.move(this.aiCurrentDirection, this.canvas.height);
+        this.enemy.move(this.canvas.height);
     }
 
     private InputHandler():void
