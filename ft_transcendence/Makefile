@@ -114,11 +114,11 @@ setup:
 	@printf "$(CYAN)Starting services...$(DEFAULT)\n"
 	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service
 	@printf "$(CYAN)Waiting for services...$(DEFAULT)\n"
-	@sleep 3
+	@sleep 5
 	@printf "$(CYAN)Health check...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory health-quiet
 	@printf "$(GREEN)🎉 ft_transcendence is ready!$(DEFAULT)\n"
-	@printf "$(YELLOW)🌐 Access: http://localhost$(DEFAULT)\n"
+	@printf "$(YELLOW)🌐 Access: http://localhost:8080$(DEFAULT)\n"
 	@printf "$(YELLOW)🚀 Start tunnel: make tunnel$(DEFAULT)\n"
 	@printf "$(YELLOW)📊 Redis: localhost:6379$(DEFAULT)\n\n"
 
@@ -182,7 +182,7 @@ start:
 	@printf "$(GREEN)🔥 Starting ft_transcendence infrastructure...$(DEFAULT)\n"
 	@$(DOCKER_COMPOSE) up -d nginx redis
 	@printf "$(GREEN)✅ Infrastructure started!$(DEFAULT)\n"
-	@printf "$(YELLOW)🌐 Access: http://localhost$(DEFAULT)\n"
+	@printf "$(YELLOW)🌐 Access: http://localhost:8080$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory health
 
 .PHONY: stop
@@ -217,7 +217,7 @@ rebuild:
 .PHONY: re
 re: clean setup
 	@printf "$(GREEN)♻️  Complete rebuild finished!$(DEFAULT)\n"
-	@printf "$(YELLOW)🌐 Access: http://localhost$(DEFAULT)\n"
+	@printf "$(YELLOW)🌐 Access: http://localhost:8080$(DEFAULT)\n"
 	@printf "$(YELLOW)📊 Redis: localhost:6379$(DEFAULT)\n"
 
 ################################################################################
@@ -232,7 +232,7 @@ logs:
 health:
 	@printf "$(GREEN)🔍 Checking service health...$(DEFAULT)\n"
 	@printf "$(YELLOW)Nginx HTTP:$(DEFAULT) "
-	@if curl -s -f http://localhost/health > /dev/null 2>&1; then \
+	@if curl -s -f http://localhost:8080/health > /dev/null 2>&1; then \
 		printf "$(GREEN)✅ Online$(DEFAULT)\n"; \
 	else \
 		printf "$(RED)❌ Offline$(DEFAULT)\n"; \
@@ -246,7 +246,7 @@ health:
 
 .PHONY: health-quiet
 health-quiet:
-	@curl -s -f http://localhost/health > /dev/null 2>&1 || exit 1
+	@curl -s -f http://localhost:8080/health > /dev/null 2>&1 || exit 1
 	@$(DOCKER_COMPOSE) exec -T redis redis-cli ping > /dev/null 2>&1 || exit 1
 
 .PHONY: status
