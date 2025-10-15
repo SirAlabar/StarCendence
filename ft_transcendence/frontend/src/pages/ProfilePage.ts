@@ -10,8 +10,6 @@ import { SearchUsers } from '../components/profile/SearchUsers';
 export default class ProfilePage extends BaseComponent 
 {
     private userProfile: UserProfile | null = null;
-    private loading: boolean = true;
-    private error: string | null = null;
     private userProfileComponent: UserProfileComponent | null = null;
     private friendsListComponent: FriendsList | null = null;
     private friends: any[] = [];
@@ -19,21 +17,6 @@ export default class ProfilePage extends BaseComponent
 
     render(): string 
     {
-        if (this.loading) 
-        {
-            return this.renderLoading();
-        }
-
-        if (this.error) 
-        {
-            return this.renderError();
-        }
-
-        if (!this.userProfile) 
-        {
-            return this.renderError('No profile data available');
-        }
-
         return `
             <div class="container mx-auto px-6 py-8 max-w-7xl">
                 <h1 class="text-4xl font-bold font-game text-cyan-400 mb-12 text-center tracking-wide" style="text-shadow: 0 0 10px #00ffff;">
@@ -97,68 +80,32 @@ export default class ProfilePage extends BaseComponent
         `;
     }
 
-    private renderLoading(): string 
-    {
-        return `
-            <div class="container mx-auto px-6 py-8 max-w-4xl">
-                <div class="flex flex-col items-center justify-center min-h-[400px]">
-                    <div class="animate-spin rounded-full h-24 w-24 border-t-4 border-b-4 border-cyan-400"></div>
-                    <p class="text-cyan-400 text-xl font-bold mt-8 tracking-wider">
-                        ACCESSING MAINFRAME...
-                    </p>
-                </div>
-            </div>
-        `;
-    }
-
-    private renderError(message?: string): string 
-    {
-        return `
-            <div class="container mx-auto px-6 py-8 max-w-4xl">
-                <div class="bg-red-900/30 backdrop-blur-md border-2 border-red-500/50 rounded-lg p-8 text-center">
-                    <div class="text-6xl mb-4">⚠</div>
-                    <h2 class="text-3xl font-bold text-red-400 mb-4 tracking-wider">
-                        SYSTEM ERROR
-                    </h2>
-                    <p class="text-red-300 mb-6 text-lg">${this.escapeHtml(message || this.error || 'Failed to load profile')}</p>
-                    <button onclick="location.reload()" class="bg-red-600/80 hover:bg-red-600 text-white px-8 py-3 rounded-lg font-bold transition-all backdrop-blur-sm">
-                        RETRY CONNECTION
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
     protected async afterMount(): Promise<void> 
     {
         console.log('📄 PROFILE PAGE: afterMount called');
+        
         await this.loadProfile();
         await this.loadFriends();
         await this.loadFriendRequests();
+        
+        console.log('📄 PROFILE PAGE: Mounting components...');
+        
+        this.mountComponents();
         this.setupActionButtons();
         this.setupGlobalEventListeners();
     }
 
     private async loadProfile(): Promise<void> 
     {
-        console.log('📄 PROFILE PAGE: loadProfile started');
         try 
         {
-            this.loading = true;
-            console.log('📄 PROFILE PAGE: Calling UserService.getProfile()');
+            console.log('📄 PROFILE PAGE: Loading profile...');
             this.userProfile = await UserService.getProfile();
-            console.log('📄 PROFILE PAGE: Profile loaded successfully:', this.userProfile);
-            this.error = null;
+            console.log('📄 PROFILE PAGE: Profile loaded:', this.userProfile);
         } 
         catch (err) 
         {
-            this.error = (err as Error).message;
             console.error('Failed to load profile:', err);
-        } 
-        finally 
-        {
-            this.loading = false;
-            this.rerender();
         }
     }
 
@@ -169,11 +116,10 @@ export default class ProfilePage extends BaseComponent
             console.log('📄 PROFILE PAGE: Loading friends...');
             const friendsData = await FriendService.getFriends();
             
-            // Map the friends data to match the FriendsList component interface
             this.friends = friendsData.friends.map((friend: any) => ({
                 id: friend.requestId,
                 username: friend.username,
-                status: 'ONLINE', // You can update this based on actual status from backend
+                status: friend.status || 'OFFLINE',
                 avatarUrl: friend.avatarUrl
             }));
             
@@ -192,7 +138,7 @@ export default class ProfilePage extends BaseComponent
         {
             console.log('📄 PROFILE PAGE: Loading friend requests...');
             const requestsData = await FriendService.getFriendRequests();
-            this.friendRequests = requestsData.receivedRequests;
+            this.friendRequests = requestsData.receivedRequests || [];
             console.log('📄 PROFILE PAGE: Friend requests loaded:', this.friendRequests);
         } 
         catch (err) 
@@ -202,39 +148,28 @@ export default class ProfilePage extends BaseComponent
         }
     }
 
-    private rerender(): void 
-    {
-        const container = document.querySelector('#content-mount');
-        if (container) 
-        {
-            container.innerHTML = this.render();
-            this.mountComponents();
-            this.setupActionButtons();
-            this.setupGlobalEventListeners();
-        }
-    }
-
     private mountComponents(): void 
     {
         if (!this.userProfile) 
         {
+            console.log('📄 PROFILE PAGE: Cannot mount - no profile');
             return;
         }
 
-        // Mount User Profile Component
+        console.log('📄 PROFILE PAGE: Mounting UserProfile and FriendsList...');
+
         this.userProfileComponent = new UserProfileComponent({
             userProfile: this.userProfile,
-            onProfileUpdated: (updatedProfile: UserProfile) => 
+            onProfileUpdated: async (updatedProfile: UserProfile) => 
             {
                 this.userProfile = updatedProfile;
-                this.rerender();
+                this.remountUserProfile();
             },
             onError: (message: string) => this.showMessage(message, 'error'),
             onSuccess: (message: string) => this.showMessage(message, 'success')
         });
         this.userProfileComponent.mount('#user-profile-container');
 
-        // Mount Friends List Component
         this.friendsListComponent = new FriendsList({
             friends: this.friends,
             friendRequests: this.friendRequests,
@@ -242,7 +177,44 @@ export default class ProfilePage extends BaseComponent
             {
                 await this.loadFriends();
                 await this.loadFriendRequests();
-                this.rerender();
+                this.remountFriendsList();
+            }
+        });
+        this.friendsListComponent.mount('#friends-list-container');
+        
+        console.log('📄 PROFILE PAGE: Components mounted!');
+    }
+
+    private remountUserProfile(): void 
+    {
+        if (!this.userProfile) 
+        {
+            return;
+        }
+
+        this.userProfileComponent = new UserProfileComponent({
+            userProfile: this.userProfile,
+            onProfileUpdated: async (updatedProfile: UserProfile) => 
+            {
+                this.userProfile = updatedProfile;
+                this.remountUserProfile();
+            },
+            onError: (message: string) => this.showMessage(message, 'error'),
+            onSuccess: (message: string) => this.showMessage(message, 'success')
+        });
+        this.userProfileComponent.mount('#user-profile-container');
+    }
+
+    private remountFriendsList(): void 
+    {
+        this.friendsListComponent = new FriendsList({
+            friends: this.friends,
+            friendRequests: this.friendRequests,
+            onRequestHandled: async () => 
+            {
+                await this.loadFriends();
+                await this.loadFriendRequests();
+                this.remountFriendsList();
             }
         });
         this.friendsListComponent.mount('#friends-list-container');
