@@ -1,6 +1,7 @@
 //  Friends management
 import { BaseComponent } from '../BaseComponent';
 import FriendService from '../../services/FriendService';
+import { getAvatarUrl } from '../../types/api.types';
 
 interface Friend 
 {
@@ -38,8 +39,8 @@ export class FriendsList extends BaseComponent
     render(): string 
     {
         return `
-            <div class="bg-gray-800/20 backdrop-blur-md rounded-lg p-8 border border-gray-700/50 flex flex-col h-full">
-                <h3 class="text-2xl font-bold text-cyan-400 mb-6 tracking-wider" style="text-shadow: 0 0 10px #00ffff;">
+            <div class="bg-gray-800/20 backdrop-blur-md rounded-lg p-4 sm:p-6 md:p-8 border border-gray-700/50 flex flex-col h-full">
+                <h3 class="text-xl sm:text-2xl font-bold text-cyan-400 mb-4 sm:mb-6 tracking-wider" style="text-shadow: 0 0 10px #00ffff;">
                     FRIENDS
                 </h3>
                 
@@ -48,14 +49,14 @@ export class FriendsList extends BaseComponent
                 
                 <!-- Friends List -->
                 ${this.props.friends.length > 0 
-                    ? `<div class="space-y-4 mb-6 flex-1 overflow-y-auto">
+                    ? `<div class="space-y-3 sm:space-y-4 mb-4 sm:mb-6 flex-1 overflow-y-auto">
                         ${this.props.friends.map(friend => this.renderFriendItem(friend)).join('')}
                     </div>`
                     : '<div class="flex-1"></div>'
                 }
                 
-                <button id="add-friend-btn" class="neon-border w-full px-6 py-4 rounded-lg font-bold text-cyan-400 tracking-wide flex items-center justify-center gap-3 mt-auto">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button id="add-friend-btn" class="neon-border w-full px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-cyan-400 tracking-wide flex items-center justify-center gap-2 sm:gap-3 mt-auto text-sm sm:text-base">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                     </svg>
                     ADD NEW FRIEND
@@ -134,14 +135,14 @@ export class FriendsList extends BaseComponent
     private renderFriendRequests(): string 
     {
         return `
-            <div class="mb-6 p-4 bg-cyan-900/20 border border-cyan-500/30 rounded-lg">
-                <h4 class="text-lg font-bold text-cyan-300 mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="mb-4 sm:mb-6 p-3 sm:p-4 bg-cyan-900/20 border border-cyan-500/30 rounded-lg">
+                <h4 class="text-base sm:text-lg font-bold text-cyan-300 mb-3 sm:mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                     </svg>
-                    FRIEND REQUESTS (${this.props.friendRequests.length})
+                    <span class="text-sm sm:text-base">FRIEND REQUESTS (${this.props.friendRequests.length})</span>
                 </h4>
-                <div class="space-y-3">
+                <div class="space-y-2 sm:space-y-3">
                     ${this.props.friendRequests.map(request => this.renderRequestItem(request)).join('')}
                 </div>
             </div>
@@ -150,26 +151,27 @@ export class FriendsList extends BaseComponent
 
     private renderRequestItem(request: FriendRequest): string 
     {
-        const avatarContent = request.avatarUrl 
-            ? `<img src="http://localhost:3004${request.avatarUrl}" alt="${request.username}" class="w-12 h-12 rounded-full object-cover">`
-            : `<div class="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-lg font-bold text-white">
+        const avatarUrl = getAvatarUrl(request.avatarUrl);
+        const avatarContent = avatarUrl
+            ? `<img src="${avatarUrl}" alt="${request.username}" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover">`
+            : `<div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-base sm:text-lg font-bold text-white">
                 ${request.username.charAt(0).toUpperCase()}
             </div>`;
 
         return `
-            <div class="flex items-center justify-between p-3 bg-gray-900/40 rounded-lg">
-                <div class="flex items-center gap-3">
+            <div class="flex items-center justify-between p-2 sm:p-3 bg-gray-900/40 rounded-lg gap-2">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                     ${avatarContent}
-                    <div>
-                        <h5 class="text-base font-bold text-cyan-400">${this.escapeHtml(request.username)}</h5>
+                    <div class="min-w-0 flex-1">
+                        <h5 class="text-sm sm:text-base font-bold text-cyan-400 truncate">${this.escapeHtml(request.username)}</h5>
                         <p class="text-xs text-gray-400">wants to be your friend</p>
                     </div>
                 </div>
-                <div class="flex gap-2">
-                    <button class="neon-border-green px-3 py-1 rounded-lg font-bold text-green-400 text-xs" data-accept-request="${request.requestId}">
+                <div class="flex gap-1 sm:gap-2 flex-shrink-0">
+                    <button class="neon-border-green px-2 sm:px-3 py-1 rounded-lg font-bold text-green-400 text-xs" data-accept-request="${request.requestId}">
                         ✓
                     </button>
-                    <button class="neon-border-red px-3 py-1 rounded-lg font-bold text-red-400 text-xs" data-decline-request="${request.requestId}">
+                    <button class="neon-border-red px-2 sm:px-3 py-1 rounded-lg font-bold text-red-400 text-xs" data-decline-request="${request.requestId}">
                         ✗
                     </button>
                 </div>
@@ -180,25 +182,26 @@ export class FriendsList extends BaseComponent
     private renderFriendItem(friend: Friend): string 
     {
         const statusInfo = this.getStatusInfo(friend.status);
-        const avatarContent = friend.avatarUrl 
-            ? `<img src="http://localhost:3004${friend.avatarUrl}" alt="${friend.username}" class="w-16 h-16 rounded-full object-cover">`
-            : `<div class="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-xl font-bold text-white">
+        const avatarUrl = getAvatarUrl(friend.avatarUrl);
+        const avatarContent = avatarUrl
+            ? `<img src="${avatarUrl}" alt="${friend.username}" class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full object-cover">`
+            : `<div class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-lg sm:text-xl font-bold text-white">
                 ${friend.username.charAt(0).toUpperCase()}
             </div>`;
 
         return `
-            <div class="flex items-center justify-between p-5 bg-gray-900/30 rounded-lg border border-gray-700/30 hover:border-cyan-500/50 transition-all">
-                <div class="flex items-center gap-4 cursor-pointer" data-friend-username="${this.escapeHtml(friend.username)}">
-                    <div class="relative">
+            <div class="flex items-center justify-between p-3 sm:p-4 md:p-5 bg-gray-900/30 rounded-lg border border-gray-700/30 hover:border-cyan-500/50 transition-all gap-2 sm:gap-3">
+                <div class="flex items-center gap-2 sm:gap-3 md:gap-4 cursor-pointer min-w-0 flex-1" data-friend-username="${this.escapeHtml(friend.username)}">
+                    <div class="relative flex-shrink-0">
                         ${avatarContent}
-                        <span class="absolute bottom-0 right-0 w-5 h-5 ${statusInfo.color} rounded-full border-2 border-gray-900"></span>
+                        <span class="absolute bottom-0 right-0 w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${statusInfo.color} rounded-full border-2 border-gray-900"></span>
                     </div>
-                    <div>
-                        <h4 class="text-lg font-bold text-cyan-400">${this.escapeHtml(friend.username)}</h4>
-                        <p class="text-sm text-gray-400">${statusInfo.text}</p>
+                    <div class="min-w-0 flex-1">
+                        <h4 class="text-base sm:text-lg font-bold text-cyan-400 truncate">${this.escapeHtml(friend.username)}</h4>
+                        <p class="text-xs sm:text-sm text-gray-400">${statusInfo.text}</p>
                     </div>
                 </div>
-                <button class="neon-border-small px-5 py-2 rounded-lg font-bold text-cyan-400 text-sm" data-friend-id="${friend.id}">
+                <button class="neon-border-small px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-lg font-bold text-cyan-400 text-xs sm:text-sm flex-shrink-0" data-friend-id="${friend.id}">
                     CHAT
                 </button>
             </div>

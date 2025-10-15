@@ -61,20 +61,25 @@ export async function sendFriendRequest(req: FastifyRequest, reply: FastifyReply
 
 // POST /friend-requests/:requestId/accept - Accept a friend request
 export async function acceptFriendRequest(req: FastifyRequest, reply: FastifyReply) {
-  const { requestId } = req.params as { requestId: number };
-  const userId = req.user?.sub;
-  if (!userId) {
-    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  try {
+    const { requestId } = req.params as { requestId: number };
+    const userId = req.user?.sub;
+
+    if (!userId) {
+      return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+    }
+    if (!requestId) {
+      return reply.status(400).send({ error: 'Request ID is required' });
+    }
+
+    await friendService.acceptFriendRequest(requestId, userId);
+    return reply.send({ message: 'Friend request accepted' });
+  } catch (err) {
+    console.error('❌ acceptFriendRequest error:', err);
+    return reply.status(500).send({ error: 'Internal Server Error' });
   }
-
-  if (!requestId) {
-    return reply.status(400).send({ error: 'Request ID is required' });
-  }
-
-  await friendService.acceptFriendRequest(requestId, userId);
-
-  reply.send({ message: 'Friend request accepted' });
 }
+
 
 // POST /friend-requests/:requestId/decline - Decline a friend request
 export async function declineFriendRequest(req: FastifyRequest, reply: FastifyReply) {

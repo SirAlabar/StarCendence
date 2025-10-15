@@ -29,25 +29,25 @@ export class UserProfileComponent extends BaseComponent
         const statusText = this.getStatusText(this.props.userProfile.status);
 
         return `
-            <div class="bg-gray-800/20 backdrop-blur-md rounded-lg p-8 border border-gray-700/50">
+            <div class="bg-gray-800/20 backdrop-blur-md rounded-lg p-4 sm:p-6 md:p-8 border border-gray-700/50">
                 <!-- Avatar Section -->
-                <div id="avatar-container" class="mb-6"></div>
+                <div id="avatar-container" class="mb-4 sm:mb-6"></div>
                 
-                <h2 class="text-3xl font-bold text-cyan-400 mb-4 tracking-wider text-center">
+                <h2 class="text-xl sm:text-2xl md:text-3xl font-bold text-cyan-400 mb-3 sm:mb-4 tracking-wider text-center break-words">
                     ${this.escapeHtml(this.props.userProfile.username).toUpperCase()}
                 </h2>
                 
-                <div class="flex items-center justify-center gap-3 mb-6">
-                    <span class="inline-block w-4 h-4 rounded-full ${statusColor}"></span>
-                    <span class="text-gray-300 text-sm font-bold tracking-wide">${statusText}</span>
+                <div class="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                    <span class="inline-block w-3 h-3 sm:w-4 sm:h-4 rounded-full ${statusColor}"></span>
+                    <span class="text-gray-300 text-xs sm:text-sm font-bold tracking-wide">${statusText}</span>
                 </div>
                 
-                <div class="space-y-3 text-sm mb-8">
-                    <div class="flex justify-between items-center py-2 border-b border-gray-700/50">
+                <div class="space-y-2 sm:space-y-3 text-xs sm:text-sm mb-6 sm:mb-8">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-700/50 gap-1">
                         <span class="text-gray-400 font-medium">TRANSMISSION:</span>
-                        <span class="text-cyan-300 text-xs">${this.escapeHtml(this.props.userProfile.email)}</span>
+                        <span class="text-cyan-300 text-xs break-all">${this.escapeHtml(this.props.userProfile.email)}</span>
                     </div>
-                    <div class="flex justify-between items-center py-2 border-b border-gray-700/50">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-700/50 gap-1">
                         <span class="text-gray-400 font-medium">ENLISTED:</span>
                         <span class="text-cyan-300">${this.formatDate(this.props.userProfile.createdAt)}</span>
                     </div>

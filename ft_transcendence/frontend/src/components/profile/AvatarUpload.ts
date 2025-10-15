@@ -1,6 +1,7 @@
 //  Avatar upload component
 import { BaseComponent } from '../BaseComponent';
 import UserService from '../../services/UserService';
+import { getAvatarUrl } from '../../types/api.types';
 
 interface AvatarUploadProps 
 {
@@ -23,20 +24,18 @@ export class AvatarUpload extends BaseComponent
 
     render(): string 
     {
-        const avatarUrl = this.props.avatarUrl
-            ? `http://localhost:3004${this.props.avatarUrl}`
-            : null;
+        const avatarUrl = getAvatarUrl(this.props.avatarUrl);
 
         return `
-        <div class="relative group w-48 h-48 mx-auto rounded-full overflow-hidden">
+        <div class="relative group w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 mx-auto rounded-full overflow-hidden">
             ${avatarUrl
             ? `<img 
                 src="${avatarUrl}" 
                 alt="Avatar" 
-                class="w-full h-full object-cover border-4 border-cyan-500/50 rounded-full"
+                class="w-full h-full object-cover border-2 sm:border-4 border-cyan-500/50 rounded-full"
                 >`
-            : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-500 to-purple-600 border-4 border-cyan-500/50 rounded-full">
-                <svg class="w-20 h-20 text-cyan-300" fill="currentColor" viewBox="0 0 20 20">
+            : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-500 to-purple-600 border-2 sm:border-4 border-cyan-500/50 rounded-full">
+                <svg class="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-cyan-300" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
                 </svg>
                 </div>`
@@ -48,7 +47,7 @@ export class AvatarUpload extends BaseComponent
                     group-hover:opacity-100 transition-opacity duration-300 
                     bg-black/60 cursor-pointer rounded-full"
             id="avatar-upload-trigger">
-            <svg class="w-16 h-16 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                     d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -99,21 +98,21 @@ export class AvatarUpload extends BaseComponent
         const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!validTypes.includes(file.type)) 
         {
-            this.props.onError('❌ Invalid file type. Only JPG, PNG, GIF, and WEBP are allowed.');
+            this.props.onError('⌠Invalid file type. Only JPG, PNG, GIF, and WEBP are allowed.');
             return;
         }
 
         const maxSize = 5 * 1024 * 1024;
         if (file.size > maxSize) 
         {
-            this.props.onError('❌ File size must be less than 5MB');
+            this.props.onError('⌠File size must be less than 5MB');
             return;
         }
 
         const isValidImage = await this.validateImageFile(file);
         if (!isValidImage) 
         {
-            this.props.onError('❌ File is not a valid image. Please upload a real image file.');
+            this.props.onError('⌠File is not a valid image. Please upload a real image file.');
             return;
         }
 
@@ -131,7 +130,7 @@ export class AvatarUpload extends BaseComponent
             
             if (errorMessage.includes('Session expired')) 
             {
-                this.props.onError('❌ Session expired. Please login again.');
+                this.props.onError('⌠Session expired. Please login again.');
                 setTimeout(() => 
                 {
                     (window as any).navigateTo('/login');
@@ -139,7 +138,7 @@ export class AvatarUpload extends BaseComponent
             }
             else 
             {
-                this.props.onError(`❌ ${errorMessage}`);
+                this.props.onError(`⌠${errorMessage}`);
             }
         }
     }

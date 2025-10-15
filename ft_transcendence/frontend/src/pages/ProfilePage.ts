@@ -18,16 +18,16 @@ export default class ProfilePage extends BaseComponent
     render(): string 
     {
         return `
-            <div class="container mx-auto px-6 py-8 max-w-7xl">
-                <h1 class="text-4xl font-bold font-game text-cyan-400 mb-12 text-center tracking-wide" style="text-shadow: 0 0 10px #00ffff;">
+            <div class="container mx-auto px-4 sm:px-6 py-4 sm:py-8 max-w-7xl">
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold font-game text-cyan-400 mb-6 sm:mb-8 md:mb-12 text-center tracking-wide" style="text-shadow: 0 0 10px #00ffff;">
                     PROFILE SETTINGS
                 </h1>
                 
                 <!-- Message Container -->
-                <div id="profile-message" class="mb-6"></div>
+                <div id="profile-message" class="mb-4 sm:mb-6"></div>
                 
                 <!-- Two Column Layout -->
-                <div class="grid md:grid-cols-2 gap-8 items-stretch mb-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch mb-6 sm:mb-8">
                     <!-- Left Side: User Profile -->
                     <div id="user-profile-container"></div>
                     
@@ -36,20 +36,20 @@ export default class ProfilePage extends BaseComponent
                 </div>
                 
                 <!-- Action Buttons -->
-                <div class="flex flex-wrap justify-center gap-4">
-                    <button id="search-users-btn" class="neon-border px-8 py-3 rounded-lg font-bold text-cyan-400 tracking-wide">
+                <div class="flex flex-row flex-wrap justify-center gap-3 sm:gap-4">
+                    <button id="search-users-btn" class="neon-border px-6 sm:px-8 py-3 rounded-lg font-bold text-cyan-400 tracking-wide flex-1 sm:flex-initial min-w-[200px]">
                         <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                         SEARCH USERS
                     </button>
-                    <button id="public-profile-btn" class="neon-border px-8 py-3 rounded-lg font-bold text-cyan-400 tracking-wide">
+                    <button id="public-profile-btn" class="neon-border px-6 sm:px-8 py-3 rounded-lg font-bold text-cyan-400 tracking-wide flex-1 sm:flex-initial min-w-[200px]">
                         <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
                         SEE PUBLIC PROFILE
                     </button>
-                    <button id="settings-btn" class="neon-border px-8 py-3 rounded-lg font-bold text-cyan-400 tracking-wide">
+                    <button id="settings-btn" class="neon-border px-6 sm:px-8 py-3 rounded-lg font-bold text-cyan-400 tracking-wide flex-1 sm:flex-initial min-w-[200px]">
                         <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -287,11 +287,11 @@ export default class ProfilePage extends BaseComponent
         const bgColor = type === 'success' ? 'bg-green-900/30' : 'bg-red-900/30';
         const borderColor = type === 'success' ? 'border-green-500/50' : 'border-red-500/50';
         const textColor = type === 'success' ? 'text-green-400' : 'text-red-400';
-        const icon = type === 'success' ? '✓' : '✗';
+        const icon = type === 'success' ? '✔' : '✗';
 
         container.innerHTML = `
-            <div class="${bgColor} ${borderColor} backdrop-blur-sm border-2 rounded-lg p-4">
-                <p class="${textColor} font-bold text-center">
+            <div class="${bgColor} ${borderColor} backdrop-blur-sm border-2 rounded-lg p-3 sm:p-4">
+                <p class="${textColor} font-bold text-center text-sm sm:text-base">
                     ${icon} ${this.escapeHtml(message)}
                 </p>
             </div>

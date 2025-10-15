@@ -23,25 +23,25 @@ export class ProfileEdit extends BaseComponent
     render(): string 
     {
         return `
-            <div class="mb-6">
-                <label class="block text-sm font-bold text-cyan-300 mb-3 tracking-wide">BIOGRAPHICAL DATA</label>
+            <div class="mb-4 sm:mb-6">
+                <label class="block text-xs sm:text-sm font-bold text-cyan-300 mb-2 sm:mb-3 tracking-wide">BIOGRAPHICAL DATA</label>
                 <textarea 
                     id="bio-input"
-                    rows="5" 
+                    rows="4" 
                     placeholder="Write your bio..."
                     maxlength="160"
-                    class="w-full px-4 py-3 bg-gray-900/50 border-2 border-gray-700/50 rounded-lg text-cyan-100 focus:border-cyan-500 focus:outline-none resize-none font-mono text-sm backdrop-blur-sm"
+                    class="w-full px-3 sm:px-4 py-2 sm:py-3 bg-gray-900/50 border-2 border-gray-700/50 rounded-lg text-cyan-100 focus:border-cyan-500 focus:outline-none resize-none font-mono text-xs sm:text-sm backdrop-blur-sm"
                 >${this.escapeHtml(this.props.bio)}</textarea>
-                <div class="text-right text-sm text-cyan-400 mt-2 font-mono">
+                <div class="text-right text-xs sm:text-sm text-cyan-400 mt-2 font-mono">
                     <span id="bio-counter">${this.props.bio.length}</span>/160 CHARACTERS
                 </div>
             </div>
             
-            <div class="flex justify-center gap-3">
-                <button id="save-bio-btn" class="neon-border-green px-6 py-2 rounded-lg font-bold text-green-400 tracking-wide transition-all backdrop-blur-sm text-sm">
+            <div class="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3">
+                <button id="save-bio-btn" class="neon-border-green px-4 sm:px-6 py-2 rounded-lg font-bold text-green-400 tracking-wide transition-all backdrop-blur-sm text-xs sm:text-sm w-full sm:w-auto">
                     SAVE
                 </button>
-                <button id="cancel-bio-btn" class="neon-border px-6 py-2 rounded-lg font-bold text-cyan-400 tracking-wide transition-all backdrop-blur-sm text-sm">
+                <button id="cancel-bio-btn" class="neon-border px-4 sm:px-6 py-2 rounded-lg font-bold text-cyan-400 tracking-wide transition-all backdrop-blur-sm text-xs sm:text-sm w-full sm:w-auto">
                     CANCEL
                 </button>
             </div>
