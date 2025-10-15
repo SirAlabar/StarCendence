@@ -7,12 +7,22 @@ const API_CONFIG =
   },
   production: 
   {
-    AUTH_BASE_URL: 'https://starcendence.dev'
+    AUTH_BASE_URL: 'https://starcendence.dev/api/auth'
+  },
+  local: 
+  {
+    AUTH_BASE_URL: 'https://localhost:8443/api/auth'
   }
 };
 
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const isDevelopment = import.meta.env.MODE === 'development';
-const API = isDevelopment ? API_CONFIG.development : API_CONFIG.production;
+
+const API = isLocal && !isDevelopment 
+  ? API_CONFIG.local 
+  : isDevelopment 
+    ? API_CONFIG.development 
+    : API_CONFIG.production;
 
 console.log('🔧 AuthService: Configuration loaded', {
   isDevelopment,

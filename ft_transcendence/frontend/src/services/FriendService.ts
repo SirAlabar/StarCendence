@@ -1,4 +1,28 @@
-const API_BASE_URL = 'http://localhost:3004';
+const API_CONFIG = 
+{
+  development: 
+  {
+    AUTH_BASE_URL: 'http://localhost:3004'
+  },
+  production: 
+  {
+    AUTH_BASE_URL: 'https://starcendence.dev/api/friends'
+  },
+  local: 
+  {
+    AUTH_BASE_URL: 'https://localhost:8443/api/friends'
+  }
+};
+
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const isDevelopment = import.meta.env.MODE === 'development';
+
+const API = isLocal && !isDevelopment 
+  ? API_CONFIG.local 
+  : isDevelopment 
+    ? API_CONFIG.development 
+    : API_CONFIG.production;
+
 
 export interface Friend 
 {
@@ -57,7 +81,7 @@ class FriendService
             throw new Error('Not authenticated');
         }
 
-        const response = await fetch(`${API_BASE_URL}/friends`, {
+        const response = await fetch(`${API}/friends`, {
             method: 'GET',
             headers: this.getHeaders()
         });
@@ -96,7 +120,7 @@ class FriendService
             throw new Error('Not authenticated');
         }
 
-        const response = await fetch(`${API_BASE_URL}/friend-requests`, {
+        const response = await fetch(`${API}/friend-requests`, {
             method: 'GET',
             headers: this.getHeaders()
         });
@@ -135,7 +159,7 @@ class FriendService
             throw new Error('Not authenticated');
         }
 
-        const response = await fetch(`${API_BASE_URL}/friend-requests/sent`, {
+        const response = await fetch(`${API}/friend-requests/sent`, {
             method: 'GET',
             headers: this.getHeaders()
         });
@@ -179,7 +203,7 @@ class FriendService
             throw new Error('Invalid username');
         }
 
-        const response = await fetch(`${API_BASE_URL}/friend-request`, {
+        const response = await fetch(`${API}/friend-request`, {
             method: 'POST',
             headers: this.getHeaders(),
             body: JSON.stringify({ username })
@@ -210,7 +234,7 @@ class FriendService
             throw new Error('Not authenticated');
         }
 
-        const response = await fetch(`${API_BASE_URL}/friend-request/${requestId}/accept`, {
+        const response = await fetch(`${API}/friend-request/${requestId}/accept`, {
             method: 'POST',
             headers: this.getHeaders()
         });
@@ -237,7 +261,7 @@ class FriendService
             throw new Error('Not authenticated');
         }
 
-        const response = await fetch(`${API_BASE_URL}/friend-request/${requestId}/decline`, {
+        const response = await fetch(`${API}/friend-request/${requestId}/decline`, {
             method: 'POST',
             headers: this.getHeaders()
         });
@@ -264,7 +288,7 @@ class FriendService
             throw new Error('Not authenticated');
         }
 
-        const response = await fetch(`${API_BASE_URL}/friend-request/${requestId}`, {
+        const response = await fetch(`${API}/friend-request/${requestId}`, {
             method: 'DELETE',
             headers: this.getHeaders()
         });
@@ -291,7 +315,7 @@ class FriendService
             throw new Error('Not authenticated');
         }
 
-        const response = await fetch(`${API_BASE_URL}/friends/${friendId}`, {
+        const response = await fetch(`${API}/friends/${friendId}`, {
             method: 'DELETE',
             headers: this.getHeaders()
         });

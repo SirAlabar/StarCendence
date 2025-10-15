@@ -10,7 +10,7 @@ services:
     volumes:
       - frontend_dist:/app/dist
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=local
       - VITE_API_URL=https://starcendence.dev
       - VITE_WS_URL=wss://starcendence.dev/ws
 
