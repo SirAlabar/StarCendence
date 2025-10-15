@@ -1,4 +1,5 @@
 import { BaseComponent } from '../components/BaseComponent';
+import { RegisterService } from '../services/RegisterService';
 
 export default class RegisterPage extends BaseComponent 
 {
@@ -245,32 +246,29 @@ export default class RegisterPage extends BaseComponent
 
         try 
         {
-            const response = await fetch('http://localhost:3001/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, email, password })
-            });
+            console.log('🎉 RegisterPage: Sending registration request via RegisterService...');
             
-            const data = await response.json();
+            const response = await RegisterService.register({ username, email, password });
             
-            if (response.ok) 
+            console.log('🎉 Registration successful');
+            this.showMessage(`${response.message} Redirecting to login...`, 'success');
+            
+            setTimeout(() => 
             {
-                console.log('🎉 Registration successful');
-                this.showMessage(`${data.message} Redirecting to login...`, 'success');
-                
-                setTimeout(() => {
+                if ((window as any).navigateTo) 
+                {
+                    (window as any).navigateTo('/login');
+                } 
+                else 
+                {
                     window.location.href = '/login';
-                }, 2000);
-            } 
-            else 
-            {
-                this.showMessage(data.message || 'Registration failed', 'error');
-            }
+                }
+            }, 2000);
         } 
-        catch (error) 
+        catch (error: any) 
         {
             console.error('Registration error:', error);
-            this.showMessage('Network error. Please try again.', 'error');
+            this.showMessage(error.message || 'Network error. Please try again.', 'error');
         } 
         finally 
         {
