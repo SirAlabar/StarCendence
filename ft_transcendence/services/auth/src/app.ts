@@ -11,7 +11,17 @@ export async function buildApp() {
   const fastify = Fastify({ logger: true })
 
   // Register plugins
-  await fastify.register(cors)
+  await fastify.register(cors, {
+    origin: [
+      'https://starcendence.dev',
+      'http://localhost:5173',
+      'http://localhost:8080',
+      'https://localhost:8443'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
+  })
   await fastify.register(helmet)
 
   // Global error handler

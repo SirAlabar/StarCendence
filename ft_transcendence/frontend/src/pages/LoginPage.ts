@@ -1,4 +1,5 @@
 import { BaseComponent } from '../components/BaseComponent';
+import { LoginService } from '../services/LoginService';
 
 export default class LoginPage extends BaseComponent 
 {
@@ -141,35 +142,14 @@ export default class LoginPage extends BaseComponent
 
         try 
         {
-            console.log('🔥 LoginPage: Sending login request...');
-            const response = await fetch('http://localhost:3001/login', 
-            {
-                method: 'POST',
-                headers: 
-                { 
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify({ email, password })
-            });
+            console.log('🔥 LoginPage: Sending login request via LoginService...');
             
-            const data = await response.json();
-            console.log('🔥 LoginPage: Response received:', data);
+            const response = await LoginService.login({ email, password });
+            console.log('🔥 LoginPage: Response received:', response);
             
-            // FIX: Handle the nested token structure
-            const tokenData = data.token || data;
-            console.log('🔥 Access Token Detected:', tokenData.accessToken);
-            
-            if (response.ok && tokenData.accessToken)
+            if (LoginService.isAuthenticated()) 
             {
                 console.log('🔥 LoginPage: Login successful!');
-                localStorage.setItem('access_token', tokenData.accessToken);
-                console.log('🔥 LoginPage: Token saved:', localStorage.getItem('access_token'));
-                
-                if (tokenData.refreshToken) 
-                {
-                    localStorage.setItem('refresh_token', tokenData.refreshToken);
-                }
-                
                 this.showMessage('Login successful! Redirecting...', 'success');
                 
                 setTimeout(() => 
@@ -188,14 +168,14 @@ export default class LoginPage extends BaseComponent
             } 
             else 
             {
-                console.error('🔥 LoginPage: Login failed:', data);
-                this.showMessage(data.message || 'Login failed', 'error');
+                console.error('🔥 LoginPage: Login failed');
+                this.showMessage('Login failed. Please try again.', 'error');
             }
         } 
-        catch (error) 
+        catch (error: any) 
         {
             console.error('🔥 LoginPage: Error:', error);
-            this.showMessage('Network error. Please try again.', 'error');
+            this.showMessage(error.message || 'Network error. Please try again.', 'error');
         } 
         finally 
         {
@@ -206,4 +186,4 @@ export default class LoginPage extends BaseComponent
             }
         }
     }
-}
+    }

@@ -6,7 +6,7 @@ const API_CONFIG =
   },
   production: 
   {
-    AUTH_BASE_URL: 'https://starcendence.dev'
+    AUTH_BASE_URL: 'https://starcendence.dev/api/auth'
   }
 };
 
