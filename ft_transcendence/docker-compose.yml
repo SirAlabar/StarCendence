@@ -14,6 +14,25 @@ services:
       - VITE_API_URL=https://starcendence.dev
       - VITE_WS_URL=wss://starcendence.dev/ws
 
+  frontend-dev:
+    container_name: transcendence_frontend_dev
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    command: npm run dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3001
+      - VITE_WS_URL=ws://localhost:3001/ws
+    networks:
+      - transcendence_network
+
+
   # Reverse Proxy (HTTP redirect + HTTPS)
   nginx:
     container_name: transcendence_nginx

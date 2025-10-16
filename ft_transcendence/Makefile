@@ -196,11 +196,23 @@ stop:
 restart: stop start
 
 .PHONY: dev
-dev: start
-	@printf "$(GREEN)🛠️  Development mode started!$(DEFAULT)\n"
-	@printf "$(YELLOW)📂 Build frontend: cd frontend && npm run build && cp -r dist/* ${HOME}/data/frontend/$(DEFAULT)\n"
-	@printf "$(YELLOW)🔍 Watching logs (Ctrl+C to exit)...$(DEFAULT)\n"
-	@$(MAKE) --no-print-directory logs
+dev:
+	@printf "$(GREEN)🛠️  Starting ft_transcendence in DEVELOPMENT mode...$(DEFAULT)\n"
+	@printf "$(CYAN)Setting environment to development...$(DEFAULT)\n"
+	@export NODE_ENV=development && \
+	$(DOCKER_COMPOSE) up -d \
+		redis \
+		user-service \
+		auth-service \
+		nginx \
+		frontend-dev
+	@printf "$(GREEN)✅ All services are running in development mode!$(DEFAULT)\n"
+	@printf "$(YELLOW)🌐 Frontend (Vite): http://localhost:5173$(DEFAULT)\n"
+	@printf "$(YELLOW)🌐 Backend (API Gateway via Nginx): http://localhost:8080$(DEFAULT)\n"
+	@printf "$(YELLOW)📊 Watching logs (Ctrl+C to exit)...$(DEFAULT)\n"
+	@$(DOCKER_COMPOSE) logs -f redis user-service auth-service nginx frontend-dev
+
+
 
 .PHONY: build
 build:
