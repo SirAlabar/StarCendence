@@ -4,27 +4,45 @@ import * as friendService from './friendService';
 
 // GET /friends - Get list of friends
 export async function getFriends(req: FastifyRequest, reply: FastifyReply) {
-  const userId = req.user?.sub;
-  if (!userId) {
-    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  try 
+  {
+    const userId = req.user?.sub;
+    if (!userId) 
+    {
+      return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+    }
+
+    const friends = await friendService.getFriends(userId);
+    return reply.send(friends);
+  } 
+  catch (err) 
+  {
+    console.error('❌ getFriends error:', err);
+    return reply.status(500).send({ error: 'Internal Server Error' });
   }
-
-  const friends = await friendService.getFriends(userId);
-
-  return reply.send(friends);
 }
+
 
 // GET /friend-requests - Get incoming friend requests
 export async function getFriendRequests(req: FastifyRequest, reply: FastifyReply) {
-  const userId = req.user?.sub;
-  if (!userId) {
-    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  try 
+  {
+    const userId = req.user?.sub;
+    if (!userId) 
+    {
+      return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+    }
+
+    const requests = await friendService.getFriendRequests(userId);
+    return reply.send(requests);
+  } 
+  catch (err) 
+  {
+    console.error('❌ getFriendRequests error:', err);
+    return reply.status(500).send({ error: 'Internal Server Error' });
   }
-
-  const requests = await friendService.getFriendRequests(userId);
-
-  return reply.send(requests);
 }
+
 
 // GET /friend-requests/sent - Get sent friend requests
 export async function getSentFriendRequests(req: FastifyRequest, reply: FastifyReply) {
@@ -39,81 +57,126 @@ export async function getSentFriendRequests(req: FastifyRequest, reply: FastifyR
 }
 
 // POST /friend-request - Send a friend request, if reciprocal request exists, accept it
-export async function sendFriendRequest(req: FastifyRequest, reply: FastifyReply) {
-  const { username } = req.body as { username: string };
-  const senderId = req.user?.sub;
-  if (!senderId) {
-    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
-  }
+export async function sendFriendRequest(req: FastifyRequest, reply: FastifyReply) 
+{
+  try 
+  {
+    const { username } = req.body as { username: string };
+    const senderId = req.user?.sub;
 
-  if (!username) {
-    return reply.status(400).send({ error: 'Username is required' });
-  }
+    if (!senderId) 
+    {
+      return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+    }
 
-  const result = await friendService.sendFriendRequest(senderId, username);
+    if (!username) 
+    {
+      return reply.status(400).send({ error: 'Username is required' });
+    }
 
-  if (result === 'ACCEPTED') {
-    reply.send({ message: `Friend request accepted` });
-  } else {
-    reply.send({ message: `Friend request sent to ${username}` });
+    const result = await friendService.sendFriendRequest(senderId, username);
+
+    if (result === 'ACCEPTED') 
+    {
+      return reply.send({ message: `Friend request accepted` });
+    } 
+    else 
+    {
+      return reply.send({ message: `Friend request sent to ${username}` });
+    }
+  } 
+  catch (err) 
+  {
+    console.error('❌ sendFriendRequest error:', err);
+    return reply.status(500).send({ error: 'Internal Server Error' });
   }
 }
 
+
 // POST /friend-requests/:requestId/accept - Accept a friend request
 export async function acceptFriendRequest(req: FastifyRequest, reply: FastifyReply) {
-  try {
+  try 
+  {
     const { requestId } = req.params as { requestId: number };
     const userId = req.user?.sub;
 
-    if (!userId) {
+    if (!userId) 
+    {
       return reply.status(401).send({ error: 'Unauthorized: user id missing' });
     }
-    if (!requestId) {
+
+    if (!requestId) 
+    {
       return reply.status(400).send({ error: 'Request ID is required' });
     }
 
     await friendService.acceptFriendRequest(requestId, userId);
     return reply.send({ message: 'Friend request accepted' });
-  } catch (err) {
+  } 
+  catch (err) 
+  {
     console.error('❌ acceptFriendRequest error:', err);
     return reply.status(500).send({ error: 'Internal Server Error' });
   }
 }
 
 
+
 // POST /friend-requests/:requestId/decline - Decline a friend request
 export async function declineFriendRequest(req: FastifyRequest, reply: FastifyReply) {
-  const { requestId } = req.params as { requestId: number };
-  const userId = req.user?.sub;
-  if (!userId) {
-    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
-  }
+  try 
+  {
+    const { requestId } = req.params as { requestId: number };
+    const userId = req.user?.sub;
 
-  if (!requestId) {
-    return reply.status(400).send({ error: 'Request ID is required' });
-  }
-  
-  await friendService.rejectFriendRequest(requestId, userId);
+    if (!userId) 
+    {
+      return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+    }
 
-  reply.send({ message: 'Friend request declined' });
+    if (!requestId) 
+    {
+      return reply.status(400).send({ error: 'Request ID is required' });
+    }
+
+    await friendService.rejectFriendRequest(requestId, userId);
+    return reply.send({ message: 'Friend request declined' });
+  } 
+  catch (err) 
+  {
+    console.error('❌ declineFriendRequest error:', err);
+    return reply.status(500).send({ error: 'Internal Server Error' });
+  }
 }
+
 
 // DELETE /friend-requests/:requestId - Cancel a sent friend request
 export async function cancelFriendRequest(req: FastifyRequest, reply: FastifyReply) {
-  const { requestId } = req.params as { requestId: number };
-  const userId = req.user?.sub;
-  if (!userId) {
-    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
-  }
-  
-  if (!requestId) {
-    return reply.status(400).send({ error: 'Request ID is required' });
-  }
+  try 
+  {
+    const { requestId } = req.params as { requestId: number };
+    const userId = req.user?.sub;
 
-  await friendService.cancelFriendRequest(requestId, userId);
-  
-  reply.send({ message: 'Friend request canceled' });
+    if (!userId) 
+    {
+      return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+    }
+
+    if (!requestId) 
+    {
+      return reply.status(400).send({ error: 'Request ID is required' });
+    }
+
+    await friendService.cancelFriendRequest(requestId, userId);
+    return reply.send({ message: 'Friend request canceled' });
+  } 
+  catch (err) 
+  {
+    console.error('❌ cancelFriendRequest error:', err);
+    return reply.status(500).send({ error: 'Internal Server Error' });
+  }
 }
+
 
 // DELETE /friends/:friendId - Unfriend a user
 export async function unfriend(req: FastifyRequest, reply: FastifyReply) {

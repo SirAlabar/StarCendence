@@ -10,7 +10,7 @@ const API_CONFIG =
   },
   local: 
   {
-    AUTH_BASE_URL: 'https://localhost:8443/api/friends'
+    AUTH_BASE_URL: 'https://localhost:8443/user'
   }
 };
 

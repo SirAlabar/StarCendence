@@ -14,10 +14,16 @@ export async function buildApp()
   
   // Register CORS
   await fastify.register(cors, {
-    origin: true,
+    origin: (origin, cb) => {
+      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        cb(null, true);
+        return;
+      }
+      cb(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     exposedHeaders: ['Content-Type', 'Authorization']
   })
 
