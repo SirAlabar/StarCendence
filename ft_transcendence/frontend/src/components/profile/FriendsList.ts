@@ -331,7 +331,6 @@ export class FriendsList extends BaseComponent
 
     private handleChatClick(friendId: number): void 
     {
-        console.log('Chat with friend:', friendId);
         alert(`Chat feature coming soon for friend ID: ${friendId}`);
     }
 

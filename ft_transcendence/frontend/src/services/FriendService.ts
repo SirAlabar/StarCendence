@@ -221,8 +221,7 @@ class FriendService
             throw new Error(error.error || error.message || 'Failed to send friend request');
         }
 
-        const data = await response.json();
-        console.log('✅ Friend request:', data.message);
+        await response.json();
     }
 
     // POST /friend-request/:id/accept - Accept friend request

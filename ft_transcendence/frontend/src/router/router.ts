@@ -230,17 +230,14 @@ function matchDynamicRoute(path: string): any
 function isAuthenticated(): boolean
 {
     const token = localStorage.getItem('access_token');
-    console.log('🔐 ROUTER: isAuthenticated check, token:', token ? 'EXISTS' : 'NULL');
     return token !== null;
 }
 
 // Main navigation function
 export async function navigateTo(path: string): Promise<void>
 {
-    console.log('🚀 ROUTER: navigateTo called with path:', path);
     if (routerState.isNavigating)
     {
-        console.log('🚀 ROUTER: Already navigating, aborting');
         return;
     }
 

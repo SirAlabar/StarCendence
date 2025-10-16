@@ -300,8 +300,6 @@ export default class UserPublicPage extends BaseComponent
 
     protected async afterMount(): Promise<void> 
     {
-        console.log('👤 USER PUBLIC PAGE: afterMount called');
-        
         // Extract username from URL
         this.username = window.location.pathname.split('/').pop() || '';
         
@@ -323,9 +321,7 @@ export default class UserPublicPage extends BaseComponent
         try 
         {
             this.loading = true;
-            console.log('👤 Loading profile for:', this.username);
             this.userProfile = await UserService.getPublicProfile(this.username);
-            console.log('👤 Profile loaded:', this.userProfile);
             this.error = null;
         } 
         catch (err) 
@@ -351,8 +347,6 @@ export default class UserPublicPage extends BaseComponent
             this.isFriend = friendsData.friends.some(
                 friend => friend.username === this.username
             );
-            
-            console.log('👤 Is friend:', this.isFriend);
         } 
         catch (err) 
         {

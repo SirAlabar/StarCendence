@@ -73,7 +73,6 @@ export default class LoginPage extends BaseComponent
 
     protected afterMount(): void 
     {
-        console.log('🔥 LoginPage: afterMount called');
         this.initializeElements();
         this.attachEventListeners();
     }
@@ -84,7 +83,6 @@ export default class LoginPage extends BaseComponent
         this.passwordInput = document.getElementById('password-input') as HTMLInputElement;
         this.submitButton = document.getElementById('submit-button') as HTMLButtonElement;
         this.messageContainer = document.getElementById('message-container');
-        console.log('🔥 LoginPage: Elements initialized');
     }
 
     private attachEventListeners(): void 
@@ -93,7 +91,6 @@ export default class LoginPage extends BaseComponent
         if (form) 
         {
             form.addEventListener('submit', (e) => this.handleSubmit(e));
-            console.log('🔥 LoginPage: Event listener attached');
         }
     }
 
@@ -116,12 +113,11 @@ export default class LoginPage extends BaseComponent
 
     private async handleSubmit(event: Event): Promise<void> 
     {
-        console.log('🔥 LoginPage: handleSubmit called');
         event.preventDefault();
         
         if (!this.emailInput || !this.passwordInput) 
         {
-            console.error('🔥 LoginPage: Inputs not found');
+            console.error('LoginPage: Inputs not found');
             return;
         }
 
@@ -142,20 +138,14 @@ export default class LoginPage extends BaseComponent
 
         try 
         {
-            console.log('🔥 LoginPage: Sending login request via LoginService...');
-            
-            const response = await LoginService.login({ email, password });
-            console.log('🔥 LoginPage: Response received:', response);
+            await LoginService.login({ email, password });
             
             if (LoginService.isAuthenticated()) 
             {
-                console.log('🔥 LoginPage: Login successful!');
                 this.showMessage('Login successful! Redirecting...', 'success');
                 
                 setTimeout(() => 
                 {
-                    console.log('🔥 LoginPage: REDIRECTING NOW!');
-                    
                     if ((window as any).navigateTo) 
                     {
                         (window as any).navigateTo('/profile');
@@ -168,13 +158,13 @@ export default class LoginPage extends BaseComponent
             } 
             else 
             {
-                console.error('🔥 LoginPage: Login failed');
+                console.error('LoginPage: Login failed');
                 this.showMessage('Login failed. Please try again.', 'error');
             }
         } 
         catch (error: any) 
         {
-            console.error('🔥 LoginPage: Error:', error);
+            console.error('LoginPage: Error:', error);
             this.showMessage(error.message || 'Network error. Please try again.', 'error');
         } 
         finally 

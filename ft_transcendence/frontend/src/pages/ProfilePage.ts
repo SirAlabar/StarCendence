@@ -82,13 +82,9 @@ export default class ProfilePage extends BaseComponent
 
     protected async afterMount(): Promise<void> 
     {
-        console.log('📄 PROFILE PAGE: afterMount called');
-        
         await this.loadProfile();
         await this.loadFriends();
         await this.loadFriendRequests();
-        
-        console.log('📄 PROFILE PAGE: Mounting components...');
         
         this.mountComponents();
         this.setupActionButtons();
@@ -99,9 +95,7 @@ export default class ProfilePage extends BaseComponent
     {
         try 
         {
-            console.log('📄 PROFILE PAGE: Loading profile...');
             this.userProfile = await UserService.getProfile();
-            console.log('📄 PROFILE PAGE: Profile loaded:', this.userProfile);
         } 
         catch (err) 
         {
@@ -113,7 +107,6 @@ export default class ProfilePage extends BaseComponent
     {
         try 
         {
-            console.log('📄 PROFILE PAGE: Loading friends...');
             const friendsData = await FriendService.getFriends();
             
             this.friends = friendsData.friends.map((friend: any) => ({
@@ -122,8 +115,6 @@ export default class ProfilePage extends BaseComponent
                 status: friend.status || 'OFFLINE',
                 avatarUrl: friend.avatarUrl
             }));
-            
-            console.log('📄 PROFILE PAGE: Friends loaded:', this.friends);
         } 
         catch (err) 
         {
@@ -136,10 +127,8 @@ export default class ProfilePage extends BaseComponent
     {
         try 
         {
-            console.log('📄 PROFILE PAGE: Loading friend requests...');
             const requestsData = await FriendService.getFriendRequests();
             this.friendRequests = requestsData.receivedRequests || [];
-            console.log('📄 PROFILE PAGE: Friend requests loaded:', this.friendRequests);
         } 
         catch (err) 
         {
@@ -152,11 +141,8 @@ export default class ProfilePage extends BaseComponent
     {
         if (!this.userProfile) 
         {
-            console.log('📄 PROFILE PAGE: Cannot mount - no profile');
             return;
         }
-
-        console.log('📄 PROFILE PAGE: Mounting UserProfile and FriendsList...');
 
         this.userProfileComponent = new UserProfileComponent({
             userProfile: this.userProfile,
@@ -181,8 +167,6 @@ export default class ProfilePage extends BaseComponent
             }
         });
         this.friendsListComponent.mount('#friends-list-container');
-        
-        console.log('📄 PROFILE PAGE: Components mounted!');
     }
 
     private remountUserProfile(): void 

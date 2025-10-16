@@ -246,11 +246,8 @@ export default class RegisterPage extends BaseComponent
 
         try 
         {
-            console.log('🎉 RegisterPage: Sending registration request via RegisterService...');
-            
             const response = await RegisterService.register({ username, email, password });
             
-            console.log('🎉 Registration successful');
             this.showMessage(`${response.message} Redirecting to login...`, 'success');
             
             setTimeout(() => 
