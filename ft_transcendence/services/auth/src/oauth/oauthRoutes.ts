@@ -5,14 +5,20 @@ import * as oauthController from './oauthController'
 export async function oauthRoutes(fastify: FastifyInstance) {
   fastify.get('/oauth/google',
   {
-    schema: oauthSchema.googleOAuthRequestSchema
+    // schema: oauthSchema.googleOAuthRequestSchema
   },
   oauthController.googleOAuthHandler)
 
   fastify.get('/oauth/google/callback',
   {
-    schema: oauthSchema.googleOAuthCallbackSchema
+    // schema: oauthSchema.googleOAuthCallbackSchema
   },
   oauthController.googleOAuthCallbackHandler)
+
+  // fastify.post('/oauth/google/set-username',
+  // {
+  //   // schema: oauthSchema.googleOAuthRegisterSchema
+  // },
+  // oauthController.googleOAuthUsernameHandler)
 
 }
