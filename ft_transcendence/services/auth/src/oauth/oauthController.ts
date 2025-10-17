@@ -2,6 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify'
 import * as oauthService from './oauthService'
 import { HttpError } from '../utils/HttpError'
 import { getGoogleClientId } from '../utils/getSecrets'
+import * as tokenService from '../token/tokenService'
 
 // Handler to initiate Google OAuth flow
 export async function googleOAuthHandler( req: FastifyRequest, reply: FastifyReply ) {
@@ -27,12 +28,51 @@ export async function googleOAuthCallbackHandler( req: FastifyRequest, reply: Fa
     throw new HttpError('Authorization code is required', 400)
   }
 
-  const tokens = await oauthService.getGoogleTokens(code, redirectUri)
-  const userInfo = await oauthService.getGoogleUserInfo(tokens.access_token)
-  const tokenInfo = await oauthService.getGoogleIdTokenInfo(tokens.id_token)
-  console.log('Google ID Token Info:', tokenInfo)
-  console.log('Google User Info:', userInfo)
+  const googleTokens = await oauthService.getGoogleTokens(code, redirectUri)
+  const userInfo = await oauthService.getGoogleUserInfo(googleTokens.access_token)
 
-  // const appUser = await oauthService.findOrCreateUser(userInfo)
-  reply.send(tokens)
+  const result = await oauthService.handleOauthLogin(userInfo)
+
+  if (result.needsUsername) {
+    return reply.send({ tempToken: result.tempToken, needsUsername: true })
+  }
+
+  if (!result.user || !result.tokens) {
+    throw new HttpError('Failed to retrieve user or tokens', 500)
+  }
+
+  return reply.send(result.tokens)
+}
+
+// Handler to set username for OAuth user
+export async function googleOAuthUsernameHandler( req: FastifyRequest, reply: FastifyReply ) {
+  const tempToken = req.headers['authorization']?.split(' ')[1];
+  if (!tempToken) {
+    throw new HttpError('Missing or invalid authorization header', 400)
+  }
+
+  const payload = await tokenService.verifyAccessToken(tempToken)
+  if (!payload || !payload.sub) {
+    throw new HttpError('Invalid temporary token', 401)
+  }
+
+  const { username } = req.body as { username: string }
+  const oauthId = payload.sub
+  const email = payload.email
+
+  if (!oauthId || !email || !username) {
+    throw new HttpError('Invalid data', 400)
+  }
+
+  const newUser = await oauthService.createNewOauthUser(oauthId, email, username)
+  if (!newUser) {
+    throw new HttpError('Failed to create new user', 500)
+  }
+
+  if (!newUser.id || !newUser.email || !newUser.username) {
+    throw new HttpError('Incomplete user data', 500)
+  }
+
+  const tokens = await tokenService.generateTokens(newUser.id, newUser.email, newUser.username);
+  reply.send({ success: true, user: newUser, tokens })
 }

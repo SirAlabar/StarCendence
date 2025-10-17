@@ -67,6 +67,10 @@ export async function refreshAccessToken(refreshToken: string) {
   
   await refreshTokenRepository.deleteByToken(refreshToken);
 
+  if (!refreshTokenRecord.user.id || !refreshTokenRecord.user.email || !refreshTokenRecord.user.username) {
+    throw new HttpError('Incomplete user data', 500);
+  }
+
   const newTokens = await generateTokens(
     refreshTokenRecord.user.id,
     refreshTokenRecord.user.email,
@@ -110,4 +114,24 @@ export async function verifyTwoFACode(twoFactorSecret: string, code: string): Pr
   });
   
   return verified;
+}
+
+// Generate a partial OAuth token for setting username
+export async function generatePartialOAuthToken(oauthId: string, email: string): Promise<string> {
+  const jwtSecret = getJwtSecret();
+
+  const partialToken = jwt.sign(
+    {
+      sub: oauthId,
+      email,
+      type: 'partial_oauth'
+    },
+    jwtSecret,
+    {
+      expiresIn: '10m',
+      issuer: 'transcendence-auth'
+    }
+  );
+
+  return partialToken;
 }
