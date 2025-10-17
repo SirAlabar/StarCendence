@@ -34,6 +34,5 @@ export async function googleOAuthCallbackHandler( req: FastifyRequest, reply: Fa
   console.log('Google User Info:', userInfo)
 
   // const appUser = await oauthService.findOrCreateUser(userInfo)
-  
-  reply.send({ tokens })
+  reply.send(tokens)
 }
