@@ -37,8 +37,8 @@ export async function googleOAuthCallbackHandler( req: FastifyRequest, reply: Fa
     return reply.send({ tempToken: result.tempToken, needsUsername: true })
   }
 
-  if (!result.user || !result.tokens) {
-    throw new HttpError('Failed to retrieve user or tokens', 500)
+  if (!result.tokens) {
+    throw new HttpError('Failed to retrieve tokens', 500)
   }
 
   return reply.send(result.tokens)
@@ -74,5 +74,5 @@ export async function googleOAuthUsernameHandler( req: FastifyRequest, reply: Fa
   }
 
   const tokens = await tokenService.generateTokens(newUser.id, newUser.email, newUser.username);
-  reply.send({ success: true, user: newUser, tokens })
+  reply.send(tokens)
 }

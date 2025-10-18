@@ -29,7 +29,6 @@ model UserProfile {
   tournamentMatchAsPlayer1 TournamentMatch[] @relation("TournamentPlayer1")
   tournamentMatchAsPlayer2 TournamentMatch[] @relation("TournamentPlayer2")
 
-
   tournamentsWon Tournament[] @relation("TournamentWinner")
   tournamentParticipant TournamentParticipant[]
 
