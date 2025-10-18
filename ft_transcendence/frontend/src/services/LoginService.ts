@@ -72,7 +72,7 @@ export class LoginService
   private static accessToken: string | null = null;
 
   // Token management methods
-  private static setTokens(accessToken: string, refreshToken?: string): void 
+  public static setTokens(accessToken: string, refreshToken?: string): void 
   {
     localStorage.setItem('access_token', accessToken);
     if (refreshToken) 

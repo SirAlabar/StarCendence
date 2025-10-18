@@ -176,6 +176,13 @@ const routeConfig: Record<string, any> =
         headerType: 'default',
         requiresAuth: true
     },
+    '/oauth/callback':
+    {
+        component: () => import('../pages/OAuthCallbackPage'),
+        title: 'Authenticating - Transcendence',
+        layout: 'auth',
+        headerType: 'minimal'
+    },
     '/404':
     {
         component: () => import('../pages/NotFoundPage'),
