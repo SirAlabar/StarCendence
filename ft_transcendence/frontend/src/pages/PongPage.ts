@@ -14,7 +14,7 @@ export default class PongPage extends BaseComponent
               <div class="container mx-auto px-6 -mt-20 pt-20">
                   <!-- Centered Canvas Container with 4:3 aspect ratio -->
                   <div class="flex items-center justify-center">
-                      <div class="relative w-full max-w-5xl" style="aspect-ratio: 4/3;">
+                      <div class="relative w-full max-w-7xl" style="aspect-ratio: 4/3;">
                           <canvas 
                               id="pongCanvas" 
                               class="w-full h-full rounded-2xl border-2 border-cyan-500 bg-black shadow-2xl shadow-cyan-500/50"
