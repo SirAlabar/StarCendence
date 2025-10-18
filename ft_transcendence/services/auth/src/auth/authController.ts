@@ -51,7 +51,7 @@ export async function verifyTwoFA(req: FastifyRequest, reply: FastifyReply) {
 
   const tokens = await authService.verifyTwoFA(tempToken, twoFACode);
 
-  return reply.send({ tokens });
+  return reply.send(tokens);
 }
 
 

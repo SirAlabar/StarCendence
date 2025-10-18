@@ -84,6 +84,8 @@ services:
     secrets:
       - internal_api_key
       - jwt_secret
+      - google_client_id
+      - google_client_secret
     env_file:
       - .env
     depends_on:
@@ -227,10 +229,10 @@ secrets:
     file: ../secrets/jwt_secret_example.txt
   internal_api_key:
     file: ../secrets/internal_api_key.txt
-  # google_client_id:
-  #   file: ../secrets/google_client_id.txt
-  # google_client_secret:
-  #   file: ../secrets/google_client_secret.txt
+  google_client_id:
+    file: ../secrets/google_client_id.txt
+  google_client_secret:
+    file: ../secrets/google_client_secret.txt
   ssl_certificate:
     file: ../secrets/ssl_certificate.pem
   ssl_private_key:

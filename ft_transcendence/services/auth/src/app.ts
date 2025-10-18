@@ -6,6 +6,7 @@ import { authRoutes } from './auth/authRoutes'
 import { twoFactorRoutes } from './twoFactor/twoFactorRoutes'
 import { tokenRoutes } from './token/tokenRoutes'
 import { internalEndpointProtection } from './middleware/securityMiddleware'
+import { oauthRoutes } from './oauth/oauthRoutes'
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
@@ -29,8 +30,9 @@ export async function buildApp() {
   fastify.addHook('preHandler', internalEndpointProtection);
   
   fastify.get('/health', async () => ({ status: 'Health is Ok!' }))
-
+  
   fastify.register(authRoutes);
+  fastify.register(oauthRoutes);
   fastify.register(twoFactorRoutes, { prefix: '/2fa' });
   fastify.register(tokenRoutes);
   // fastify.register(internalRoutes, { prefix: '/internal' });

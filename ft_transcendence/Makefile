@@ -354,6 +354,12 @@ auth_service_restart:
 	@docker compose up auth-service -d --force-recreate
 	@printf "$(GREEN)✅ auth-service restarted!$(DEFAULT)\n"
 
+nodemon_restart:
+	@printf "$(YELLOW)🔄 Restarting nodemon...$(DEFAULT)\n"
+	@docker exec -it transcendence_auth sh -c "PID=$$(lsof -ti :3001); if [ -n \"$$PID\" ]; then kill $$PID; fi"
+	@docker exec -it transcendence_user sh -c "PID=$$(lsof -ti :3004); if [ -n \"$$PID\" ]; then kill $$PID; fi"
+	@printf "$(GREEN)✅ nodemon restarted!$(DEFAULT)\n"
+
 db_clean:
 	@printf "$(YELLOW)🧹 Cleaning all data in user-service...$(DEFAULT)\n"
 	@docker compose exec -it user-service sh -c "for tbl in \$$(sqlite3 /app/data/user.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/user.db \"DELETE FROM '\$$tbl'\"; fi; done; sqlite3 /app/data/user.db 'DELETE FROM sqlite_sequence';"

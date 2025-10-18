@@ -1,15 +1,6 @@
 // Client for User Service communication
-import { readFileSync } from 'fs';
 import { HttpError } from '../utils/HttpError';
-
-// Get internal API key from Docker secret
-export function getInternalApiKey(): string {
-	const apiKey: string = readFileSync('/run/secrets/internal_api_key', 'utf8').trim();
-	if (!apiKey) {
-		throw new HttpError('Internal API key is not configured', 500);
-	}
-  return apiKey;
-}
+import { getInternalApiKey } from '../utils/getSecrets';
 
 // Create user in User Service
 export async function createUserProfile(authId: string, email: string, username: string) {
@@ -57,7 +48,7 @@ export async function updateUserStatus(authId: string, status: string) {
   }
 
   const response = await fetch('http://user-service:3004/internal/update-user-status', {
-    method: 'PUT',
+    method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       'X-API-Key': getInternalApiKey()
