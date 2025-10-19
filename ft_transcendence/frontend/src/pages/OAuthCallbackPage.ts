@@ -23,7 +23,7 @@ export default class OAuthCallbackPage extends BaseComponent
         this.handleCallback();
     }
 
-    private async handleCallback(): Promise<void> 
+    private handleCallback(): void 
     {
         try 
         {
@@ -32,49 +32,21 @@ export default class OAuthCallbackPage extends BaseComponent
 
             if (result.accessToken && result.refreshToken) 
             {
-                // User logged in successfully
-                setTimeout(() => 
-                {
-                    if ((window as any).navigateTo) 
-                    {
-                        (window as any).navigateTo('/profile');
-                    } 
-                    else 
-                    {
-                        window.location.href = '/profile';
-                    }
-                }, 1000);
+                // Existing user - redirect to profile
+                window.location.replace('/profile');
             } 
             else if (result.token) 
             {
-                // New user needs to set username - redirect to login page with token
-                setTimeout(() => 
-                {
-                    if ((window as any).navigateTo) 
-                    {
-                        (window as any).navigateTo(`/login?token=${result.token}`);
-                    } 
-                    else 
-                    {
-                        window.location.href = `/login?token=${result.token}`;
-                    }
-                }, 1000);
+                // New user - store temp token in sessionStorage
+                sessionStorage.setItem('oauth_temp_token', result.token);
+                // Redirect to login page
+                window.location.replace('/login?mode=setup');
             }
         } 
         catch (error) 
         {
             console.error('OAuth callback error:', error);
-            setTimeout(() => 
-            {
-                if ((window as any).navigateTo) 
-                {
-                    (window as any).navigateTo('/login');
-                } 
-                else 
-                {
-                    window.location.href = '/login';
-                }
-            }, 2000);
+            window.location.replace('/login');
         }
     }
 }

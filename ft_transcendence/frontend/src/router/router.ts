@@ -201,6 +201,13 @@ function getCurrentPath(): string
     return window.location.pathname || '/';
 }
 
+function getFullPath(): string
+{
+    const pathname = window.location.pathname || '/';
+    const search = window.location.search || '';
+    return pathname + search;
+}
+
 // Function to parse route
 function parseRoute(path: string): any
 {
@@ -249,8 +256,12 @@ export async function navigateTo(path: string): Promise<void>
     }
 
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    
+    // Split path and query params
+    const [pathname, search] = cleanPath.split('?');
+    const fullPath = search ? `${pathname}?${search}` : pathname;
 
-    if (routerState.currentRoute && routerState.currentRoute.path === cleanPath)
+    if (routerState.currentRoute && routerState.currentRoute.path === pathname)
     {
         return;
     }
@@ -258,11 +269,12 @@ export async function navigateTo(path: string): Promise<void>
     routerState.isNavigating = true;
     routerState.cleanupCurrentPage();
 
-    const route = parseRoute(cleanPath);
+    // Parse route using only pathname, not query params
+    const route = parseRoute(pathname);
 
     if (route.requiresAuth && !isAuthenticated())
     {
-        if (cleanPath !== '/login' && cleanPath !== '/register')
+        if (pathname !== '/login' && pathname !== '/register')
         {
             routerState.isNavigating = false;
             return navigateTo('/login');
@@ -271,9 +283,10 @@ export async function navigateTo(path: string): Promise<void>
 
     document.title = route.title;
 
-    if (window.location.pathname !== cleanPath)
+    // Push full path with query params
+    if (window.location.pathname + window.location.search !== fullPath)
     {
-        window.history.pushState({ path: cleanPath }, '', cleanPath);
+        window.history.pushState({ path: fullPath }, '', fullPath);
     }
 
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
@@ -308,7 +321,7 @@ export async function navigateTo(path: string): Promise<void>
             updateActiveNavLinks();
         });
 
-        routerState.currentRoute = { ...route, path: cleanPath };
+        routerState.currentRoute = { ...route, path: pathname };
     }
     catch (error)
     {
@@ -445,8 +458,8 @@ export function initRouter(): void
     // Setup event listeners with cleanup
     routerState.setEventListeners(handleLinkClick, handlePopState);
 
-    // Load initial page only if no content exists
-    const currentPath = getCurrentPath();
+    // Load initial page with query params
+    const fullPath = getFullPath();
 
     const existingContent = document.querySelector('[data-route-content]');
 
@@ -456,7 +469,7 @@ export function initRouter(): void
         {
             if (!routerState.currentRoute)
             {
-                navigateTo(currentPath);
+                navigateTo(fullPath);
             }
         }, 100);
     }

@@ -1,12 +1,14 @@
 import { BaseComponent } from '../components/BaseComponent';
 import { LoginService } from '../services/LoginService';
 import { OAuthService } from '../services/OAuthService';
+import { FormValidator } from '../services/FormValidator';
 
 export default class LoginPage extends BaseComponent 
 {
     private emailInput: HTMLInputElement | null = null;
     private passwordInput: HTMLInputElement | null = null;
     private usernameInput: HTMLInputElement | null = null;
+    private confirmPasswordInput: HTMLInputElement | null = null;
     private submitButton: HTMLButtonElement | null = null;
     private messageContainer: HTMLElement | null = null;
     private mode: 'login' | 'set-username' = 'login';
@@ -14,7 +16,6 @@ export default class LoginPage extends BaseComponent
 
     render(): string 
     {
-        // Check URL params before rendering
         this.checkMode();
         
         if (this.mode === 'set-username') 
@@ -27,9 +28,12 @@ export default class LoginPage extends BaseComponent
     private checkMode(): void 
     {
         const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
+        const setupMode = params.get('mode');
+        
+        // Check for temp token in sessionStorage
+        const token = sessionStorage.getItem('oauth_temp_token');
 
-        if (token) 
+        if (setupMode === 'setup' && token) 
         {
             this.mode = 'set-username';
             this.tempToken = token;
@@ -124,8 +128,8 @@ export default class LoginPage extends BaseComponent
             <div class="max-w-md mx-auto">
                 <div class="bg-gray-800/80 backdrop-blur rounded-3xl p-8 border border-gray-600">
                     <div class="text-center mb-8">
-                        <h1 class="text-3xl font-bold font-game text-cyan-400 mb-2">Choose Your Username</h1>
-                        <p class="text-gray-300">Complete your account setup</p>
+                        <h1 class="text-3xl font-bold font-game text-cyan-400 mb-2">Complete Your Account</h1>
+                        <p class="text-gray-300">Set your username and password</p>
                     </div>
                     
                     <form class="space-y-6" id="username-form">
@@ -143,7 +147,33 @@ export default class LoginPage extends BaseComponent
                                 maxlength="30"
                                 required
                             >
-                            <p class="text-gray-400 text-sm mt-2">3-30 characters</p>
+                            <p class="text-gray-400 text-sm mt-2">3-30 characters, letters, numbers, dots, underscores, hyphens</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                            <input 
+                                type="password" 
+                                id="password-input"
+                                name="password"
+                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none" 
+                                placeholder="••••••••"
+                                minlength="8"
+                                required
+                            >
+                            <p class="text-gray-400 text-sm mt-2">You can login with Google or email/password</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Confirm Password</label>
+                            <input 
+                                type="password" 
+                                id="confirm-password-input"
+                                name="confirmPassword"
+                                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-cyan-400 focus:outline-none" 
+                                placeholder="••••••••"
+                                required
+                            >
                         </div>
                         
                         <button 
@@ -181,6 +211,8 @@ export default class LoginPage extends BaseComponent
         else 
         {
             this.usernameInput = document.getElementById('username-input') as HTMLInputElement;
+            this.passwordInput = document.getElementById('password-input') as HTMLInputElement;
+            this.confirmPasswordInput = document.getElementById('confirm-password-input') as HTMLInputElement;
         }
         
         this.submitButton = document.getElementById('submit-button') as HTMLButtonElement;
@@ -226,6 +258,9 @@ export default class LoginPage extends BaseComponent
 
     private backToLogin(): void 
     {
+        // Clear temp token
+        sessionStorage.removeItem('oauth_temp_token');
+        
         if ((window as any).navigateTo) 
         {
             (window as any).navigateTo('/login');
@@ -323,23 +358,36 @@ export default class LoginPage extends BaseComponent
     {
         event.preventDefault();
         
-        if (!this.usernameInput) 
+        if (!this.usernameInput || !this.passwordInput || !this.confirmPasswordInput) 
         {
-            console.error('LoginPage: Username input not found');
+            console.error('LoginPage: Input fields not found');
             return;
         }
 
         const username = this.usernameInput.value.trim();
+        const password = this.passwordInput.value;
+        const confirmPassword = this.confirmPasswordInput.value;
 
-        if (!username) 
+        // Validate username using FormValidator
+        const usernameError = FormValidator.validateUsername(username);
+        if (usernameError) 
         {
-            this.showMessage('Please enter a username', 'error');
+            this.showMessage(usernameError, 'error');
             return;
         }
 
-        if (username.length < 3 || username.length > 30) 
+        // Validate password
+        const passwordError = FormValidator.validatePassword(password);
+        if (passwordError) 
         {
-            this.showMessage('Username must be between 3 and 30 characters', 'error');
+            this.showMessage(passwordError, 'error');
+            return;
+        }
+
+        const passwordMatchError = FormValidator.validatePasswordConfirm(password, confirmPassword);
+        if (passwordMatchError) 
+        {
+            this.showMessage(passwordMatchError, 'error');
             return;
         }
 
@@ -354,8 +402,12 @@ export default class LoginPage extends BaseComponent
             await OAuthService.setUsername(
             {
                 tempToken: this.tempToken,
-                username: username
+                username: username,
+                password: password
             });
+
+            // Clear the temp token after successful setup
+            sessionStorage.removeItem('oauth_temp_token');
 
             this.showMessage('Account created successfully! Redirecting...', 'success');
             
