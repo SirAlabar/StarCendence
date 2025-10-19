@@ -130,8 +130,9 @@ services:
     build:
       context: ./services/user
       dockerfile: Dockerfile
-    # volumes:
-    #   - user_data:/app/data
+    volumes:
+      - user_data:/app/data
+      - ${HOME}/data/frontend/assets/images:/app/seed-images:ro
     networks:
       - transcendence_network
     secrets:

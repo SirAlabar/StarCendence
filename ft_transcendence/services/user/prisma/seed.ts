@@ -1,10 +1,47 @@
 // prisma/seed.ts
 import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
+
 const prisma = new PrismaClient();
+
+function copyImageToAvatars(filename: string, userId: string): string 
+{
+  const AVATARS_DIR = '/app/data/avatars';
+  const SOURCE_IMAGES_DIR = '/app/seed-images/users';
+  
+  const sourcePath = path.join(SOURCE_IMAGES_DIR, filename);
+  const destFilename = `seed-${userId}-${filename}`;
+  const destPath = path.join(AVATARS_DIR, destFilename);
+  
+  if (!fs.existsSync(AVATARS_DIR)) 
+  {
+    fs.mkdirSync(AVATARS_DIR, { recursive: true });
+  }
+  
+  if (fs.existsSync(sourcePath)) 
+  {
+    try 
+    {
+      fs.copyFileSync(sourcePath, destPath);
+      console.log(`✅ Copied avatar: ${filename} -> ${destFilename}`);
+      return `/avatars/${destFilename}`;
+    } 
+    catch (error) 
+    {
+      console.error(`❌ Failed to copy ${filename}:`, error);
+      return '';
+    }
+  } 
+  else 
+  {
+    console.warn(`⚠️  Source not found: ${sourcePath}`);
+    return '';
+  }
+}
 
 async function main() 
 {
-  // Check if users already exist
   const existingUsers = await prisma.userProfile.count();
   
   if (existingUsers > 0) 
@@ -16,215 +53,56 @@ async function main()
 
   console.log('🌱 Starting database seed...');
 
-  // Create users
-  const anakin = await prisma.userProfile.create({
-    data: {
-      id: '1',
-      username: 'Anakin Skywalker',
-      email: 'anakin@force.com',
-      bio: 'The Chosen One. Podracer champion turned Jedi.',
-      avatarUrl: '/images/users/anakin.gif',
-      status: 'ONLINE',
-    },
-  });
+  const users = [
+    { id: '1', username: 'Anakin Skywalker', email: 'anakin@force.com', bio: 'The Chosen One. Podracer champion turned Jedi.', status: 'ONLINE', avatar: 'anakin.gif' },
+    { id: '2', username: 'Padmé Amidala', email: 'padme@nabooprincess.com', bio: 'Former Queen of Naboo. Fearless senator.', status: 'ONLINE', avatar: 'padme.gif' },
+    { id: '3', username: 'Darth Vader', email: 'vader@empire.gov', bio: 'Lord of the Sith. Wears black. Breathing enthusiast.', status: 'OFFLINE', avatar: 'vader.gif' },
+    { id: '4', username: 'Sebulba', email: 'sebulba@malastare.pod', bio: 'Dug podracer pilot. Hates Skywalker.', status: 'ONLINE', avatar: 'sebulba.gif' },
+    { id: '5', username: 'Gasgano', email: 'gasgano@troiken.pod', bio: 'Xexto podracer with 24 fingers. Speed is everything.', status: 'ONLINE', avatar: 'gasgano.jpg' },
+    { id: '6', username: 'Teemto Pagalies', email: 'teemto@moonus.pod', bio: 'Veknoid podracer. Cool under pressure.', status: 'OFFLINE', avatar: 'teemto.jpg' },
+    { id: '7', username: 'Ratts Tyerell', email: 'ratts@aleen.pod', bio: 'Tiny but fierce Aleena podracer.', status: 'ONLINE', avatar: 'ratts.jpg' },
+    { id: '8', username: 'Ebe Endocott', email: 'ebe@ryvellia.pod', bio: 'Rybet podracer from Ando Prime.', status: 'OFFLINE', avatar: 'ebe.jpg' },
+    { id: '9', username: 'Mars Guo', email: 'mars@phuii.pod', bio: 'Phuii podracer with a need for speed.', status: 'ONLINE', avatar: 'mars.gif' },
+    { id: '10', username: 'Ben Quadinaros', email: 'ben@tund.pod', bio: 'Toong podracer. Engine trouble is my specialty.', status: 'OFFLINE', avatar: 'ben.gif' },
+  ];
 
-  const padme = await prisma.userProfile.create({
-    data: {
-      id: '2',
-      username: 'Padmé Amidala',
-      email: 'padme@nabooprincess.com',
-      bio: 'Former Queen of Naboo. Fearless senator.',
-      avatarUrl: '/images/users/padme.gif',
-      status: 'ONLINE',
-    },
-  });
+  const createdUsers = [];
 
-  const vader = await prisma.userProfile.create({
-    data: {
-      id: '3',
-      username: 'Darth Vader',
-      email: 'vader@empire.gov',
-      bio: 'Lord of the Sith. Wears black. Breathing enthusiast.',
-      avatarUrl: '/images/users/vader.gif',
-      status: 'OFFLINE',
-    },
-  });
+  for (const userData of users) 
+  {
+    const avatarUrl = copyImageToAvatars(userData.avatar, userData.id);
+    
+    const user = await prisma.userProfile.create({
+      data: {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        bio: userData.bio,
+        status: userData.status,
+        avatarUrl: avatarUrl || null,
+      },
+    });
+    
+    createdUsers.push(user);
+    console.log(`✅ Created user: ${user.username}`);
+  }
 
-  const sebulba = await prisma.userProfile.create({
-    data: {
-      id: '4',
-      username: 'Sebulba',
-      email: 'sebulba@malastare.pod',
-      bio: 'Dug podracer pilot. Hates Skywalker.',
-      avatarUrl: '/images/users/sebulba.gif',
-      status: 'ONLINE',
-    },
-  });
+  console.log('\n👥 Creating friendships...\n');
 
-  const gasgano = await prisma.userProfile.create({
-    data: {
-      id: '5',
-      username: 'Gasgano',
-      email: 'gasgano@troiken.pod',
-      bio: 'Xexto podracer with 24 fingers. Speed is everything.',
-      avatarUrl: '/images/users/gasgano.jpg',
-      status: 'ONLINE',
-    },
-  });
+  await prisma.friendship.create({ data: { senderId: '1', recipientId: '2', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '1', recipientId: '4', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '1', recipientId: '5', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '1', recipientId: '7', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '2', recipientId: '3', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '4', recipientId: '5', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '4', recipientId: '6', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '4', recipientId: '8', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '5', recipientId: '6', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '5', recipientId: '9', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '7', recipientId: '10', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '7', recipientId: '8', status: 'ACCEPTED' } });
 
-  const teemto = await prisma.userProfile.create({
-    data: {
-      id: '6',
-      username: 'Teemto Pagalies',
-      email: 'teemto@moonus.pod',
-      bio: 'Veknoid podracer. Cool under pressure.',
-      avatarUrl: '/images/users/teemto.jpg',
-      status: 'OFFLINE',
-    },
-  });
-
-  const ratts = await prisma.userProfile.create({
-    data: {
-      id: '7',
-      username: 'Ratts Tyerell',
-      email: 'ratts@aleen.pod',
-      bio: 'Tiny but fierce Aleena podracer.',
-      avatarUrl: '/images/users/ratts.jpg',
-      status: 'ONLINE',
-    },
-  });
-
-  const ebe = await prisma.userProfile.create({
-    data: {
-      id: '8',
-      username: 'Ebe Endocott',
-      email: 'ebe@ryvellia.pod',
-      bio: 'Rybet podracer from Ando Prime.',
-      avatarUrl: '/images/users/ebe.jpg',
-      status: 'OFFLINE',
-    },
-  });
-
-  const mars = await prisma.userProfile.create({
-    data: {
-      id: '9',
-      username: 'Mars Guo',
-      email: 'mars@phuii.pod',
-      bio: 'Phuii podracer with a need for speed.',
-      avatarUrl: '/images/users/mars.gif',
-      status: 'ONLINE',
-    },
-  });
-
-  const ben = await prisma.userProfile.create({
-    data: {
-      id: '10',
-      username: 'Ben Quadinaros',
-      email: 'ben@tund.pod',
-      bio: 'Toong podracer. Engine trouble is my specialty.',
-      avatarUrl: '/images/users/ben.gif',
-      status: 'OFFLINE',
-    },
-  });
-
-  // Create friendships
-  await prisma.friendship.create({
-    data: {
-      senderId: anakin.id,
-      recipientId: padme.id,
-      status: 'ACCEPTED',
-    },
-  });
-
-  await prisma.friendship.create({
-    data: {
-      senderId: anakin.id,
-      recipientId: sebulba.id,
-      status: 'ACCEPTED',
-    },
-  });
-
-  await prisma.friendship.create({
-    data: {
-      senderId: anakin.id,
-      recipientId: gasgano.id,
-      status: 'ACCEPTED',
-    },
-  });
-
-  await prisma.friendship.create({
-    data: {
-      senderId: anakin.id,
-      recipientId: ratts.id,
-      status: 'ACCEPTED',
-    },
-  });
-
-  await prisma.friendship.create({
-    data: {
-      senderId: padme.id,
-      recipientId: vader.id,
-      status: 'ACCEPTED',
-    },
-  });
-
-  await prisma.friendship.create({
-    data: {
-      senderId: sebulba.id,
-      recipientId: gasgano.id,
-      status: 'ACCEPTED',
-    },
-  });
-
-  await prisma.friendship.create({
-    data: {
-      senderId: sebulba.id,
-      recipientId: teemto.id,
-      status: 'ACCEPTED',
-    },
-  });
-
-  await prisma.friendship.create({
-    data: {
-      senderId: sebulba.id,
-      recipientId: ebe.id,
-      status: 'ACCEPTED',
-    },
-  });
-
-  await prisma.friendship.create({
-    data: {
-      senderId: gasgano.id,
-      recipientId: teemto.id,
-      status: 'ACCEPTED',
-    },
-  });
-
-  await prisma.friendship.create({
-    data: {
-      senderId: gasgano.id,
-      recipientId: mars.id,
-      status: 'ACCEPTED',
-    },
-  });
-
-  await prisma.friendship.create({
-    data: {
-      senderId: ratts.id,
-      recipientId: ben.id,
-      status: 'ACCEPTED',
-    },
-  });
-
-  await prisma.friendship.create({
-    data: {
-      senderId: ratts.id,
-      recipientId: ebe.id,
-      status: 'ACCEPTED',
-    },
-  });
-
-  console.log('✅ Seed complete – 10 users and friendships created!');
+  console.log('\n✅ Seed complete – 10 users, avatars, and friendships created!');
 }
 
 main()
