@@ -6,7 +6,7 @@ import * as tokenService from '../token/tokenService'
 
 // Handler to initiate Google OAuth flow
 export async function googleOAuthHandler( req: FastifyRequest, reply: FastifyReply ) {
-  const redirectUri = `http://localhost/api/auth/oauth/google/callback`
+  const redirectUri = `https://localhost:8443/api/auth/oauth/google/callback`
 
   const params = new URLSearchParams({
     client_id: getGoogleClientId(),
@@ -22,7 +22,7 @@ export async function googleOAuthHandler( req: FastifyRequest, reply: FastifyRep
 // Handler for Google OAuth callback
 export async function googleOAuthCallbackHandler( req: FastifyRequest, reply: FastifyReply ) {
   const { code, state } = req.query as { code: string; state: string }
-  const redirectUri = `http://localhost/api/auth/oauth/google/callback`
+  const redirectUri = `https://localhost:8443/api/auth/oauth/google/callback`
 
   if (!code) {
     throw new HttpError('Authorization code is required', 400)
