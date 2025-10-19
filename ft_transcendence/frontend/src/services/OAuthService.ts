@@ -5,7 +5,6 @@ export interface SetUsernameRequest
 {
   tempToken: string;
   username: string;
-  password: string;
 }
 
 export interface OAuthCallbackParams 
@@ -46,42 +45,42 @@ export class OAuthService
     throw new Error('Invalid OAuth callback parameters');
   }
 
-    // Set username for new OAuth user
-    static async setUsername(request: SetUsernameRequest): Promise<{ accessToken: string; refreshToken: string }> 
+  // Set username for new OAuth user
+  static async setUsername(request: SetUsernameRequest): Promise<{ accessToken: string; refreshToken: string }> 
+  {
+    try 
     {
-        try 
+      const response = await fetch(`${API.AUTH_BASE_URL}/oauth/google/set-username`, 
+      {
+        method: 'POST',
+        headers: 
         {
-            const response = await fetch(`${API.AUTH_BASE_URL}/oauth/google/set-username`, 
-            {
-            method: 'POST',
-            headers: 
-            {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${request.tempToken}`
-            },
-            body: JSON.stringify({ username: request.username })
-            });
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${request.tempToken}`
+        },
+        body: JSON.stringify({ username: request.username })
+      });
 
-            const data = await response.json();
+      const data = await response.json();
 
-            if (!response.ok) 
-            {
-            throw new Error(data.message || 'Failed to set username');
-            }
+      if (!response.ok) 
+      {
+        throw new Error(data.message || 'Failed to set username');
+      }
 
-            // Store tokens after successful username creation
-            if (data.tokens?.accessToken && data.tokens?.refreshToken) 
-            {
-            LoginService.setTokens(data.tokens.accessToken, data.tokens.refreshToken);
-            return { accessToken: data.tokens.accessToken, refreshToken: data.tokens.refreshToken };
-            }
+      // Store tokens after successful username creation
+      if (data.tokens?.accessToken && data.tokens?.refreshToken) 
+      {
+        LoginService.setTokens(data.tokens.accessToken, data.tokens.refreshToken);
+        return { accessToken: data.tokens.accessToken, refreshToken: data.tokens.refreshToken };
+      }
 
-            throw new Error('No tokens received');
-        } 
-        catch (error) 
-        {
-            console.error('Set username error:', error);
-            throw error;
-        }
+      throw new Error('No tokens received');
+    } 
+    catch (error) 
+    {
+      console.error('Set username error:', error);
+      throw error;
     }
+  }
 }
