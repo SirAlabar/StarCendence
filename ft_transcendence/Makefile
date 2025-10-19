@@ -115,6 +115,10 @@ setup:
 	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service
 	@printf "$(CYAN)Waiting for services...$(DEFAULT)\n"
 	@sleep 5
+	@printf "$(CYAN)Pushing database schema...$(DEFAULT)\n"
+	@docker compose exec user-service npx prisma db push --skip-generate --accept-data-loss
+	@printf "$(CYAN)Seeding database with default users...$(DEFAULT)\n"
+	@$(MAKE) --no-print-directory seed-db
 	@printf "$(CYAN)Health check...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory health-quiet
 	@printf "$(GREEN)🎉 ft_transcendence is ready!$(DEFAULT)\n"
@@ -281,6 +285,14 @@ shell-nginx:
 shell-redis:
 	@$(DOCKER_COMPOSE) exec redis redis-cli
 
+.PHONY: seed-db
+seed-db:
+	@printf "$(CYAN)🌱 Seeding user database...$(DEFAULT)\n"
+	@docker compose exec user-service npm run prisma:seed
+	@printf "$(CYAN)🌱 Seeding auth database...$(DEFAULT)\n"
+	@docker compose exec auth-service npm run prisma:seed
+	@printf "$(GREEN)✅ Both databases seeded!$(DEFAULT)\n"
+
 ################################################################################
 #                              CLEANUP RULES                                   #
 ################################################################################
@@ -364,7 +376,9 @@ db_clean:
 	@printf "$(YELLOW)🧹 Cleaning all data in user-service...$(DEFAULT)\n"
 	@docker compose exec -it user-service sh -c "for tbl in \$$(sqlite3 /app/data/user.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/user.db \"DELETE FROM '\$$tbl'\"; fi; done; sqlite3 /app/data/user.db 'DELETE FROM sqlite_sequence';"
 	@docker compose exec -it auth-service sh -c "for tbl in \$$(sqlite3 /app/data/auth.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/auth.db \"DELETE FROM '\$$tbl'\"; fi; done;"
-	@printf "$(GREEN)✅ All user-service tables cleaned and autoincrement reset where applicable!$(DEFAULT)\n"
+	@printf "$(GREEN)✅ All tables cleaned!$(DEFAULT)\n"
+	@printf "$(CYAN)Reseeding database with default users...$(DEFAULT)\n"
+	@$(MAKE) --no-print-directory seed-db
 
 
 nginx_service_restart:

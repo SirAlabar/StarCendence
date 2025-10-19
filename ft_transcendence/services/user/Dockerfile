@@ -24,6 +24,9 @@ COPY prisma/ ./prisma/
 # Generate Prisma client
 RUN npx prisma generate
 
+# Run migrations and seed on container start
+CMD npx prisma migrate deploy && npm run prisma:seed && npm start
+
 # Build TypeScript
 RUN npm run build
 
