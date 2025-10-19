@@ -84,8 +84,13 @@ export async function sendFriendRequest(id: string, username: string) {
   }
 
   const existingRequest = await friendRepository.findFriendRequest(id, recipient.id);
-  if (existingRequest) {
+  if (existingRequest && existingRequest.status === FriendshipStatus.PENDING) {
     throw new HttpError('Friend request already sent', 400);
+  }
+
+  if (existingRequest && existingRequest.status === FriendshipStatus.REJECTED) {
+    await friendRepository.updateFriendshipStatus(existingRequest.id, FriendshipStatus.PENDING);
+    return 'PENDING';
   }
 
   const existingFriendship = await friendRepository.findFriendship(id, recipient.id);
