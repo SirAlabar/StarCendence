@@ -1,6 +1,6 @@
 //  Profile editing form
 import { BaseComponent } from '../BaseComponent';
-import UserService from '../../services/UserService';
+import UserService from '../../services/user/UserService';
 
 interface ProfileEditProps 
 {

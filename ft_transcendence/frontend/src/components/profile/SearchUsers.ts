@@ -1,5 +1,5 @@
 import { BaseComponent } from '../BaseComponent';
-import UserService from '../../services/UserService';
+import UserService from '../../services/user/UserService';
 import { getAvatarUrl } from '../../types/api.types';
 
 interface SearchResult 

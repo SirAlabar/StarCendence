@@ -1,6 +1,6 @@
 //  Friends management
 import { BaseComponent } from '../BaseComponent';
-import FriendService from '../../services/FriendService';
+import FriendService from '../../services/user/FriendService';
 import { getAvatarUrl } from '../../types/api.types';
 
 interface Friend 

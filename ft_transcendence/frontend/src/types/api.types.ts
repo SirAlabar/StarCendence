@@ -1,18 +1,20 @@
 //  API response type definitions
 
-
 const API_CONFIG = {
     development: {
         BASE_URL: 'http://localhost:3004',
-        AUTH_BASE_URL: 'http://localhost:3001'
+        AUTH_BASE_URL: 'http://localhost:3001',
+        FRIENDS_BASE_URL: 'http://localhost:3004'
     },
     production: {
         BASE_URL: 'https://starcendence.dev',
-        AUTH_BASE_URL: 'https://starcendence.dev/api/auth'
+        AUTH_BASE_URL: 'https://starcendence.dev/api/auth',
+        FRIENDS_BASE_URL: 'https://starcendence.dev/api/friends'
     },
     local: {
-        BASE_URL: 'https://localhost:8443',
-        AUTH_BASE_URL: 'https://localhost:8443/api/auth'
+        BASE_URL: 'http://localhost:3004',
+        AUTH_BASE_URL: 'https://localhost:8443/api/auth',
+        FRIENDS_BASE_URL: 'https://localhost:8443/api/users'
     }
 };
 
@@ -67,6 +69,14 @@ export const getAuthUrl = (endpoint: string): string =>
     return `${API.AUTH_BASE_URL}${normalizedEndpoint}`;
 };
 
+//Helper function to construct Friends API endpoint URLs
+export const getFriendsUrl = (endpoint: string): string => 
+{
+    // Ensure endpoint starts with /
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${API.FRIENDS_BASE_URL}${normalizedEndpoint}`;
+};
+
 
 //Get the auth base URL for the current environment
 export const getAuthBaseUrl = (): string => 
@@ -79,4 +89,10 @@ export const getAuthBaseUrl = (): string =>
 export const getBaseUrl = (): string => 
 {
     return API.BASE_URL;
+};
+
+//Get the friends base URL for the current environment
+export const getFriendsBaseUrl = (): string => 
+{
+    return API.FRIENDS_BASE_URL;
 };
