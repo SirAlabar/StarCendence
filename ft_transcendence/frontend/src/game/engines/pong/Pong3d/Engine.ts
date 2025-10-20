@@ -1,5 +1,5 @@
 import * as BABYLON from "babylonjs"
-
+import { Skybox } from "./Skybox";
 
 export class Pong3Dscene
 {
@@ -77,6 +77,8 @@ export class Pong3Dscene
         ballColor.diffuseColor = new BABYLON.Color3(1,1,1);
         this.ball.material = ballColor;
 
+        //skybox
+        Skybox.create(this.scene, "textures/plains_sunset_4k.exr")
         
         //movement
         this.scene.onBeforeRenderObservable.add(() =>{
@@ -95,10 +97,8 @@ export class Pong3Dscene
         window.addEventListener("resize", ()=>{
             this.engine.resize();
         });
+
     }
-    
-
-
 
     dispose(): void
     {
