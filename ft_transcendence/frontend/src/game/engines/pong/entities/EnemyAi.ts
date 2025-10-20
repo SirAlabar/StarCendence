@@ -2,7 +2,7 @@
 
 import { Ball } from "./Ball";
 
-export type AiDifficulty = 'easy' | 'medium' | 'hard';
+export type AiDifficulty = 'easy' | 'hard';
 
 interface DifficultySettings 
 {
@@ -27,7 +27,7 @@ export class enemy
     private settings: DifficultySettings;
     private shouldMiss: boolean = false;
 
-    constructor(canvas: HTMLCanvasElement, difficulty: AiDifficulty = 'medium') 
+    constructor(canvas: HTMLCanvasElement, difficulty: AiDifficulty = 'easy') 
     {
         this.x = canvas.width - this.width - 20;
         this.y = canvas.height / 2 - this.height / 2;
@@ -42,28 +42,21 @@ export class enemy
         switch(difficulty) {
             case 'easy':
                 return {
-                    errorMargin: 20,
-                    missChance: 0.15,
-                    predictionAccuracy: 0.7
-                };
-            case 'medium':
-                return {
-                    errorMargin: 15,
-                    missChance: 0.10,
-                    predictionAccuracy: 0.8
+                    errorMargin: 5,
+                    missChance: 0.01,
+                    predictionAccuracy: 0.9
                 };
             case 'hard':
                 return {
-                    errorMargin: 10,
-                    missChance: 0.05,
-                    predictionAccuracy: 0.9
+                    errorMargin: 0,
+                    missChance: 0.00,
+                    predictionAccuracy: 1
                 };
         }
     }
 
     makeDecision(ball: Ball, canvasHeight: number): 'up' | 'down' | 'stay' 
     {
-        // Random chance to intentionally miss
         if (Math.random() < this.settings.missChance) 
         {
             console.log("AI will miss", this.shouldMiss);
@@ -162,21 +155,23 @@ export class enemy
     // Movement executed every frame
     move(canvasHeight: number): void 
     {
-            const centerY = this.y + this.height / 2;
-            const threshold = 10; // Smaller = more responsive
+        const centerY = this.y + this.height / 2;
+        const distance = Math.abs(this.targetY - centerY);
 
-        // Adjust continuously toward targetY instead of fixed direction
-        if (Math.abs(this.targetY - centerY) > threshold) 
-            if (this.targetY < centerY) 
-                this.y -= this.speed;
-            else if (this.targetY > centerY) 
-                this.y += this.speed;
+        // Adaptive speed: move faster if further from target
+        const speedBoost = Math.min(distance / 15, 4); // cap boost
+        const effectiveSpeed = this.speed + speedBoost;
+
+        if (this.targetY < centerY - 5) 
+            this.y -= effectiveSpeed;
+        else if (this.targetY > centerY + 5) 
+            this.y += effectiveSpeed;
 
         // Keep within bounds
         if (this.y < 0) this.y = 0;
         if (this.y + this.height > canvasHeight)
             this.y = canvasHeight - this.height;
-    }   
+    } 
 
 
     draw(ctx: CanvasRenderingContext2D): void 

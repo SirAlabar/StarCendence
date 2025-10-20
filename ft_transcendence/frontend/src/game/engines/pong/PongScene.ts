@@ -25,7 +25,7 @@ export class PongScene
     private lastAiDecisionTime: number = 0;
     private aiCurrentDirection: 'up' | 'down' | 'stay' = 'stay'; // Store AI decision
         
-    constructor(ctx: CanvasRenderingContext2D, mode: "multiplayer" | "ai", aiDifficulty: AiDifficulty = 'medium') 
+    constructor(ctx: CanvasRenderingContext2D, mode: "multiplayer" | "ai", aiDifficulty: AiDifficulty = 'easy') 
     {
         this.ctx = ctx;
         this.paused = false;
@@ -33,7 +33,7 @@ export class PongScene
         this.mode = mode;
         this.ball = new Ball(this.canvas.width /2 , this.canvas.height /2 , 10);
         this.ball.dx = 3;
-        this.ball.dy = 3;
+        this.ball.dy = 1;
         this.paddle_left = new paddle("left" , this.canvas);
         this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
 
@@ -154,7 +154,6 @@ export class PongScene
             this.paddle_left.y += this.paddle_left.speed;
         }
         
-        // AI movement (replaces old logic)
         if (this.mode === "ai" && this.enemy) 
         {
             this.aiMovement();
@@ -230,7 +229,7 @@ export class PongScene
             // Right wall hit
             this.stop();
             this.player1.score += 1;
-            this.resetBall(-3, -3);
+            this.resetBall(-3, -1);
             this.resetPlayer();
         }
 
@@ -241,13 +240,13 @@ export class PongScene
             if (this.mode === "multiplayer") 
             {
                 this.player2.score += 1;
-                this.resetBall(3, 3);
+                this.resetBall(3, 1);
                 this.resetPlayer();
             } 
             else if (this.mode === "ai" && this.enemy) 
             {
                 this.enemy.score += 1;
-                this.resetBall(5, 5);
+                this.resetBall(3, 1);
                 this.resetPlayer();
             }
         }

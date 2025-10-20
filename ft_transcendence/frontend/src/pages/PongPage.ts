@@ -5,7 +5,7 @@ import { gameManager } from '@/game/managers/PongManager';
 export default class PongPage extends BaseComponent 
 {
     private resizeListener: (() => void) | null = null;
-    private selectedDifficulty: AiDifficulty = 'medium'; 
+    private selectedDifficulty: AiDifficulty = 'easy'; 
     private gameEndHandler: ((event: Event) => void) | null = null;
 
       render(): string 
@@ -48,8 +48,6 @@ export default class PongPage extends BaseComponent
     mount(): void 
     {
         this.attachMainMenuListeners();
-        
-        // Listen to game end event
         this.gameEndHandler = this.handleGameEnd.bind(this);
         window.addEventListener('gameManager:showMenu', this.gameEndHandler);
     }
@@ -78,9 +76,8 @@ export default class PongPage extends BaseComponent
     {
         const mainMenu = document.getElementById("mainMenu");
         if (!mainMenu) 
-        {
             return;
-        }
+
 
         mainMenu.innerHTML = `
             <h2 class="text-4xl font-bold mb-6 text-white">Select Game Mode</h2>
@@ -110,19 +107,14 @@ export default class PongPage extends BaseComponent
     {
         const mainMenu = document.getElementById("mainMenu");
         if (!mainMenu) 
-        {
             return;
-        }
+
 
         mainMenu.innerHTML = `
             <h2 class="text-4xl font-bold mb-6 text-white">Select AI Difficulty</h2>
             <div class="flex flex-col space-y-4">
-                <button id="easyBtn" class="bg-green-500 text-white px-8 py-4 rounded-lg hover:bg-green-600 text-xl">
-                    😊 Easy
-                    <div class="text-sm mt-1 opacity-80">Slow reactions, frequent misses</div>
-                </button>
-                <button id="mediumBtn" class="bg-yellow-500 text-white px-8 py-4 rounded-lg hover:bg-yellow-600 text-xl">
-                    😐 Medium
+                <button id="easyBtn" class="bg-yellow-500 text-white px-8 py-4 rounded-lg hover:bg-yellow-600 text-xl">
+                    😐 Easy
                     <div class="text-sm mt-1 opacity-80">Balanced gameplay</div>
                 </button>
                 <button id="hardBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
@@ -138,11 +130,6 @@ export default class PongPage extends BaseComponent
         document.getElementById("easyBtn")?.addEventListener("click", () => 
         {
             this.selectedDifficulty = 'easy';
-            this.start2DPong("ai");
-        });
-        document.getElementById("mediumBtn")?.addEventListener("click", () => 
-        {
-            this.selectedDifficulty = 'medium';
             this.start2DPong("ai");
         });
         document.getElementById("hardBtn")?.addEventListener("click", () => 
