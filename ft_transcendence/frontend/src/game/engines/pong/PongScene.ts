@@ -164,21 +164,13 @@ export class PongScene
     {
         const now = Date.now();
 
-        // Make decision every 1 second (or at start)
+        
         if (forceDecision || now - this.lastAiDecisionTime >= this.aiDecisionInterval) 
         {
             this.lastAiDecisionTime = now;
-            
-            // AI makes a smart decision based on ball prediction
-            this.aiCurrentDirection = this.enemy.makeDecision(
-                this.ball, 
-                this.canvas.width, 
-            );
-            
+            this.aiCurrentDirection = this.enemy.makeDecision(this.ball, this.canvas.width,);
             console.log(`AI Decision: ${this.aiCurrentDirection} (Ball: ${this.ball.x.toFixed(0)}, ${this.ball.y.toFixed(0)})`);
         }
-
-        // Execute the current decision every frame
         this.enemy.move(this.canvas.height);
     }
 

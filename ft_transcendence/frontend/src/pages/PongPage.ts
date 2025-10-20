@@ -1,12 +1,14 @@
 import { BaseComponent } from '../components/BaseComponent';
 import { AiDifficulty } from '@/game/engines/pong/entities/EnemyAi';
 import { gameManager } from '@/game/managers/PongManager';
+import { Pong3Dscene } from '@/game/engines/pong/Pong3d/Engine';
 
 export default class PongPage extends BaseComponent 
 {
     private resizeListener: (() => void) | null = null;
     private selectedDifficulty: AiDifficulty = 'easy'; 
     private gameEndHandler: ((event: Event) => void) | null = null;
+    private pong3D: Pong3Dscene | null = null
 
       render(): string 
       {
@@ -251,7 +253,16 @@ export default class PongPage extends BaseComponent
 
     private start3DPong(): void 
     {
-        alert("🚧 3D Pong coming soon!");
+        const menu = document.getElementById("pongMenuContainer");
+        const canvas = document.getElementById("pongCanvas") as HTMLCanvasElement;
+
+        if(menu)
+            menu.style.display = "none";
+        if(canvas)
+        {
+            gameManager.cleanup();
+            this.pong3D = new Pong3Dscene(canvas);
+        }
     }
 
     private tournamentbtn(): void
@@ -275,6 +286,12 @@ export default class PongPage extends BaseComponent
         // Cleanup GameManager
         gameManager.cleanup();
         
+        if(this.pong3D)
+        {
+            this.pong3D.dispose();
+            this.pong3D = null;
+        }
+
         // Remove event listener
         if (this.gameEndHandler) 
         {
