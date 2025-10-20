@@ -138,9 +138,9 @@ export class PongScene
         //right paddle (multiplayer mode)
         if(this.mode === "multiplayer")
         {
-            if(this.keys['ArrowUp'] && this.paddle_right.y > 0)
+            if(this.keys['8'] && this.paddle_right.y > 0)
                 this.paddle_right.y -= this.paddle_right.speed;
-            if(this.keys['ArrowDown'] && this.paddle_right.y + this.paddle_right.height < this.canvas.height)
+            if(this.keys['2'] && this.paddle_right.y + this.paddle_right.height < this.canvas.height)
                 this.paddle_right.y += this.paddle_right.speed;
         }
         
@@ -372,31 +372,28 @@ export class PongScene
         const oldWidth = this.canvas.width;
         const oldHeight = this.canvas.height;
 
-        // compute ratios
         const widthRatio = newWidth / oldWidth;
         const heightRatio = newHeight / oldHeight;
 
-        // update canvas dimensions
         this.canvas.width = newWidth;
         this.canvas.height = newHeight;
 
-        // scale ball position
         this.ball.x *= widthRatio;
         this.ball.y *= heightRatio;
 
-        // scale paddles / enemy
         this.paddle_left.x *= widthRatio;
         this.paddle_left.y *= heightRatio;
 
-        if (this.mode === "multiplayer" && this.paddle_right) {
+        if (this.mode === "multiplayer" && this.paddle_right) 
+        {
             this.paddle_right.x *= widthRatio;
             this.paddle_right.y *= heightRatio;
-        } else if (this.mode === "ai" && this.enemy) {
+        } 
+        else if (this.mode === "ai" && this.enemy) 
+        {
             this.enemy.x *= widthRatio;
             this.enemy.y *= heightRatio;
         }
-
-        // optionally keep ball speed consistent (if size affects physics)
         this.ball.dx *= widthRatio;
         this.ball.dy *= heightRatio;
     }
