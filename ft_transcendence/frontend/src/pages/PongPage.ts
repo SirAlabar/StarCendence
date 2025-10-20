@@ -10,18 +10,19 @@ export default class PongPage extends BaseComponent
 
       render(): string 
       {
-          return `
-              <div class="container mx-auto px-6 -mt-20 pt-20">
-                  <!-- Centered Canvas Container with 4:3 aspect ratio -->
-                  <div class="flex items-center justify-center">
-                      <div class="relative w-full max-w-7xl" style="aspect-ratio: 4/3;">
-                          <canvas 
-                              id="pongCanvas" 
-                              class="w-full h-full rounded-2xl border-2 border-cyan-500 bg-black shadow-2xl shadow-cyan-500/50"
-                          ></canvas>
-                        
-                        <!-- Menu Overlay -->
-                        <div id="pongMenuContainer" class="absolute inset-0 flex flex-col items-center justify-center text-center space-y-4 z-50">
+        return `
+            <div class="container mx-auto px-6 -mt-20 pt-20">
+                <!-- Centered Canvas Container with 4:3 aspect ratio -->
+                <div class="flex items-center justify-center">
+                    <!-- allow vertical resize to constrain the board -->
+                    <div class="relative w-full max-w-7xl" style="aspect-ratio: 4/3; max-height: 80vh;">
+                         <canvas 
+                             id="pongCanvas" 
+                             class="w-full h-full rounded-2xl border-2 border-cyan-500 bg-black shadow-2xl shadow-cyan-500/50"
+                         ></canvas>
+                       
+                       <!-- Menu Overlay -->
+                       <div id="pongMenuContainer" class="absolute inset-0 flex flex-col items-center justify-center text-center space-y-4 z-50">
                             <div id="mainMenu" class="flex flex-col space-y-3 bg-black/90 backdrop-blur-md p-8 rounded-2xl border border-cyan-500/50">
                                 <h1 class="text-5xl font-bold mb-6 text-white">🏓 Pong Game</h1>
 
@@ -195,10 +196,18 @@ export default class PongPage extends BaseComponent
             }
             
             this.resizeListener = () => 
-            {
-                gameManager.pauseGame();
-                this.resize(canvas);
-            };
+                {
+                    if (!canvas) 
+                        return;
+                    gameManager.pauseGame();
+                    const container = canvas.parentElement;
+                    if (!container) 
+                        return;
+                    const newWidth = container.clientWidth;
+                    const newHeight = container.clientHeight;
+                    gameManager.resizeGame(newWidth, newHeight);
+                    gameManager.redraw();
+                };
             
             window.addEventListener("resize", this.resizeListener);
         }
@@ -279,4 +288,6 @@ export default class PongPage extends BaseComponent
             this.resizeListener = null;
         }
     }
+
+    
 }

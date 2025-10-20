@@ -243,6 +243,20 @@ export class GameManager
         this.eventListeners.clear();
         console.log('GameManager: Destroyed');
     }
+
+    redraw(): void 
+    {
+        if (this.pongScene && typeof this.pongScene.drawStaticFrame === 'function') 
+            this.pongScene.drawStaticFrame();
+        else 
+        console.warn('GameManager: redraw() called but no active scene found.');
+    }
+
+    resizeGame(newWidth: number, newHeight: number): void 
+    {
+    if (this.pongScene) 
+            this.pongScene.onResize(newWidth, newHeight);
+    }
 }
 
 // Export singleton instance

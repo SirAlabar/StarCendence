@@ -349,5 +349,57 @@ export class PongScene
         this.ctx.textAlign = "center";
         this.ctx.fillText("Paused", this.canvas.width / 2, this.canvas.height / 2);
         this.ctx.restore();
+        
     }
+
+    public drawStaticFrame(): void 
+    {
+        this.clear();
+        this.drawScore();
+        this.ball.draw(this.ctx);
+        this.paddle_left.draw(this.ctx);
+
+        if (this.mode === "multiplayer" && this.paddle_right)
+            this.paddle_right.draw(this.ctx);
+        else if (this.mode === "ai" && this.enemy) 
+            this.enemy.draw(this.ctx);
+        if (this.paused)
+            this.drawPauseOverlay();
+    }
+    
+    public onResize(newWidth: number, newHeight: number): void 
+    {
+        const oldWidth = this.canvas.width;
+        const oldHeight = this.canvas.height;
+
+        // compute ratios
+        const widthRatio = newWidth / oldWidth;
+        const heightRatio = newHeight / oldHeight;
+
+        // update canvas dimensions
+        this.canvas.width = newWidth;
+        this.canvas.height = newHeight;
+
+        // scale ball position
+        this.ball.x *= widthRatio;
+        this.ball.y *= heightRatio;
+
+        // scale paddles / enemy
+        this.paddle_left.x *= widthRatio;
+        this.paddle_left.y *= heightRatio;
+
+        if (this.mode === "multiplayer" && this.paddle_right) {
+            this.paddle_right.x *= widthRatio;
+            this.paddle_right.y *= heightRatio;
+        } else if (this.mode === "ai" && this.enemy) {
+            this.enemy.x *= widthRatio;
+            this.enemy.y *= heightRatio;
+        }
+
+        // optionally keep ball speed consistent (if size affects physics)
+        this.ball.dx *= widthRatio;
+        this.ball.dy *= heightRatio;
+    }
+
+
 }
