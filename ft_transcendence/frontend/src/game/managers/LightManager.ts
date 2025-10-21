@@ -1,1 +1,0 @@
-// Lighting system management

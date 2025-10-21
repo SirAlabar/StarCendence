@@ -10,9 +10,28 @@ services:
     volumes:
       - frontend_dist:/app/dist
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=local
       - VITE_API_URL=https://starcendence.dev
       - VITE_WS_URL=wss://starcendence.dev/ws
+
+  frontend-dev:
+    container_name: transcendence_frontend_dev
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    command: npm run dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3001
+      - VITE_WS_URL=ws://localhost:3001/ws
+    networks:
+      - transcendence_network
+
 
   # Reverse Proxy (HTTP redirect + HTTPS)
   nginx:
@@ -21,8 +40,8 @@ services:
       context: ./infrastructure/nginx
       dockerfile: Dockerfile
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
+      - "8443:443"
     volumes:
       - frontend_dist:/var/www/html
       - user_avatars:/services/user/uploads/avatars:ro
@@ -111,8 +130,9 @@ services:
     build:
       context: ./services/user
       dockerfile: Dockerfile
-    # volumes:
-    #   - user_data:/app/data
+    volumes:
+      - user_data:/app/data
+      - ${HOME}/data/frontend/assets/images:/app/seed-images:ro
     networks:
       - transcendence_network
     secrets:

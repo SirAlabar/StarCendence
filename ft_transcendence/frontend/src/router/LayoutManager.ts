@@ -1,5 +1,7 @@
 import { BaseComponent } from '../components/BaseComponent';
 import { Layout } from '../components/common/Layout';
+import NotFoundPage from '../pages/NotFoundPage';
+
 
 // Module-level variables
 let layout: Layout;
@@ -11,7 +13,7 @@ export function initLayoutManager(): void
 }
 
 // Render default layout
-export function renderDefault(component: BaseComponent, headerHtml: string): void 
+export function renderDefault(component: BaseComponent): void 
 {
     const headerMount = document.querySelector('#header-mount');
     const contentMount = document.querySelector('#content-mount');
@@ -21,27 +23,28 @@ export function renderDefault(component: BaseComponent, headerHtml: string): voi
     {
         layout.mount('#app');
     }
-    
-    // Mount header to the existing #header-mount slot
-    const headerMountAfter = document.querySelector('#header-mount');
-    if (headerMountAfter) 
-    {
-        headerMountAfter.innerHTML = headerHtml;
-    }
 
     // Mount content to existing #content-mount slot
     const contentMountAfter = document.querySelector('#content-mount');
     if (contentMountAfter) 
     {
         contentMountAfter.setAttribute('data-route-content', 'true');
-        contentMountAfter.className = 'pt-20';
-        // Use Layout's renderPageSection like your App.ts does
-        const pageContent = layout.renderPageSection(
-            'page-content', 
-            component.render(), 
-            true
-        );
-        contentMountAfter.innerHTML = pageContent;
+        const isLandingPage = component.constructor.name === 'LandingPage';
+        if (isLandingPage) 
+        {
+            contentMountAfter.className = 'pt-20';
+            const pageContent = layout.renderPageSection(
+                'page-content', 
+                component.render(), 
+                true
+            );
+            contentMountAfter.innerHTML = pageContent;
+        } 
+        else 
+        {
+            contentMountAfter.className = 'flex-1 flex flex-col pt-20';
+            contentMountAfter.innerHTML = layout.renderPageSection('page-content', component.render(), false);
+        }
     }
 
     // Call component mount if it exists
@@ -56,48 +59,33 @@ export function renderGame(component: BaseComponent): void
 {
     const app = document.querySelector('#app')!;
     
-    // Only create game layout if it doesn't exist
-    if (!document.querySelector('#game-header-mount')) 
-    {
-        // Create custom game layout (fullscreen)
-        app.innerHTML = `
-            <div class="h-screen overflow-hidden bg-black" data-route-content="true">
-                <main class="h-full">
-                    <div id="game-content" class="h-full"></div>
-                </main>
-            </div>
-        `;
-    }
+    app.innerHTML = `
+        <div class="h-screen overflow-hidden bg-black" data-route-content="true">
+            <main class="h-full">
+                <div id="game-content" class="h-full"></div>
+            </main>
+        </div>
+    `;
 
     mountComponent(component, '#game-content');
 }
 
-// Render auth layout (centered)
-export function renderAuth(component: BaseComponent, headerHtml: string): void 
+// Render auth layout
+export function renderAuth(component: BaseComponent): void
 {
     const app = document.querySelector('#app')!;
-    
-    // Only create auth layout if it doesn't exist
-    if (!document.querySelector('#auth-header-mount')) 
-    {
-        // Create custom auth layout (centered)
+   
+    // if (!document.querySelector('#auth-header-mount'))
+    // {
         app.innerHTML = `
             <div class="min-h-screen bg-gradient-to-br from-gray-900 to-purple-900" data-route-content="true">
-                <div id="auth-header-mount"></div>
+                <div id="header-mount"></div>
                 <main class="min-h-screen flex items-center justify-center">
                     <div id="auth-content" class="w-full max-w-md"></div>
                 </main>
             </div>
         `;
-    }
-
-    // Mount header
-    const headerMount = document.querySelector('#auth-header-mount');
-    if (headerMount) 
-    {
-        headerMount.innerHTML = headerHtml;
-    }
-
+    // }
     mountComponent(component, '#auth-content');
 }
 
@@ -130,17 +118,53 @@ function mountComponent(component: BaseComponent, selector: string): void
     }
 }
 
-// Show loading screen
 export function showLoading(): void 
 {
     const loading = document.createElement('div');
     loading.id = 'layout-loading';
     loading.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
     loading.innerHTML = `
-        <div class="bg-gray-800 rounded-lg p-6 text-center">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-            <p class="text-white">Loading...</p>
-        </div>
+        <div class="loader"></div>
+
+        <style>
+            .loader {
+                width: 60px;
+                height: 25px;
+                border: 3px solid #63eafe;
+                box-sizing: border-box;
+                border-radius: 50%;
+                display: grid;
+                animation: l2 2s infinite linear;
+                box-shadow: 0 0 8px #63eafe, inset 0 0 8px #63eafe;
+            }
+            
+            .loader:before,
+            .loader:after {
+                content: "";
+                grid-area: 1/1;
+                border: 3px solid;
+                border-radius: 50%;
+                animation: inherit;
+                animation-duration: 3s;
+            }
+            
+            .loader:before {
+                border-color: #a855f7;
+                box-shadow: 0 0 6px #a855f7, inset 0 0 6px #a855f7;
+            }
+            
+            .loader:after {
+                --s: -1;
+                border-color: #3b82f6;
+                box-shadow: 0 0 6px #3b82f6, inset 0 0 6px #3b82f6;
+            }
+            
+            @keyframes l2 {
+                100% { 
+                    transform: rotate(calc(var(--s, 1) * 1turn)); 
+                }
+            }
+        </style>
     `;
     document.body.appendChild(loading);
 }
@@ -158,19 +182,7 @@ export function hideLoading(): void
 // Show 404 page
 export function show404(): void 
 {
-    const app = document.querySelector('#app')!;
-    
-    app.innerHTML = `
-        <div class="min-h-screen bg-gray-900 flex items-center justify-center" data-route-content="true">
-            <div class="text-center">
-                <h1 class="text-6xl font-bold text-red-500 mb-4">404</h1>
-                <p class="text-xl text-gray-300 mb-8">Page not found</p>
-                <button onclick="navigateTo('/')" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
-                    Go Home
-                </button>
-            </div>
-        </div>
-    `;
+    renderNone(new NotFoundPage());
 }
 
 // Initialize when first imported

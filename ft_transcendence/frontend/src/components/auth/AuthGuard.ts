@@ -1,1 +1,0 @@
-// Authentication route guard

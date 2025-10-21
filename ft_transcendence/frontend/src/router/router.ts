@@ -1,5 +1,5 @@
 import { renderDefault, renderGame, renderAuth, showLoading, hideLoading, show404 } from './LayoutManager';
-import { getHeaderHtml, setupGameHeaderEvents, resetGameEventListeners } from './HeaderManager';
+import { mountHeader, setupGameHeaderEvents, resetGameEventListeners } from './HeaderManager';
 
 // Singleton state - only one instance allowed
 class RouterState
@@ -11,10 +11,13 @@ class RouterState
     public isNavigating = false;
 
     // Store event listeners for cleanup
+    private currentPageInstance: any = null;
     private clickListener: ((e: Event) => void) | null = null;
+    private touchListener: ((e: Event) => void) | null = null; 
     private popstateListener: ((e: PopStateEvent) => void) | null = null;
 
-    private constructor() {}
+    private constructor() 
+    {}
 
     static getInstance(): RouterState
     {
@@ -25,13 +28,43 @@ class RouterState
         return RouterState.instance;
     }
 
-    cleanup()
+    setCurrentPageInstance(instance: any): void
     {
+        this.currentPageInstance = instance;
+    }
+
+    cleanupCurrentPage(): void
+    {
+        if (this.currentPageInstance)
+        {
+            if (typeof this.currentPageInstance.dispose === 'function')
+            {
+                this.currentPageInstance.dispose();
+            }
+            else if (typeof this.currentPageInstance.cleanup === 'function')
+            {
+                this.currentPageInstance.cleanup();
+            }
+            this.currentPageInstance = null;
+        }
+    }
+
+    cleanup(): void
+    {
+        this.cleanupCurrentPage();
+        
         if (this.clickListener)
         {
             document.removeEventListener('click', this.clickListener);
             this.clickListener = null;
         }
+
+        if (this.touchListener)
+        {
+            document.removeEventListener('touchend', this.touchListener);
+            this.touchListener = null;
+        }
+        
         if (this.popstateListener)
         {
             window.removeEventListener('popstate', this.popstateListener);
@@ -39,12 +72,14 @@ class RouterState
         }
     }
 
-    setEventListeners(clickListener: (e: Event) => void, popstateListener: (e: PopStateEvent) => void)
+    setEventListeners(clickListener: (e: Event) => void, popstateListener: (e: PopStateEvent) => void): void
     {
         this.cleanup();
         this.clickListener = clickListener;
+        this.touchListener = clickListener;
         this.popstateListener = popstateListener;
         document.addEventListener('click', clickListener);
+        document.addEventListener('touchend', clickListener);
         window.addEventListener('popstate', popstateListener);
     }
 }
@@ -125,6 +160,14 @@ const routeConfig: Record<string, any> =
         headerType: 'default',
         requiresAuth: true
     },
+    '/user/:username':
+    {
+        component: () => import('../pages/UserPublicPage'),
+        title: 'User Profile - Transcendence',
+        layout: 'default',
+        headerType: 'default',
+        requiresAuth: true
+    },
     '/settings':
     {
         component: () => import('../pages/SettingsPage'),
@@ -132,6 +175,13 @@ const routeConfig: Record<string, any> =
         layout: 'default',
         headerType: 'default',
         requiresAuth: true
+    },
+    '/oauth/callback':
+    {
+        component: () => import('../pages/OAuthCallbackPage'),
+        title: 'Authenticating - Transcendence',
+        layout: 'auth',
+        headerType: 'minimal'
     },
     '/404':
     {
@@ -151,94 +201,127 @@ function getCurrentPath(): string
     return window.location.pathname || '/';
 }
 
+function getFullPath(): string
+{
+    const pathname = window.location.pathname || '/';
+    const search = window.location.search || '';
+    return pathname + search;
+}
+
 // Function to parse route
 function parseRoute(path: string): any
 {
-    return routeConfig[path] || routeConfig['/404'];
+    // First try exact match
+    if (routeConfig[path]) 
+    {
+        return routeConfig[path];
+    }
+    
+    // Then try dynamic routes
+    const dynamicRoute = matchDynamicRoute(path);
+    if (dynamicRoute) 
+    {
+        return dynamicRoute;
+    }
+    
+    // Finally return 404
+    return routeConfig['/404'];
+}
+
+// Function to match dynamic routes
+function matchDynamicRoute(path: string): any 
+{
+    // Check for /user/:username pattern
+    if (path.startsWith('/user/')) 
+    {
+        return routeConfig['/user/:username'];
+    }
+    
+    return null;
 }
 
 // Check if user is authenticated
 function isAuthenticated(): boolean
 {
-    return localStorage.getItem('auth_token') !== null;
+    const token = localStorage.getItem('access_token');
+    return token !== null;
 }
 
 // Main navigation function
 export async function navigateTo(path: string): Promise<void>
 {
-
-    // Prevent navigation loops
     if (routerState.isNavigating)
     {
         return;
     }
 
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    
+    // Split path and query params
+    const [pathname, search] = cleanPath.split('?');
+    const fullPath = search ? `${pathname}?${search}` : pathname;
 
-
-    // Prevent duplicate navigation
-    if (routerState.currentRoute && routerState.currentRoute.path === cleanPath)
+    if (routerState.currentRoute && routerState.currentRoute.path === pathname)
     {
         return;
     }
 
     routerState.isNavigating = true;
+    routerState.cleanupCurrentPage();
 
-    const route = parseRoute(cleanPath);
+    // Parse route using only pathname, not query params
+    const route = parseRoute(pathname);
 
-    // Check authentication
     if (route.requiresAuth && !isAuthenticated())
     {
-        if (cleanPath !== '/login' && cleanPath !== '/register')
+        if (pathname !== '/login' && pathname !== '/register')
         {
             routerState.isNavigating = false;
             return navigateTo('/login');
         }
     }
 
-    // Update page title
     document.title = route.title;
 
-    // Update URL in browser - only if different from current
-    if (window.location.pathname !== cleanPath)
+    // Push full path with query params
+    if (window.location.pathname + window.location.search !== fullPath)
     {
-        window.history.pushState({ path: cleanPath }, '', cleanPath);
+        window.history.pushState({ path: fullPath }, '', fullPath);
     }
 
-    // Scroll to top
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
 
     try
     {
         showLoading();
 
-        // Dynamic import and component instantiation
         const moduleImport = await route.component();
         const ComponentClass = moduleImport.default || moduleImport;
         const component = new ComponentClass();
 
-        // Reset game event listeners if switching away from game
+        routerState.setCurrentPageInstance(component);
+
         if (routerState.currentRoute?.headerType === 'game' && route.headerType !== 'game')
         {
             resetGameEventListeners();
         }
 
-        const headerHtml = getHeaderHtml(route.headerType);
+        renderWithLayout(component, route.layout);
 
-        renderWithLayout(component, route.layout, headerHtml);
+        if (route.layout !== 'game') 
+        {
+            mountHeader(route.headerType, '#header-mount');
+        }
 
-        // Scroll to top
         window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
 
-        // Setup events after DOM is ready
         requestAnimationFrame(() =>
         {
             setupGameHeaderEvents();
             updateActiveNavLinks();
         });
 
-        routerState.currentRoute = { ...route, path: cleanPath };
-
+        routerState.currentRoute = { ...route, path: pathname };
     }
     catch (error)
     {
@@ -253,7 +336,7 @@ export async function navigateTo(path: string): Promise<void>
 }
 
 // Render function
-function renderWithLayout(component: any, layoutType: string, headerHtml: string): void
+function renderWithLayout(component: any, layoutType: string): void
 {
     switch (layoutType)
     {
@@ -261,13 +344,12 @@ function renderWithLayout(component: any, layoutType: string, headerHtml: string
             renderGame(component);
             break;
         case 'auth':
-            renderAuth(component, headerHtml);
+            renderAuth(component);
             break;
         default:
-            renderDefault(component, headerHtml);
+            renderDefault(component);
     }
 }
-
 // Update active nav links
 function updateActiveNavLinks(): void
 {
@@ -276,10 +358,12 @@ function updateActiveNavLinks(): void
     document.querySelectorAll('[data-link]').forEach(link =>
     {
         const href = link.getAttribute('href');
+        
         if (!href)
         {
             return;
         }
+        
         if (href === currentPath)
         {
             link.classList.add('active');
@@ -295,21 +379,26 @@ function updateActiveNavLinks(): void
 function handleLinkClick(e: Event): void
 {
     const target = e.target as HTMLElement;
+    
     if (!target)
     {
         return;
     }
 
     const link = target?.closest('a') as HTMLAnchorElement;
+    
     if (!link)
     {
         return;
     }
+    
     const href = link.getAttribute('href');
+    
     if (!href)
     {
         return;
     }
+    
     if (link.hasAttribute("data-link"))
     {
         e.preventDefault();
@@ -327,7 +416,11 @@ function handleLinkClick(e: Event): void
             navigateTo('/').then(() =>
             {
                 const section = document.querySelector(href);
-                section?.scrollIntoView({ behavior: 'smooth'});
+                
+                if (section)
+                {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
             });
         }
     }
@@ -345,11 +438,12 @@ function handlePopState(_e: PopStateEvent): void
 // Initialize router
 export function initRouter(): void
 {
-    if (document.readyState === 'loading') 
+    if (document.readyState === 'loading')
     {
         document.addEventListener('DOMContentLoaded', () => initRouter());
         return;
     }
+    
     // Prevent double initialization
     if (routerState.isInitialized)
     {
@@ -364,8 +458,8 @@ export function initRouter(): void
     // Setup event listeners with cleanup
     routerState.setEventListeners(handleLinkClick, handlePopState);
 
-    // Load initial page only if no content exists
-    const currentPath = getCurrentPath();
+    // Load initial page with query params
+    const fullPath = getFullPath();
 
     const existingContent = document.querySelector('[data-route-content]');
 
@@ -375,7 +469,7 @@ export function initRouter(): void
         {
             if (!routerState.currentRoute)
             {
-                navigateTo(currentPath);
+                navigateTo(fullPath);
             }
         }, 100);
     }

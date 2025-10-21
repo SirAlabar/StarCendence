@@ -5,7 +5,7 @@ export class Layout extends BaseComponent
     render(): string 
     {
         return `
-            <div class="min-h-screen relative">
+            <div class="min-h-screen flex flex-col relative">
                 <!-- Fixed Space Background -->
                 ${this.renderBackground()}
                 
@@ -13,7 +13,7 @@ export class Layout extends BaseComponent
                 <div id="header-mount" class="relative z-20"></div>
                 
                 <!-- Main Content Area -->
-                <main id="main-content" class="relative z-10">
+                <main id="main-content" class="flex-1 relative z-10">
                     <div id="content-mount"></div>
                 </main>
                 
@@ -48,8 +48,6 @@ export class Layout extends BaseComponent
     {
         return `
             <div class="fixed inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 -z-10">
-                <!-- Animated stars background -->
-                <div class="absolute inset-0 bg-[url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="1" fill="white" opacity="0.3"/><circle cx="80" cy="40" r="0.8" fill="white" opacity="0.2"/><circle cx="40" cy="80" r="1.2" fill="white" opacity="0.4"/><circle cx="90" cy="90" r="0.5" fill="white" opacity="0.3"/></svg>')] bg-repeat opacity-40 animate-pulse-slow"></div>
             </div>
         `;
     }
@@ -57,7 +55,7 @@ export class Layout extends BaseComponent
     private renderFooter(): string 
     {
         return `
-            <footer class="relative z-20 bg-gray-900/90 border-t border-purple-500/20 mt-12">
+            <footer class="relative z-20 bg-gray-900/90 border-t border-purple-500/20">
                 <div class="mx-auto max-w-4xl p-6">
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
                         <div class="text-gray-400 text-sm">

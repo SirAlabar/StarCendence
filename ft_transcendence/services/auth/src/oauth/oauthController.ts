@@ -3,12 +3,14 @@ import * as oauthService from './oauthService'
 import { HttpError } from '../utils/HttpError'
 import { getGoogleClientId } from '../utils/getSecrets'
 import * as tokenService from '../token/tokenService'
+import * as oauthRepository from './oauthRepository'
+import { updateUserStatus } from '../clients/userServiceClient'
 import { updateUserStatus } from '../clients/userServiceClient';
 import * as oauthRepository from './oauthRepository';
 
 // Handler to initiate Google OAuth flow
 export async function googleOAuthHandler( req: FastifyRequest, reply: FastifyReply ) {
-  const redirectUri = `http://localhost/api/auth/oauth/google/callback`
+  const redirectUri = `https://localhost:8443/api/auth/oauth/google/callback`
 
   const params = new URLSearchParams({
     client_id: getGoogleClientId(),
@@ -22,9 +24,10 @@ export async function googleOAuthHandler( req: FastifyRequest, reply: FastifyRep
 }
 
 // Handler for Google OAuth callback
-export async function googleOAuthCallbackHandler( req: FastifyRequest, reply: FastifyReply ) {
+export async function googleOAuthCallbackHandler( req: FastifyRequest, reply: FastifyReply ) 
+{
   const { code, state } = req.query as { code: string; state: string }
-  const redirectUri = `http://localhost/api/auth/oauth/google/callback`
+  const redirectUri = `https://localhost:8443/api/auth/oauth/google/callback`
 
   if (!code) {
     throw new HttpError('Authorization code is required', 400)
@@ -36,24 +39,26 @@ export async function googleOAuthCallbackHandler( req: FastifyRequest, reply: Fa
   const result = await oauthService.handleOauthLogin(userInfo)
 
   if (result.needsUsername) {
-    return reply.send({ tempToken: result.tempToken, needsUsername: true })
+    return reply.redirect(`https://localhost:8443/oauth/callback?token=${result.tempToken}`)
   }
 
   if (!result.tokens) {
     throw new HttpError('Failed to retrieve tokens', 500)
   }
 
-  const user = await oauthRepository.findUserByOauthId(userInfo.id);
+  const user = await oauthRepository.findUserByOauthId(userInfo.id)
   if (!user) {
-    throw new HttpError('User not found after OAuth login', 500);
+    throw new HttpError('User not found after OAuth login', 500)
   }
-  await updateUserStatus(user.id, 'ONLINE');
 
-  return reply.send(result.tokens)
+  await updateUserStatus(user.id, 'ONLINE')
+
+  return reply.redirect(`https://localhost:8443/oauth/callback?accessToken=${result.tokens.accessToken}&refreshToken=${result.tokens.refreshToken}`)
 }
 
 // Handler to set username for OAuth user
-export async function googleOAuthUsernameHandler( req: FastifyRequest, reply: FastifyReply ) {
+export async function googleOAuthUsernameHandler( req: FastifyRequest, reply: FastifyReply ) 
+{
   const tempToken = req.headers['authorization']?.split(' ')[1];
   if (!tempToken) {
     throw new HttpError('Missing or invalid authorization header', 400)
@@ -81,6 +86,9 @@ export async function googleOAuthUsernameHandler( req: FastifyRequest, reply: Fa
     throw new HttpError('Incomplete user data', 500)
   }
 
-  const tokens = await tokenService.generateTokens(newUser.id, newUser.email, newUser.username);
-  reply.send(tokens)
+  await updateUserStatus(newUser.id, 'ONLINE')
+
+  const tokens = await tokenService.generateTokens(newUser.id, newUser.email, newUser.username)
+
+reply.send({ success: true, tokens })
 }

@@ -62,3 +62,34 @@ export const updateUserStatusSchema = {
     }
   },
 }
+
+// User search schema for GET /users/search
+export const searchUsersSchema = {
+  querystring: 
+  {
+    type: 'object',
+    required: ['q'],
+    properties: 
+    {
+      q: { type: 'string', minLength: 2, maxLength: 50 }
+    }
+  },
+  response: 
+  {
+    200: 
+    {
+      type: 'array',
+      items: 
+      {
+        type: 'object',
+        properties: 
+        {
+          id: { type: 'string' },
+          username: { type: 'string' },
+          avatarUrl: { type: 'string', nullable: true },
+          status: { type: 'string', enum: Object.values(UserStatus) }
+        }
+      }
+    }
+  }
+};
