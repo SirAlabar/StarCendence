@@ -67,7 +67,7 @@ export default class PongPage extends BaseComponent
         }
         if (start3D) 
         {
-            start3D.addEventListener("click", () => this.start3DPong());
+            start3D.addEventListener("click", () => this.show3DModeSelection());
         }
         if (backBtn) 
         {
@@ -102,6 +102,37 @@ export default class PongPage extends BaseComponent
 
         document.getElementById("playWithAI")?.addEventListener("click", () => this.showAIDifficultySelection());
         document.getElementById("playMultiplayer")?.addEventListener("click", () => this.start2DPong("multiplayer"));
+        document.getElementById("tournament")?.addEventListener("click", () => this.tournamentbtn());
+        document.getElementById("backToMainMenu")?.addEventListener("click", () => this.renderMainMenu());
+    }
+
+    private show3DModeSelection(): void 
+    {
+        const mainMenu = document.getElementById("mainMenu");
+        if (!mainMenu) 
+            return;
+
+
+        mainMenu.innerHTML = `
+            <h2 class="text-4xl font-bold mb-6 text-white">Select Game Mode</h2>
+            <div class="flex flex-col space-y-4">
+                <button id="playMultiplayer" class="bg-purple-600 text-white px-8 py-4 rounded-lg hover:bg-purple-700 text-xl">
+                    🎮 Multiplayer (Local)
+                </button>
+                <button id="playWithAI" class="bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 text-xl">
+                    🤖 Play vs AI
+                </button>
+                <button id="tournament" class="bg-orange-600 text-white px-8 py-4 rounded-lg hover:bg-orange-700 text-xl">
+                    🏆 Tournament
+                </button>
+                <button id="backToMainMenu" class="mt-4 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
+                    ← Back
+                </button>
+            </div>
+        `;
+
+        document.getElementById("playWithAI")?.addEventListener("click", () => this.comingSoon());
+        document.getElementById("playMultiplayer")?.addEventListener("click", () => this.start3DPong());
         document.getElementById("tournament")?.addEventListener("click", () => this.tournamentbtn());
         document.getElementById("backToMainMenu")?.addEventListener("click", () => this.renderMainMenu());
     }
@@ -270,6 +301,10 @@ export default class PongPage extends BaseComponent
         alert("🚧 Tournament coming soon!")
     }
 
+    private comingSoon(): void
+    {
+        alert("🚧Coming Soon!");
+    }
     private goBack(): void 
     {
         this.dispose();
