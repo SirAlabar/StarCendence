@@ -71,7 +71,6 @@ export default class PodRacerPage extends BaseComponent
         // Hide pod selection, show canvas and back button
         this.showRaceView();
         
-        // THE ONLY METHOD CALL - RacerRenderer handles everything else
         this.startRace();
     }
 
@@ -100,14 +99,27 @@ export default class PodRacerPage extends BaseComponent
     {
         try 
         {
-            this.racerRenderer = new RacerRenderer(
+            if (!this.racerRenderer) 
             {
-                debugMode: false,
-                performanceMonitoring: true,
-                cameraMode: 'racing'
-            });
+                this.racerRenderer = new RacerRenderer(
+                {
+                    debugMode: false,
+                    performanceMonitoring: true,
+                    cameraMode: 'racing'
+                });
+            }
+            
+            if (!this.racerRenderer) 
+            {
+                throw new Error('Failed to create RacerRenderer');
+            }
             
             await this.racerRenderer.initialize('gameCanvas', this.selectedPodConfig);
+            
+            if (!this.racerRenderer) 
+            {
+                throw new Error('RacerRenderer became null after initialization');
+            }
             
             await this.racerRenderer.startVisualRace();
         } 

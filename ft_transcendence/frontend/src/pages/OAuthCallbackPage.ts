@@ -1,5 +1,5 @@
 import { BaseComponent } from '../components/BaseComponent';
-import { OAuthService } from '../services/OAuthService';
+import { OAuthService } from '../services/auth/OAuthService';
 
 export default class OAuthCallbackPage extends BaseComponent 
 {

@@ -1,5 +1,5 @@
 import { BaseComponent } from '../components/BaseComponent';
-import { RegisterService } from '../services/RegisterService';
+import { RegisterService } from '../services/auth/RegisterService';
 
 export default class RegisterPage extends BaseComponent 
 {

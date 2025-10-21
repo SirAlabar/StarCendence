@@ -1,6 +1,6 @@
 import { BaseComponent } from '../components/BaseComponent';
-import UserService from '../services/UserService';
-import FriendService from '../services/FriendService';
+import UserService from '../services/user/UserService';
+import FriendService from '../services/user/FriendService';
 import { UserProfile } from '../types/user.types';
 
 export default class UserPublicPage extends BaseComponent 

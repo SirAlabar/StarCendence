@@ -1,7 +1,7 @@
 import { BaseComponent } from '../components/BaseComponent';
-import { LoginService } from '../services/LoginService';
-import { OAuthService } from '../services/OAuthService';
-import { FormValidator } from '../services/FormValidator';
+import { LoginService } from '../services/auth/LoginService';
+import { OAuthService } from '../services/auth/OAuthService';
+import { FormValidator } from '../services/user/FormValidator';
 
 export default class LoginPage extends BaseComponent 
 {
