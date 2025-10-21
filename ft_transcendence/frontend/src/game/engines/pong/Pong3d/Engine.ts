@@ -1,5 +1,6 @@
-import * as BABYLON from "babylonjs"
+import * as BABYLON from '@babylonjs/core';
 import { Skybox } from "./Skybox";
+
 
 export class Pong3Dscene
 {
@@ -16,6 +17,8 @@ export class Pong3Dscene
         //start engine
         this.engine = new BABYLON.Engine(canvas, true);
         
+        //avoid error
+        console.log(this.canvas);
         //create scene
         this.scene = new  BABYLON.Scene(this.engine);
         this.scene.clearColor = new BABYLON.Color4(0,0,0,1);
@@ -78,7 +81,7 @@ export class Pong3Dscene
         this.ball.material = ballColor;
 
         //skybox
-        Skybox.create(this.scene, "textures/plains_sunset_4k.exr")
+        Skybox.create(this.scene, "assets/images/skyboxpong.hdr")
         
         //movement
         this.scene.onBeforeRenderObservable.add(() =>{

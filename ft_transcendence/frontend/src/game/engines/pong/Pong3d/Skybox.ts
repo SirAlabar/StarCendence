@@ -1,5 +1,5 @@
 // Skybox.ts
-import * as BABYLON from "babylonjs";
+import * as BABYLON from '@babylonjs/core';
 import "@babylonjs/loaders/glTF"; 
 
 export class Skybox 
