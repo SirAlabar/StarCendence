@@ -378,8 +378,6 @@ db_clean:
 	@docker compose exec -it auth-service sh -c "for tbl in \$$(sqlite3 /app/data/auth.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/auth.db \"DELETE FROM '\$$tbl'\"; fi; done;"
 	@printf "$(GREEN)✅ All tables cleaned!$(DEFAULT)\n"
 	@printf "$(CYAN)Reseeding database with default users...$(DEFAULT)\n"
-	@$(MAKE) --no-print-directory seed-db
-
 
 nginx_service_restart:
 	@printf "$(YELLOW)🔄 Restarting nginx...$(DEFAULT)\n"
