@@ -45,8 +45,15 @@ export class Pong3Dscene
         
         //ground setup(floor)
         const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 20, height: 20}, this.scene);
-        this.camera.setTarget(BABYLON.Vector3.Zero());
         
+        //wall setup
+        const leftWall = BABYLON.MeshBuilder.CreateBox("left_wall", {width: 0.5, height:3, depth:20}, this.scene);
+        leftWall.position = new BABYLON.Vector3(0,1,10);
+        leftWall.rotation.y = Math.PI / 2;
+        const rightWall = leftWall.clone("right_wall");
+        rightWall.position = new BABYLON.Vector3(0,1,-10);
+        
+        this.camera.setTarget(BABYLON.Vector3.Zero());
         
         //ball setup
         this.ball = BABYLON.MeshBuilder.CreateSphere("ball", {diameter: 0.5}, this.scene);
@@ -69,6 +76,8 @@ export class Pong3Dscene
         mat.diffuseColor = new BABYLON.Color3(0,0.5,0.5);
         this.paddle_left.material = mat;
         this.paddle_right.material = mat;
+        leftWall.material = mat;
+        rightWall.material = mat;
         
         //ground color
         const greenmat = new BABYLON.StandardMaterial("greenmat", this.scene);
@@ -81,15 +90,29 @@ export class Pong3Dscene
         this.ball.material = ballColor;
 
         //skybox
-        Skybox.create(this.scene, "assets/images/skyboxpong.hdr")
+        Skybox.create(this.scene, "assets/images/skytest.hdr")
         
-        //movement
-        this.scene.onBeforeRenderObservable.add(() =>{
-            if(keys["a"])
-                this.paddle_left.position.z += 0.1;
-            if(keys["d"])
-                this.paddle_left.position.z -= 0.1;
-        })
+        //collision
+        this.paddle_left.checkCollisions = true;
+        this.paddle_left.ellipsoid = new BABYLON.Vector3(0.2, 0.5, 1); // half-size of your paddle
+        this.paddle_left.ellipsoidOffset = new BABYLON.Vector3(0, 0.5, 0); // center it vertically
+
+        leftWall.checkCollisions = true;
+        rightWall.checkCollisions = true;
+        this.scene.collisionsEnabled = true;
+        ground.checkCollisions = true;
+      
+        
+
+        // Movement with collisions
+        this.scene.onBeforeRenderObservable.add(() => {
+            const moveVector = new BABYLON.Vector3(0, 0, 0);
+
+            if (keys["a"]) moveVector.z += 0.1;  // move left
+            if (keys["d"]) moveVector.z -= 0.1;  // move right
+
+            this.paddle_left.moveWithCollisions(moveVector);
+        });
 
         //simple start up to test
         this.engine.runRenderLoop(() =>{

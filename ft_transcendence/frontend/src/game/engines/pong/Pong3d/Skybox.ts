@@ -14,7 +14,9 @@ export class Skybox
                 size: 1000, // adjust to your scene scale
             },
             scene
+        
         );
+        dome.material.alpha = 0.65;
         return dome;
     }
 }
