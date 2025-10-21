@@ -63,7 +63,7 @@ async function main()
     { id: '550e8400-e29b-41d4-a716-446655440007', username: 'Ratts Tyerell', email: 'ratts@aleen.pod', bio: 'Tiny but fierce Aleena podracer.', status: 'ONLINE', avatar: 'ratts.jpg' },
     { id: '550e8400-e29b-41d4-a716-446655440008', username: 'Ebe Endocott', email: 'ebe@ryvellia.pod', bio: 'Rybet podracer from Ando Prime.', status: 'OFFLINE', avatar: 'ebe.jpg' },
     { id: '550e8400-e29b-41d4-a716-446655440009', username: 'Mars Guo', email: 'mars@phuii.pod', bio: 'Phuii podracer with a need for speed.', status: 'ONLINE', avatar: 'mars.gif' },
-    { id: '550e8400-e29b-41d4-a716-44665544000a', username: 'Ben Quadinaros', email: 'ben@tund.pod', bio: 'Toong podracer. Engine trouble is my specialty.', status: 'OFFLINE', avatar: 'ben.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440010', username: 'Ben Quadinaros', email: 'ben@tund.pod', bio: 'Toong podracer. Engine trouble is my specialty.', status: 'OFFLINE', avatar: 'ben.gif' },
   ];
 
   const createdUsers = [];
@@ -99,7 +99,7 @@ async function main()
   await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440004', recipientId: '550e8400-e29b-41d4-a716-446655440008', status: 'ACCEPTED' } });
   await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440005', recipientId: '550e8400-e29b-41d4-a716-446655440006', status: 'ACCEPTED' } });
   await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440005', recipientId: '550e8400-e29b-41d4-a716-446655440009', status: 'ACCEPTED' } });
-  await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440007', recipientId: '550e8400-e29b-41d4-a716-44665544000a', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440007', recipientId: '550e8400-e29b-41d4-a716-446655440010', status: 'ACCEPTED' } });
   await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440007', recipientId: '550e8400-e29b-41d4-a716-446655440008', status: 'ACCEPTED' } });
 
   console.log('\n✅ Seed complete – 10 users, avatars, and friendships created!');
