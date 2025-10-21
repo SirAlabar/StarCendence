@@ -3,6 +3,8 @@ import * as oauthService from './oauthService'
 import { HttpError } from '../utils/HttpError'
 import { getGoogleClientId } from '../utils/getSecrets'
 import * as tokenService from '../token/tokenService'
+import { updateUserStatus } from '../clients/userServiceClient';
+import * as oauthRepository from './oauthRepository';
 
 // Handler to initiate Google OAuth flow
 export async function googleOAuthHandler( req: FastifyRequest, reply: FastifyReply ) {
@@ -40,6 +42,12 @@ export async function googleOAuthCallbackHandler( req: FastifyRequest, reply: Fa
   if (!result.tokens) {
     throw new HttpError('Failed to retrieve tokens', 500)
   }
+
+  const user = await oauthRepository.findUserByOauthId(userInfo.id);
+  if (!user) {
+    throw new HttpError('User not found after OAuth login', 500);
+  }
+  await updateUserStatus(user.id, 'ONLINE');
 
   return reply.send(result.tokens)
 }
