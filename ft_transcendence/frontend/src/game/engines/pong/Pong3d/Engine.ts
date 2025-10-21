@@ -1,5 +1,6 @@
 import * as BABYLON from "@babylonjs/core";
 import { Skybox } from "./Skybox";
+import { bayerDitherFunctions } from "@babylonjs/core/Shaders/ShadersInclude/bayerDitherFunctions";
 
 export class Pong3Dscene 
 {
@@ -10,10 +11,16 @@ export class Pong3Dscene
     private ball!: BABYLON.Mesh;
     private paddle_left!: BABYLON.Mesh;
     private paddle_right!: BABYLON.Mesh;
+    private ballVelocity = new BABYLON.Vector3(0.1, 0, 0.05); // x, y, z speed
+    private gravity = -0.01; // gravity strength
+    private leftWall!: BABYLON.Mesh;
+    private rightWall!: BABYLON.Mesh;
+    //private backWall!: BABYLON.Mesh;
 
     private keys: Record<string, boolean> = {};
 
-    constructor(private canvas: HTMLCanvasElement) {
+    constructor(private canvas: HTMLCanvasElement) 
+    {
         this.engine = new BABYLON.Engine(canvas, true);
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
@@ -61,14 +68,17 @@ export class Pong3Dscene
         const wallMat = new BABYLON.StandardMaterial("wallMat", this.scene);
         wallMat.diffuseColor = new BABYLON.Color3(0, 0.5, 0.5);
 
-        const leftWall = BABYLON.MeshBuilder.CreateBox("left_wall", { width: 0.5, height: 3, depth: 20 }, this.scene);
-        leftWall.position = new BABYLON.Vector3(0, 1.5, 10);
-        leftWall.rotation.y = Math.PI / 2;
-        leftWall.material = wallMat;
+        this.leftWall = BABYLON.MeshBuilder.CreateBox("left_wall", { width: 0.5, height: 3, depth: 20 }, this.scene);
+        this.leftWall.position = new BABYLON.Vector3(0, 1.5, 10);
+        this.leftWall.rotation.y = Math.PI / 2;
+        this.leftWall.material = wallMat;
 
-        const rightWall = leftWall.clone("right_wall");
-        rightWall.position = new BABYLON.Vector3(0, 1.5, -10);
-        rightWall.material = wallMat;
+        this.rightWall = this.leftWall.clone("right_wall");
+        this.rightWall.position = new BABYLON.Vector3(0, 1.5, -10);
+        this.rightWall.material = wallMat;
+
+        //this.backWall = BABYLON.MeshBuilder.CreateBox("backWall", { width: 0.5, height: 3, depth: 20 }, this.scene);
+        //this.backWall.position = new BABYLON.Vector3(10,1.5,0);
 
         // Goal
         const goalPlane = BABYLON.MeshBuilder.CreatePlane("goalPlane", { width: 20, height: 3 }, this.scene);
@@ -113,21 +123,61 @@ export class Pong3Dscene
     private enableCollisions() 
     {
         this.scene.collisionsEnabled = true;
-
+        this.ball.checkCollisions = true;
         this.paddle_left.checkCollisions = true;
         this.paddle_right.checkCollisions = true;
+        
+    
     }
 
     private setupGameLoop() 
     {
         this.scene.onBeforeRenderObservable.add(() => {
+            this.ballVelocity.y += this.gravity;
+            this.ball.position.addInPlace(this.ballVelocity);
+            if (this.ball.position.y <= 0.25) 
+            {
+                this.ball.position.y = 0.25;
+                this.ballVelocity.y *= -0.8; 
+            }     
+            if (Math.abs(this.ball.position.z) >= 9.75) 
+            {
+                this.ballVelocity.z *= -1;
+            }
+            this.checkPaddleCollision();
+            if(this.ball.position.x > 10)
+                console.log("goal");
             const moveVector = new BABYLON.Vector3(0, 0, 0);
             if (this.keys["a"]) moveVector.z += 0.1;
             if (this.keys["d"]) moveVector.z -= 0.1;
+            const moveVector2 = new BABYLON.Vector3(0, 0, 0);
+            if (this.keys["4"]) moveVector2.z += 0.1;
+            if (this.keys["6"]) moveVector2.z -= 0.1;
             this.paddle_left.moveWithCollisions(moveVector);
+            this.paddle_right.moveWithCollisions(moveVector2);
         });
 
         this.engine.runRenderLoop(() => this.scene.render());
+    }
+
+    private checkPaddleCollision() 
+    {
+        // Left paddle collision
+        if (this.ball.intersectsMesh(this.paddle_left, false)) 
+        {
+            this.ballVelocity.x = Math.abs(this.ballVelocity.x); // Bounce right
+                // Add spin based on where it hits the paddle
+            const hitOffset = this.ball.position.z - this.paddle_left.position.z;
+            this.ballVelocity.z += hitOffset * 0.1;
+        }
+        
+        // Right paddle collision
+        if (this.ball.intersectsMesh(this.paddle_right, false)) 
+        {
+            this.ballVelocity.x = -Math.abs(this.ballVelocity.x); // Bounce left
+            const hitOffset = this.ball.position.z - this.paddle_right.position.z;
+            this.ballVelocity.z += hitOffset * 0.1;
+        }
     }
 
     dispose() 
