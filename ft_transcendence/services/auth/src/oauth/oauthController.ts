@@ -3,8 +3,6 @@ import * as oauthService from './oauthService'
 import { HttpError } from '../utils/HttpError'
 import { getGoogleClientId } from '../utils/getSecrets'
 import * as tokenService from '../token/tokenService'
-import * as oauthRepository from './oauthRepository'
-import { updateUserStatus } from '../clients/userServiceClient'
 import { updateUserStatus } from '../clients/userServiceClient';
 import * as oauthRepository from './oauthRepository';
 
