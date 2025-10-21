@@ -145,8 +145,11 @@ export class Pong3Dscene
                 this.ballVelocity.z *= -1;
             }
             this.checkPaddleCollision();
-            if(this.ball.position.x > 10)
+            if(this.ball.position.x > 10 && this.ball.position.x < -10)
+            {
+                this.resetBall();
                 console.log("goal");
+            }
             const moveVector = new BABYLON.Vector3(0, 0, 0);
             if (this.keys["a"]) moveVector.z += 0.1;
             if (this.keys["d"]) moveVector.z -= 0.1;
@@ -158,6 +161,11 @@ export class Pong3Dscene
         });
 
         this.engine.runRenderLoop(() => this.scene.render());
+    }
+
+    private resetBall(): void
+    {
+        this.ball.dispose();
     }
 
     private checkPaddleCollision() 
