@@ -44,7 +44,7 @@ services:
       - "8443:443"
     volumes:
       - frontend_dist:/var/www/html
-      - user_avatars:/services/user/uploads/avatars:ro
+      - user_avatars:/services/user/avatars:ro
     networks:
       - transcendence_network
     secrets:
