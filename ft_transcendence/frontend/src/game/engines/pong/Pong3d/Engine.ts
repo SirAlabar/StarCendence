@@ -1,6 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
 import { Skybox } from "./Skybox";
-import { promises } from "dns";
 
 
 export class Pong3Dscene 
