@@ -32,7 +32,6 @@ services:
     networks:
       - transcendence_network
 
-
   # Reverse Proxy (HTTP redirect + HTTPS)
   nginx:
     container_name: transcendence_nginx
@@ -177,6 +176,20 @@ volumes:
     driver_opts:
       type: none
       device: ${HOME}/data/redis
+      o: bind
+
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOME}/data/grafana
+      o: bind
+
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOME}/data/prometheus
       o: bind
 
   frontend_dist:
