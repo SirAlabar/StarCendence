@@ -1,6 +1,7 @@
 import * as BABYLON from "@babylonjs/core";
 import { Skybox } from "./Skybox";
-import { bayerDitherFunctions } from "@babylonjs/core/Shaders/ShadersInclude/bayerDitherFunctions";
+import { promises } from "dns";
+
 
 export class Pong3Dscene 
 {
@@ -145,7 +146,7 @@ export class Pong3Dscene
                 this.ballVelocity.z *= -1;
             }
             this.checkPaddleCollision();
-            if(this.ball.position.x > 10 && this.ball.position.x < -10)
+            if(this.ball.position.x > 10 || this.ball.position.x < -10)
             {
                 this.resetBall();
                 console.log("goal");
@@ -163,9 +164,21 @@ export class Pong3Dscene
         this.engine.runRenderLoop(() => this.scene.render());
     }
 
-    private resetBall(): void
+    private async resetBall(): Promise<void>
     {
-        this.ball.dispose();
+        this.ballVelocity.set(0,0,0);
+        this.ball.isVisible = false;
+        await this.delay(2000);
+        this.ball.position.set(0,0.5,0);
+        this.ball.isVisible = true;
+        const direction = Math.random() < 0.5 ? 1 : -1;
+        this.ballVelocity = new BABYLON.Vector3(0.1 * direction, 0 , 0.05);
+
+    }
+
+    private delay(ms: number): Promise<void>
+    {
+        return new Promise((resolve) => setTimeout(resolve,ms));
     }
 
     private checkPaddleCollision() 
@@ -173,15 +186,17 @@ export class Pong3Dscene
         // Left paddle collision
         if (this.ball.intersectsMesh(this.paddle_left, false)) 
         {
+            this.paddle_left.position.y = 0.5;
+            this.paddle_right.position.y = 0.5;
             this.ballVelocity.x = Math.abs(this.ballVelocity.x); // Bounce right
-                // Add spin based on where it hits the paddle
             const hitOffset = this.ball.position.z - this.paddle_left.position.z;
             this.ballVelocity.z += hitOffset * 0.1;
         }
-        
         // Right paddle collision
         if (this.ball.intersectsMesh(this.paddle_right, false)) 
         {
+            this.paddle_left.position.y = 0.5;
+            this.paddle_right.position.y = 0.5;
             this.ballVelocity.x = -Math.abs(this.ballVelocity.x); // Bounce left
             const hitOffset = this.ball.position.z - this.paddle_right.position.z;
             this.ballVelocity.z += hitOffset * 0.1;
