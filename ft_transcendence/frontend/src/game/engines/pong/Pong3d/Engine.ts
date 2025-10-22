@@ -13,6 +13,7 @@ export class Pong3Dscene
     private paddle_left!: BABYLON.Mesh;
     private paddle_right!: BABYLON.Mesh;
     private ballVelocity = new BABYLON.Vector3(0.1, 0, 0.05); // x, y, z speed
+    private maxSpeed: number = 0.3;
     private gravity = -0.01; // gravity strength
     private leftWall!: BABYLON.Mesh;
     private rightWall!: BABYLON.Mesh;
@@ -49,6 +50,8 @@ export class Pong3Dscene
     private createCamera() 
     {
         this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(-10, 2, 0), this.scene);
+        this.camera.position = new BABYLON.Vector3(-25, 6.30, 0);
+        this.camera.rotation = new BABYLON.Vector3(0, Math.PI / 2, 0);
     }
 
     private createLight() 
@@ -108,17 +111,14 @@ export class Pong3Dscene
         const paddleMat = new BABYLON.StandardMaterial("paddleMat", this.scene);
         paddleMat.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1);
 
-        this.paddle_left = BABYLON.MeshBuilder.CreateBox("left_paddle", { width: 0.4, height: 1, depth: 2 }, this.scene);
+        this.paddle_left = BABYLON.MeshBuilder.CreateBox("left_paddle", { width: 0.4, height: 1, depth: 3 }, this.scene);
         this.paddle_left.position = new BABYLON.Vector3(-8, 0.5, 0);
         this.paddle_left.material = paddleMat;
 
-        this.paddle_right = BABYLON.MeshBuilder.CreateBox("right_paddle", { width: 0.4, height: 1, depth: 2 }, this.scene);
+        this.paddle_right = BABYLON.MeshBuilder.CreateBox("right_paddle", { width: 0.4, height: 1, depth: 3 }, this.scene);
         this.paddle_right.position = new BABYLON.Vector3(8, 0.5, 0);
         this.paddle_right.material = paddleMat;
 
-        this.camera.parent = this.paddle_left;
-        this.camera.position = new BABYLON.Vector3(-12, 2, 0);
-        this.camera.setTarget(this.paddle_left.position.add(new BABYLON.Vector3(10, 0, 0)));
     }
 
     private enableCollisions() 
@@ -127,8 +127,10 @@ export class Pong3Dscene
         this.ball.checkCollisions = true;
         this.paddle_left.checkCollisions = true;
         this.paddle_right.checkCollisions = true;
-        
-    
+        this.leftWall.checkCollisions = true;
+        this.rightWall.checkCollisions =  true;
+        this.paddle_left.ellipsoid = new BABYLON.Vector3(0.2, 0.5, 1.5);
+        this.paddle_right.ellipsoid = new BABYLON.Vector3(0.2, 0.5, 1.5);
     }
 
     private setupGameLoop() 
@@ -141,27 +143,43 @@ export class Pong3Dscene
                 this.ball.position.y = 0.25;
                 this.ballVelocity.y *= -0.8; 
             }     
-            if (Math.abs(this.ball.position.z) >= 9.75) 
+            if (Math.abs(this.ball.position.z) >= 9.50 )        //check wall collisions
             {
-                this.ballVelocity.z *= -1;
+                this.ballWallCollision();
             }
             this.checkPaddleCollision();
+            this.limitBallSpeed();
             if(this.ball.position.x > 10 || this.ball.position.x < -10)
-            {
                 this.resetBall();
-                console.log("goal");
-            }
             const moveVector = new BABYLON.Vector3(0, 0, 0);
-            if (this.keys["a"]) moveVector.z += 0.1;
-            if (this.keys["d"]) moveVector.z -= 0.1;
+            if (this.keys["a"]) moveVector.z += 0.25;
+            if (this.keys["d"]) moveVector.z -= 0.25;
             const moveVector2 = new BABYLON.Vector3(0, 0, 0);
-            if (this.keys["4"]) moveVector2.z += 0.1;
-            if (this.keys["6"]) moveVector2.z -= 0.1;
+            if (this.keys["4"]) moveVector2.z += 0.25;
+            if (this.keys["6"]) moveVector2.z -= 0.25;
             this.paddle_left.moveWithCollisions(moveVector);
             this.paddle_right.moveWithCollisions(moveVector2);
         });
 
         this.engine.runRenderLoop(() => this.scene.render());
+    }
+
+    private limitBallSpeed(): void
+    {
+        const speed = this.ballVelocity.length();
+        if(speed > this.maxSpeed)
+            this.ballVelocity.normalize().scaleInPlace(this.maxSpeed);
+    }
+
+    private ballWallCollision(): void
+    {
+        this.ballVelocity.z *= -1;
+        const minSpeedx = 0.15;
+        if (Math.abs(this.ballVelocity.x) < minSpeedx) 
+        {
+            const direction = this.ballVelocity.x >= 0 ? 1 : -1;
+            this.ballVelocity.x = direction * minSpeedx;
+        }
     }
 
     private async resetBall(): Promise<void>
@@ -186,23 +204,28 @@ export class Pong3Dscene
         // Left paddle collision
         if (this.ball.intersectsMesh(this.paddle_left, false)) 
         {
-            this.paddle_left.position.y = 0.5;
-            this.paddle_right.position.y = 0.5;
+            this.repositionPaddle();
             this.ballVelocity.x = Math.abs(this.ballVelocity.x); // Bounce right
             const hitOffset = this.ball.position.z - this.paddle_left.position.z;
-            this.ballVelocity.z += hitOffset * 0.1;
+            this.ballVelocity.z += hitOffset * 0.01;
         }
         // Right paddle collision
         if (this.ball.intersectsMesh(this.paddle_right, false)) 
         {
-            this.paddle_left.position.y = 0.5;
-            this.paddle_right.position.y = 0.5;
+            this.repositionPaddle();
             this.ballVelocity.x = -Math.abs(this.ballVelocity.x); // Bounce left
             const hitOffset = this.ball.position.z - this.paddle_right.position.z;
             this.ballVelocity.z += hitOffset * 0.1;
         }
     }
 
+    private repositionPaddle(): void
+    {
+        this.paddle_left.position.y = 0.5;
+        this.paddle_right.position.y = 0.5;
+        this.paddle_left.position.x = -8;
+        this.paddle_right.position.x = 8;
+    }
     dispose() 
     {
         this.engine.stopRenderLoop();
