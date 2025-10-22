@@ -70,8 +70,6 @@ async function mapFriendshipProfiles(userId: string, friendships: any[], getFrie
 // Send a friend request to a user by their username
 export async function sendFriendRequest(id: string, username: string) {
   const recipient =  await userRepository.findUserProfileByUsername(username);
-  console.log('Recipient:', recipient);
-  console.log('username:', username);
   if (!recipient) {
     throw new HttpError('Recipient not found', 404);
   }
