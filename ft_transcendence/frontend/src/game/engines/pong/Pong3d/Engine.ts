@@ -71,15 +71,18 @@ export class Pong3Dscene
         // Walls
         const wallMat = new BABYLON.StandardMaterial("wallMat", this.scene);
         wallMat.diffuseColor = new BABYLON.Color3(0, 0.5, 0.5);
+        const wallColor = new BABYLON.StandardMaterial("wallColor", this.scene);
+        wallColor.diffuseColor = new BABYLON.Color3(0.823, 0.411, 0.117);
+
 
         this.leftWall = BABYLON.MeshBuilder.CreateBox("left_wall", { width: 0.5, height: 3, depth: 20 }, this.scene);
         this.leftWall.position = new BABYLON.Vector3(0, 1.5, 10);
         this.leftWall.rotation.y = Math.PI / 2;
-        this.leftWall.material = wallMat;
+        this.leftWall.material = wallColor;
 
         this.rightWall = this.leftWall.clone("right_wall");
         this.rightWall.position = new BABYLON.Vector3(0, 1.5, -10);
-        this.rightWall.material = wallMat;
+        this.rightWall.material = wallColor;
 
         //this.backWall = BABYLON.MeshBuilder.CreateBox("backWall", { width: 0.5, height: 3, depth: 20 }, this.scene);
         //this.backWall.position = new BABYLON.Vector3(10,1.5,0);
@@ -226,6 +229,8 @@ export class Pong3Dscene
         this.paddle_left.position.x = -8;
         this.paddle_right.position.x = 8;
     }
+
+
     dispose() 
     {
         this.engine.stopRenderLoop();
