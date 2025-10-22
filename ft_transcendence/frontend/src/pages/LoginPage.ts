@@ -26,17 +26,30 @@ export default class LoginPage extends BaseComponent
 
     private checkMode(): void 
     {
+        console.log('=== checkMode() called ===');
+        console.log('Current URL:', window.location.href);
+        
         const params = new URLSearchParams(window.location.search);
         const setupMode = params.get('mode');
+        console.log('setupMode from URL:', setupMode);
         
         // Check for temp token in sessionStorage
         const token = sessionStorage.getItem('oauth_temp_token');
+        console.log('Token from sessionStorage:', token);
 
         if (setupMode === 'setup' && token) 
         {
+            console.log('Setting mode to set-username');
             this.mode = 'set-username';
             this.tempToken = token;
         }
+        else
+        {
+            console.log('Setting mode to login');
+            this.mode = 'login';
+        }
+        
+        console.log('Final mode:', this.mode);
     }
 
     private renderLogin(): string 
@@ -192,15 +205,20 @@ export default class LoginPage extends BaseComponent
 
     private attachEventListeners(): void 
     {
+        console.log('=== attachEventListeners() called ===');
+        console.log('Current mode:', this.mode);
+        
         if (this.mode === 'login') 
         {
             const form = document.getElementById('login-form');
+            console.log('Login form found:', !!form);
             if (form) 
             {
                 form.addEventListener('submit', (e) => this.handleSubmit(e));
             }
 
             const googleButton = document.getElementById('google-oauth-button');
+            console.log('Google button found:', !!googleButton);
             if (googleButton) 
             {
                 googleButton.addEventListener('click', () => this.handleGoogleLogin());
@@ -209,15 +227,27 @@ export default class LoginPage extends BaseComponent
         else 
         {
             const form = document.getElementById('username-form');
+            console.log('Username form found:', !!form);
             if (form) 
             {
                 form.addEventListener('submit', (e) => this.handleUsernameSubmit(e));
             }
 
             const backButton = document.getElementById('back-to-login');
+            console.log('Back button element:', backButton);
+            console.log('Back button found:', !!backButton);
+            
             if (backButton) 
             {
-                backButton.addEventListener('click', () => this.backToLogin());
+                console.log('Attaching click event to back button');
+                backButton.addEventListener('click', () => {
+                    console.log('Back button clicked!');
+                    this.backToLogin();
+                });
+            }
+            else
+            {
+                console.error('Back button NOT found in DOM!');
             }
         }
     }
@@ -229,17 +259,24 @@ export default class LoginPage extends BaseComponent
 
     private backToLogin(): void 
     {
+        console.log('=== Back to Login Clicked ===');
+        console.log('Current URL:', window.location.href);
+        console.log('Current pathname:', window.location.pathname);
+        console.log('Current search params:', window.location.search);
+        
         // Clear temp token
+        const tokenBefore = sessionStorage.getItem('oauth_temp_token');
+        console.log('Token before clear:', tokenBefore);
+        
         sessionStorage.removeItem('oauth_temp_token');
         
-        if ((window as any).navigateTo) 
-        {
-            (window as any).navigateTo('/login');
-        } 
-        else 
-        {
-            window.location.href = '/login';
-        }
+        const tokenAfter = sessionStorage.getItem('oauth_temp_token');
+        console.log('Token after clear:', tokenAfter);
+        
+        console.log('Navigating to /login...');
+        
+        // Use replace to remove query parameters and reload the page
+        window.location.replace('/login');
     }
 
     private showMessage(message: string, type: 'success' | 'error'): void 
