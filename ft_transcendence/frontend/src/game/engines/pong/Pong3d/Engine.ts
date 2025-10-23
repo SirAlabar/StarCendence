@@ -2,6 +2,7 @@ import * as BABYLON from "@babylonjs/core";
 import { Skybox } from "./Skybox";
 
 
+
 export class Pong3Dscene 
 {
     private engine: BABYLON.Engine;
@@ -54,11 +55,12 @@ export class Pong3Dscene
         this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(-10, 2, 0), this.scene);
         this.camera.position = new BABYLON.Vector3(-25, 11.25, 0);
         this.camera.rotation = new BABYLON.Vector3(0, Math.PI / 2, 0);
+        
         //top camera
         this.topCamera = new BABYLON.FreeCamera("topCamera", new BABYLON.Vector3(0,25,0));
         this.topCamera.rotation = new BABYLON.Vector3(Math.PI / 2, 0, 0);
         this.scene.activeCamera = this.camera;
-        this.scene.activeCamera.attachControl(this.canvas, true);
+        //this.scene.activeCamera.attachControl(this.canvas, true);
 
     }
 
@@ -74,7 +76,6 @@ export class Pong3Dscene
         const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 20, height: 15 }, this.scene);
         const groundMat = new BABYLON.StandardMaterial("groundMat", this.scene);
         groundMat.diffuseColor = new BABYLON.Color3(0.26, 0.89, 0.07);
-        ground.material = groundMat;
         ground.position.y = 5;
         ground.checkCollisions = true;
 
@@ -88,31 +89,39 @@ export class Pong3Dscene
         this.leftWall = BABYLON.MeshBuilder.CreateBox("left_wall", { width: 0.5, height: 3, depth: 20 }, this.scene);
         this.leftWall.position = new BABYLON.Vector3(0, 6, 7.5);
         this.leftWall.rotation.y = Math.PI / 2;
-        this.leftWall.material = wallColor;
+        this.leftWall.visibility = 0;
+        //this.leftWall.material = wallColor;
 
         this.rightWall = this.leftWall.clone("right_wall");
         this.rightWall.position = new BABYLON.Vector3(0, 6, -7.5);
-        this.rightWall.material = wallColor;
+        this.rightWall.visibility = 0;
+        //this.rightWall.material = wallColor;
 
         //this.backWall = BABYLON.MeshBuilder.CreateBox("backWall", { width: 0.5, height: 3, depth: 20 }, this.scene);
         //this.backWall.position = new BABYLON.Vector3(10,1.5,0);
 
         // Goal
-        const goalPlane = BABYLON.MeshBuilder.CreatePlane("goalPlane", { width: 15, height: 3 }, this.scene);
-        goalPlane.position = new BABYLON.Vector3(10, 6, 0);
-        goalPlane.rotation = new BABYLON.Vector3(0, Math.PI / 2, 0);
+        //const goalPlane = BABYLON.MeshBuilder.CreatePlane("goalPlane", { width: 15, height: 3 }, this.scene);
+        //goalPlane.position = new BABYLON.Vector3(10, 6, 0);
+        //goalPlane.rotation = new BABYLON.Vector3(0, Math.PI / 2, 0);
 
         //const goalPlane2 = BABYLON.MeshBuilder.CreatePlane("goalPlane2", { width: 20, height: 3 }, this.scene);
         //goalPlane2.position = new BABYLON.Vector3(-10, 1, 0);
         //goalPlane2.rotation = new BABYLON.Vector3(0, Math.PI / 2, 0);
 
-        const goalMat = new BABYLON.StandardMaterial("goalMat", this.scene);
-        goalMat.diffuseTexture = new BABYLON.Texture("assets/images/goaltest.png", this.scene);
-        goalMat.diffuseTexture.hasAlpha = true;
-        goalMat.backFaceCulling = false;
-        goalPlane.material = goalMat;
+        //const goalMat = new BABYLON.StandardMaterial("goalMat", this.scene);
+        //goalMat.diffuseTexture = new BABYLON.Texture("assets/images/goaltest.png", this.scene);
+        //goalMat.diffuseTexture.hasAlpha = true;
+        //goalMat.backFaceCulling = false;
+        //goalPlane.material = goalMat;
         //goalPlane2.material = goalMat;
 
+        const floorMat = new BABYLON.StandardMaterial("floorMat", this.scene);
+        floorMat.diffuseTexture = new BABYLON.Texture("assets/images/floor2.jpg", this.scene);
+        floorMat.diffuseTexture.hasAlpha = true;
+        floorMat.backFaceCulling = false;
+        ground.material = floorMat;
+        ground.visibility = 1;
         Skybox.createFromGLB(this.scene, "assets/images/skybox2.glb");
     }
 
