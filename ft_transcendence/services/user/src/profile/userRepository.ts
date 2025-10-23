@@ -14,7 +14,8 @@ export async function createUserProfile(authId: string, email: string, username:
     data: {
       id: authId,
       email,
-      username
+      username,
+      avatarUrl: '/avatars/default.jpeg',
     }
   });
 }

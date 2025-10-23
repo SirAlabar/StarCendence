@@ -75,9 +75,9 @@ export async function userRoutes(fastify: FastifyInstance)
     {
       return reply.status(400).send({ error: 'Invalid filename' });
     }
-    
-    const avatarPath = path.join(__dirname, '../../uploads/avatars', filename);
-    
+
+    const avatarPath = path.join(__dirname, '../../avatars', filename);
+
     try 
     {
       // Check if file exists
