@@ -34,6 +34,8 @@ REDIS_VOLUME = $(DOCKER_DATA_DIR)/redis
 USER_VOLUME = $(DOCKER_DATA_DIR)/user
 AUTH_VOLUME = $(DOCKER_DATA_DIR)/auth
 USER_AVATARS_VOLUME = $(DOCKER_DATA_DIR)/user/avatars
+PROMETHEUS_VOLUME = $(DOCKER_DATA_DIR)/prometheus
+GRAFANA_VOLUME = $(DOCKER_DATA_DIR)/grafana
 
 
 ################################################################################
@@ -110,9 +112,9 @@ setup:
 	@printf "$(CYAN)Building frontend...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory front
 	@printf "$(CYAN)Building containers...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) build nginx redis user-service auth-service
+	@$(DOCKER_COMPOSE) build nginx redis user-service auth-service grafana prometheus
 	@printf "$(CYAN)Starting services...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service
+	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service grafana prometheus
 	@printf "$(CYAN)Waiting for services...$(DEFAULT)\n"
 	@sleep 5
 	@printf "$(CYAN)Pushing database schema...$(DEFAULT)\n"
@@ -134,12 +136,16 @@ create-volumes:
 	@mkdir -p $(USER_VOLUME)
 	@mkdir -p $(AUTH_VOLUME)
 	@mkdir -p $(USER_AVATARS_VOLUME)
+	@mkdir -p $(PROMETHEUS_VOLUME)
+	@mkdir -p $(GRAFANA_VOLUME)
 	@printf "$(GREEN)✅ Volume directories created:$(DEFAULT)\n"
 	@printf "  - $(FRONTEND_VOLUME)\n"
 	@printf "  - $(REDIS_VOLUME)\n"
 	@printf "  - $(USER_VOLUME)\n"
 	@printf "  - $(AUTH_VOLUME)\n"
 	@printf "  - $(USER_AVATARS_VOLUME)\n"
+	@printf "  - $(PROMETHEUS_VOLUME)\n"
+	@printf "  - $(GRAFANA_VOLUME)\n"
 
 .PHONY: setup-env
 setup-env:
@@ -215,8 +221,6 @@ dev:
 	@printf "$(YELLOW)🌐 Backend (API Gateway via Nginx): http://localhost:8080$(DEFAULT)\n"
 	@printf "$(YELLOW)📊 Watching logs (Ctrl+C to exit)...$(DEFAULT)\n"
 	@$(DOCKER_COMPOSE) logs -f redis user-service auth-service nginx frontend-dev
-
-
 
 .PHONY: build
 build:
@@ -384,3 +388,15 @@ nginx_service_restart:
 	@docker compose build --no-cache nginx
 	@docker compose up nginx -d --force-recreate
 	@printf "$(GREEN)✅ nginx restarted!$(DEFAULT)\n"
+
+prometheus_restart:
+	@printf "$(YELLOW)🔄 Restarting prometheus...$(DEFAULT)\n"
+	@docker compose build --no-cache prometheus
+	@docker compose up prometheus -d --force-recreate
+	@printf "$(GREEN)✅ prometheus restarted!$(DEFAULT)\n"
+
+grafana_restart:
+	@printf "$(YELLOW)🔄 Restarting grafana...$(DEFAULT)\n"
+	@docker compose build --no-cache grafana
+	@docker compose up grafana -d --force-recreate
+	@printf "$(GREEN)✅ grafana restarted!$(DEFAULT)\n"
