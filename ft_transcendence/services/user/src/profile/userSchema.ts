@@ -40,7 +40,18 @@ export const updateUserProfileSchema = {
   }
 };
 
+// User search schema for GET /profile/:username
+export const searchUserByUsernameSchema = {
+  params: {
+    type: 'object',
+    required: ['username'],
+    properties: {
+      username: { type: 'string', minLength: 3, maxLength: 30 }
+    }
+  }
+};
 
+// User status update schema for internal PUT /internal/update-user-status
 export const updateUserStatusSchema = {
   body: {
     type: 'object',
@@ -51,3 +62,34 @@ export const updateUserStatusSchema = {
     }
   },
 }
+
+// User search schema for GET /users/search
+export const searchUsersSchema = {
+  querystring: 
+  {
+    type: 'object',
+    required: ['q'],
+    properties: 
+    {
+      q: { type: 'string', minLength: 2, maxLength: 50 }
+    }
+  },
+  response: 
+  {
+    200: 
+    {
+      type: 'array',
+      items: 
+      {
+        type: 'object',
+        properties: 
+        {
+          id: { type: 'string' },
+          username: { type: 'string' },
+          avatarUrl: { type: 'string', nullable: true },
+          status: { type: 'string', enum: Object.values(UserStatus) }
+        }
+      }
+    }
+  }
+};

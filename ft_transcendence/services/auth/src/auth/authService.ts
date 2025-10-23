@@ -24,7 +24,7 @@ export async function registerUser(email: string, password: string, username: st
 // Login user and return tokens
 export async function loginUser(email: string, password: string) {
   const user = await userRepository.findUserByEmail(email);
-  if (!user) {
+  if (!user || !user.email || !user.password) {
     throw new HttpError('Invalid email or password', 401);
   }
 
@@ -78,6 +78,10 @@ export async function verifyTwoFA(tempToken: string, twoFACode: string) {
   const existingTokens = await refreshTokenRepository.findByUserId(user.id);
   if (existingTokens) {
     await refreshTokenRepository.deleteByUserId(user.id);
+  }
+
+  if (!user.email || !user.username) {
+    throw new HttpError('User email or username is missing', 500);
   }
 
   const tokens = await tokenService.generateTokens(user.id, user.email, user.username);

@@ -10,7 +10,7 @@ export async function internalRoutes(fastify: FastifyInstance) {
   },
   userController.createUser);
 
-  fastify.put('/update-user-status',
+  fastify.patch('/update-user-status',
   {
     schema: userSchema.updateUserStatusSchema
   },

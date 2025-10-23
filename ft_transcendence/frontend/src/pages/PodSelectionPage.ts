@@ -6,7 +6,6 @@ export interface PodSelectionEvent {
   onConfirm: () => void;
 }
 
-// Map pod IDs to their corresponding MP4 video files or PNG images
 const POD_VIDEOS: { [podId: string]: string } = {
   'anakin_classic': 'assets/images/pods/anakin_pod1.mp4',
   'anakin_galaxies': 'assets/images/pods/anakin_pod2.mp4',
@@ -17,17 +16,29 @@ const POD_VIDEOS: { [podId: string]: string } = {
   'ph-qw-4l-ec-ro-nx': 'assets/images/pods/ph-qw-4l-ec-ro-nx.png'
 };
 
+const POD_THUMBNAILS: { [podId: string]: string } = {
+  'anakin_classic': 'assets/images/pods/thumbnails/anakin_pod1.jpg',
+  'anakin_galaxies': 'assets/images/pods/thumbnails/anakin_pod2.jpg',
+  'ben_quadinaros': 'assets/images/pods/thumbnails/ben_pod.jpg',
+  'ebe_endecotts': 'assets/images/pods/thumbnails/ebe_pod.jpg',
+  'red_menace': 'assets/images/pods/thumbnails/red_pod.jpg',
+  'space_racer': 'assets/images/pods/thumbnails/space_pod.jpg',
+  'ph-qw-4l-ec-ro-nx': 'assets/images/pods/ph-qw-4l-ec-ro-nx.png'
+};
+
 export class PodSelection extends BaseComponent 
 {
   private selectedPodId: string = 'anakin_classic';
   private onPodSelected?: (event: PodSelectionEvent) => void;
   
-  // Secret unlock system
   private clickedPods: Set<string> = new Set();
   private secretSequence: string[] = ['d', 's', 't', 'a', 'r', 'ArrowUp', 'ArrowDown'];
   private currentSequence: string[] = [];
   private secretUnlocked: boolean = false;
   private sequenceTimeout: number | null = null;
+  
+  private loadedVideos: Set<string> = new Set();
+  private currentPlayingVideo: HTMLVideoElement | null = null;
 
   constructor(onPodSelected?: (event: PodSelectionEvent) => void) 
   {
@@ -46,19 +57,18 @@ export class PodSelection extends BaseComponent
       <div class="pod-selection-overlay fixed inset-0 z-50 flex items-center justify-center neon-background">
         <div class="max-w-4xl w-full p-8">
           
-          <!-- Header -->
           <div class="text-center mb-8">
             <h1 class="text-4xl font-bold text-white mb-2 glow-text">Choose Your Podracer</h1>
             <p class="text-gray-300">Select your racing machine</p>
           </div>
 
-          <!-- Pod Grid -->
-          <div class="grid grid-cols-3 gap-6 mb-8">
-            ${this.renderPodCards()}
+          <div class="flex-1 mb-8 px-4 overflow-visible">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-8 mx-auto w-full max-w-6xl overflow-visible">
+              ${this.renderPodCards()}
+            </div>
           </div>
 
-          <!-- Action Buttons -->
-          <div class="flex justify-between items-center">
+          <div class="flex justify-between items-center flex-shrink-0 px-4 max-w-4xl mx-auto w-full">
             <button 
               onclick="navigateTo('/games')"
               class="neon-button-secondary px-6 py-3 rounded-lg transition-all duration-300"
@@ -66,7 +76,6 @@ export class PodSelection extends BaseComponent
               Cancel
             </button>
             
-            <!-- Secret Pod Container (initially hidden) -->
             <div id="secretPodContainer" class="secret-pod-container" style="display: none;">
             </div>
             
@@ -81,7 +90,6 @@ export class PodSelection extends BaseComponent
         </div>
 
         <style>
-          /* Secret Pod Container */
           .secret-pod-container {
             position: absolute;
             left: 50%;
@@ -89,7 +97,24 @@ export class PodSelection extends BaseComponent
             z-index: 100;
           }
 
-          /* Secret Pod Reveal Animation */
+          .overflow-y-auto::-webkit-scrollbar {
+            width: 8px;
+          }
+
+          .overflow-y-auto::-webkit-scrollbar-track {
+            background: rgba(31, 41, 55, 0.5);
+            border-radius: 4px;
+          }
+
+          .overflow-y-auto::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            border-radius: 4px;
+          }
+
+          .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #9333ea 0%, #db2777 100%);
+          }
+
           @keyframes secretReveal {
             0% {
               opacity: 0;
@@ -109,7 +134,6 @@ export class PodSelection extends BaseComponent
             animation: secretReveal 1s cubic-bezier(0.34, 1.56, 0.64, 1);
           }
 
-          /* Secret Pod Card Styling */
           .secret-pod-card {
             background: linear-gradient(145deg, 
               rgba(168, 85, 247, 0.2) 0%, 
@@ -147,7 +171,6 @@ export class PodSelection extends BaseComponent
               inset 0 0 40px rgba(168, 85, 247, 0.3);
           }
 
-          /* Neon background  */
           .pod-selection-overlay {
             position: fixed;
             inset: 0;
@@ -171,34 +194,6 @@ export class PodSelection extends BaseComponent
             flex: 1;
           }
 
-          .neon-background::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image: var(--star-gradients), var(--star-gradients);
-            background-repeat: repeat-x;
-            background-size: 200vw 100vh, 200vw 100vh;
-            background-position: 0% 0%, 200% 0%;
-            animation: stars-scroll 25s linear infinite,
-            stars-pulse 3s ease-in-out infinite alternate;
-            z-index: -10;
-          }
-
-          @keyframes stars-scroll {
-            0% {
-              background-position: 0% 0%, 200% 0%;
-            }
-            100% {
-              background-position: -200% 0%, 0% 0%;
-            }
-          }
-
-          @keyframes stars-pulse {
-            0%   { opacity: 0.5; }
-            100% { opacity: 1; }
-          }
-
-          /* Glowing text effect */
           .glow-text {
             text-shadow: 0 0 20px #63eafe, 0 0 40px #63eafe, 0 0 60px #63eafe;
             animation: text-glow 3s ease-in-out infinite alternate;
@@ -209,7 +204,6 @@ export class PodSelection extends BaseComponent
             100% { text-shadow: 0 0 30px #a855f7, 0 0 60px #a855f7, 0 0 90px #a855f7; }
           }
 
-          /* Enhanced pod cards */
           .pod-card {
             background: linear-gradient(145deg, 
               rgba(55, 65, 81, 0.9) 0%, 
@@ -228,7 +222,6 @@ export class PodSelection extends BaseComponent
             border-color: rgba(168, 85, 247, 0.6);
           }
 
-          /* Orbital glow effect for selected pod */
           .pod-card.selected {
             border: 1px solid rgba(59, 130, 246, 0.3);
             background: linear-gradient(145deg, 
@@ -246,7 +239,6 @@ export class PodSelection extends BaseComponent
             100% { box-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6, 0 0 15px #3b82f6, inset 0 0 5px rgba(59, 130, 246, 0.1); }
           }
 
-          /* Enhanced buttons */
           .neon-button-primary {
             background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
             color: white;
@@ -284,7 +276,6 @@ export class PodSelection extends BaseComponent
             transform: translateY(-2px);
           }
 
-          /* Video container enhancements */
           .video-container {
             position: relative;
             background: linear-gradient(45deg, 
@@ -306,7 +297,20 @@ export class PodSelection extends BaseComponent
             100% { transform: translateX(100%); }
           }
 
-          /* Selection indicator glow */
+          .video-thumbnail {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.3s ease;
+          }
+
+          .video-thumbnail.hidden {
+            opacity: 0;
+            pointer-events: none;
+          }
+
           .selection-indicator {
             animation: indicator-color-sync 3s linear infinite;
           }
@@ -351,19 +355,6 @@ export class PodSelection extends BaseComponent
               text-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
             }
           }
-
-          /* Responsive adjustments */
-          @media (max-width: 768px) {
-            .grid-cols-3 {
-              grid-template-columns: repeat(2, 1fr);
-            }
-          }
-
-          @media (max-width: 640px) {
-            .grid-cols-3 {
-              grid-template-columns: 1fr;
-            }
-          }
         </style>
       </div>
     `;
@@ -374,28 +365,42 @@ export class PodSelection extends BaseComponent
     return AVAILABLE_PODS.map(pod => 
     {
       const videoPath = POD_VIDEOS[pod.id];
+      const thumbnailPath = POD_THUMBNAILS[pod.id];
+      const isVideo = videoPath.endsWith('.mp4');
       
       return `
-        <div class="pod-card rounded-lg overflow-hidden cursor-pointer transition-all duration-300 ${
-          this.selectedPodId === pod.id ? 'selected' : ''
-        }" 
-        onclick="podSelection.selectPod('${pod.id}')">
-          
-          <!-- Pod Video Preview -->
+          <div class="pod-card rounded-lg cursor-pointer transition-all duration-300 transform hover:scale-[1.04] ${
+            this.selectedPodId === pod.id ? 'selected' : ''
+          }" 
+          onclick="podSelection.selectPod('${pod.id}')">
+
           <div class="video-container relative h-32 bg-gray-900">
-            <video 
-              id="video-${pod.id}"
-              class="w-full h-full object-cover"
-              muted
-              loop
-              preload="metadata"
-              ${this.selectedPodId === pod.id ? 'autoplay' : ''}
-            >
-              <source src="${videoPath}" type="video/mp4">
-              <div class="w-full h-full bg-gray-700 flex items-center justify-center">
-                <div class="text-4xl">🏎️</div>
-              </div>
-            </video>
+            ${isVideo ? `
+              <img 
+                id="thumbnail-${pod.id}"
+                src="${thumbnailPath}"
+                class="video-thumbnail"
+                alt="${pod.name}"
+              />
+              <video 
+                id="video-${pod.id}"
+                class="w-full h-full object-cover"
+                muted
+                loop
+                preload="none"
+                playsinline
+                oncanplay="podSelection.onVideoReady('${pod.id}')"
+              >
+                <source src="${videoPath}" type="video/mp4">
+              </video>
+            ` : `
+              <img 
+                src="${videoPath}"
+                class="w-full h-full object-cover"
+                alt="${pod.name}"
+                loading="lazy"
+              />
+            `}
             
             <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
               <div class="bg-black/50 rounded-full p-2">
@@ -436,26 +441,103 @@ export class PodSelection extends BaseComponent
   mount(_containerId?: string): void 
   {
     (window as any).podSelection = this;
-    this.generateStars();
     this.initializeSecretUnlock();
+    this.preloadVideo(this.selectedPodId);
   }
 
-  private generateStars(): void 
+  public onVideoReady(podId: string): void 
   {
-    const starColors = ['#ffffff', '#fffacd', '#87ceeb', '#ffb6c1'];
-    const numStars = 120;
-    const gradients: string[] = [];
-
-    for (let i = 0; i < numStars; i++) 
+    const thumbnailEl = document.getElementById(`thumbnail-${podId}`);
+    if (thumbnailEl && this.selectedPodId === podId) 
     {
-      const x = Math.random() * 100;
-      const y = Math.random() * 100;
-      const size = Math.random() * 8 + 1;
-      const color = starColors[Math.floor(Math.random() * starColors.length)];
-      gradients.push(`radial-gradient(${size}px ${size}px at ${x}% ${y}%, ${color}, transparent)`);
+      thumbnailEl.classList.add('hidden');
     }
+  }
 
-    document.documentElement.style.setProperty('--star-gradients', gradients.join(', '));
+  private preloadVideo(podId: string): void 
+  {
+    const videoPath = POD_VIDEOS[podId];
+    if (!videoPath || !videoPath.endsWith('.mp4')) 
+    {
+      return;
+    }
+    
+    if (this.loadedVideos.has(podId)) 
+    {
+      return;
+    }
+    
+    const videoEl = document.getElementById(`video-${podId}`) as HTMLVideoElement;
+    if (videoEl) 
+    {
+      videoEl.load();
+      this.loadedVideos.add(podId);
+    }
+  }
+
+  private playVideo(podId: string): void 
+  {
+    if (this.currentPlayingVideo) 
+    {
+      this.currentPlayingVideo.pause();
+      this.currentPlayingVideo.currentTime = 0;
+    }
+    
+    const videoPath = POD_VIDEOS[podId];
+    if (!videoPath || !videoPath.endsWith('.mp4')) 
+    {
+      return;
+    }
+    
+    const videoEl = document.getElementById(`video-${podId}`) as HTMLVideoElement;
+    const thumbnailEl = document.getElementById(`thumbnail-${podId}`);
+    
+    if (videoEl) 
+    {
+      if (!this.loadedVideos.has(podId)) 
+      {
+        videoEl.load();
+        this.loadedVideos.add(podId);
+      }
+      
+      videoEl.play().then(() => 
+      {
+        if (thumbnailEl) 
+        {
+          thumbnailEl.classList.add('hidden');
+        }
+      }).catch(() => {});
+      
+      this.currentPlayingVideo = videoEl;
+    }
+  }
+
+  private stopVideo(podId: string): void 
+  {
+    const videoPath = POD_VIDEOS[podId];
+    if (!videoPath || !videoPath.endsWith('.mp4')) 
+    {
+      return;
+    }
+    
+    const videoEl = document.getElementById(`video-${podId}`) as HTMLVideoElement;
+    const thumbnailEl = document.getElementById(`thumbnail-${podId}`);
+    
+    if (videoEl) 
+    {
+      videoEl.pause();
+      videoEl.currentTime = 0;
+      
+      if (thumbnailEl) 
+      {
+        thumbnailEl.classList.remove('hidden');
+      }
+      
+      if (this.currentPlayingVideo === videoEl) 
+      {
+        this.currentPlayingVideo = null;
+      }
+    }
   }
 
   private initializeSecretUnlock(): void 
@@ -470,16 +552,13 @@ export class PodSelection extends BaseComponent
       return;
     }
 
-    // Check if all pods have been clicked
     if (this.clickedPods.size < AVAILABLE_PODS.length) 
     {
       return;
     }
 
-    // Handle arrow keys differently
     const key = e.key.startsWith('Arrow') ? e.key : e.key.toLowerCase();
     
-    // Add to current sequence
     this.currentSequence.push(key);
 
     if (this.currentSequence.length > this.secretSequence.length) 
@@ -487,7 +566,6 @@ export class PodSelection extends BaseComponent
       this.currentSequence.shift();
     }
 
-    // Check if the last N keys match the secret sequence
     if (this.currentSequence.length === this.secretSequence.length) 
     {
       const matches = this.currentSequence.every((key, index) => 
@@ -526,6 +604,7 @@ export class PodSelection extends BaseComponent
             src="${imagePath}"
             class="w-full h-full object-cover"
             alt="${SECRET_POD.name}"
+            loading="lazy"
           />
           
           ${this.selectedPodId === SECRET_POD.id ? `
@@ -560,39 +639,36 @@ export class PodSelection extends BaseComponent
 
   selectPod(podId: string): void 
   {
-    // Track clicked pods for secret unlock
     if (!this.secretUnlocked && AVAILABLE_PODS.find(p => p.id === podId)) 
     {
       this.clickedPods.add(podId);
     }
 
-    // Remove old selection
     if (this.selectedPodId) 
     {
+      this.stopVideo(this.selectedPodId);
+      
       const oldCard = document.querySelector(`.pod-card.selected, .secret-pod-card.selected`);
       if (oldCard) 
       {
         oldCard.classList.remove('selected');
 
         const status = oldCard.querySelector('.selected-status');
-        if (status) status.remove();
+        if (status) 
+        {
+          status.remove();
+        }
 
         const check = oldCard.querySelector('.selection-indicator');
-        if (check && check.parentElement) check.parentElement.remove();
-      }
-
-      const oldVideo = document.getElementById(`video-${this.selectedPodId}`) as HTMLVideoElement;
-      if (oldVideo) 
-      {
-        oldVideo.pause();
-        oldVideo.currentTime = 0;
+        if (check && check.parentElement) 
+        {
+          check.parentElement.remove();
+        }
       }
     }
 
-    // Set new selection
     this.selectedPodId = podId;
     
-    // Handle secret pod selection
     if (podId === SECRET_POD.id) 
     {
       const secretCard = document.querySelector(`.secret-pod-card`);
@@ -657,11 +733,7 @@ export class PodSelection extends BaseComponent
         }
       }
 
-      const newVideo = document.getElementById(`video-${podId}`) as HTMLVideoElement;
-      if (newVideo) 
-      {
-        newVideo.play().catch(() => { });
-      }
+      this.playVideo(podId);
     }
   }
 
@@ -693,12 +765,21 @@ export class PodSelection extends BaseComponent
     {
       overlay.style.display = 'flex';
     }
+    
+    this.playVideo(this.selectedPodId);
   }
 
   dispose(): void 
   {
-    if (this.sequenceTimeout) {
+    if (this.sequenceTimeout) 
+    {
       clearTimeout(this.sequenceTimeout);
+    }
+    
+    if (this.currentPlayingVideo) 
+    {
+      this.currentPlayingVideo.pause();
+      this.currentPlayingVideo = null;
     }
     
     document.removeEventListener('keydown', this.handleSecretKeyPress.bind(this));

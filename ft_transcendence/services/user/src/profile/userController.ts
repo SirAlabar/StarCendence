@@ -15,7 +15,7 @@ export async function createUser( req: FastifyRequest<{ Body: CreateUserBody }>,
 
   const user: UserProfile = await userService.findUserProfileById(authId);
 
-  return reply.status(201).send({ user });
+  return reply.status(201).send(user);
 }
 
 // PUT /internal/update-user-status - Update user status (internal)
@@ -38,7 +38,23 @@ export async function getUserProfile(req: FastifyRequest, reply: FastifyReply) {
   }
   const user: UserProfile = await userService.findUserProfileById(userId);
 
-  return reply.send({ user });
+  return reply.send(user);
+}
+
+// GET /profile/:username - Get user's profile by username (requires authentication)
+export async function getUserProfileByUsername(req: FastifyRequest, reply: FastifyReply) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  }
+  const { username } = req.params as { username: string };
+  if (!username) {
+    return reply.status(400).send({ error: 'Username is required' });
+  }
+
+  const user: UserProfile = await userService.findUserProfileByUsername(username);
+
+  return reply.send(user);
 }
 
 // PUT /profile - Update user's profile (requires authentication)
@@ -51,29 +67,58 @@ export async function updateUserProfile( req: FastifyRequest<{ Body: UpdateUserB
   const updatedData = req.body;
   const updatedUser: UserProfile = await userService.updateUserProfile(userId, updatedData);
 
-  if (!updatedUser) {
-    return reply.status(404).send({ error: 'User not found' });
-  }
-
   return reply.send(updatedUser);
 }
 
 // POST /profile-image - Upload or update user's profile image (requires authentication)
-export async function uploadProfileImage(req: FastifyRequest, reply: FastifyReply) {
+export async function uploadProfileImage(req: FastifyRequest, reply: FastifyReply) 
+{
   const userId = req.user?.sub;
-  if (!userId) {
+  if (!userId) 
+  {
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
   }
 
   const image = await req.file({ limits: { fileSize: 5 * 1024 * 1024 } });
-  if (!image) {
+  if (!image) 
+  {
     return reply.status(400).send({ error: 'No image provided' });
   }
 
-  const imageUrl: Promise<string> = userService.uploadProfileImage(userId, image);
-  if (!imageUrl) {
-    return reply.status(404).send({ error: 'User not found' });
+  const validMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  if (!validMimeTypes.includes(image.mimetype)) 
+  {
+    return reply.status(400).send({
+      error: 'Invalid file type. Only JPG, PNG, GIF, and WEBP are allowed.'
+    });
   }
 
-  return reply.send({ imageUrl });
+  const imageUrl = await userService.uploadProfileImage(userId, image);
+  
+  if (!imageUrl) 
+  {
+    return reply.status(500).send({ error: 'Failed to upload image' });
+  }
+
+  return reply.send({ avatarUrl: imageUrl });
+}
+
+// GET /users/search?q=query - Search users by username (requires authentication)
+export async function searchUsers(req: FastifyRequest, reply: FastifyReply)
+{
+  const userId = req.user?.sub;
+  if (!userId)
+  {
+    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  }
+
+  const { q } = req.query as { q?: string };
+  
+  if (!q || q.trim().length < 2)
+  {
+    return reply.status(400).send({ error: 'Search query must be at least 2 characters' });
+  }
+
+  const users = await userService.searchUsers(q);
+  return reply.send(users);
 }

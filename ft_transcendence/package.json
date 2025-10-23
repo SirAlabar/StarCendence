@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "postcss-discard-empty": "^7.0.1"
+  }
+}

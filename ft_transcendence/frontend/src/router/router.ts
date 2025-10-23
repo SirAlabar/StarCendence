@@ -160,6 +160,14 @@ const routeConfig: Record<string, any> =
         headerType: 'default',
         requiresAuth: true
     },
+    '/user/:username':
+    {
+        component: () => import('../pages/UserPublicPage'),
+        title: 'User Profile - Transcendence',
+        layout: 'default',
+        headerType: 'default',
+        requiresAuth: true
+    },
     '/settings':
     {
         component: () => import('../pages/SettingsPage'),
@@ -167,6 +175,13 @@ const routeConfig: Record<string, any> =
         layout: 'default',
         headerType: 'default',
         requiresAuth: true
+    },
+    '/oauth/callback':
+    {
+        component: () => import('../pages/OAuthCallbackPage'),
+        title: 'Authenticating - Transcendence',
+        layout: 'auth',
+        headerType: 'minimal'
     },
     '/404':
     {
@@ -186,16 +201,50 @@ function getCurrentPath(): string
     return window.location.pathname || '/';
 }
 
+function getFullPath(): string
+{
+    const pathname = window.location.pathname || '/';
+    const search = window.location.search || '';
+    return pathname + search;
+}
+
 // Function to parse route
 function parseRoute(path: string): any
 {
-    return routeConfig[path] || routeConfig['/404'];
+    // First try exact match
+    if (routeConfig[path]) 
+    {
+        return routeConfig[path];
+    }
+    
+    // Then try dynamic routes
+    const dynamicRoute = matchDynamicRoute(path);
+    if (dynamicRoute) 
+    {
+        return dynamicRoute;
+    }
+    
+    // Finally return 404
+    return routeConfig['/404'];
+}
+
+// Function to match dynamic routes
+function matchDynamicRoute(path: string): any 
+{
+    // Check for /user/:username pattern
+    if (path.startsWith('/user/')) 
+    {
+        return routeConfig['/user/:username'];
+    }
+    
+    return null;
 }
 
 // Check if user is authenticated
 function isAuthenticated(): boolean
 {
-    return localStorage.getItem('auth_token') !== null;
+    const token = localStorage.getItem('access_token');
+    return token !== null;
 }
 
 // Main navigation function
@@ -207,8 +256,12 @@ export async function navigateTo(path: string): Promise<void>
     }
 
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    
+    // Split path and query params
+    const [pathname, search] = cleanPath.split('?');
+    const fullPath = search ? `${pathname}?${search}` : pathname;
 
-    if (routerState.currentRoute && routerState.currentRoute.path === cleanPath)
+    if (routerState.currentRoute && routerState.currentRoute.path === pathname)
     {
         return;
     }
@@ -216,11 +269,12 @@ export async function navigateTo(path: string): Promise<void>
     routerState.isNavigating = true;
     routerState.cleanupCurrentPage();
 
-    const route = parseRoute(cleanPath);
+    // Parse route using only pathname, not query params
+    const route = parseRoute(pathname);
 
     if (route.requiresAuth && !isAuthenticated())
     {
-        if (cleanPath !== '/login' && cleanPath !== '/register')
+        if (pathname !== '/login' && pathname !== '/register')
         {
             routerState.isNavigating = false;
             return navigateTo('/login');
@@ -229,9 +283,10 @@ export async function navigateTo(path: string): Promise<void>
 
     document.title = route.title;
 
-    if (window.location.pathname !== cleanPath)
+    // Push full path with query params
+    if (window.location.pathname + window.location.search !== fullPath)
     {
-        window.history.pushState({ path: cleanPath }, '', cleanPath);
+        window.history.pushState({ path: fullPath }, '', fullPath);
     }
 
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
@@ -266,7 +321,7 @@ export async function navigateTo(path: string): Promise<void>
             updateActiveNavLinks();
         });
 
-        routerState.currentRoute = { ...route, path: cleanPath };
+        routerState.currentRoute = { ...route, path: pathname };
     }
     catch (error)
     {
@@ -403,8 +458,8 @@ export function initRouter(): void
     // Setup event listeners with cleanup
     routerState.setEventListeners(handleLinkClick, handlePopState);
 
-    // Load initial page only if no content exists
-    const currentPath = getCurrentPath();
+    // Load initial page with query params
+    const fullPath = getFullPath();
 
     const existingContent = document.querySelector('[data-route-content]');
 
@@ -414,7 +469,7 @@ export function initRouter(): void
         {
             if (!routerState.currentRoute)
             {
-                navigateTo(currentPath);
+                navigateTo(fullPath);
             }
         }, 100);
     }

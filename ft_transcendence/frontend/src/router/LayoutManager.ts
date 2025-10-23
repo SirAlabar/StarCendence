@@ -75,8 +75,8 @@ export function renderAuth(component: BaseComponent): void
 {
     const app = document.querySelector('#app')!;
    
-    if (!document.querySelector('#auth-header-mount'))
-    {
+    // if (!document.querySelector('#auth-header-mount'))
+    // {
         app.innerHTML = `
             <div class="min-h-screen bg-gradient-to-br from-gray-900 to-purple-900" data-route-content="true">
                 <div id="header-mount"></div>
@@ -85,7 +85,7 @@ export function renderAuth(component: BaseComponent): void
                 </main>
             </div>
         `;
-    }
+    // }
     mountComponent(component, '#auth-content');
 }
 
