@@ -16,16 +16,17 @@ async function main()
   console.log('🌱 Seeding auth database...');
 
   const users = [
-    { id: '550e8400-e29b-41d4-a716-446655440001', email: 'anakin@force.com', username: 'Anakin Skywalker', password: 'Anakin@@1234' },
-    { id: '550e8400-e29b-41d4-a716-446655440002', email: 'padme@nabooprincess.com', username: 'Padmé Amidala', password: 'Padme@@1234' },
-    { id: '550e8400-e29b-41d4-a716-446655440003', email: 'vader@empire.gov', username: 'Darth Vader', password: 'Vader@@1234' },
+    { id: '550e8400-e29b-41d4-a716-446655440001', email: 'anakin@force.com', username: 'Anakin', password: 'Anakin@@1234' },
+    { id: '550e8400-e29b-41d4-a716-446655440002', email: 'padme@nabooprincess.com', username: 'Padmé', password: 'Padme@@1234' },
+    { id: '550e8400-e29b-41d4-a716-446655440003', email: 'vader@empire.gov', username: 'Darth', password: 'Vader@@1234' },
     { id: '550e8400-e29b-41d4-a716-446655440004', email: 'sebulba@malastare.pod', username: 'Sebulba', password: 'Sebulba@@1234' },
     { id: '550e8400-e29b-41d4-a716-446655440005', email: 'gasgano@troiken.pod', username: 'Gasgano', password: 'Gasgano@@1234' },
-    { id: '550e8400-e29b-41d4-a716-446655440006', email: 'teemto@moonus.pod', username: 'Teemto Pagalies', password: 'Teemto@@1234' },
-    { id: '550e8400-e29b-41d4-a716-446655440007', email: 'ratts@aleen.pod', username: 'Ratts Tyerell', password: 'Ratts@@1234' },
-    { id: '550e8400-e29b-41d4-a716-446655440008', email: 'ebe@ryvellia.pod', username: 'Ebe Endocott', password: 'Ebe@@1234' },
-    { id: '550e8400-e29b-41d4-a716-446655440009', email: 'mars@phuii.pod', username: 'Mars Guo', password: 'Mars@@1234' },
-    { id: '550e8400-e29b-41d4-a716-446655440010', email: 'ben@tund.pod', username: 'Ben Quadinaros', password: 'Ben@@1234' },
+    { id: '550e8400-e29b-41d4-a716-446655440006', email: 'teemto@moonus.pod', username: 'Teemto', password: 'Teemto@@1234' },
+    { id: '550e8400-e29b-41d4-a716-446655440007', email: 'ratts@aleen.pod', username: 'Ratts', password: 'Ratts@@1234' },
+    { id: '550e8400-e29b-41d4-a716-446655440008', email: 'ebe@ryvellia.pod', username: 'Ebe', password: 'Ebe@@1234' },
+    { id: '550e8400-e29b-41d4-a716-446655440009', email: 'mars@phuii.pod', username: 'Mars', password: 'Mars@@1234' },
+    { id: '550e8400-e29b-41d4-a716-446655440010', email: 'ben@tund.pod', username: 'Ben', password: 'Ben@@1234' },
+    { id: '550e8400-e29b-41d4-a716-446655440011', email: 'test@test.com', username: 'test', password: 'Test123.' },
   ];
 
   for (const user of users) 

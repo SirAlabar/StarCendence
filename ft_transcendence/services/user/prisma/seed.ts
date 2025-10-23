@@ -54,16 +54,17 @@ async function main()
   console.log('🌱 Starting database seed...');
 
   const users = [
-    { id: '550e8400-e29b-41d4-a716-446655440001', username: 'Anakin Skywalker', email: 'anakin@force.com', bio: 'The Chosen One. Podracer champion turned Jedi.', status: 'OFFLINE', avatar: 'anakin.gif' },
-    { id: '550e8400-e29b-41d4-a716-446655440002', username: 'Padmé Amidala', email: 'padme@nabooprincess.com', bio: 'Former Queen of Naboo. Fearless senator.', status: 'OFFLINE', avatar: 'padme.gif' },
-    { id: '550e8400-e29b-41d4-a716-446655440003', username: 'Darth Vader', email: 'vader@empire.gov', bio: 'Lord of the Sith. Wears black. Breathing enthusiast.', status: 'OFFLINE', avatar: 'vader.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440001', username: 'Anakin', email: 'anakin@force.com', bio: 'The Chosen One. Podracer champion turned Jedi.', status: 'OFFLINE', avatar: 'anakin.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440002', username: 'Padmé', email: 'padme@nabooprincess.com', bio: 'Former Queen of Naboo. Fearless senator.', status: 'OFFLINE', avatar: 'padme.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440003', username: 'Darth', email: 'vader@empire.gov', bio: 'Lord of the Sith. Wears black. Breathing enthusiast.', status: 'OFFLINE', avatar: 'vader.gif' },
     { id: '550e8400-e29b-41d4-a716-446655440004', username: 'Sebulba', email: 'sebulba@malastare.pod', bio: 'Dug podracer pilot. Hates Skywalker.', status: 'OFFLINE', avatar: 'sebulba.gif' },
     { id: '550e8400-e29b-41d4-a716-446655440005', username: 'Gasgano', email: 'gasgano@troiken.pod', bio: 'Xexto podracer with 24 fingers. Speed is everything.', status: 'OFFLINE', avatar: 'gasgano.jpg' },
-    { id: '550e8400-e29b-41d4-a716-446655440006', username: 'Teemto Pagalies', email: 'teemto@moonus.pod', bio: 'Veknoid podracer. Cool under pressure.', status: 'OFFLINE', avatar: 'teemto.jpg' },
-    { id: '550e8400-e29b-41d4-a716-446655440007', username: 'Ratts Tyerell', email: 'ratts@aleen.pod', bio: 'Tiny but fierce Aleena podracer.', status: 'OFFLINE', avatar: 'ratts.jpg' },
-    { id: '550e8400-e29b-41d4-a716-446655440008', username: 'Ebe Endocott', email: 'ebe@ryvellia.pod', bio: 'Rybet podracer from Ando Prime.', status: 'OFFLINE', avatar: 'ebe.jpg' },
-    { id: '550e8400-e29b-41d4-a716-446655440009', username: 'Mars Guo', email: 'mars@phuii.pod', bio: 'Phuii podracer with a need for speed.', status: 'OFFLINE', avatar: 'mars.gif' },
-    { id: '550e8400-e29b-41d4-a716-44665544000a', username: 'Ben Quadinaros', email: 'ben@tund.pod', bio: 'Toong podracer. Engine trouble is my specialty.', status: 'OFFLINE', avatar: 'ben.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440006', username: 'Teemto', email: 'teemto@moonus.pod', bio: 'Veknoid podracer. Cool under pressure.', status: 'OFFLINE', avatar: 'teemto.jpg' },
+    { id: '550e8400-e29b-41d4-a716-446655440007', username: 'Ratts', email: 'ratts@aleen.pod', bio: 'Tiny but fierce Aleena podracer.', status: 'OFFLINE', avatar: 'ratts.jpg' },
+    { id: '550e8400-e29b-41d4-a716-446655440008', username: 'Ebe', email: 'ebe@ryvellia.pod', bio: 'Rybet podracer from Ando Prime.', status: 'OFFLINE', avatar: 'ebe.jpg' },
+    { id: '550e8400-e29b-41d4-a716-446655440009', username: 'Mars', email: 'mars@phuii.pod', bio: 'Phuii podracer with a need for speed.', status: 'OFFLINE', avatar: 'mars.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440010', username: 'Ben', email: 'ben@tund.pod', bio: 'Toong podracer. Engine trouble is my specialty.', status: 'OFFLINE', avatar: 'ben.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440011', username: 'test', email: 'test@test.com', bio: 'Just a test user.', status: 'OFFLINE', avatar: '/avatars/default.jpeg' },
   ];
 
   const createdUsers = [];
@@ -99,7 +100,7 @@ async function main()
   await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440004', recipientId: '550e8400-e29b-41d4-a716-446655440008', status: 'ACCEPTED' } });
   await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440005', recipientId: '550e8400-e29b-41d4-a716-446655440006', status: 'ACCEPTED' } });
   await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440005', recipientId: '550e8400-e29b-41d4-a716-446655440009', status: 'ACCEPTED' } });
-  await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440007', recipientId: '550e8400-e29b-41d4-a716-44665544000a', status: 'ACCEPTED' } });
+  await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440007', recipientId: '550e8400-e29b-41d4-a716-446655440010', status: 'ACCEPTED' } });
   await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440007', recipientId: '550e8400-e29b-41d4-a716-446655440008', status: 'ACCEPTED' } });
 
   console.log('\n✅ Seed complete – 10 users, avatars, and friendships created!');
