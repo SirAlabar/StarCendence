@@ -64,7 +64,6 @@ async function main()
     { id: '550e8400-e29b-41d4-a716-446655440008', username: 'Ebe', email: 'ebe@ryvellia.pod', bio: 'Rybet podracer from Ando Prime.', status: 'OFFLINE', avatar: 'ebe.jpg' },
     { id: '550e8400-e29b-41d4-a716-446655440009', username: 'Mars', email: 'mars@phuii.pod', bio: 'Phuii podracer with a need for speed.', status: 'OFFLINE', avatar: 'mars.gif' },
     { id: '550e8400-e29b-41d4-a716-446655440010', username: 'Ben', email: 'ben@tund.pod', bio: 'Toong podracer. Engine trouble is my specialty.', status: 'OFFLINE', avatar: 'ben.gif' },
-    { id: '550e8400-e29b-41d4-a716-446655440011', username: 'test', email: 'test@test.com', bio: 'Just a test user.', status: 'OFFLINE', avatar: '/avatars/default.jpeg' },
   ];
 
   const createdUsers = [];
@@ -80,7 +79,7 @@ async function main()
         email: userData.email,
         bio: userData.bio,
         status: userData.status,
-        avatarUrl: avatarUrl || null,
+        avatarUrl: avatarUrl || '/avatars/default.jpeg',
       },
     });
     

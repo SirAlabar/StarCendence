@@ -26,7 +26,6 @@ async function main()
     { id: '550e8400-e29b-41d4-a716-446655440008', email: 'ebe@ryvellia.pod', username: 'Ebe', password: 'Ebe@@1234' },
     { id: '550e8400-e29b-41d4-a716-446655440009', email: 'mars@phuii.pod', username: 'Mars', password: 'Mars@@1234' },
     { id: '550e8400-e29b-41d4-a716-446655440010', email: 'ben@tund.pod', username: 'Ben', password: 'Ben@@1234' },
-    { id: '550e8400-e29b-41d4-a716-446655440011', email: 'test@test.com', username: 'test', password: 'Test123.' },
   ];
 
   for (const user of users) 
