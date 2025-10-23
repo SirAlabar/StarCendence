@@ -17,7 +17,8 @@ export class Pong3Dscene
     private gravity = -0.01; // gravity strength
     private leftWall!: BABYLON.Mesh;
     private rightWall!: BABYLON.Mesh;
-    private canChangeCamera!: boolean = true;
+    private canChangeCamera: boolean = true;
+    
     //private backWall!: BABYLON.Mesh;
 
     private keys: Record<string, boolean> = {};
@@ -51,7 +52,7 @@ export class Pong3Dscene
     private createCamera() 
     {
         this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(-10, 2, 0), this.scene);
-        this.camera.position = new BABYLON.Vector3(-25, 6.25, 0);
+        this.camera.position = new BABYLON.Vector3(-25, 11.25, 0);
         this.camera.rotation = new BABYLON.Vector3(0, Math.PI / 2, 0);
         //top camera
         this.topCamera = new BABYLON.FreeCamera("topCamera", new BABYLON.Vector3(0,25,0));
@@ -70,10 +71,12 @@ export class Pong3Dscene
     private createEnvironment() 
     {
         // Ground
-        const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 20, height: 20 }, this.scene);
+        const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 20, height: 15 }, this.scene);
         const groundMat = new BABYLON.StandardMaterial("groundMat", this.scene);
         groundMat.diffuseColor = new BABYLON.Color3(0.26, 0.89, 0.07);
         ground.material = groundMat;
+        ground.position.y = 5;
+        ground.checkCollisions = true;
 
         // Walls
         const wallMat = new BABYLON.StandardMaterial("wallMat", this.scene);
@@ -83,20 +86,20 @@ export class Pong3Dscene
 
 
         this.leftWall = BABYLON.MeshBuilder.CreateBox("left_wall", { width: 0.5, height: 3, depth: 20 }, this.scene);
-        this.leftWall.position = new BABYLON.Vector3(0, 1, 10);
+        this.leftWall.position = new BABYLON.Vector3(0, 6, 7.5);
         this.leftWall.rotation.y = Math.PI / 2;
         this.leftWall.material = wallColor;
 
         this.rightWall = this.leftWall.clone("right_wall");
-        this.rightWall.position = new BABYLON.Vector3(0, 1, -10);
+        this.rightWall.position = new BABYLON.Vector3(0, 6, -7.5);
         this.rightWall.material = wallColor;
 
         //this.backWall = BABYLON.MeshBuilder.CreateBox("backWall", { width: 0.5, height: 3, depth: 20 }, this.scene);
         //this.backWall.position = new BABYLON.Vector3(10,1.5,0);
 
         // Goal
-        const goalPlane = BABYLON.MeshBuilder.CreatePlane("goalPlane", { width: 20, height: 3 }, this.scene);
-        goalPlane.position = new BABYLON.Vector3(10, 1, 0);
+        const goalPlane = BABYLON.MeshBuilder.CreatePlane("goalPlane", { width: 15, height: 3 }, this.scene);
+        goalPlane.position = new BABYLON.Vector3(10, 6, 0);
         goalPlane.rotation = new BABYLON.Vector3(0, Math.PI / 2, 0);
 
         //const goalPlane2 = BABYLON.MeshBuilder.CreatePlane("goalPlane2", { width: 20, height: 3 }, this.scene);
@@ -110,7 +113,7 @@ export class Pong3Dscene
         goalPlane.material = goalMat;
         //goalPlane2.material = goalMat;
 
-        Skybox.create(this.scene, "assets/images/skyboxpong.hdr");
+        Skybox.createFromGLB(this.scene, "assets/images/skybox2.glb");
     }
 
     private createGameObjects() 
@@ -120,18 +123,18 @@ export class Pong3Dscene
         const ballMat = new BABYLON.StandardMaterial("ballMat", this.scene);
         ballMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
         this.ball.material = ballMat;
-        this.ball.position = new BABYLON.Vector3(0, 0.5, 0);
+        this.ball.position = new BABYLON.Vector3(0, 5.5, 0);
 
         // Paddles
         const paddleMat = new BABYLON.StandardMaterial("paddleMat", this.scene);
         paddleMat.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1);
 
         this.paddle_left = BABYLON.MeshBuilder.CreateBox("left_paddle", { width: 0.4, height: 1, depth: 3 }, this.scene);
-        this.paddle_left.position = new BABYLON.Vector3(-8, 0.5, 0);
+        this.paddle_left.position = new BABYLON.Vector3(-8, 5.5, 0);
         this.paddle_left.material = paddleMat;
 
         this.paddle_right = BABYLON.MeshBuilder.CreateBox("right_paddle", { width: 0.4, height: 1, depth: 3 }, this.scene);
-        this.paddle_right.position = new BABYLON.Vector3(8, 0.5, 0);
+        this.paddle_right.position = new BABYLON.Vector3(8, 5.5, 0);
         this.paddle_right.material = paddleMat;
 
     }
@@ -140,6 +143,7 @@ export class Pong3Dscene
     {
         this.scene.collisionsEnabled = true;
         this.ball.checkCollisions = true;
+        
         this.paddle_left.checkCollisions = true;
         this.paddle_right.checkCollisions = true;
         this.leftWall.checkCollisions = true;
@@ -153,12 +157,12 @@ export class Pong3Dscene
         this.scene.onBeforeRenderObservable.add(() => {
             this.ballVelocity.y += this.gravity;
             this.ball.position.addInPlace(this.ballVelocity);
-            if (this.ball.position.y <= 0.25) 
+            if (this.ball.position.y <= 5.25) 
             {
-                this.ball.position.y = 0.25;
+                this.ball.position.y = 5.25;
                 this.ballVelocity.y *= -0.8; 
             }     
-            if (Math.abs(this.ball.position.z) >= 9.50 )        //check wall collisions
+            if (Math.abs(this.ball.position.z) >= 7 )        //check wall collisions
                 this.ballWallCollision();
             this.checkPaddleCollision();
             this.limitBallSpeed();
@@ -193,7 +197,7 @@ export class Pong3Dscene
         this.ball.isVisible = false;
         await this.delay(2000);
         this.ballVelocity.set(0,0,0);
-        this.ball.position.set(0,0.5,0);
+        this.ball.position.set(0,5.5,0);
         this.ball.isVisible = true;
         const direction = Math.random() < 0.5 ? 1 : -1;
         this.ballVelocity = new BABYLON.Vector3(0.1 * direction, 0 , 0.05);
@@ -227,8 +231,8 @@ export class Pong3Dscene
 
     private repositionPaddle(): void
     {
-        this.paddle_left.position.y = 0.5;
-        this.paddle_right.position.y = 0.5;
+        this.paddle_left.position.y = 5.5;
+        this.paddle_right.position.y = 5.5;
         this.paddle_left.position.x = -8;
         this.paddle_right.position.x = 8;
     }

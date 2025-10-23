@@ -1,5 +1,6 @@
 import { PongScene } from '@/game/engines/pong/PongScene';
 import { AiDifficulty } from '@/game/engines/pong/entities/EnemyAi';
+import { Pong3Dscene } from '../engines/pong/Pong3d/Engine';
 
 type GameState = 'menu' | 'playing' | 'paused' | 'ended';
 type GameMode = 'multiplayer' | 'ai';
@@ -17,6 +18,7 @@ export class GameManager
     // Game state
     private currentState: GameState = 'menu';
     private pongScene: PongScene | null = null;
+    private pongScene3d: Pong3Dscene | null
     private canvas: HTMLCanvasElement | null = null;
     private gameConfig: GameConfig | null = null;
     
@@ -94,24 +96,55 @@ export class GameManager
         console.log('GameManager: Game initialized', config);
     }
     
+    public initGame3D(canvas: HTMLCanvasElement, config: GameConfig): void 
+    {
+        if (this.currentState === 'playing') 
+        {
+            console.warn('Game already running');
+            return;
+        }
+
+        this.canvas = canvas;
+        this.gameConfig = config;
+
+        
+        try 
+        {
+            this.pongScene3d = new Pong3Dscene(canvas);
+        } 
+        catch (error) 
+        {
+            console.error('Failed to initialize 3D scene:', error);
+            return;
+        }
+
+        this.currentState = 'playing';
+        console.log('GameManager: 3D Game initialized', config);
+    }
+
     // Start game
     public startGame(): void 
     {
-        if (!this.pongScene) 
+        if (this.pongScene) 
+        {
+            if (this.currentState === 'paused') 
+            {
+                this.resumeGame();
+                return;
+            }
+            this.currentState = 'playing';
+            this.pongScene.start();
+            console.log('GameManager: 2D Game started');
+        } 
+        else if (this.pongScene3d) 
+        {
+            this.currentState = 'playing';
+            console.log('GameManager: 3D Game started');
+        } 
+        else 
         {
             console.error('GameManager: Cannot start - game not initialized');
-            return;
         }
-        
-        if (this.currentState === 'paused') 
-        {
-            this.resumeGame();
-            return;
-        }
-        
-        this.currentState = 'playing';
-        this.pongScene.start();
-        console.log('GameManager: Game started');
     }
     
     // Pause game
@@ -204,18 +237,23 @@ export class GameManager
     // Cleanup current game
     public cleanup(): void 
     {
-        if (this.pongScene) 
-        {
-            this.pongScene.stop();
-            this.pongScene = null;
-        }
-        
-        this.canvas = null;
-        this.gameConfig = null;
-        this.currentState = 'menu';
-        
-        console.log('GameManager: Cleanup complete');
+    if (this.pongScene) 
+    {
+        this.pongScene.stop();
+        this.pongScene = null;
     }
+    if (this.pongScene3d) 
+    {
+        this.pongScene3d.dispose();
+        this.pongScene3d = null;
+    }
+
+    this.canvas = null;
+    this.gameConfig = null;
+    this.currentState = 'menu';
+    
+    console.log('GameManager: Cleanup complete');
+}
     
     // Get current state
     public getState(): GameState 

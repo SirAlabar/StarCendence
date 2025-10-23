@@ -1,23 +1,27 @@
 // Skybox.ts
-import * as BABYLON from '@babylonjs/core';
-import "@babylonjs/loaders/glTF"; 
+import * as BABYLON from "@babylonjs/core";
+import "@babylonjs/loaders/glTF";
 
-export class Skybox 
-{
-    static create(scene: BABYLON.Scene, texturePath: string): BABYLON.PhotoDome 
+export class Skybox {
+    static async createFromGLB(scene: BABYLON.Scene, glbPath: string): Promise<void> 
     {
-        const dome = new BABYLON.PhotoDome(
-            "skyDome",
-            texturePath,
-            {
-                resolution: 16,
-                size: 1000, // adjust to your scene scale
-            },
-            scene
-        
-        );
-        dome.material.alpha = 0.65;
-        return dome;
+        try {
+            const result = await BABYLON.SceneLoader.ImportMeshAsync(
+                "", 
+                glbPath.substring(0, glbPath.lastIndexOf("/") + 1), 
+                glbPath.split("/").pop()!, 
+                scene
+            );
+
+            const skyMesh = result.meshes[0];
+            skyMesh.scaling = new BABYLON.Vector3(1000, 1000, 1000); // make it big
+            skyMesh.isPickable = false;
+            skyMesh.checkCollisions = false;
+            skyMesh.material!.backFaceCulling = false;
+        } 
+        catch (error) {
+            console.error("Failed to load GLB skybox:", error);
+        }
     }
 }
 
