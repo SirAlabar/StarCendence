@@ -341,7 +341,13 @@ export default class UserPublicPage extends BaseComponent
         {
             this.checkingFriendship = true;
             const friendsData = await FriendService.getFriends();
-            
+
+            if (!friendsData || !friendsData.friends) 
+            {
+                this.isFriend = false;
+                return;
+            }
+
             // Check if this user is in the friends list
             this.isFriend = friendsData.friends.some(
                 friend => friend.username === this.username

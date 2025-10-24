@@ -215,7 +215,7 @@ export class FriendsList extends BaseComponent
         switch (status) 
         {
             case 'ONLINE':
-                return { color: 'bg-green-500', text: 'INVITE' };
+                return { color: 'bg-green-500', text: 'ONLINE' };
             case 'IN_GAME':
                 return { color: 'bg-blue-500', text: 'In Match' };
             case 'OFFLINE':
