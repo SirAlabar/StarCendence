@@ -1,5 +1,5 @@
 // LoginService.ts
-import { getAuthApiUrl, getAuthUrl } from '../../types/api.types';
+import { getAuthApiUrl } from '../../types/api.types';
 
 // Types for login operations
 export interface LoginRequest 
@@ -171,7 +171,7 @@ export class LoginService
     // Logout - matches your /logout endpoint
     static async logout(): Promise<void> 
     {
-        const refreshToken = this.getRefreshToken();
+      const refreshToken = this.getRefreshToken();
         if (!refreshToken) 
         {
             this.clearTokens();
@@ -180,12 +180,21 @@ export class LoginService
 
         try 
         {
-            await fetch(getAuthApiUrl('/logout'), 
+            const response = await fetch(getAuthApiUrl('/logout'), 
             {
                 method: 'POST',
                 headers: this.getHeaders(),
-                body: JSON.stringify({ refreshToken })
+                body: JSON.stringify({})
             });
+            
+            const data = await response.json();
+
+            if (!response.ok) 
+            {
+                throw new Error(data.message || 'Logout failed');
+            }
+
+            return data;
         } 
         catch (error) 
         {

@@ -1,5 +1,5 @@
 // AuthService.ts
-import { getAuthUrl } from '../../types/api.types';
+import { getAuthApiUrl } from '../../types/api.types';
 
 // Types for registration operations
 export interface RegisterRequest 
@@ -24,7 +24,7 @@ export class AuthService
         {
             const requestBody = JSON.stringify(userData);
 
-            const response = await fetch(getAuthUrl('/register'), 
+            const response = await fetch(getAuthApiUrl('/register'), 
             {
                 method: 'POST',
                 headers: 
@@ -85,7 +85,7 @@ export class AuthService
     {
         try 
         {
-            const response = await fetch(getAuthUrl('/health'), 
+            const response = await fetch(getAuthApiUrl('/health'), 
             {
                 method: 'GET',
                 headers: 
