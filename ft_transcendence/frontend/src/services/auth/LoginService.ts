@@ -1,5 +1,5 @@
 // LoginService.ts
-import { getAuthUrl } from '../../types/api.types';
+import { getAuthApiUrl, getAuthUrl } from '../../types/api.types';
 
 // Types for login operations
 export interface LoginRequest 
@@ -95,7 +95,7 @@ export class LoginService
     {
         try 
         {
-            const response = await fetch(getAuthUrl('/login'), 
+            const response = await fetch(getAuthApiUrl('/login'), 
             {
                 method: 'POST',
                 headers: 
@@ -138,7 +138,7 @@ export class LoginService
 
         try 
         {
-            const response = await fetch(getAuthUrl('/refresh'), 
+            const response = await fetch(getAuthApiUrl('/refresh'), 
             {
                 method: 'POST',
                 headers: 
@@ -180,7 +180,7 @@ export class LoginService
 
         try 
         {
-            await fetch(getAuthUrl('/logout'), 
+            await fetch(getAuthApiUrl('/logout'), 
             {
                 method: 'POST',
                 headers: this.getHeaders(),
@@ -202,7 +202,7 @@ export class LoginService
     {
         try 
         {
-            await fetch(getAuthUrl('/logout-all'), 
+            await fetch(getAuthApiUrl('/logout-all'), 
             {
                 method: 'POST',
                 headers: this.getHeaders(),
@@ -230,7 +230,7 @@ export class LoginService
 
         try 
         {
-            const response = await fetch(getAuthUrl('/verify'), 
+            const response = await fetch(getAuthApiUrl('/verify'), 
             {
                 method: 'GET',
                 headers: this.getHeaders()

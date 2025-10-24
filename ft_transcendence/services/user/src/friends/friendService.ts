@@ -55,6 +55,7 @@ async function mapFriendshipProfiles(userId: string, friendships: any[], getFrie
         userId: profile.id,
         username: profile.username,
         avatarUrl: profile.avatarUrl,
+        status: profile.status,
       };
     })
   );

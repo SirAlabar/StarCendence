@@ -54,16 +54,16 @@ async function main()
   console.log('🌱 Starting database seed...');
 
   const users = [
-    { id: '550e8400-e29b-41d4-a716-446655440001', username: 'Anakin', email: 'anakin@force.com', bio: 'The Chosen One. Podracer champion turned Jedi.', status: 'OFFLINE', avatar: 'anakin.gif' },
-    { id: '550e8400-e29b-41d4-a716-446655440002', username: 'Padmé', email: 'padme@nabooprincess.com', bio: 'Former Queen of Naboo. Fearless senator.', status: 'OFFLINE', avatar: 'padme.gif' },
-    { id: '550e8400-e29b-41d4-a716-446655440003', username: 'Darth', email: 'vader@empire.gov', bio: 'Lord of the Sith. Wears black. Breathing enthusiast.', status: 'OFFLINE', avatar: 'vader.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440001', username: 'Anakin_Skywalker', email: 'anakin@force.com', bio: 'The Chosen One. Podracer champion turned Jedi.', status: 'OFFLINE', avatar: 'anakin.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440002', username: 'Padmé_Amidala', email: 'padme@nabooprincess.com', bio: 'Former Queen of Naboo. Fearless senator.', status: 'OFFLINE', avatar: 'padme.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440003', username: 'Darth_Vader', email: 'vader@empire.gov', bio: 'Lord of the Sith. Wears black. Breathing enthusiast.', status: 'OFFLINE', avatar: 'vader.gif' },
     { id: '550e8400-e29b-41d4-a716-446655440004', username: 'Sebulba', email: 'sebulba@malastare.pod', bio: 'Dug podracer pilot. Hates Skywalker.', status: 'OFFLINE', avatar: 'sebulba.gif' },
     { id: '550e8400-e29b-41d4-a716-446655440005', username: 'Gasgano', email: 'gasgano@troiken.pod', bio: 'Xexto podracer with 24 fingers. Speed is everything.', status: 'OFFLINE', avatar: 'gasgano.jpg' },
-    { id: '550e8400-e29b-41d4-a716-446655440006', username: 'Teemto', email: 'teemto@moonus.pod', bio: 'Veknoid podracer. Cool under pressure.', status: 'OFFLINE', avatar: 'teemto.jpg' },
-    { id: '550e8400-e29b-41d4-a716-446655440007', username: 'Ratts', email: 'ratts@aleen.pod', bio: 'Tiny but fierce Aleena podracer.', status: 'OFFLINE', avatar: 'ratts.jpg' },
-    { id: '550e8400-e29b-41d4-a716-446655440008', username: 'Ebe', email: 'ebe@ryvellia.pod', bio: 'Rybet podracer from Ando Prime.', status: 'OFFLINE', avatar: 'ebe.jpg' },
-    { id: '550e8400-e29b-41d4-a716-446655440009', username: 'Mars', email: 'mars@phuii.pod', bio: 'Phuii podracer with a need for speed.', status: 'OFFLINE', avatar: 'mars.gif' },
-    { id: '550e8400-e29b-41d4-a716-446655440010', username: 'Ben', email: 'ben@tund.pod', bio: 'Toong podracer. Engine trouble is my specialty.', status: 'OFFLINE', avatar: 'ben.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440006', username: 'Teemto_Pagalies', email: 'teemto@moonus.pod', bio: 'Veknoid podracer. Cool under pressure.', status: 'OFFLINE', avatar: 'teemto.jpg' },
+    { id: '550e8400-e29b-41d4-a716-446655440007', username: 'Ratts_Tyerell', email: 'ratts@aleen.pod', bio: 'Tiny but fierce Aleena podracer.', status: 'OFFLINE', avatar: 'ratts.jpg' },
+    { id: '550e8400-e29b-41d4-a716-446655440008', username: 'Ebe_Endocott', email: 'ebe@ryvellia.pod', bio: 'Rybet podracer from Ando Prime.', status: 'OFFLINE', avatar: 'ebe.jpg' },
+    { id: '550e8400-e29b-41d4-a716-446655440009', username: 'Mars_Guo', email: 'mars@phuii.pod', bio: 'Phuii podracer with a need for speed.', status: 'OFFLINE', avatar: 'mars.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440010', username: 'Ben_Quadinaros', email: 'ben@tund.pod', bio: 'Toong podracer. Engine trouble is my specialty.', status: 'OFFLINE', avatar: 'ben.gif' },
   ];
 
   const createdUsers = [];

@@ -16,6 +16,11 @@ if [ "${PRISMA_STUDIO:-}" = "1" ] || [ "${PRISMA_STUDIO:-}" = "true" ]; then
   npx prisma studio --port ${PRISMA_STUDIO_PORT:-5004} --browser none &
 fi
 
+if [ ! -f /app/avatars/default.jpeg ]; then
+  echo " Copying default avatar..."
+  cp /app/default.jpeg /app/avatars/default.jpeg
+fi
+
 export CHOKIDAR_USEPOLLING=true
 
 # Build and start the application

@@ -2,6 +2,7 @@ import { BaseComponent } from '../components/BaseComponent';
 import UserService from '../services/user/UserService';
 import FriendService from '../services/user/FriendService';
 import { UserProfile } from '../types/user.types';
+import { getBaseUrl } from '@/types/api.types';
 
 export default class UserPublicPage extends BaseComponent 
 {
@@ -118,9 +119,7 @@ export default class UserPublicPage extends BaseComponent
             return '';
         }
 
-        const avatarUrl = this.userProfile.avatarUrl
-            ? `http://localhost:3004${this.userProfile.avatarUrl}`
-            : null;
+        const avatarUrl = this.userProfile.avatarUrl ? `${getBaseUrl()}${this.userProfile.avatarUrl}` : null;
 
         const statusColor = this.getStatusColor(this.userProfile.status);
         const statusText = this.getStatusText(this.userProfile.status);

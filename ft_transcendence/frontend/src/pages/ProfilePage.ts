@@ -108,7 +108,12 @@ export default class ProfilePage extends BaseComponent
         try 
         {
             const friendsData = await FriendService.getFriends();
-            
+
+            if (!friendsData.friends) {
+                this.friends = [];
+                return;
+            }
+
             this.friends = friendsData.friends.map((friend: any) => ({
                 id: friend.requestId,
                 username: friend.username,

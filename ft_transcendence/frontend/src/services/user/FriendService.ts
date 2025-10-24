@@ -1,6 +1,6 @@
 // FriendService.ts
 import { BaseService } from '../BaseService';
-import { getFriendsUrl } from '../../types/api.types';
+import { getUserApiUrl } from '../../types/api.types';
 
 export interface Friend 
 {
@@ -41,21 +41,10 @@ class FriendService extends BaseService
     {
         this.requireAuth();
 
-        const response = await this.fetchRequest(getFriendsUrl('/friends'), {
+        const response = await this.fetchRequest(getUserApiUrl('/friends'), {
             method: 'GET',
             headers: this.getHeaders()
         });
-
-        if (response.status === 404) 
-        {
-            // No friends yet - return empty structure
-            return {
-                userId: '',
-                username: '',
-                avatarUrl: null,
-                friends: []
-            };
-        }
 
         return this.handleResponse<FriendsResponse>(response);
     }
@@ -65,21 +54,10 @@ class FriendService extends BaseService
     {
         this.requireAuth();
 
-        const response = await this.fetchRequest(getFriendsUrl('/friend-requests'), {
+        const response = await this.fetchRequest(getUserApiUrl('/friend-requests'), {
             method: 'GET',
             headers: this.getHeaders()
         });
-
-        if (response.status === 404) 
-        {
-            // No requests yet - return empty structure
-            return {
-                userId: '',
-                username: '',
-                avatarUrl: null,
-                receivedRequests: []
-            };
-        }
 
         return this.handleResponse<FriendRequestsResponse>(response);
     }
@@ -89,21 +67,10 @@ class FriendService extends BaseService
     {
         this.requireAuth();
 
-        const response = await this.fetchRequest(getFriendsUrl('/friend-requests/sent'), {
+        const response = await this.fetchRequest(getUserApiUrl('/friend-requests/sent'), {
             method: 'GET',
             headers: this.getHeaders()
         });
-
-        if (response.status === 404) 
-        {
-            // No sent requests yet - return empty structure
-            return {
-                userId: '',
-                username: '',
-                avatarUrl: null,
-                sentRequests: []
-            };
-        }
 
         return this.handleResponse<SentRequestsResponse>(response);
     }
@@ -118,7 +85,7 @@ class FriendService extends BaseService
             throw new Error('Invalid username');
         }
 
-        const response = await this.fetchRequest(getFriendsUrl('/friend-request'), {
+        const response = await this.fetchRequest(getUserApiUrl('/friend-request'), {
             method: 'POST',
             headers: this.getHeaders(),
             body: JSON.stringify({ username })
@@ -132,7 +99,7 @@ class FriendService extends BaseService
     {
         this.requireAuth();
 
-        const response = await this.fetchRequest(getFriendsUrl(`/friend-request/${requestId}/accept`), {
+        const response = await this.fetchRequest(getUserApiUrl(`/friend-request/${requestId}/accept`), {
             method: 'POST',
             headers: this.getHeaders(),
             body: JSON.stringify({})
@@ -146,7 +113,7 @@ class FriendService extends BaseService
     {
         this.requireAuth();
 
-        const response = await this.fetchRequest(getFriendsUrl(`/friend-request/${requestId}/decline`), {
+        const response = await this.fetchRequest(getUserApiUrl(`/friend-request/${requestId}/decline`), {
             method: 'POST',
             headers: this.getHeaders(),
             body: JSON.stringify({})
@@ -160,7 +127,7 @@ class FriendService extends BaseService
     {
         this.requireAuth();
 
-        const response = await this.fetchRequest(getFriendsUrl(`/friend-request/${requestId}`), {
+        const response = await this.fetchRequest(getUserApiUrl(`/friend-request/${requestId}`), {
             method: 'DELETE',
             headers: this.getHeaders(),
             body: JSON.stringify({})
@@ -174,7 +141,7 @@ class FriendService extends BaseService
     {
         this.requireAuth();
 
-        const response = await this.fetchRequest(getFriendsUrl(`/friends/${friendId}`), {
+        const response = await this.fetchRequest(getUserApiUrl(`/friends/${friendId}`), {
             method: 'DELETE',
             headers: this.getHeaders(),
             body: JSON.stringify({})
