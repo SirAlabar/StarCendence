@@ -69,44 +69,34 @@ async function mapFriendshipProfiles(userId: string, friendships: any[], getFrie
 }
 
 // Send a friend request to a user by their username
-export async function sendFriendRequest(id: string, username: string) 
-{
-  // Decode the username to handle special characters.
-  const decodedUsername = decodeURIComponent(username);
-  
-  const recipient = await userRepository.findUserProfileByUsername(decodedUsername);
-  if (!recipient) 
-  {
+export async function sendFriendRequest(id: string, username: string) {
+  const recipient = await userRepository.findUserProfileByUsername(username);
+  if (!recipient) {
     throw new HttpError('Recipient not found', 404);
   }
   
-  if (recipient.id === id) 
-  {
+  if (recipient.id === id) {
     throw new HttpError('Cannot send friend request to yourself', 400);
   }
 
   const exitisingRequestFromRecipient = await friendRepository.findFriendRequest(recipient.id, id);
-  if (exitisingRequestFromRecipient && exitisingRequestFromRecipient.status === FriendshipStatus.PENDING) 
-  {
+  if (exitisingRequestFromRecipient && exitisingRequestFromRecipient.status === FriendshipStatus.PENDING) {
     await friendRepository.updateFriendshipStatus(exitisingRequestFromRecipient.id, FriendshipStatus.ACCEPTED);
     return 'ACCEPTED';
   }
 
   const existingRequest = await friendRepository.findFriendRequest(id, recipient.id);
-  if (existingRequest && existingRequest.status === FriendshipStatus.PENDING) 
-  {
+  if (existingRequest && existingRequest.status === FriendshipStatus.PENDING) {
     throw new HttpError('Friend request already sent', 409);
   }
 
-  if (existingRequest && existingRequest.status === FriendshipStatus.REJECTED) 
-  {
+  if (existingRequest && existingRequest.status === FriendshipStatus.REJECTED) {
     await friendRepository.updateFriendshipStatus(existingRequest.id, FriendshipStatus.PENDING);
     return 'PENDING';
   }
 
   const existingFriendship = await friendRepository.findFriendship(id, recipient.id);
-  if (existingFriendship) 
-  {
+  if (existingFriendship) {
     throw new HttpError('You are already friends with this user', 400);
   }
 

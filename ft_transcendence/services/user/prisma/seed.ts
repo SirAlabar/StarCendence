@@ -55,7 +55,7 @@ async function main()
 
   const users = [
     { id: '550e8400-e29b-41d4-a716-446655440001', username: 'Anakin_Skywalker', email: 'anakin@force.com', bio: 'The Chosen One. Podracer champion turned Jedi.', status: 'OFFLINE', avatar: 'anakin.gif' },
-    { id: '550e8400-e29b-41d4-a716-446655440002', username: 'Padmé_Amidala', email: 'padme@nabooprincess.com', bio: 'Former Queen of Naboo. Fearless senator.', status: 'OFFLINE', avatar: 'padme.gif' },
+    { id: '550e8400-e29b-41d4-a716-446655440002', username: 'Padme_Amidala', email: 'padme@nabooprincess.com', bio: 'Former Queen of Naboo. Fearless senator.', status: 'OFFLINE', avatar: 'padme.gif' },
     { id: '550e8400-e29b-41d4-a716-446655440003', username: 'Darth_Vader', email: 'vader@empire.gov', bio: 'Lord of the Sith. Wears black. Breathing enthusiast.', status: 'OFFLINE', avatar: 'vader.gif' },
     { id: '550e8400-e29b-41d4-a716-446655440004', username: 'Sebulba', email: 'sebulba@malastare.pod', bio: 'Dug podracer pilot. Hates Skywalker.', status: 'OFFLINE', avatar: 'sebulba.gif' },
     { id: '550e8400-e29b-41d4-a716-446655440005', username: 'Gasgano', email: 'gasgano@troiken.pod', bio: 'Xexto podracer with 24 fingers. Speed is everything.', status: 'OFFLINE', avatar: 'gasgano.jpg' },
