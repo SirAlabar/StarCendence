@@ -313,7 +313,8 @@ export default class UserPublicPage extends BaseComponent
     protected async afterMount(): Promise<void> 
     {
         // Extract username from URL
-        this.username = window.location.pathname.split('/').pop() || '';
+        const rawUsername = window.location.pathname.split('/').pop() || '';
+        this.username = decodeURIComponent(rawUsername);
         
         if (!this.username) 
         {
