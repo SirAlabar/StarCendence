@@ -17,7 +17,7 @@ async function main()
 
   const users = [
     { id: '550e8400-e29b-41d4-a716-446655440001', email: 'anakin@force.com', username: 'Anakin_Skywalker', password: 'Anakin@@1234' },
-    { id: '550e8400-e29b-41d4-a716-446655440002', email: 'padme@nabooprincess.com', username: 'Padmé_Amidala', password: 'Padme@@1234' },
+    { id: '550e8400-e29b-41d4-a716-446655440002', email: 'padme@nabooprincess.com', username: 'Padme_Amidala', password: 'Padme@@1234' },
     { id: '550e8400-e29b-41d4-a716-446655440003', email: 'vader@empire.gov', username: 'Darth_Vader', password: 'Vader@@1234' },
     { id: '550e8400-e29b-41d4-a716-446655440004', email: 'sebulba@malastare.pod', username: 'Sebulba', password: 'Sebulba@@1234' },
     { id: '550e8400-e29b-41d4-a716-446655440005', email: 'gasgano@troiken.pod', username: 'Gasgano', password: 'Gasgano@@1234' },
