@@ -86,7 +86,7 @@ export async function sendFriendRequest(id: string, username: string) {
 
   const existingRequest = await friendRepository.findFriendRequest(id, recipient.id);
   if (existingRequest && existingRequest.status === FriendshipStatus.PENDING) {
-    throw new HttpError('Friend request already sent', 400);
+    throw new HttpError('Friend request already sent', 409);
   }
 
   if (existingRequest && existingRequest.status === FriendshipStatus.REJECTED) {
