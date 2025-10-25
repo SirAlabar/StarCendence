@@ -11,7 +11,9 @@ export default class UserPublicPage extends BaseComponent
     private error: string | null = null;
     private username: string = '';
     private isFriend: boolean = false;
+    private hasPendingRequest: boolean = false;
     private checkingFriendship: boolean = true;
+    private listenersAttached: boolean = false;
 
     render(): string 
     {
@@ -183,6 +185,17 @@ export default class UserPublicPage extends BaseComponent
             `;
         }
 
+        if (this.hasPendingRequest) 
+        {
+            return `
+                <div class="flex justify-center mt-6">
+                    <button class="neon-border-red px-8 py-3 rounded-lg font-bold text-red-400 tracking-wide cursor-not-allowed opacity-75" disabled>
+                        X FRIEND REQUEST ALREADY SENT
+                    </button>
+                </div>
+            `;
+        }
+
         return `
             <div class="flex justify-center mt-6">
                 <button id="add-friend-btn" class="neon-border px-8 py-3 rounded-lg font-bold text-cyan-400 tracking-wide">
@@ -300,7 +313,8 @@ export default class UserPublicPage extends BaseComponent
     protected async afterMount(): Promise<void> 
     {
         // Extract username from URL
-        this.username = window.location.pathname.split('/').pop() || '';
+        const rawUsername = window.location.pathname.split('/').pop() || '';
+        this.username = decodeURIComponent(rawUsername);
         
         if (!this.username) 
         {
@@ -341,22 +355,26 @@ export default class UserPublicPage extends BaseComponent
         {
             this.checkingFriendship = true;
             const friendsData = await FriendService.getFriends();
-
-            if (!friendsData || !friendsData.friends) 
-            {
-                this.isFriend = false;
-                return;
-            }
-
-            // Check if this user is in the friends list
-            this.isFriend = friendsData.friends.some(
+            
+            // Check if this user is in the friends list with safe access
+            this.isFriend = friendsData?.friends?.some(
                 friend => friend.username === this.username
-            );
+            ) || false;
+
+            // Check sent requests
+            if (!this.isFriend) 
+            {
+                const sentRequests = await FriendService.getSentRequests();
+                this.hasPendingRequest = sentRequests?.sentRequests?.some(
+                    request => request.username === this.username
+                ) || false;
+            }
         } 
         catch (err) 
         {
             console.error('Failed to check friendship:', err);
             this.isFriend = false;
+            this.hasPendingRequest = false;
         } 
         finally 
         {
@@ -371,12 +389,22 @@ export default class UserPublicPage extends BaseComponent
         if (container) 
         {
             container.innerHTML = this.render();
+            // Reset the flag when we recreate the DOM
+            this.listenersAttached = false;
             this.setupEventListeners();
         }
     }
 
     private setupEventListeners(): void 
     {
+        // Prevent adding listeners multiple times
+        if (this.listenersAttached) 
+        {
+            return;
+        }
+        
+        this.listenersAttached = true;
+
         // Back button
         const backBtn = document.getElementById('back-btn');
         const backBtnError = document.getElementById('back-btn-error');
@@ -424,15 +452,42 @@ export default class UserPublicPage extends BaseComponent
             await FriendService.sendFriendRequest(this.username);
             this.showMessage('Friend request sent successfully!', 'success');
             
-            // Reload friendship status after 1 second
-            setTimeout(() => 
+            // Update state
+            this.hasPendingRequest = true;
+            
+            // Update button
+            const addFriendBtn = document.getElementById('add-friend-btn');
+            if (addFriendBtn) 
             {
-                this.checkFriendshipStatus();
-            }, 1000);
+                addFriendBtn.textContent = 'X FRIEND REQUEST ALREADY SENT';
+                addFriendBtn.classList.remove('neon-border');
+                addFriendBtn.classList.add('neon-border-red', 'cursor-not-allowed', 'opacity-75');
+                addFriendBtn.setAttribute('disabled', 'true');
+            }
         } 
         catch (err) 
         {
-            this.showMessage((err as Error).message, 'error');
+            const error = err as any;
+            
+            if (error.status === 409 || error.message?.includes('already')) 
+            {
+                this.showMessage('Friend request already sent!', 'error');
+                this.hasPendingRequest = true;
+                
+                const addFriendBtn = document.getElementById('add-friend-btn');
+                if (addFriendBtn) 
+                {
+                    addFriendBtn.textContent = 'X FRIEND REQUEST ALREADY SENT';
+                    addFriendBtn.classList.remove('neon-border');
+                    addFriendBtn.classList.add('neon-border-red', 'cursor-not-allowed', 'opacity-75');
+                    addFriendBtn.setAttribute('disabled', 'true');
+                }
+            } 
+            else 
+            {
+                this.showMessage(error.message || 'Failed to send friend request', 'error');
+            }
+            
             console.error('Failed to send friend request:', err);
         }
     }
@@ -455,12 +510,24 @@ export default class UserPublicPage extends BaseComponent
             await FriendService.unfriend(this.userProfile.id);
             this.showMessage('Friend removed successfully', 'success');
             
-            // Update friendship status
             this.isFriend = false;
-            setTimeout(() => 
+            
+            const actionsContainer = document.querySelector('.flex.flex-wrap.justify-center.gap-4.mt-6') || 
+                                    document.querySelector('.flex.justify-center.mt-6');
+            if (actionsContainer) 
             {
-                this.rerender();
-            }, 1000);
+                actionsContainer.innerHTML = `
+                    <button id="add-friend-btn" class="neon-border px-8 py-3 rounded-lg font-bold text-cyan-400 tracking-wide">
+                        ADD FRIEND
+                    </button>
+                `;
+                
+                const newBtn = document.getElementById('add-friend-btn');
+                if (newBtn) 
+                {
+                    newBtn.addEventListener('click', () => this.handleAddFriend());
+                }
+            }
         } 
         catch (err) 
         {
