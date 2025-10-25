@@ -69,7 +69,6 @@ async function mapFriendshipProfiles(userId: string, friendships: any[], getFrie
 }
 
 // Send a friend request to a user by their username
-// Send a friend request to a user by their username
 export async function sendFriendRequest(id: string, username: string) 
 {
   // Decode the username to handle special characters.
