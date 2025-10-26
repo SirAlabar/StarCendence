@@ -64,8 +64,8 @@ export async function uploadProfileImage(id: string, image: any): Promise<string
   }
    
   const uniqueName = `${id}-${Date.now()}${ext}`;
-  const uploadPath = path.join(__dirname, '../../uploads/avatars', uniqueName);
-  
+  const uploadPath = path.join(__dirname, '../../avatars', uniqueName);
+
   await fs.mkdir(path.dirname(uploadPath), { recursive: true });
 
   const buffer = await image.toBuffer();

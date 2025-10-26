@@ -1,7 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import * as oauthSchema from './oauthSchema'
 import * as oauthController from './oauthController'
-import { verifyUserToken } from '../middleware/authMiddleware';
 
 export async function oauthRoutes(fastify: FastifyInstance) {
   fastify.get('/oauth/google',

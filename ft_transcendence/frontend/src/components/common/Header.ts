@@ -1,4 +1,5 @@
 import { BaseComponent } from '../BaseComponent';
+import { LoginService } from '../../services/auth/LoginService';
 
 interface NavItem 
 {
@@ -10,8 +11,6 @@ interface NavItem
 export class Header extends BaseComponent 
 {
     private navItems: NavItem[] = [];
-
-    // Track if events are already setup
     private eventsSetup = false;
 
     private updateNavItems(): void 
@@ -20,7 +19,6 @@ export class Header extends BaseComponent
         
         if (isLoggedIn) 
         {
-            // Navigation for LOGGED IN users
             this.navItems = [
                 { label: 'Main', href: '#hero' },
                 { label: 'Team', href: '#team' },
@@ -34,7 +32,6 @@ export class Header extends BaseComponent
         } 
         else 
         {
-            // Navigation for LOGGED OUT users
             this.navItems = [
                 { label: 'Main', href: '#hero' },
                 { label: 'Team', href: '#team' },
@@ -76,7 +73,6 @@ export class Header extends BaseComponent
             <div class="flex items-center">
                 ${this.renderHamburgerButton()}
 
-                <!-- Desktop Navigation - Hidden on mobile -->
                 <nav class="flex max-md:hidden items-center space-x-2" aria-label="main">
                     ${this.navItems.map(item => this.renderNavItem(item)).join('')}
                 </nav>
@@ -157,48 +153,51 @@ export class Header extends BaseComponent
         `;
     }
 
-protected afterMount(): void 
-{
-    if (!this.eventsSetup) 
+    protected afterMount(): void 
     {
-        setTimeout(() => {
-            this.setupHamburgerMenu();
-            this.eventsSetup = true;
-        }, 50);
-    }
-}
-
-private setupHamburgerMenu(): void 
-{
-    const hamburgerButton = document.getElementById('hamburger-button');
-    const mobileMenu = document.getElementById('mobile-menu');
-
-
-    if (hamburgerButton && mobileMenu) 
-    {
-        hamburgerButton.addEventListener('click', this.handleHamburgerClick.bind(this));
-        hamburgerButton.addEventListener('touchstart', this.handleHamburgerClick.bind(this));
-        
-        document.addEventListener('click', this.handleOutsideClick.bind(this));
-        window.addEventListener('resize', this.handleWindowResize.bind(this));
-
-        const mobileLinks = mobileMenu.querySelectorAll('a');
-        mobileLinks.forEach(link => 
+        if (!this.eventsSetup) 
         {
-            link.addEventListener('click', this.handleMobileMenuClick.bind(this));
+            setTimeout(() => 
+            {
+                this.setupHamburgerMenu();
+                this.eventsSetup = true;
+            }, 50);
+        }
+    }
+
+    private setupHamburgerMenu(): void 
+    {
+        const hamburgerButton = document.getElementById('hamburger-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (hamburgerButton && mobileMenu) 
+        {
+            hamburgerButton.addEventListener('click', this.handleHamburgerClick.bind(this));
+            hamburgerButton.addEventListener('touchstart', this.handleHamburgerClick.bind(this));
+            
+            document.addEventListener('click', this.handleOutsideClick.bind(this));
+            window.addEventListener('resize', this.handleWindowResize.bind(this));
+
+            const mobileLinks = mobileMenu.querySelectorAll('a');
+            mobileLinks.forEach(link => 
+            {
+                link.addEventListener('click', this.handleMobileMenuClick.bind(this));
+            });
+        }
+        
+        // Setup logout button listeners
+        const logoutLinks = document.querySelectorAll('a[href="/logout"]');
+        logoutLinks.forEach(link => 
+        {
+            link.addEventListener('click', (e) => 
+            {
+                e.preventDefault();
+                e.stopPropagation();
+                this.handleLogout();
+            });
         });
     }
-    const logoutLinks = document.querySelectorAll('a[href="/logout"]');
-    logoutLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.handleLogout();
-        });
-    });
-}
 
-    // Event handler methods
     private handleHamburgerClick(): void 
     {
         const mobileMenu = document.getElementById('mobile-menu');
@@ -224,7 +223,6 @@ private setupHamburgerMenu(): void
     private handleWindowResize(): void 
     {
         const mobileMenu = document.getElementById('mobile-menu');
-        // Enable the resize handler
         if (mobileMenu && window.innerWidth >= 768) 
         {
             mobileMenu.classList.add('hidden');
@@ -233,7 +231,6 @@ private setupHamburgerMenu(): void
 
     public refresh(): void 
     {
-        // Update nav items based on current auth state
         this.updateNavItems();
         
         const header = document.querySelector('header');
@@ -245,23 +242,36 @@ private setupHamburgerMenu(): void
         }
     }
 
-    private handleLogout(): void 
+    private async handleLogout(): Promise<void> 
     {
-        // Show confirmation dialog
         if (!confirm('Are you sure you want to logout?')) 
         {
             return;
         }
         
-        // Clear token
-        localStorage.removeItem('access_token');
-        
-        // Dispatch logout event
-        window.dispatchEvent(new CustomEvent('auth:logout'));
-        
-        this.refresh();
-        
-        (window as any).navigateTo('/');
+        try 
+        {
+            // Call the proper logout service
+            await LoginService.logout();
+            
+            // Dispatch logout event
+            window.dispatchEvent(new CustomEvent('auth:logout'));
+            
+            // Refresh header to show login button
+            this.refresh();
+            
+            // Navigate to home
+            (window as any).navigateTo('/');
+        } 
+        catch (error) 
+        {
+            console.error('Logout error:', error);
+            
+            // Even if logout fails, clear local tokens and redirect
+            LoginService.clearTokens();
+            this.refresh();
+            (window as any).navigateTo('/');
+        }
     }
 
     private handleMobileMenuClick(): void 
@@ -273,7 +283,6 @@ private setupHamburgerMenu(): void
         }
     }
 
-    // Public method to reset event setup
     public resetEvents(): void 
     {
         this.eventsSetup = false;

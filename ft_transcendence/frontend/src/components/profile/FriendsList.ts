@@ -1,13 +1,13 @@
 //  Friends management
 import { BaseComponent } from '../BaseComponent';
 import FriendService from '../../services/user/FriendService';
-import { getAvatarUrl } from '../../types/api.types';
+import { getBaseUrl } from '@/types/api.types';
 
 interface Friend 
 {
     id: number;
     username: string;
-    status: 'ONLINE' | 'IN_GAME' | 'OFFLINE';
+    status: string;
     avatarUrl?: string;
 }
 
@@ -151,7 +151,8 @@ export class FriendsList extends BaseComponent
 
     private renderRequestItem(request: FriendRequest): string 
     {
-        const avatarUrl = getAvatarUrl(request.avatarUrl);
+        const avatarUrl = request.avatarUrl ? `${getBaseUrl()}${request.avatarUrl}` : null;
+
         const avatarContent = avatarUrl
             ? `<img src="${avatarUrl}" alt="${request.username}" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover">`
             : `<div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-base sm:text-lg font-bold text-white">
@@ -182,7 +183,8 @@ export class FriendsList extends BaseComponent
     private renderFriendItem(friend: Friend): string 
     {
         const statusInfo = this.getStatusInfo(friend.status);
-        const avatarUrl = getAvatarUrl(friend.avatarUrl);
+        const avatarUrl = friend.avatarUrl ? `${getBaseUrl()}${friend.avatarUrl}` : null;
+
         const avatarContent = avatarUrl
             ? `<img src="${avatarUrl}" alt="${friend.username}" class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full object-cover">`
             : `<div class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-lg sm:text-xl font-bold text-white">
@@ -213,7 +215,7 @@ export class FriendsList extends BaseComponent
         switch (status) 
         {
             case 'ONLINE':
-                return { color: 'bg-green-500', text: 'INVITE' };
+                return { color: 'bg-green-500', text: 'Online' };
             case 'IN_GAME':
                 return { color: 'bg-blue-500', text: 'In Match' };
             case 'OFFLINE':
