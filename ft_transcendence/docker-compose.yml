@@ -102,8 +102,11 @@ services:
   #     - game_data:/app/data
   #   networks:
   #     - transcendence_network
-  #   env_file:
-  #     - .env
+  #   secrets:
+  #     - redis_password
+  #   environment:
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
   #   depends_on:
   #     - redis
   #   restart: always
@@ -163,13 +166,15 @@ services:
     build:
       context: ./infrastructure/redis
       dockerfile: Dockerfile
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
       - transcendence_network
-    env_file:
-      - .env
-    restart: always
+    secrets:
+      - redis_password
+    restart: unless-stopped
 
 volumes:
   redis_data:
@@ -226,6 +231,8 @@ networks:
     driver: bridge
 
 secrets:
+  redis_password:
+    file: ../secrets/redis_password.txt
   jwt_secret:
     file: ../secrets/jwt_secret_example.txt
   internal_api_key:
