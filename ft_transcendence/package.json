@@ -1,10 +1,8 @@
 {
-<<<<<<< HEAD
   "dependencies": {
     "babylonjs": "^8.32.1"
-=======
+  },
   "devDependencies": {
     "postcss-discard-empty": "^7.0.1"
->>>>>>> main
   }
 }
