@@ -14,6 +14,7 @@ export default class UserPublicPage extends BaseComponent
     private hasPendingRequest: boolean = false;
     private checkingFriendship: boolean = true;
     private listenersAttached: boolean = false;
+    private isOwnProfile: boolean = false;
 
     render(): string 
     {
@@ -162,6 +163,12 @@ export default class UserPublicPage extends BaseComponent
 
     private renderActionButtons(): string 
     {
+        // Don't show buttons on own profile
+        if (this.isOwnProfile) 
+        {
+            return '';
+        }
+
         if (this.checkingFriendship) 
         {
             return `
@@ -312,7 +319,7 @@ export default class UserPublicPage extends BaseComponent
 
     protected async afterMount(): Promise<void> 
     {
-        // Extract username from URL
+        // Extract username from URL (no decoding)
         this.username = window.location.pathname.split('/').pop() || '';
         
         if (!this.username) 
@@ -324,7 +331,30 @@ export default class UserPublicPage extends BaseComponent
         }
 
         await this.loadUserProfile();
-        await this.checkFriendshipStatus();
+        
+        // Check if viewing own profile
+        try 
+        {
+            const currentUser = await UserService.getProfile();
+            this.isOwnProfile = currentUser.username === this.username;
+        } 
+        catch (err) 
+        {
+            console.error('Failed to get current user:', err);
+            this.isOwnProfile = false;
+        }
+        
+        // Only check friendship if not viewing own profile
+        if (!this.isOwnProfile) 
+        {
+            await this.checkFriendshipStatus();
+        } 
+        else 
+        {
+            this.checkingFriendship = false;
+            this.rerender();
+        }
+        
         this.setupEventListeners();
     }
 
@@ -468,7 +498,22 @@ export default class UserPublicPage extends BaseComponent
         {
             const error = err as any;
             
-            if (error.status === 409 || error.message?.includes('already')) 
+            // Handle "cannot send to yourself" error
+            if (error.status === 400 && error.message?.toLowerCase().includes('yourself')) 
+            {
+                this.showMessage('You cannot send a friend request to yourself!', 'error');
+                
+                // Mark as own profile and remove the button
+                this.isOwnProfile = true;
+                
+                // Hide the button container
+                const buttonContainer = document.querySelector('.flex.justify-center.mt-6');
+                if (buttonContainer) 
+                {
+                    buttonContainer.remove();
+                }
+            }
+            else if (error.status === 409 || error.message?.toLowerCase().includes('already')) 
             {
                 this.showMessage('Friend request already sent!', 'error');
                 this.hasPendingRequest = true;
@@ -481,7 +526,11 @@ export default class UserPublicPage extends BaseComponent
                     addFriendBtn.classList.add('neon-border-red', 'cursor-not-allowed', 'opacity-75');
                     addFriendBtn.setAttribute('disabled', 'true');
                 }
-            } 
+            }
+            else if (error.status === 400 && error.message?.toLowerCase().includes('already friends')) 
+            {
+                this.showMessage('You are already friends with this user!', 'error');
+            }
             else 
             {
                 this.showMessage(error.message || 'Failed to send friend request', 'error');
