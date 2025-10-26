@@ -4,6 +4,7 @@ import { RacerPod } from './RacerPods';
 import { RacerUIManager } from '../../managers/RacerUIManager';
 import { PodConfig } from '../../utils/PodConfig';
 import { RaceManager } from '../../managers/RaceManager';
+import { getBaseUrl } from '@/types/api.types';
 
 export interface RacerRendererConfig 
 {
@@ -321,11 +322,13 @@ private async getUserAvatarUrl(): Promise<string | null>
     {
       const UserService = (await import('../../../services/user/UserService')).default;
       const profile = await UserService.getProfile();
+
+      console.log('Fetched user profile for avatar URL:', profile);
       
       if (profile.avatarUrl) 
       {
-        const { getAvatarUrl } = await import('../../../types/api.types');
-        return getAvatarUrl(profile.avatarUrl);
+        const avatarUrl = profile.avatarUrl ? `${getBaseUrl()}${profile.avatarUrl}` : null;
+        return avatarUrl;
       }
       
       return null;

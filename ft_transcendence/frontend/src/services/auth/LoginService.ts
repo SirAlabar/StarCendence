@@ -1,5 +1,5 @@
 // LoginService.ts
-import { getAuthUrl } from '../../types/api.types';
+import { getAuthApiUrl } from '../../types/api.types';
 
 // Types for login operations
 export interface LoginRequest 
@@ -95,7 +95,7 @@ export class LoginService
     {
         try 
         {
-            const response = await fetch(getAuthUrl('/login'), 
+            const response = await fetch(getAuthApiUrl('/login'), 
             {
                 method: 'POST',
                 headers: 
@@ -138,7 +138,7 @@ export class LoginService
 
         try 
         {
-            const response = await fetch(getAuthUrl('/refresh'), 
+            const response = await fetch(getAuthApiUrl('/refresh'), 
             {
                 method: 'POST',
                 headers: 
@@ -171,7 +171,7 @@ export class LoginService
     // Logout - matches your /logout endpoint
     static async logout(): Promise<void> 
     {
-        const refreshToken = this.getRefreshToken();
+      const refreshToken = this.getRefreshToken();
         if (!refreshToken) 
         {
             this.clearTokens();
@@ -180,12 +180,21 @@ export class LoginService
 
         try 
         {
-            await fetch(getAuthUrl('/logout'), 
+            const response = await fetch(getAuthApiUrl('/logout'), 
             {
                 method: 'POST',
                 headers: this.getHeaders(),
-                body: JSON.stringify({ refreshToken })
+                body: JSON.stringify({})
             });
+            
+            const data = await response.json();
+
+            if (!response.ok) 
+            {
+                throw new Error(data.message || 'Logout failed');
+            }
+
+            return data;
         } 
         catch (error) 
         {
@@ -202,7 +211,7 @@ export class LoginService
     {
         try 
         {
-            await fetch(getAuthUrl('/logout-all'), 
+            await fetch(getAuthApiUrl('/logout-all'), 
             {
                 method: 'POST',
                 headers: this.getHeaders(),
@@ -230,7 +239,7 @@ export class LoginService
 
         try 
         {
-            const response = await fetch(getAuthUrl('/verify'), 
+            const response = await fetch(getAuthApiUrl('/verify'), 
             {
                 method: 'GET',
                 headers: this.getHeaders()

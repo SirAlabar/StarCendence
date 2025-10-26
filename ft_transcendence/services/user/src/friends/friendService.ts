@@ -6,8 +6,8 @@ import { Friend, FriendshipStatus } from './friend.types'
 // Get friends list for a user
 export async function getFriends(userId: string) {
   const friendships = await friendRepository.findFriendsByUserId(userId);
-  if (!friendships) {
-    throw new HttpError('No friends found', 404);
+  if (!friendships || friendships.length === 0) {
+    return []
   }
 
   return mapFriendshipProfiles(userId, friendships, (f) => (f.senderId === userId ? f.recipientId : f.senderId), 'friends');
@@ -16,8 +16,8 @@ export async function getFriends(userId: string) {
 // Get incoming friend requests for a user
 export async function getFriendRequests(userId: string) {
   const requests = await friendRepository.findIncomingFriendRequests(userId);
-  if (!requests) {
-    throw new HttpError('No friend requests found', 404);
+  if (!requests || requests.length === 0) {
+    return []
   }
 
   return mapFriendshipProfiles(userId, requests, (f) => f.senderId, 'receivedRequests');
@@ -26,8 +26,8 @@ export async function getFriendRequests(userId: string) {
 // Get sent friend requests for a user
 export async function getSentFriendRequests(userId: string) {
   const requests = await friendRepository.findSentFriendRequests(userId);
-  if (!requests) {
-    throw new HttpError('No sent friend requests found', 404);
+  if (!requests || requests.length === 0) {
+    return []
   }
 
   return mapFriendshipProfiles(userId, requests, (f) => f.recipientId, 'sentRequests');
@@ -55,6 +55,7 @@ async function mapFriendshipProfiles(userId: string, friendships: any[], getFrie
         userId: profile.id,
         username: profile.username,
         avatarUrl: profile.avatarUrl,
+        status: profile.status,
       };
     })
   );
@@ -69,10 +70,11 @@ async function mapFriendshipProfiles(userId: string, friendships: any[], getFrie
 
 // Send a friend request to a user by their username
 export async function sendFriendRequest(id: string, username: string) {
-  const recipient =  await userRepository.findUserProfileByUsername(username);
+  const recipient = await userRepository.findUserProfileByUsername(username);
   if (!recipient) {
     throw new HttpError('Recipient not found', 404);
   }
+  
   if (recipient.id === id) {
     throw new HttpError('Cannot send friend request to yourself', 400);
   }
@@ -85,7 +87,7 @@ export async function sendFriendRequest(id: string, username: string) {
 
   const existingRequest = await friendRepository.findFriendRequest(id, recipient.id);
   if (existingRequest && existingRequest.status === FriendshipStatus.PENDING) {
-    throw new HttpError('Friend request already sent', 400);
+    throw new HttpError('Friend request already sent', 409);
   }
 
   if (existingRequest && existingRequest.status === FriendshipStatus.REJECTED) {

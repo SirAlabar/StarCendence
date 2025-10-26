@@ -13,6 +13,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Copy source code
+COPY default.jpeg /app/avatars/default.jpeg
 COPY . .
 
 # Install dependencies

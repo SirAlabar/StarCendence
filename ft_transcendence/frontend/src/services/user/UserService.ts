@@ -1,6 +1,6 @@
 // UserService.ts
 import { BaseService } from '../BaseService';
-import { getApiUrl } from '../../types/api.types';
+import { getUserApiUrl } from '../../types/api.types';
 import { UserProfile } from '../../types/user.types';
 
 class UserService extends BaseService 
@@ -10,7 +10,7 @@ class UserService extends BaseService
     {
         this.requireAuth();
 
-        const response = await this.fetchRequest(getApiUrl('/profile'), {
+        const response = await this.fetchRequest(getUserApiUrl('/profile'), {
             method: 'GET',
             headers: this.getHeaders()
         });
@@ -28,7 +28,7 @@ class UserService extends BaseService
             throw new Error('Invalid username');
         }
 
-        const response = await this.fetchRequest(getApiUrl(`/profile/${username}`), {
+        const response = await this.fetchRequest(getUserApiUrl(`/profile/${username}`), {
             method: 'GET',
             headers: this.getHeaders()
         });
@@ -51,7 +51,7 @@ class UserService extends BaseService
             throw new Error('Bio must be 160 characters or less');
         }
 
-        const response = await this.fetchRequest(getApiUrl('/profile'), {
+        const response = await this.fetchRequest(getUserApiUrl('/profile'), {
             method: 'PUT',
             headers: this.getHeaders(),
             body: JSON.stringify({ bio })
@@ -83,7 +83,7 @@ class UserService extends BaseService
         formData.append('file', file);
 
         const token = this.getToken();
-        const response = await this.fetchRequest(getApiUrl('/profile-image'), 
+        const response = await this.fetchRequest(getUserApiUrl('/profile-image'), 
         {
             method: 'POST',
             headers: 
@@ -107,7 +107,7 @@ class UserService extends BaseService
             throw new Error('Search query must be at least 2 characters');
         }
 
-        const response = await this.fetchRequest(getApiUrl(`/users/search?q=${encodeURIComponent(query)}`), {
+        const response = await this.fetchRequest(getUserApiUrl(`/users/search?q=${encodeURIComponent(query)}`), {
             method: 'GET',
             headers: this.getHeaders()
         });

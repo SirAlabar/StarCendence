@@ -1,7 +1,7 @@
 //  Avatar upload component
 import { BaseComponent } from '../BaseComponent';
 import UserService from '../../services/user/UserService';
-import { getAvatarUrl } from '../../types/api.types';
+import { getBaseUrl } from '@/types/api.types';
 
 interface AvatarUploadProps 
 {
@@ -24,7 +24,7 @@ export class AvatarUpload extends BaseComponent
 
     render(): string 
     {
-        const avatarUrl = getAvatarUrl(this.props.avatarUrl);
+      const avatarUrl = this.props.avatarUrl ? `${getBaseUrl()}${this.props.avatarUrl}` : null;
 
         return `
         <div class="relative group w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 mx-auto rounded-full overflow-hidden">

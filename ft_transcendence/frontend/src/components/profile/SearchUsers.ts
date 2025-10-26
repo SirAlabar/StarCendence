@@ -1,6 +1,6 @@
 import { BaseComponent } from '../BaseComponent';
 import UserService from '../../services/user/UserService';
-import { getAvatarUrl } from '../../types/api.types';
+import { getBaseUrl } from '@/types/api.types';
 
 interface SearchResult 
 {
@@ -107,7 +107,8 @@ export class SearchUsers extends BaseComponent
 
     private renderUserItem(user: SearchResult): string 
     {
-        const avatarUrl = getAvatarUrl(user.avatarUrl);
+        const avatarUrl = user.avatarUrl ? `${getBaseUrl()}${user.avatarUrl}` : null;
+
         const avatarContent = avatarUrl
             ? `<img src="${avatarUrl}" alt="${user.username}" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover">`
             : `<div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-base sm:text-lg font-bold text-white">

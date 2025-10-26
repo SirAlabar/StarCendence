@@ -1,5 +1,5 @@
 // RegisterService.ts
-import { getAuthUrl } from '../../types/api.types';
+import { getAuthApiUrl } from '../../types/api.types';
 
 export interface RegisterRequest 
 {
@@ -19,7 +19,7 @@ export class RegisterService
     {
         try 
         {
-            const response = await fetch(getAuthUrl('/register'), 
+            const response = await fetch(getAuthApiUrl('/register'), 
             {
                 method: 'POST',
                 headers: 

@@ -1,5 +1,4 @@
 
-
 export const googleOauthUsernameSchema = {
   body: {
     type: 'object',

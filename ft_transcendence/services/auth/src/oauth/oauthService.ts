@@ -5,6 +5,7 @@ import * as oauthRepository from "./oauthRepository"
 import * as tokenService from "../token/tokenService"
 import * as refreshTokenRepository from "../token/refreshTokenRepository"
 import * as userServiceClient from "../clients/userServiceClient"
+import { TokenType } from "../token/token.types"
 
 // Function to exchange authorization code for tokens
 export async function getGoogleTokens(code: string, redirectUri: string) {
@@ -77,7 +78,7 @@ export async function handleOauthLogin(userInfo: any) {
       await refreshTokenRepository.deleteByUserId(userByOauthId.id);
     }
     const tokens = await tokenService.generateTokens(userByOauthId.id, userByOauthId.email, userByOauthId.username);
-    return { user: userByOauthId, tokens };
+    return {tokens};
   }
 
   const userByEmail = await userRepository.findUserByEmail(userInfo.email);
@@ -93,7 +94,7 @@ export async function handleOauthLogin(userInfo: any) {
       await refreshTokenRepository.deleteByUserId(userByEmail.id);
     }
     const tokens = await tokenService.generateTokens(userByEmail.id, userByEmail.email, userByEmail.username);
-    return { user: userByEmail, tokens };
+    return {tokens};
   }
 
   const tempToken = await tokenService.generatePartialOAuthToken(oauthId, userInfo.email);
@@ -108,6 +109,10 @@ export async function createNewOauthUser(oauthId: string, email: string, usernam
   }
 
   const newUser = await oauthRepository.createOauthUser(oauthId, email, username);
+  if (!newUser) {
+    throw new HttpError('Failed to create new user', 500);
+  }
+
   await userServiceClient.createUserProfile(newUser.id, email, username);
   return newUser;
 }
