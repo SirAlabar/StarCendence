@@ -7,7 +7,7 @@ import { HttpError } from '../utils/HttpError';
  * Validates the x-api-key header against the internal API key
  */
 export async function internalEndpointProtection( request: FastifyRequest,
-  reply: FastifyReply): Promise<void>
+  _reply: FastifyReply): Promise<void>
 {
   // Check if request is coming from internal network
   if (!request.url.startsWith('/internal/'))

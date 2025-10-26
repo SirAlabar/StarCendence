@@ -8,6 +8,7 @@ import { GamePlayer } from './player.types';
 /**
  * Main game entity (persisted in database)
  * Represents a multiplayer game session
+ * Note: This mirrors the Prisma Game model - NO currentPlayers field!
  */
 export interface Game
 {
@@ -19,19 +20,18 @@ export interface Game
   // Player configuration
   maxPlayers: number; // 2, 3, or 4
   minPlayers: number; // 2
-  currentPlayers: number;
   
   // Game-specific settings
-  maxScore?: number; // For Pong
-  lapCount?: number; // For Racer
+  maxScore?: number | null; // For Pong
+  lapCount?: number | null; // For Racer
   
   // Timestamps
   createdAt: Date;
-  startedAt?: Date;
-  endedAt?: Date;
+  startedAt?: Date | null;
+  endedAt?: Date | null;
   
   // Tournament relation
-  tournamentId?: string;
+  tournamentId?: string | null;
 }
 
 /**
@@ -41,7 +41,7 @@ export interface Game
 export interface GameSession
 {
   id: string;
-  game: Game;
+  game: any;
   state: GameState;
   players: Map<string, GamePlayer>; // playerId → GamePlayer
   
@@ -62,16 +62,14 @@ export interface GameState
 {
   type: GameType;
   timestamp: number;
+  timeElapsed: number; // Seconds since game started
+  scores: number[]; // Index matches player number
   
   // Pong-specific state
   pong?: PongState;
   
   // Racer-specific state
   racer?: RacerState;
-  
-  // Common state
-  scores: number[]; // Index matches player number
-  timeElapsed: number; // Seconds since game started
 }
 
 /**
