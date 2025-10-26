@@ -22,15 +22,19 @@ COPY redis.conf /usr/local/etc/redis/redis.conf
 RUN chown redis:redis /usr/local/etc/redis/redis.conf \
     && chmod 644 /usr/local/etc/redis/redis.conf
 
+# Copy entrypoint script
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Expose Redis port
 EXPOSE 6379
 
-# Health check
+# Health check with secret support
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD redis-cli ping || exit 1
+    CMD redis-cli -a "$(cat /run/secrets/redis_password 2>/dev/null || echo '')" ping || exit 1
 
 # Switch to redis user
 USER redis
 
-# Start Redis with custom config
-CMD ["redis-server", "/usr/local/etc/redis/redis.conf"]
+# Use custom entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
