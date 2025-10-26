@@ -68,8 +68,6 @@ export class enemy
             this.shouldMiss = false;
             this.targetY = this.predictBallPosition(ball, canvasHeight);
         }
-
-        // Add error margin (imperfect positioning)
         const error = (Math.random() - 0.5) * this.settings.errorMargin;
         this.targetY += error;
 
@@ -130,8 +128,8 @@ export class enemy
         return predictedY;
     }
 
-    private getRandomMissPosition(canvasHeight: number): number {
-        // Generate a position that will likely cause a miss
+    private getRandomMissPosition(canvasHeight: number): number 
+    {
         const edgeZone = this.height;
         if (Math.random() < 0.5) 
             return Math.random() * edgeZone; // Top edge
@@ -142,7 +140,7 @@ export class enemy
     private getMovementDirection(): 'up' | 'down' | 'stay' 
     {
         const paddleCenter = this.y + this.height / 2;
-        const deadzone = 15; // Small area where AI doesn't move
+        const deadzone = 15;
 
         if (this.targetY < paddleCenter - deadzone) 
             return 'up';
@@ -152,14 +150,14 @@ export class enemy
             return 'stay';
     }
 
-    // Movement executed every frame
+
     move(canvasHeight: number): void 
     {
         const centerY = this.y + this.height / 2;
         const distance = Math.abs(this.targetY - centerY);
 
-        // Adaptive speed: move faster if further from target
-        const speedBoost = Math.min(distance / 15, 4); // cap boost
+      
+        const speedBoost = Math.min(distance / 15, 4);
         const effectiveSpeed = this.speed + speedBoost;
 
         if (this.targetY < centerY - 5) 

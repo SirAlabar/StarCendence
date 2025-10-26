@@ -1,7 +1,7 @@
 import { BaseComponent } from '../components/BaseComponent';
-import { AiDifficulty } from '@/game/engines/pong/entities/EnemyAi';
+import { AiDifficulty } from '@/game/engines/pong2D/entities/EnemyAi';
 import { gameManager } from '@/game/managers/PongManager';
-import { Pong3Dscene } from '@/game/engines/pong/Pong3d/Engine';
+import { Pong3Dscene } from '@/game/engines/pong3D/Engine';
 
 export default class PongPage extends BaseComponent 
 {

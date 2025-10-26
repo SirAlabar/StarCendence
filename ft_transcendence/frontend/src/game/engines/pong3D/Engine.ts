@@ -1,17 +1,18 @@
-import * as BABYLON from "@babylonjs/core";
-import { Skybox } from "./Skybox";
+import {Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes} from "@babylonjs/core";
+import { Skybox } from "./entities/Skybox";
+
 
 export class Pong3Dscene 
 {
-    private engine: BABYLON.Engine;
-    private scene: BABYLON.Scene;
-    private camera!: BABYLON.FreeCamera;
-    private topCamera!: BABYLON.FreeCamera;
-    private light!: BABYLON.HemisphericLight;
-    private ball!: BABYLON.Mesh;
-    private paddle_left!: BABYLON.Mesh;
-    private paddle_right!: BABYLON.Mesh;
-    private ballVelocity = new BABYLON.Vector3(0.2, 0, 0.1); 
+    private engine: Engine;
+    private scene: Scene;
+    private camera!: FreeCamera;
+    private topCamera!: FreeCamera;
+    private light!: HemisphericLight;
+    private ball!: Mesh;
+    private paddle_left!: Mesh;
+    private paddle_right!: Mesh;
+    private ballVelocity = new Vector3(0.2, 0, 0.1); 
     private maxSpeed: number = 0.6; 
     private gravity = -0.02; 
     private canChangeCamera: boolean = true;
@@ -24,9 +25,9 @@ export class Pong3Dscene
     
     constructor(private canvas: HTMLCanvasElement) 
     {
-        this.engine = new BABYLON.Engine(canvas, true);
-        this.scene = new BABYLON.Scene(this.engine);
-        this.scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
+        this.engine = new Engine(canvas, true);
+        this.scene = new Scene(this.engine);
+        this.scene.clearColor = new Color4(0, 0, 0, 1);
         this.setupInput();
         this.createCamera();
         this.createLight();
@@ -42,32 +43,32 @@ export class Pong3Dscene
     {
         this.scene.onKeyboardObservable.add((kbInfo) => {
             const key = kbInfo.event.key.toLowerCase();
-            this.keys[key] = kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN;
+            this.keys[key] = kbInfo.type === KeyboardEventTypes.KEYDOWN;
         });
     }
     
     private createCamera() 
     {
 
-        this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 0, 0), this.scene);
-        this.camera.position = new BABYLON.Vector3(-100, 20, 0);
-        this.camera.rotation = new BABYLON.Vector3(0, Math.PI / 2, 0);
+        this.camera = new FreeCamera("camera", new Vector3(0, 0, 0), this.scene);
+        this.camera.position = new Vector3(-100, 20, 0);
+        this.camera.rotation = new Vector3(0, Math.PI / 2, 0);
         
 
-        this.topCamera = new BABYLON.FreeCamera("topCamera", new BABYLON.Vector3(0, 80, 0), this.scene);
-        this.topCamera.rotation = new BABYLON.Vector3(Math.PI / 2, 0, 0);
+        this.topCamera = new FreeCamera("topCamera", new Vector3(0, 80, 0), this.scene);
+        this.topCamera.rotation = new Vector3(Math.PI / 2, 0, 0);
         this.scene.activeCamera = this.camera;
     }
     
     private createLight() 
     {
-        this.light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), this.scene);
+        this.light = new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
         this.light.intensity = 0.2; 
     }
     
     private createEnvironment() 
     {
-        const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: this.FIELD_WIDTH,height: this.FIELD_LENGTH}, this.scene);
+        const ground = MeshBuilder.CreateGround("ground", {width: this.FIELD_WIDTH,height: this.FIELD_LENGTH}, this.scene);
         ground.position.y = this.GROUND_HEIGHT;
         ground.visibility = 0;
         ground.checkCollisions = true;
@@ -77,28 +78,28 @@ export class Pong3Dscene
     
     private createGameObjects() 
     {
-        this.ball = BABYLON.MeshBuilder.CreateSphere("ball", { diameter: 2 }, this.scene);
-        const ballMat = new BABYLON.StandardMaterial("ballMat", this.scene);
-        ballMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
-        ballMat.emissiveColor = new BABYLON.Color3(0.9, 0.9, 0.9);          // glow
+        this.ball = MeshBuilder.CreateSphere("ball", { diameter: 2 }, this.scene);
+        const ballMat = new StandardMaterial("ballMat", this.scene);
+        ballMat.diffuseColor = new Color3(1, 1, 1);
+        ballMat.emissiveColor = new Color3(0.9, 0.9, 0.9);          // glow
         this.ball.material = ballMat;
-        this.ball.position = new BABYLON.Vector3(0, this.GROUND_HEIGHT + 1, 0);
+        this.ball.position = new Vector3(0, this.GROUND_HEIGHT + 1, 0);
         
 
-        const paddleMat = new BABYLON.StandardMaterial("paddleMat", this.scene);
-        paddleMat.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1);
-        paddleMat.emissiveColor = new BABYLON.Color3(0.3, 0.05, 0.05); // Slight glow
+        const paddleMat = new StandardMaterial("paddleMat", this.scene);
+        paddleMat.diffuseColor = new Color3(0.9, 0.1, 0.1);
+        paddleMat.emissiveColor = new Color3(0.3, 0.05, 0.05); // Slight glow
         
-        this.paddle_left = BABYLON.MeshBuilder.CreateBox("left_paddle", {width: 1.5, height: 4, depth: 10}, this.scene);
-        this.paddle_left.position = new BABYLON.Vector3(-this.FIELD_WIDTH / 2 + 5, this.GROUND_HEIGHT + 2, 0);
+        this.paddle_left = MeshBuilder.CreateBox("left_paddle", {width: 1.5, height: 4, depth: 10}, this.scene);
+        this.paddle_left.position = new Vector3(-this.FIELD_WIDTH / 2 + 5, this.GROUND_HEIGHT + 2, 0);
         this.paddle_left.material = paddleMat;
         
         const paddleMat2 = paddleMat.clone("paddleMat2");
-        paddleMat2.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.9);
-        paddleMat2.emissiveColor = new BABYLON.Color3(0.05, 0.05, 0.3);
+        paddleMat2.diffuseColor = new Color3(0.1, 0.1, 0.9);
+        paddleMat2.emissiveColor = new Color3(0.05, 0.05, 0.3);
         
-        this.paddle_right = BABYLON.MeshBuilder.CreateBox("right_paddle", {width: 1.5, height: 4, depth: 10}, this.scene);
-        this.paddle_right.position = new BABYLON.Vector3(this.FIELD_WIDTH / 2 - 5, this.GROUND_HEIGHT + 2, 0);
+        this.paddle_right = MeshBuilder.CreateBox("right_paddle", {width: 1.5, height: 4, depth: 10}, this.scene);
+        this.paddle_right.position = new Vector3(this.FIELD_WIDTH / 2 - 5, this.GROUND_HEIGHT + 2, 0);
         this.paddle_right.material = paddleMat2;
     }
     
@@ -109,8 +110,8 @@ export class Pong3Dscene
         this.paddle_left.checkCollisions = true;
         this.paddle_right.checkCollisions = true;
     
-        this.paddle_left.ellipsoid = new BABYLON.Vector3(0.75, 2, 5);
-        this.paddle_right.ellipsoid = new BABYLON.Vector3(0.75, 2, 5);
+        this.paddle_left.ellipsoid = new Vector3(0.75, 2, 5);
+        this.paddle_right.ellipsoid = new Vector3(0.75, 2, 5);
     }
     
     private setupGameLoop() 
@@ -182,7 +183,7 @@ export class Pong3Dscene
         this.ball.isVisible = true;
         
         const direction = Math.random() < 0.5 ? 1 : -1;
-        this.ballVelocity = new BABYLON.Vector3(0.2 * direction, 0, 0.1);
+        this.ballVelocity = new Vector3(0.2 * direction, 0, 0.1);
     }
     
     private delay(ms: number): Promise<void>
@@ -233,14 +234,14 @@ export class Pong3Dscene
         const moveBoundary = this.FIELD_LENGTH / 2 - 6; 
         
         // Player 1
-        const moveVector = new BABYLON.Vector3(0, 0, 0);
+        const moveVector = new Vector3(0, 0, 0);
         if (this.keys["a"] && this.paddle_left.position.z < moveBoundary) 
             moveVector.z += paddleSpeed;
         if (this.keys["d"] && this.paddle_left.position.z > -moveBoundary) 
             moveVector.z -= paddleSpeed;
         
         // Player 2
-        const moveVector2 = new BABYLON.Vector3(0, 0, 0);
+        const moveVector2 = new Vector3(0, 0, 0);
         if (this.keys["4"] && this.paddle_right.position.z < moveBoundary) 
             moveVector2.z += paddleSpeed;
         if (this.keys["6"] && this.paddle_right.position.z > -moveBoundary) 

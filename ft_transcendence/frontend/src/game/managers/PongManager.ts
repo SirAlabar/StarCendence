@@ -1,6 +1,6 @@
-import { PongScene } from '@/game/engines/pong/PongScene';
-import { AiDifficulty } from '@/game/engines/pong/entities/EnemyAi';
-import { Pong3Dscene } from '../engines/pong/Pong3d/Engine';
+import { PongScene } from '@/game/engines/pong2D/PongScene';
+import { AiDifficulty } from '@/game/engines/pong2D/entities/EnemyAi';
+import { Pong3Dscene } from '../engines/pong3D/Engine';
 
 type GameState = 'menu' | 'playing' | 'paused' | 'ended';
 type GameMode = 'multiplayer' | 'ai';
@@ -18,7 +18,7 @@ export class GameManager
     // Game state
     private currentState: GameState = 'menu';
     private pongScene: PongScene | null = null;
-    private pongScene3d: Pong3Dscene | null
+    private pongScene3d!: Pong3Dscene | null
     private canvas: HTMLCanvasElement | null = null;
     private gameConfig: GameConfig | null = null;
     
