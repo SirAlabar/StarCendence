@@ -12,7 +12,7 @@ datasource db {
 model AuthUser {
   id        String   @id @default(uuid())
   email     String   @unique
-  password  String
+  password  String?
   username  String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -21,6 +21,7 @@ model AuthUser {
   twoFactorEnabled  Boolean  @default(false)
 
   refreshToken RefreshToken?  // updated to singular
+  oauthId     String?   @unique
 
   @@map("users")
 }

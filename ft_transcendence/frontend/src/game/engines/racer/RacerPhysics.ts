@@ -37,7 +37,7 @@ export class RacerPhysics
   
   private readonly GRAVITY = new Vector3(0, -100, 0);
   private readonly POD_MASS = 2000;
-  private readonly THRUST_FORCE = 85;
+  private readonly THRUST_FORCE = 65;
   private readonly MAX_VELOCITY = 400;
   private readonly HOVER_FORCE = 1000;
   private readonly HOVER_HEIGHT = 3;
@@ -307,7 +307,7 @@ public createPod(mesh: Mesh, podId: string, pod: RacerPod, initialPosition?: Vec
     let fpsCompensation = 1.0;
     if (currentFPS < 60) 
     {
-      fpsCompensation = 60 / currentFPS; // Ex: 30fps = 2x força, 20fps = 3x força
+      fpsCompensation = 60 / currentFPS; // Ex: 30fps = 2x, 20fps = 3x
       fpsCompensation = Math.min(fpsCompensation, 6.0); // Max 6x
     }
 

@@ -1,0 +1,19 @@
+# Development environment for Vite frontend
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copia os arquivos de dependências primeiro (cache eficiente)
+COPY package*.json ./
+
+# Instala dependências (usa npm ci se tiver lockfile)
+RUN npm install
+
+# Copia o restante do código
+COPY . .
+
+# Expõe a porta padrão do Vite
+EXPOSE 5173
+
+# Comando dinâmico: se for dev, roda vite, senão builda
+CMD ["sh", "-c", "if [ \"$NODE_ENV\" = 'development' ]; then npm run dev; else npm run build; fi"]

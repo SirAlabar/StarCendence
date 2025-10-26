@@ -13,6 +13,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Copy source code
+COPY default.jpeg /app/avatars/default.jpeg
 COPY . .
 
 # Install dependencies
@@ -23,6 +24,9 @@ COPY prisma/ ./prisma/
 
 # Generate Prisma client
 RUN npx prisma generate
+
+# Run migrations and seed on container start
+CMD npx prisma migrate deploy && npm run prisma:seed && npm start
 
 # Build TypeScript
 RUN npm run build
@@ -39,4 +43,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3004/health || exit 1
 
 # Start the service
-CMD ["sh", "/app/start.sh"]
+CMD ["sh", "-c", "if [ \"$NODE_ENV\" = 'development' ]; then npm run dev; else sh /app/start.sh; fi"]

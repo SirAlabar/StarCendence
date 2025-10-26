@@ -2,19 +2,9 @@ import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 import * as speakeasy from 'speakeasy';
 import { HttpError } from '../utils/HttpError';
-import { readFileSync } from 'fs';
 import * as refreshTokenRepository from './refreshTokenRepository';
-import { TokenType, TokenPair } from './token.types';
-
-
-// Load JWT secret from Docker secret file
-function getJwtSecret(): string {
-	const jwtSecret: string = readFileSync('/run/secrets/jwt_secret', 'utf8').trim();
-	if (!jwtSecret) {
-		throw new HttpError('JWT secret is not configured', 500);
-	}
-  return jwtSecret;
-}
+import { TokenType } from './token.types';
+import { getJwtSecret } from '../utils/getSecrets';
 
 // Generate access and refresh tokens
 export async function generateTokens(userId: string, email: string, username: string) {
@@ -77,6 +67,10 @@ export async function refreshAccessToken(refreshToken: string) {
   
   await refreshTokenRepository.deleteByToken(refreshToken);
 
+  if (!refreshTokenRecord.user.id || !refreshTokenRecord.user.email || !refreshTokenRecord.user.username) {
+    throw new HttpError('Incomplete user data', 500);
+  }
+
   const newTokens = await generateTokens(
     refreshTokenRecord.user.id,
     refreshTokenRecord.user.email,
@@ -120,4 +114,24 @@ export async function verifyTwoFACode(twoFactorSecret: string, code: string): Pr
   });
   
   return verified;
+}
+
+// Generate a partial OAuth token for setting username
+export async function generatePartialOAuthToken(oauthId: string, email: string): Promise<string> {
+  const jwtSecret = getJwtSecret();
+
+  const partialToken = jwt.sign(
+    {
+      sub: oauthId,
+      email,
+      type: 'partial_oauth'
+    },
+    jwtSecret,
+    {
+      expiresIn: '10m',
+      issuer: 'transcendence-auth'
+    }
+  );
+
+  return partialToken;
 }

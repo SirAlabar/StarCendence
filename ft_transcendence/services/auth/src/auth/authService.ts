@@ -24,7 +24,7 @@ export async function registerUser(email: string, password: string, username: st
 // Login user and return tokens
 export async function loginUser(email: string, password: string) {
   const user = await userRepository.findUserByEmail(email);
-  if (!user) {
+  if (!user || !user.password) {
     throw new HttpError('Invalid email or password', 401);
   }
 

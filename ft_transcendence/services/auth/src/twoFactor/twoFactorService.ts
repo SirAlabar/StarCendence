@@ -12,7 +12,6 @@ export async function setupTwoFactor(req: FastifyRequest, reply: FastifyReply) {
     }
 
     const isEnabled = await twoFactorRepository.isTwoFactorEnabled(user.sub);
-    console.log("isEnabled:", isEnabled);
     if (isEnabled) {
         throw new HttpError('2FA is already enabled', 400);
     }

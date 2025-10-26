@@ -6,12 +6,23 @@ import { authRoutes } from './auth/authRoutes'
 import { twoFactorRoutes } from './twoFactor/twoFactorRoutes'
 import { tokenRoutes } from './token/tokenRoutes'
 import { internalEndpointProtection } from './middleware/securityMiddleware'
+import { oauthRoutes } from './oauth/oauthRoutes'
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
 
   // Register plugins
-  await fastify.register(cors)
+  await fastify.register(cors, {
+    origin: [
+      'https://starcendence.dev',
+      'http://localhost:5173',
+      'http://localhost:8080',
+      'https://localhost:8443'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
+  })
   await fastify.register(helmet)
 
   // Global error handler
@@ -19,8 +30,9 @@ export async function buildApp() {
   fastify.addHook('preHandler', internalEndpointProtection);
   
   fastify.get('/health', async () => ({ status: 'Health is Ok!' }))
-
+  
   fastify.register(authRoutes);
+  fastify.register(oauthRoutes);
   fastify.register(twoFactorRoutes, { prefix: '/2fa' });
   fastify.register(tokenRoutes);
   // fastify.register(internalRoutes, { prefix: '/internal' });

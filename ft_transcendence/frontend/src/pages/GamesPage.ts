@@ -74,14 +74,15 @@ export default class GamesPage extends BaseComponent
                         background: linear-gradient(45deg, #63eafe, #a855f7);
                         -webkit-background-clip: text;
                         -webkit-text-fill-color: transparent;
+                        -webkit-text-stroke: 1px rgba(0, 0, 0, 0.3);
                         background-clip: text;
                         text-shadow: 0 0 20px #63eafe, 0 0 40px #63eafe, 0 0 60px #63eafe;
                         animation: text-glow 3s ease-in-out infinite alternate;
                     }
 
                     @keyframes text-glow {
-                        0% { text-shadow: 0 0 20px #63eafe, 0 0 40px #63eafe, 0 0 60px #63eafe; }
-                        100% { text-shadow: 0 0 30px #a855f7, 0 0 60px #a855f7, 0 0 90px #a855f7; }
+                        0% { text-shadow: 0 0 10px #63eafe, 0 0 20px #63eafe, 0 0 30px #63eafe; }
+                        100% { text-shadow: 0 0 15px #a855f7, 0 0 30px #a855f7, 0 0 45px #a855f7; }
                     }
 
                     /* Cards with neon effects and thematic backgrounds */

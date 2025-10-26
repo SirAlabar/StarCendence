@@ -14,7 +14,8 @@ export async function createUserProfile(authId: string, email: string, username:
     data: {
       id: authId,
       email,
-      username
+      username,
+      avatarUrl: '/avatars/default.jpeg',
     }
   });
 }
@@ -56,5 +57,28 @@ export async function uploadProfileImage(id:string, filename: string) {
     data: {
       avatarUrl: `/avatars/${filename}`
     }
+  });
+}
+
+// Search users by username (minimum 2 characters)
+export async function searchUsersByUsername(query: string)
+{
+  return prisma.userProfile.findMany(
+  {
+    where: 
+    {
+      username: 
+      {
+        contains: query
+      }
+    },
+    select: 
+    {
+      id: true,
+      username: true,
+      avatarUrl: true,
+      status: true
+    },
+    take: 10
   });
 }

@@ -1,4 +1,5 @@
 import { BaseComponent } from '../BaseComponent';
+import { LoginService } from '../../services/auth/LoginService';
 
 interface NavItem 
 {
@@ -9,21 +10,43 @@ interface NavItem
 
 export class Header extends BaseComponent 
 {
-    private navItems: NavItem[] = [
-        { label: 'Main', href: '#hero' },
-        { label: 'Team', href: '#team' },
-        { label: 'Features', href: '#features' },
-        { label: 'About', href: '#about' },
-        { label: 'Games', href: '/games' },
-        { label: 'Leaderboard', href: '/leaderboard' },
-        { label: 'Login', href: '/login', primary: true }
-    ];
-
-    // Track if events are already setup
+    private navItems: NavItem[] = [];
     private eventsSetup = false;
+
+    private updateNavItems(): void 
+    {
+        const isLoggedIn = localStorage.getItem('access_token') !== null;
+        
+        if (isLoggedIn) 
+        {
+            this.navItems = [
+                { label: 'Main', href: '#hero' },
+                { label: 'Team', href: '#team' },
+                { label: 'Features', href: '#features' },
+                { label: 'About', href: '#about' },
+                { label: 'Games', href: '/games' },
+                { label: 'Leaderboard', href: '/leaderboard' },
+                { label: 'Profile', href: '/profile', primary: true },
+                { label: 'Logout', href: '/logout', primary: false }
+            ];
+        } 
+        else 
+        {
+            this.navItems = [
+                { label: 'Main', href: '#hero' },
+                { label: 'Team', href: '#team' },
+                { label: 'Features', href: '#features' },
+                { label: 'About', href: '#about' },
+                { label: 'Games', href: '/games' },
+                { label: 'Leaderboard', href: '/leaderboard' },
+                { label: 'Login', href: '/login', primary: true }
+            ];
+        }
+    }
 
     render(): string 
     {
+        this.updateNavItems();
         return `
             <header class="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-gray-900/20 border-b border-white/10 shadow-lg">
                 <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
@@ -50,7 +73,6 @@ export class Header extends BaseComponent
             <div class="flex items-center">
                 ${this.renderHamburgerButton()}
 
-                <!-- Desktop Navigation - Hidden on mobile -->
                 <nav class="flex max-md:hidden items-center space-x-2" aria-label="main">
                     ${this.navItems.map(item => this.renderNavItem(item)).join('')}
                 </nav>
@@ -131,46 +153,60 @@ export class Header extends BaseComponent
         `;
     }
 
-protected afterMount(): void 
-{
-    if (!this.eventsSetup) 
+    protected afterMount(): void 
     {
-        setTimeout(() => {
-            this.setupHamburgerMenu();
-            this.eventsSetup = true;
-        }, 50);
-    }
-}
-
-private setupHamburgerMenu(): void 
-{
-    const hamburgerButton = document.getElementById('hamburger-button');
-    const mobileMenu = document.getElementById('mobile-menu');
-
-    if (hamburgerButton && mobileMenu) 
-    {
-        hamburgerButton.addEventListener('click', this.handleHamburgerClick.bind(this));
-        hamburgerButton.addEventListener('touchstart', this.handleHamburgerClick.bind(this));
-        
-        document.addEventListener('click', this.handleOutsideClick.bind(this));
-        window.addEventListener('resize', this.handleWindowResize.bind(this));
-
-        const mobileLinks = mobileMenu.querySelectorAll('a');
-        mobileLinks.forEach(link => 
+        if (!this.eventsSetup) 
         {
-            link.addEventListener('click', this.handleMobileMenuClick.bind(this));
+            setTimeout(() => 
+            {
+                this.setupHamburgerMenu();
+                this.eventsSetup = true;
+            }, 50);
+        }
+    }
+
+    private setupHamburgerMenu(): void 
+    {
+        const hamburgerButton = document.getElementById('hamburger-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (hamburgerButton && mobileMenu) 
+        {
+            hamburgerButton.addEventListener('click', this.handleHamburgerClick.bind(this));
+            hamburgerButton.addEventListener('touchstart', this.handleHamburgerClick.bind(this));
+            
+            document.addEventListener('click', this.handleOutsideClick.bind(this));
+            window.addEventListener('resize', this.handleWindowResize.bind(this));
+
+            const mobileLinks = mobileMenu.querySelectorAll('a');
+            mobileLinks.forEach(link => 
+            {
+                link.addEventListener('click', this.handleMobileMenuClick.bind(this));
+            });
+        }
+        
+        // Setup logout button listeners
+        const logoutLinks = document.querySelectorAll('a[href="/logout"]');
+        logoutLinks.forEach(link => 
+        {
+            link.addEventListener('click', (e) => 
+            {
+                e.preventDefault();
+                e.stopPropagation();
+                this.handleLogout();
+            });
         });
     }
-}
-    // Event handler methods
-private handleHamburgerClick(): void 
-{
-    const mobileMenu = document.getElementById('mobile-menu');
-    if (mobileMenu) 
+
+    private handleHamburgerClick(): void 
     {
-        mobileMenu.classList.toggle('hidden');
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (mobileMenu) 
+        {
+            mobileMenu.classList.toggle('hidden');
+        }
     }
-}
+
     private handleOutsideClick(event: Event): void 
     {
         const hamburgerButton = document.getElementById('hamburger-button');
@@ -187,10 +223,54 @@ private handleHamburgerClick(): void
     private handleWindowResize(): void 
     {
         const mobileMenu = document.getElementById('mobile-menu');
-        // Enable the resize handler
         if (mobileMenu && window.innerWidth >= 768) 
         {
             mobileMenu.classList.add('hidden');
+        }
+    }
+
+    public refresh(): void 
+    {
+        this.updateNavItems();
+        
+        const header = document.querySelector('header');
+        if (header) 
+        {
+            header.outerHTML = this.render();
+            this.eventsSetup = false;
+            this.afterMount();
+        }
+    }
+
+    private async handleLogout(): Promise<void> 
+    {
+        if (!confirm('Are you sure you want to logout?')) 
+        {
+            return;
+        }
+        
+        try 
+        {
+            // Call the proper logout service
+            await LoginService.logout();
+            
+            // Dispatch logout event
+            window.dispatchEvent(new CustomEvent('auth:logout'));
+            
+            // Refresh header to show login button
+            this.refresh();
+            
+            // Navigate to home
+            (window as any).navigateTo('/');
+        } 
+        catch (error) 
+        {
+            console.error('Logout error:', error);
+            
+            // Even if logout fails, clear local tokens and redirect
+            LoginService.clearTokens();
+            this.refresh();
+            (window as any).navigateTo('/');
         }
     }
 
@@ -203,7 +283,6 @@ private handleHamburgerClick(): void
         }
     }
 
-    // Public method to reset event setup
     public resetEvents(): void 
     {
         this.eventsSetup = false;

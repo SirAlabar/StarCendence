@@ -114,11 +114,15 @@ setup:
 	@printf "$(CYAN)Starting services...$(DEFAULT)\n"
 	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service
 	@printf "$(CYAN)Waiting for services...$(DEFAULT)\n"
-	@sleep 3
+	@sleep 5
+	@printf "$(CYAN)Pushing database schema...$(DEFAULT)\n"
+	@docker compose exec user-service npx prisma db push --skip-generate --accept-data-loss
+	@printf "$(CYAN)Seeding database with default users...$(DEFAULT)\n"
+	@$(MAKE) --no-print-directory seed-db
 	@printf "$(CYAN)Health check...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory health-quiet
 	@printf "$(GREEN)🎉 ft_transcendence is ready!$(DEFAULT)\n"
-	@printf "$(YELLOW)🌐 Access: http://localhost$(DEFAULT)\n"
+	@printf "$(YELLOW)🌐 Access: http://localhost:8080$(DEFAULT)\n"
 	@printf "$(YELLOW)🚀 Start tunnel: make tunnel$(DEFAULT)\n"
 	@printf "$(YELLOW)📊 Redis: localhost:6379$(DEFAULT)\n\n"
 
@@ -182,7 +186,7 @@ start:
 	@printf "$(GREEN)🔥 Starting ft_transcendence infrastructure...$(DEFAULT)\n"
 	@$(DOCKER_COMPOSE) up -d nginx redis
 	@printf "$(GREEN)✅ Infrastructure started!$(DEFAULT)\n"
-	@printf "$(YELLOW)🌐 Access: http://localhost$(DEFAULT)\n"
+	@printf "$(YELLOW)🌐 Access: http://localhost:8080$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory health
 
 .PHONY: stop
@@ -196,11 +200,23 @@ stop:
 restart: stop start
 
 .PHONY: dev
-dev: start
-	@printf "$(GREEN)🛠️  Development mode started!$(DEFAULT)\n"
-	@printf "$(YELLOW)📂 Build frontend: cd frontend && npm run build && cp -r dist/* ${HOME}/data/frontend/$(DEFAULT)\n"
-	@printf "$(YELLOW)🔍 Watching logs (Ctrl+C to exit)...$(DEFAULT)\n"
-	@$(MAKE) --no-print-directory logs
+dev:
+	@printf "$(GREEN)🛠️  Starting ft_transcendence in DEVELOPMENT mode...$(DEFAULT)\n"
+	@printf "$(CYAN)Setting environment to development...$(DEFAULT)\n"
+	@export NODE_ENV=development && \
+	$(DOCKER_COMPOSE) up -d \
+		redis \
+		user-service \
+		auth-service \
+		nginx \
+		frontend-dev
+	@printf "$(GREEN)✅ All services are running in development mode!$(DEFAULT)\n"
+	@printf "$(YELLOW)🌐 Frontend (Vite): http://localhost:5173$(DEFAULT)\n"
+	@printf "$(YELLOW)🌐 Backend (API Gateway via Nginx): http://localhost:8080$(DEFAULT)\n"
+	@printf "$(YELLOW)📊 Watching logs (Ctrl+C to exit)...$(DEFAULT)\n"
+	@$(DOCKER_COMPOSE) logs -f redis user-service auth-service nginx frontend-dev
+
+
 
 .PHONY: build
 build:
@@ -217,7 +233,7 @@ rebuild:
 .PHONY: re
 re: clean setup
 	@printf "$(GREEN)♻️  Complete rebuild finished!$(DEFAULT)\n"
-	@printf "$(YELLOW)🌐 Access: http://localhost$(DEFAULT)\n"
+	@printf "$(YELLOW)🌐 Access: http://localhost:8080$(DEFAULT)\n"
 	@printf "$(YELLOW)📊 Redis: localhost:6379$(DEFAULT)\n"
 
 ################################################################################
@@ -232,7 +248,7 @@ logs:
 health:
 	@printf "$(GREEN)🔍 Checking service health...$(DEFAULT)\n"
 	@printf "$(YELLOW)Nginx HTTP:$(DEFAULT) "
-	@if curl -s -f http://localhost/health > /dev/null 2>&1; then \
+	@if curl -s -f http://localhost:8080/health > /dev/null 2>&1; then \
 		printf "$(GREEN)✅ Online$(DEFAULT)\n"; \
 	else \
 		printf "$(RED)❌ Offline$(DEFAULT)\n"; \
@@ -246,7 +262,7 @@ health:
 
 .PHONY: health-quiet
 health-quiet:
-	@curl -s -f http://localhost/health > /dev/null 2>&1 || exit 1
+	@curl -s -f http://localhost:8080/health > /dev/null 2>&1 || exit 1
 	@$(DOCKER_COMPOSE) exec -T redis redis-cli ping > /dev/null 2>&1 || exit 1
 
 .PHONY: status
@@ -268,6 +284,14 @@ shell-nginx:
 .PHONY: shell-redis
 shell-redis:
 	@$(DOCKER_COMPOSE) exec redis redis-cli
+
+.PHONY: seed-db
+seed-db:
+	@printf "$(CYAN)🌱 Seeding user database...$(DEFAULT)\n"
+	@docker compose exec user-service npm run prisma:seed
+	@printf "$(CYAN)🌱 Seeding auth database...$(DEFAULT)\n"
+	@docker compose exec auth-service npm run prisma:seed
+	@printf "$(GREEN)✅ Both databases seeded!$(DEFAULT)\n"
 
 ################################################################################
 #                              CLEANUP RULES                                   #
@@ -342,12 +366,18 @@ auth_service_restart:
 	@docker compose up auth-service -d --force-recreate
 	@printf "$(GREEN)✅ auth-service restarted!$(DEFAULT)\n"
 
+nodemon_restart:
+	@printf "$(YELLOW)🔄 Restarting nodemon...$(DEFAULT)\n"
+	@docker exec -it transcendence_auth sh -c "PID=$$(lsof -ti :3001); if [ -n \"$$PID\" ]; then kill $$PID; fi"
+	@docker exec -it transcendence_user sh -c "PID=$$(lsof -ti :3004); if [ -n \"$$PID\" ]; then kill $$PID; fi"
+	@printf "$(GREEN)✅ nodemon restarted!$(DEFAULT)\n"
+
 db_clean:
 	@printf "$(YELLOW)🧹 Cleaning all data in user-service...$(DEFAULT)\n"
 	@docker compose exec -it user-service sh -c "for tbl in \$$(sqlite3 /app/data/user.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/user.db \"DELETE FROM '\$$tbl'\"; fi; done; sqlite3 /app/data/user.db 'DELETE FROM sqlite_sequence';"
 	@docker compose exec -it auth-service sh -c "for tbl in \$$(sqlite3 /app/data/auth.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/auth.db \"DELETE FROM '\$$tbl'\"; fi; done;"
-	@printf "$(GREEN)✅ All user-service tables cleaned and autoincrement reset where applicable!$(DEFAULT)\n"
-
+	@printf "$(GREEN)✅ All tables cleaned!$(DEFAULT)\n"
+	@printf "$(CYAN)Reseeding database with default users...$(DEFAULT)\n"
 
 nginx_service_restart:
 	@printf "$(YELLOW)🔄 Restarting nginx...$(DEFAULT)\n"
