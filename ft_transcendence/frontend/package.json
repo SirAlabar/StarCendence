@@ -16,8 +16,7 @@
     "@babylonjs/inspector": "^8.26.0",
     "@babylonjs/loaders": "^8.21.0",
     "@babylonjs/materials": "^8.21.0",
-    "ammojs-typed": "^1.0.6",
-    "babylonjs": "^8.33.2"
+    "ammojs-typed": "^1.0.6"
   },
   "devDependencies": {
     "@types/node": "^20.5.0",
@@ -39,5 +38,4 @@
     "npm": ">=8.0.0"
   }
 }
-
 
