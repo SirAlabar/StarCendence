@@ -112,9 +112,9 @@ setup:
 	@printf "$(CYAN)Building frontend...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory front
 	@printf "$(CYAN)Building containers...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) build nginx redis user-service auth-service grafana prometheus
+	@$(DOCKER_COMPOSE) build nginx redis user-service auth-service
 	@printf "$(CYAN)Starting services...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service grafana prometheus
+	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service
 	@printf "$(CYAN)Waiting for services...$(DEFAULT)\n"
 	@sleep 5
 	@printf "$(CYAN)Pushing database schema...$(DEFAULT)\n"
@@ -127,6 +127,14 @@ setup:
 	@printf "$(YELLOW)🌐 Access: http://localhost:8080$(DEFAULT)\n"
 	@printf "$(YELLOW)🚀 Start tunnel: make tunnel$(DEFAULT)\n"
 	@printf "$(YELLOW)📊 Redis: localhost:6379$(DEFAULT)\n\n"
+
+monitoring:
+	@printf "$(CYAN)Setting up monitoring services...$(DEFAULT)\n"
+	@$(DOCKER_COMPOSE) build prometheus grafana
+	@$(DOCKER_COMPOSE) up -d prometheus grafana
+	@printf "$(GREEN)✅ Monitoring services started!$(DEFAULT)\n"
+	@printf "$(YELLOW)📊 Prometheus: http://localhost:9090$(DEFAULT)\n"
+	@printf "$(YELLOW)📊 Grafana: http://localhost:3000$(DEFAULT)\n\n"
 
 .PHONY: create-volumes
 create-volumes:
@@ -388,6 +396,10 @@ nginx_service_restart:
 	@docker compose build --no-cache nginx
 	@docker compose up nginx -d --force-recreate
 	@printf "$(GREEN)✅ nginx restarted!$(DEFAULT)\n"
+
+################################################################################
+#                               MONITORING                                     #
+################################################################################
 
 prometheus_restart:
 	@printf "$(YELLOW)🔄 Restarting prometheus...$(DEFAULT)\n"
