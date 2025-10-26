@@ -4,7 +4,7 @@
 FROM node:20-slim
 
 # Install OpenSSL (required by Prisma)
-RUN apt-get update -y && apt-get install -y openssl sqlite3 lsof
+RUN apt-get update -y && apt-get install -y openssl sqlite3 lsof iputils-ping
 
 # Set working directory
 WORKDIR /app

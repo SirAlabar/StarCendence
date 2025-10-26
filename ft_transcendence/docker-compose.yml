@@ -32,7 +32,6 @@ services:
     networks:
       - transcendence_network
 
-
   # Reverse Proxy (HTTP redirect + HTTPS)
   nginx:
     container_name: transcendence_nginx
@@ -176,12 +175,57 @@ services:
       - redis_password
     restart: unless-stopped
 
+  prometheus:
+    container_name: transcendence_prometheus
+    image: prom/prometheus:latest
+    volumes:
+      - prometheus_data:/prometheus
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - transcendence_network
+    restart: always
+  
+  grafana:
+    image: grafana/grafana:latest
+    container_name: transcendence_grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./infrastructure/monitoring/grafana/custom.ini:/etc/grafana/grafana.ini:ro
+      - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/monitoring/grafana/provisioning/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      - GF_PATHS_CONFIG=/etc/grafana/grafana.ini
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+    networks:
+      - transcendence_network
+    depends_on:
+      - prometheus
+    restart: always
+
 volumes:
   redis_data:
     driver: local
     driver_opts:
       type: none
       device: ${HOME}/data/redis
+      o: bind
+
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOME}/data/grafana
+      o: bind
+
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOME}/data/prometheus
       o: bind
 
   frontend_dist:
