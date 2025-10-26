@@ -1,5 +1,5 @@
-// Server Entry Point - Start the Fastify application
-import { createApp } from './app';
+// server.ts - Entry point
+import { createApp, initializeServices, cleanupServices } from './app';
 import { GAME_CONFIG } from './utils/constants';
 
 /**
@@ -9,14 +9,18 @@ async function startServer(): Promise<void>
 {
   try
   {
+    // Initialize services first
+    await initializeServices();
+    
+    // Create app
     const app = await createApp();
-
+    
     // Start listening
     await app.listen({
       port: GAME_CONFIG.PORT,
-      host: '0.0.0.0', // Important for Docker!
+      host: '0.0.0.0',
     });
-
+    
     console.log(`🚀 Game Service running on http://0.0.0.0:${GAME_CONFIG.PORT}`);
   }
   catch (error)
@@ -27,15 +31,13 @@ async function startServer(): Promise<void>
 }
 
 // Handle graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('⏹️ SIGTERM received, shutting down gracefully...');
+const shutdown = async () => {
+  await cleanupServices();
   process.exit(0);
-});
+};
 
-process.on('SIGINT', async () => {
-  console.log('⏹️ SIGINT received, shutting down gracefully...');
-  process.exit(0);
-});
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 // Start the server
 startServer().catch((error) => {

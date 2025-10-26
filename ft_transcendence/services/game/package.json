@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Game Service - Multiplayer Pong and Pod Racing game logic",
   "main": "dist/server.js",
-  "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",

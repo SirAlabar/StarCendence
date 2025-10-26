@@ -1,10 +1,10 @@
-// Main Fastify Application
+// app.ts - Just export the functions, don't try to run
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import { GAME_CONFIG } from './utils/constants';
 import { registerGameRoutes } from './controllers/gameController';
-import { registerInputRoutes } from '../src/controllers/inputController';
-import { initializeRedis, closeRedis } from '../src/communication/RedisPublisher';
+import { registerInputRoutes } from './controllers/inputController';
+import { initializeRedis, closeRedis } from './communication/RedisPublisher';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -66,55 +66,25 @@ export async function createApp(): Promise<FastifyInstance>
 }
 
 /**
- * Start the server
+ * Initialize services (Redis, Prisma)
  */
-export async function startServer(): Promise<void>
+export async function initializeServices(): Promise<void>
 {
-  try
-  {
-    // Initialize Redis
-    console.log('🔄 Connecting to Redis...');
-    await initializeRedis();
-
-    // Initialize Prisma (test connection)
-    console.log('🔄 Connecting to database...');
-    await prisma.$connect();
-    console.log('✅ Database connected');
-
-    // Create Fastify app
-    const app = await createApp();
-
-    // Start server
-    const port = GAME_CONFIG.PORT;
-    const host = '0.0.0.0';
-
-    await app.listen({ port, host });
-    console.log(`🚀 Game Service running on http://${host}:${port}`);
-
-    // Graceful shutdown
-    const gracefulShutdown = async () => {
-      console.log('🔄 Shutting down gracefully...');
-
-      await closeRedis();
-      await prisma.$disconnect();
-      await app.close();
-
-      console.log('✅ Shutdown complete');
-      process.exit(0);
-    };
-
-    process.on('SIGINT', gracefulShutdown);
-    process.on('SIGTERM', gracefulShutdown);
-  }
-  catch (error)
-  {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
-  }
+  console.log('🔄 Connecting to Redis...');
+  await initializeRedis();
+  
+  console.log('🔄 Connecting to database...');
+  await prisma.$connect();
+  console.log('✅ Database connected');
 }
 
-// Start server if this file is run directly
-if (require.main === module)
+/**
+ * Cleanup services (Redis, Prisma)
+ */
+export async function cleanupServices(): Promise<void>
 {
-  startServer();
+  console.log('🔄 Shutting down gracefully...');
+  await closeRedis();
+  await prisma.$disconnect();
+  console.log('✅ Shutdown complete');
 }
