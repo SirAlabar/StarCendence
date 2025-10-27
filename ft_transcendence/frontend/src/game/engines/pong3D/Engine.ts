@@ -20,7 +20,7 @@ export class Pong3Dscene
     
     private readonly FIELD_WIDTH = 60;          // X-axis (paddle to paddle distance)
     private readonly FIELD_LENGTH = 50;         // Z-axis (wall to wall distance)
-    private readonly GROUND_HEIGHT = 36;         // Ground level
+    private readonly GROUND_HEIGHT = 45;         // Ground level
     
     private keys: Record<string, boolean> = {};
     
@@ -52,11 +52,11 @@ export class Pong3Dscene
     {
 
         this.camera = new FreeCamera("camera", new Vector3(0, 0, 0), this.scene);
-        this.camera.position = new Vector3(-120, 70, 0);
+        this.camera.position = new Vector3(-100, 70, 0);
         this.camera.rotation = new Vector3(Math.PI / 11, Math.PI / 2, 0);
         
 
-        this.topCamera = new FreeCamera("topCamera", new Vector3(0, 100, 0), this.scene);
+        this.topCamera = new FreeCamera("topCamera", new Vector3(0, 102.50, 0), this.scene);
         this.topCamera.rotation = new Vector3(Math.PI / 2, 0, 0);
         this.scene.activeCamera = this.camera;
     }
@@ -76,7 +76,7 @@ export class Pong3Dscene
         // Load skybox
         Skybox.createFromGLB(this.scene, "assets/images/skybox2.glb");
         this.platform = await loadModel(this.scene,"assets/models/pong/", "sci-fi_platform.glb", new Vector3(0, 0, 0));
-        this.platform[0].scaling = new Vector3(6,6,6);
+        this.platform[0].scaling = new Vector3(6.5,6.5,6.5);
         this.platform[0].position = new Vector3(0, -70, 0);
     }
     
@@ -95,7 +95,7 @@ export class Pong3Dscene
         paddleMat.emissiveColor = new Color3(0.3, 0.05, 0.05); // Slight glow
         
         this.paddle_left = MeshBuilder.CreateBox("left_paddle", {width: 1.5, height: 2, depth: 10}, this.scene);
-        this.paddle_left.position = new Vector3(-this.FIELD_WIDTH / 2 + 5, this.GROUND_HEIGHT + 2, 0);
+        this.paddle_left.position = new Vector3(-this.FIELD_WIDTH / 2 + 5, this.GROUND_HEIGHT + 1, 0);
         this.paddle_left.material = paddleMat;
         
         const paddleMat2 = paddleMat.clone("paddleMat2");
@@ -103,7 +103,7 @@ export class Pong3Dscene
         paddleMat2.emissiveColor = new Color3(0.05, 0.05, 0.3);
         
         this.paddle_right = MeshBuilder.CreateBox("right_paddle", {width: 1.5, height: 2, depth: 10}, this.scene);
-        this.paddle_right.position = new Vector3(this.FIELD_WIDTH / 2 - 5, this.GROUND_HEIGHT + 2, 0);
+        this.paddle_right.position = new Vector3(this.FIELD_WIDTH / 2 - 5, this.GROUND_HEIGHT + 1, 0);
         this.paddle_right.material = paddleMat2;
 
         
@@ -117,8 +117,8 @@ export class Pong3Dscene
         this.paddle_left.checkCollisions = true;
         this.paddle_right.checkCollisions = true;
     
-        this.paddle_left.ellipsoid = new Vector3(0.75, 2, 5);
-        this.paddle_right.ellipsoid = new Vector3(0.75, 2, 5);
+        this.paddle_left.ellipsoid = new Vector3(0.75, 1, 5);
+        this.paddle_right.ellipsoid = new Vector3(0.75, 1, 5);
     }
     
     private setupGameLoop() 
@@ -170,9 +170,16 @@ export class Pong3Dscene
         
         // Clamp ball position to prevent getting stuck
         const wallBoundary = this.FIELD_LENGTH / 2 - 1;
-        if (this.ball.position.z > wallBoundary) this.ball.position.z = wallBoundary;
-        if (this.ball.position.z < -wallBoundary) this.ball.position.z = -wallBoundary;
-        
+        if (this.ball.position.z > wallBoundary) 
+        {
+            this.ball.position.z = wallBoundary;
+            this.flashWallHit(new Vector3(this.ball.position.x, this.ball.position.y, wallBoundary));
+        }
+        if (this.ball.position.z < -wallBoundary) 
+        {
+            this.flashWallHit(new Vector3(this.ball.position.x, this.ball.position.y, -wallBoundary));
+            this.ball.position.z = -wallBoundary;
+        }
         const minSpeedx = 0.2;
         if (Math.abs(this.ballVelocity.x) < minSpeedx) 
         {
@@ -221,16 +228,19 @@ export class Pong3Dscene
     
     private repositionPaddle(): void
     {
-        this.paddle_left.position.y = this.GROUND_HEIGHT + 2;
-        this.paddle_right.position.y = this.GROUND_HEIGHT + 2;
+        this.paddle_left.position.y = this.GROUND_HEIGHT + 1;
+        this.paddle_right.position.y = this.GROUND_HEIGHT + 1;
         this.paddle_left.position.x = -this.FIELD_WIDTH / 2 + 5;
         this.paddle_right.position.x = this.FIELD_WIDTH / 2 - 5;
     }
     
     private changeCamera(): void 
     {
-        if (this.scene.activeCamera === this.camera) 
+        if (this.scene.activeCamera === this.camera)
+        {
             this.scene.activeCamera = this.topCamera;
+            this.topCamera.attachControl(this.canvas, true);
+        }
         else 
             this.scene.activeCamera = this.camera;
     }
@@ -266,6 +276,43 @@ export class Pong3Dscene
         this.paddle_right.moveWithCollisions(moveVector2);
     }
     
+    private flashWallHit(position: Vector3): void 
+    {
+        const goalBoundary = this.FIELD_WIDTH / 2;
+        if (this.ball.position.x > goalBoundary || this.ball.position.x < -goalBoundary)
+        {
+            return;
+        }
+        const size = 4; 
+        const flash = MeshBuilder.CreatePlane("flash", { size }, this.scene);
+        
+        const mat = new StandardMaterial("flashMat", this.scene);
+        mat.diffuseColor = new Color3(1, 0, 0);
+        mat.emissiveColor = new Color3(1, 0, 0);
+        mat.alpha = 0.8; 
+        mat.backFaceCulling = false; // Make it visible from both sides
+        flash.material = mat;
+        
+        flash.position.copyFrom(position);
+        
+        // Rotate plane to be perpendicular to Z-axis (facing along X-axis)
+        //flash.rotation.y = Math.PI / 2;
+               
+        // Fade out animation
+        let alpha = 0.8;
+        const interval = setInterval(() => {
+            alpha -= 0.05;
+            mat.alpha = alpha;
+            if (alpha <= 0) {
+                flash.dispose();
+                clearInterval(interval);
+            }
+        }, 30);
+    }
+
+
+
+
     dispose() 
     {
         this.engine.stopRenderLoop();
