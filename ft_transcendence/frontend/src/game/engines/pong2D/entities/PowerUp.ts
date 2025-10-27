@@ -1,0 +1,1 @@
+// Power-up collectible entities

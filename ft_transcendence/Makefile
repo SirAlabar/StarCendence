@@ -35,6 +35,8 @@ USER_VOLUME = $(DOCKER_DATA_DIR)/user
 AUTH_VOLUME = $(DOCKER_DATA_DIR)/auth
 GAME_VOLUME = $(DOCKER_DATA_DIR)/game
 USER_AVATARS_VOLUME = $(DOCKER_DATA_DIR)/user/avatars
+PROMETHEUS_VOLUME = $(DOCKER_DATA_DIR)/prometheus
+GRAFANA_VOLUME = $(DOCKER_DATA_DIR)/grafana
 
 
 ################################################################################
@@ -127,6 +129,14 @@ setup:
 	@printf "$(YELLOW)🚀 Start tunnel: make tunnel$(DEFAULT)\n"
 	@printf "$(YELLOW)📊 Redis: localhost:6379$(DEFAULT)\n\n"
 
+monitoring:
+	@printf "$(CYAN)Setting up monitoring services...$(DEFAULT)\n"
+	@$(DOCKER_COMPOSE) build prometheus grafana
+	@$(DOCKER_COMPOSE) up -d prometheus grafana
+	@printf "$(GREEN)✅ Monitoring services started!$(DEFAULT)\n"
+	@printf "$(YELLOW)📊 Prometheus: http://localhost:9090$(DEFAULT)\n"
+	@printf "$(YELLOW)📊 Grafana: http://localhost:3000$(DEFAULT)\n\n"
+
 .PHONY: create-volumes
 create-volumes:
 	@printf "$(CYAN)Creating Docker bind mount directories...$(DEFAULT)\n"
@@ -136,12 +146,16 @@ create-volumes:
 	@mkdir -p $(AUTH_VOLUME)
 	@mkdir -p $(GAME_VOLUME)
 	@mkdir -p $(USER_AVATARS_VOLUME)
+	@mkdir -p $(PROMETHEUS_VOLUME)
+	@mkdir -p $(GRAFANA_VOLUME)
 	@printf "$(GREEN)✅ Volume directories created:$(DEFAULT)\n"
 	@printf "  - $(FRONTEND_VOLUME)\n"
 	@printf "  - $(REDIS_VOLUME)\n"
 	@printf "  - $(USER_VOLUME)\n"
 	@printf "  - $(AUTH_VOLUME)\n"
 	@printf "  - $(USER_AVATARS_VOLUME)\n"
+	@printf "  - $(PROMETHEUS_VOLUME)\n"
+	@printf "  - $(GRAFANA_VOLUME)\n"
 
 .PHONY: setup-env
 setup-env:
@@ -217,8 +231,6 @@ dev:
 	@printf "$(YELLOW)🌐 Backend (API Gateway via Nginx): http://localhost:8080$(DEFAULT)\n"
 	@printf "$(YELLOW)📊 Watching logs (Ctrl+C to exit)...$(DEFAULT)\n"
 	@$(DOCKER_COMPOSE) logs -f redis user-service auth-service nginx frontend-dev
-
-
 
 .PHONY: build
 build:
@@ -386,3 +398,19 @@ nginx_service_restart:
 	@docker compose build --no-cache nginx
 	@docker compose up nginx -d --force-recreate
 	@printf "$(GREEN)✅ nginx restarted!$(DEFAULT)\n"
+
+################################################################################
+#                               MONITORING                                     #
+################################################################################
+
+prometheus_restart:
+	@printf "$(YELLOW)🔄 Restarting prometheus...$(DEFAULT)\n"
+	@docker compose build --no-cache prometheus
+	@docker compose up prometheus -d --force-recreate
+	@printf "$(GREEN)✅ prometheus restarted!$(DEFAULT)\n"
+
+grafana_restart:
+	@printf "$(YELLOW)🔄 Restarting grafana...$(DEFAULT)\n"
+	@docker compose build --no-cache grafana
+	@docker compose up grafana -d --force-recreate
+	@printf "$(GREEN)✅ grafana restarted!$(DEFAULT)\n"

@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth-service:3001']
+
+  - job_name: 'user-service'
+    static_configs:
+      - targets: ['user-service:3004']
