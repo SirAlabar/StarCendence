@@ -1,6 +1,6 @@
-import {Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes} from "@babylonjs/core";
+import {Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes, AbstractMesh} from "@babylonjs/core";
 import { Skybox } from "./entities/Skybox";
-
+import { loadModel } from "./entities/ModelLoader";
 
 export class Pong3Dscene 
 {
@@ -16,10 +16,11 @@ export class Pong3Dscene
     private maxSpeed: number = 0.6; 
     private gravity = -0.02; 
     private canChangeCamera: boolean = true;
+    private platform: AbstractMesh[] = [];
     
     private readonly FIELD_WIDTH = 60;          // X-axis (paddle to paddle distance)
-    private readonly FIELD_LENGTH = 40;         // Z-axis (wall to wall distance)
-    private readonly GROUND_HEIGHT = 0;         // Ground level
+    private readonly FIELD_LENGTH = 50;         // Z-axis (wall to wall distance)
+    private readonly GROUND_HEIGHT = 36;         // Ground level
     
     private keys: Record<string, boolean> = {};
     
@@ -51,11 +52,11 @@ export class Pong3Dscene
     {
 
         this.camera = new FreeCamera("camera", new Vector3(0, 0, 0), this.scene);
-        this.camera.position = new Vector3(-100, 20, 0);
-        this.camera.rotation = new Vector3(0, Math.PI / 2, 0);
+        this.camera.position = new Vector3(-120, 70, 0);
+        this.camera.rotation = new Vector3(Math.PI / 11, Math.PI / 2, 0);
         
 
-        this.topCamera = new FreeCamera("topCamera", new Vector3(0, 80, 0), this.scene);
+        this.topCamera = new FreeCamera("topCamera", new Vector3(0, 100, 0), this.scene);
         this.topCamera.rotation = new Vector3(Math.PI / 2, 0, 0);
         this.scene.activeCamera = this.camera;
     }
@@ -66,7 +67,7 @@ export class Pong3Dscene
         this.light.intensity = 0.2; 
     }
     
-    private createEnvironment() 
+    private async createEnvironment() 
     {
         const ground = MeshBuilder.CreateGround("ground", {width: this.FIELD_WIDTH,height: this.FIELD_LENGTH}, this.scene);
         ground.position.y = this.GROUND_HEIGHT;
@@ -74,14 +75,17 @@ export class Pong3Dscene
         ground.checkCollisions = true;
         // Load skybox
         Skybox.createFromGLB(this.scene, "assets/images/skybox2.glb");
+        this.platform = await loadModel(this.scene,"assets/models/pong/", "sci-fi_platform.glb", new Vector3(0, 0, 0));
+        this.platform[0].scaling = new Vector3(6,6,6);
+        this.platform[0].position = new Vector3(0, -70, 0);
     }
     
     private createGameObjects() 
     {
         this.ball = MeshBuilder.CreateSphere("ball", { diameter: 2 }, this.scene);
         const ballMat = new StandardMaterial("ballMat", this.scene);
-        ballMat.diffuseColor = new Color3(1, 1, 1);
-        ballMat.emissiveColor = new Color3(0.9, 0.9, 0.9);          // glow
+        ballMat.diffuseColor = new Color3(1, 1, 0);
+        ballMat.emissiveColor = new Color3(0.2, 0.2, 0);          // glow
         this.ball.material = ballMat;
         this.ball.position = new Vector3(0, this.GROUND_HEIGHT + 1, 0);
         
@@ -90,7 +94,7 @@ export class Pong3Dscene
         paddleMat.diffuseColor = new Color3(0.9, 0.1, 0.1);
         paddleMat.emissiveColor = new Color3(0.3, 0.05, 0.05); // Slight glow
         
-        this.paddle_left = MeshBuilder.CreateBox("left_paddle", {width: 1.5, height: 4, depth: 10}, this.scene);
+        this.paddle_left = MeshBuilder.CreateBox("left_paddle", {width: 1.5, height: 2, depth: 10}, this.scene);
         this.paddle_left.position = new Vector3(-this.FIELD_WIDTH / 2 + 5, this.GROUND_HEIGHT + 2, 0);
         this.paddle_left.material = paddleMat;
         
@@ -98,9 +102,12 @@ export class Pong3Dscene
         paddleMat2.diffuseColor = new Color3(0.1, 0.1, 0.9);
         paddleMat2.emissiveColor = new Color3(0.05, 0.05, 0.3);
         
-        this.paddle_right = MeshBuilder.CreateBox("right_paddle", {width: 1.5, height: 4, depth: 10}, this.scene);
+        this.paddle_right = MeshBuilder.CreateBox("right_paddle", {width: 1.5, height: 2, depth: 10}, this.scene);
         this.paddle_right.position = new Vector3(this.FIELD_WIDTH / 2 - 5, this.GROUND_HEIGHT + 2, 0);
         this.paddle_right.material = paddleMat2;
+
+        
+
     }
     
     private enableCollisions() 
