@@ -280,9 +280,8 @@ export class Pong3Dscene
     {
         const goalBoundary = this.FIELD_WIDTH / 2;
         if (this.ball.position.x > goalBoundary || this.ball.position.x < -goalBoundary)
-        {
             return;
-        }
+        
         const size = 4; 
         const flash = MeshBuilder.CreatePlane("flash", { size }, this.scene);
         
