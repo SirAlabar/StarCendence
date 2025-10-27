@@ -294,9 +294,6 @@ export class Pong3Dscene
         
         flash.position.copyFrom(position);
         
-        // Rotate plane to be perpendicular to Z-axis (facing along X-axis)
-        //flash.rotation.y = Math.PI / 2;
-               
         // Fade out animation
         let alpha = 0.8;
         const interval = setInterval(() => {
