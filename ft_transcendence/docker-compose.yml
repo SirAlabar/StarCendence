@@ -105,6 +105,7 @@ services:
       - transcendence_network
     secrets:
       - redis_password
+      - internal_api_key
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379

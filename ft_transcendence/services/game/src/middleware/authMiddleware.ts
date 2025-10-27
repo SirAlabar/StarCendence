@@ -1,6 +1,5 @@
 // Auth Middleware - Verify JWT tokens from auth service
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { GAME_CONFIG } from '../utils/constants';
 import { getInternalApiKey } from '../utils/secretsUtils';
 import { unauthorized } from '../utils/HttpError';
 
@@ -25,13 +24,12 @@ export async function verifyUserToken(
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     // Verify token with auth service
-    const response = await fetch(`${GAME_CONFIG.SERVICES.AUTH}/internal/verify`, {
+    const response = await fetch('http://auth-service:3001/internal/token/verify', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': getInternalApiKey(),
+        'Authorization': `Bearer ${token}`,
+        'X-API-Key': getInternalApiKey(),
       },
-      body: JSON.stringify({ token }),
     });
 
     if (!response.ok)
@@ -39,13 +37,10 @@ export async function verifyUserToken(
       throw unauthorized('Invalid or expired token');
     }
 
-    const verifiedUser = await response.json() as { userId?: string; sub?: string; email?: string };
+    const data = await response.json() as { user?: any };
 
     // Attach user info to request
-    (request as any).user = {
-      sub: verifiedUser.userId || verifiedUser.sub,
-      email: verifiedUser.email,
-    };
+    (request as any).user = data.user;
   }
   catch (error: any)
   {
