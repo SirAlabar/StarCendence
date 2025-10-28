@@ -2,7 +2,7 @@ import { BaseComponent } from '../components/BaseComponent';
 import { AiDifficulty } from '@/game/engines/pong2D/entities/EnemyAi';
 import { gameManager } from '@/game/managers/PongManager';
 import { Pong3Dscene } from '@/game/engines/pong3D/Engine';
-import { navigateTo } from '../router/router';
+import { navigateTo, isAuthenticated } from '../router/router';
 
 type GameMode = 'multiplayer' | 'ai' | 'tournament' | null;
 type ViewType = '2d' | '3d' | null;
@@ -20,6 +20,9 @@ export default class PongPage extends BaseComponent
     {
         return `
             <div class="container mx-auto px-6 -mt-20 pt-20">
+                <!-- Message Container -->
+                <div id="pongMessage" class="mb-4"></div>
+                
                 <div class="flex items-center justify-center">
                     <div class="relative w-full max-w-7xl" style="aspect-ratio: 4/3; max-height: 80vh;">
                         <canvas 
@@ -374,6 +377,17 @@ export default class PongPage extends BaseComponent
             return;
         }
         
+        // Check authentication for multiplayer and tournament
+        if (this.selectedMode === 'multiplayer' || this.selectedMode === 'tournament') 
+        {
+
+            if (!isAuthenticated()) 
+            {
+                this.showMessage('You need to be logged in to play multiplayer mode!', 'error');
+                return;
+            }
+        }
+        
         if (this.selectedMode === 'ai') 
         {
             this.showDifficultySelection();
@@ -386,6 +400,55 @@ export default class PongPage extends BaseComponent
         {
             navigateTo('/pong-lobby');
         }
+    }
+
+    private showMessage(message: string, type: 'success' | 'error'): void 
+    {
+        const container = document.getElementById('pongMessage');
+        if (!container) 
+        {
+            return;
+        }
+
+        const bgColor = type === 'success' ? 'bg-green-900/80' : 'bg-red-900/80';
+        const borderColor = type === 'success' ? 'border-green-500' : 'border-red-500';
+        const textColor = type === 'success' ? 'text-green-300' : 'text-red-300';
+        const icon = type === 'success' ? '✓' : '⚠';
+
+        container.innerHTML = `
+            <div class="max-w-4xl mx-auto ${bgColor} ${borderColor} border-2 rounded-xl p-4 backdrop-blur-sm shadow-2xl animate-pulse-slow">
+                <div class="flex items-center gap-3">
+                    <div class="text-2xl">${icon}</div>
+                    <p class="${textColor} font-bold text-lg">
+                        ${this.escapeHtml(message)}
+                    </p>
+                </div>
+            </div>
+            <style>
+                @keyframes pulse-slow {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.8; }
+                }
+                .animate-pulse-slow {
+                    animation: pulse-slow 2s ease-in-out infinite;
+                }
+            </style>
+        `;
+
+        setTimeout(() => 
+        {
+            if (container) 
+            {
+                container.innerHTML = '';
+            }
+        }, 4000);
+    }
+
+    private escapeHtml(text: string): string 
+    {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     private showDifficultySelection(): void 

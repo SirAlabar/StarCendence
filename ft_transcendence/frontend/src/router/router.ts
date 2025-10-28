@@ -255,7 +255,7 @@ function matchDynamicRoute(path: string): any
 }
 
 // Check if user is authenticated
-function isAuthenticated(): boolean
+export function isAuthenticated(): boolean
 {
     const token = localStorage.getItem('access_token');
     return token !== null;

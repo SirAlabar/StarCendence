@@ -1,6 +1,10 @@
 import { BaseComponent } from '../BaseComponent';
 import { PodConfig, AVAILABLE_PODS } from '../../game/utils/PodConfig';
 import { PodSelection, PodSelectionEvent } from '../../pages/PodSelectionPage';
+import UserService from '../../services/user/UserService';
+import FriendService from '../../services/user/FriendService';
+import { UserProfile } from '../../types/user.types';
+import { AiDifficulty } from '../../game/engines/pong2D/entities/EnemyAi';
 
 export type GameType = 'pong' | 'podracer';
 
@@ -8,8 +12,10 @@ export interface PlayerSlot
 {
     id: number;
     playerName: string | null;
+    userId: string | null;
     isOnline: boolean;
     isAI: boolean;
+    aiDifficulty?: AiDifficulty;
     isReady: boolean;
     avatarUrl: string;
     customization: PodConfig | null;
@@ -30,35 +36,64 @@ export class GameLobby extends BaseComponent
     private currentCustomizingSlot: number | null = null;
     private podSelection: PodSelection | null = null;
     private chatMessages: Array<{player: string, message: string, time: string}> = [];
-    private containerElement: HTMLElement | null = null;
+    private currentUser: UserProfile | null = null;
+    private friends: any[] = [];
     
     constructor(config: LobbyConfig) 
     {
         super();
         this.config = config;
-        this.initializePlayerSlots();
-        this.initializeChatMessages();
     }
     
-    private initializePlayerSlots(): void 
+    private async initializePlayerSlots(): Promise<void> 
     {
         this.playerSlots = [];
         
-        this.playerSlots.push({
-            id: 0,
-            playerName: 'PLAYER 1',
-            isOnline: true,
-            isAI: false,
-            isReady: false,
-            avatarUrl: '/assets/images/default-avatar.jpeg',
-            customization: this.config.gameType === 'podracer' ? AVAILABLE_PODS[0] : null
-        });
+        // Load current user
+        try 
+        {
+            this.currentUser = await UserService.getProfile();
+        }
+        catch (err) 
+        {
+            console.error('Failed to load user profile:', err);
+            this.currentUser = null;
+        }
         
+        // Load friends list
+        try 
+        {
+            const friendsData = await FriendService.getFriends();
+            this.friends = friendsData.friends || [];
+        }
+        catch (err) 
+        {
+            console.error('Failed to load friends:', err);
+            this.friends = [];
+        }
+        
+        // Add current player as first slot
+        if (this.currentUser) 
+        {
+            this.playerSlots.push({
+                id: 0,
+                playerName: this.currentUser.username,
+                userId: this.currentUser.id,
+                isOnline: true,
+                isAI: false,
+                isReady: false,
+                avatarUrl: this.currentUser.avatarUrl || '/assets/images/default-avatar.jpeg',
+                customization: this.config.gameType === 'podracer' ? AVAILABLE_PODS[0] : null
+            });
+        }
+        
+        // Add empty slots for other players
         for (let i = 1; i < this.config.maxPlayers; i++) 
         {
             this.playerSlots.push({
                 id: i,
                 playerName: null,
+                userId: null,
                 isOnline: false,
                 isAI: false,
                 isReady: false,
@@ -145,6 +180,61 @@ export class GameLobby extends BaseComponent
                     </div>
                 </div>
                 
+                <!-- Invite Players Modal -->
+                <div id="inviteModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm items-center justify-center z-50" style="display: none;">
+                    <div class="bg-gradient-to-br from-gray-900 to-blue-900/50 rounded-2xl border-2 border-cyan-500/50 p-8 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                        <h2 class="text-2xl font-bold text-cyan-300 mb-6 text-center">INVITE PLAYER</h2>
+                        
+                        <div class="space-y-4 mb-6">
+                            ${this.renderFriendsList()}
+                        </div>
+                        
+                        <button id="closeInviteModal" class="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold">
+                            CLOSE
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- AI Difficulty Selection Modal (Pong Only) -->
+                <div id="aiDifficultyModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm items-center justify-center z-50" style="display: none;">
+                    <div class="bg-gradient-to-br from-gray-900 to-blue-900/50 rounded-2xl border-2 border-cyan-500/50 p-8 max-w-4xl w-full mx-4">
+                        <h2 class="text-3xl font-bold text-cyan-300 mb-8 text-center">SELECT AI DIFFICULTY</h2>
+                        
+                        <div class="grid grid-cols-2 gap-6 mb-6">
+                            <button id="selectEasyAI" class="p-8 rounded-xl border-2 border-yellow-500/40 bg-gradient-to-br from-yellow-900/40 to-gray-900/60 hover:border-yellow-500 hover:shadow-2xl hover:shadow-yellow-500/50 transition-all">
+                                <div class="text-6xl mb-4">😊</div>
+                                <h3 class="text-2xl font-bold text-yellow-400 mb-2">EASY</h3>
+                                <p class="text-gray-400">Balanced gameplay</p>
+                            </button>
+                            
+                            <button id="selectHardAI" class="p-8 rounded-xl border-2 border-red-500/40 bg-gradient-to-br from-red-900/40 to-gray-900/60 hover:border-red-500 hover:shadow-2xl hover:shadow-red-500/50 transition-all">
+                                <div class="text-6xl mb-4">😈</div>
+                                <h3 class="text-2xl font-bold text-red-400 mb-2">HARD</h3>
+                                <p class="text-gray-400">Accurate predictions, tough to beat</p>
+                            </button>
+                        </div>
+                        
+                        <button id="closeAIModal" class="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold">
+                            CANCEL
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Paddle Selection Modal (Pong Only) -->
+                <div id="paddleSelectionModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm items-center justify-center z-50" style="display: none;">
+                    <div class="bg-gradient-to-br from-gray-900 to-blue-900/50 rounded-2xl border-2 border-cyan-500/50 p-8 max-w-4xl w-full mx-4">
+                        <h2 class="text-3xl font-bold text-cyan-300 mb-8 text-center">SELECT PADDLE</h2>
+                        
+                        <div class="grid grid-cols-3 gap-6 mb-6">
+                            ${this.renderPaddleOptions()}
+                        </div>
+                        
+                        <button id="closePaddleModal" class="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold">
+                            CLOSE
+                        </button>
+                    </div>
+                </div>
+                
                 <style>
                     .glow-text-cyan 
                     {
@@ -197,11 +287,13 @@ export class GameLobby extends BaseComponent
     {
         if (!slot.playerName) 
         {
+            const buttonText = this.config.gameType === 'podracer' ? 'INVITE PLAYER' : 'ADD PLAYER / AI';
+            
             return `
                 <div class="player-card rounded-xl p-6 border-2 border-gray-700/50 bg-gradient-to-br from-gray-800/60 to-gray-900/80 backdrop-blur-sm">
                     <div class="flex flex-col items-center justify-center h-full min-h-[140px]">
                         <div class="text-5xl mb-3 opacity-20">+</div>
-                        <h3 class="text-base font-bold text-gray-600 mb-3">ADD PLAYER</h3>
+                        <h3 class="text-base font-bold text-gray-600 mb-3">${buttonText}</h3>
                         <button class="add-player-btn px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-400 text-sm font-bold transition-all" data-slot="${slot.id}">
                             PRESS ENTER
                         </button>
@@ -213,7 +305,7 @@ export class GameLobby extends BaseComponent
         const borderColor = slot.isOnline ? 'border-green-500' : slot.isAI ? 'border-yellow-500' : 'border-gray-600';
         const bgGradient = slot.isOnline ? 'from-green-900/30' : slot.isAI ? 'from-yellow-900/30' : 'from-gray-900/30';
         const statusColor = slot.isOnline ? 'text-green-400' : slot.isAI ? 'text-yellow-400' : 'text-gray-400';
-        const statusText = slot.isOnline ? 'ONLINE' : slot.isAI ? 'AUTOMATED UNIT' : 'OFFLINE';
+        const statusText = slot.isOnline ? 'ONLINE' : slot.isAI ? `AUTOMATED UNIT (${slot.aiDifficulty?.toUpperCase()})` : 'OFFLINE';
         
         return `
             <div class="player-card rounded-xl p-4 border-2 ${borderColor} bg-gradient-to-br ${bgGradient} to-gray-900/80 backdrop-blur-sm">
@@ -248,9 +340,9 @@ export class GameLobby extends BaseComponent
                     </button>
                 </div>
                 
-                ${slot.isAI ? `
+                ${slot.isAI || (slot.id !== 0) ? `
                     <button class="remove-btn w-full mt-2 py-2 px-3 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition-all" data-slot="${slot.id}">
-                        REMOVE
+                        ${slot.isAI ? 'REMOVE BOT' : 'KICK PLAYER'}
                     </button>
                 ` : ''}
             </div>
@@ -278,6 +370,48 @@ export class GameLobby extends BaseComponent
         return '<p class="text-gray-600 text-xs text-center">No customization</p>';
     }
     
+    private renderFriendsList(): string 
+    {
+        if (this.friends.length === 0) 
+        {
+            return `
+                <div class="text-center text-gray-500 py-8">
+                    <p>No friends online</p>
+                    <p class="text-sm mt-2">Add friends to invite them to play!</p>
+                </div>
+            `;
+        }
+        
+        return this.friends.map(friend => `
+            <button class="invite-friend-btn w-full p-4 rounded-lg border-2 border-cyan-500/30 bg-gray-800/50 hover:border-cyan-500 hover:bg-gray-700/50 transition-all flex items-center gap-4" data-username="${friend.username}" data-userid="${friend.userId}">
+                <img src="${friend.avatarUrl || '/assets/images/default-avatar.jpeg'}" alt="${friend.username}" class="w-12 h-12 rounded-full border-2 border-cyan-500">
+                <div class="flex-1 text-left">
+                    <p class="text-cyan-300 font-bold">${friend.username}</p>
+                    <p class="text-gray-400 text-sm">Click to invite</p>
+                </div>
+            </button>
+        `).join('');
+    }
+    
+    private renderPaddleOptions(): string 
+    {
+        const paddles = [
+            { name: 'Default', color: 'from-cyan-500 to-blue-600' },
+            { name: 'Fire', color: 'from-red-500 to-orange-600' },
+            { name: 'Neon', color: 'from-pink-500 to-purple-600' },
+            { name: 'Forest', color: 'from-green-500 to-emerald-600' },
+            { name: 'Gold', color: 'from-yellow-500 to-amber-600' },
+            { name: 'Ice', color: 'from-blue-300 to-cyan-400' }
+        ];
+        
+        return paddles.map((paddle, index) => `
+            <button class="select-paddle-btn p-6 rounded-xl border-2 border-cyan-500/30 bg-gray-800/50 hover:border-cyan-500 hover:bg-gray-700/50 transition-all" data-paddle="${index}">
+                <div class="w-12 h-20 bg-gradient-to-b ${paddle.color} rounded-lg mb-3 mx-auto"></div>
+                <p class="text-cyan-300 font-bold text-sm">${paddle.name}</p>
+            </button>
+        `).join('');
+    }
+    
     private renderChatMessages(): string 
     {
         return this.chatMessages.map(msg => `
@@ -298,12 +432,17 @@ export class GameLobby extends BaseComponent
         return activePlayers.length >= 2 && allReady;
     }
     
-    mount(containerId?: string): void 
+    async mount(containerId?: string): Promise<void> 
     {
-        if (containerId) 
+        await this.initializePlayerSlots();
+        this.initializeChatMessages();
+        
+        const container = containerId ? document.getElementById(containerId) : null;
+        if (container) 
         {
-            this.containerElement = document.getElementById(containerId);
+            container.innerHTML = this.render();
         }
+        
         this.attachEventListeners();
     }
     
@@ -375,6 +514,58 @@ export class GameLobby extends BaseComponent
                 this.handleRemovePlayer(slotId);
             });
         });
+        
+        // Invite modal listeners
+        const closeInviteBtn = document.getElementById('closeInviteModal');
+        if (closeInviteBtn) 
+        {
+            closeInviteBtn.addEventListener('click', () => this.closeInviteModal());
+        }
+        
+        document.querySelectorAll('.invite-friend-btn').forEach(btn => 
+        {
+            btn.addEventListener('click', (e) => 
+            {
+                const target = e.currentTarget as HTMLElement;
+                const username = target.getAttribute('data-username') || '';
+                const userId = target.getAttribute('data-userid') || '';
+                this.invitePlayer(username, userId);
+            });
+        });
+        
+        // AI Difficulty modal listeners
+        const selectEasyBtn = document.getElementById('selectEasyAI');
+        const selectHardBtn = document.getElementById('selectHardAI');
+        const closeAIBtn = document.getElementById('closeAIModal');
+        
+        if (selectEasyBtn) 
+        {
+            selectEasyBtn.addEventListener('click', () => this.addAIPlayer('easy'));
+        }
+        if (selectHardBtn) 
+        {
+            selectHardBtn.addEventListener('click', () => this.addAIPlayer('hard'));
+        }
+        if (closeAIBtn) 
+        {
+            closeAIBtn.addEventListener('click', () => this.closeAIModal());
+        }
+        
+        // Paddle selection listeners
+        const closePaddleBtn = document.getElementById('closePaddleModal');
+        if (closePaddleBtn) 
+        {
+            closePaddleBtn.addEventListener('click', () => this.closePaddleModal());
+        }
+        
+        document.querySelectorAll('.select-paddle-btn').forEach(btn => 
+        {
+            btn.addEventListener('click', (e) => 
+            {
+                const paddleIndex = parseInt((e.currentTarget as HTMLElement).getAttribute('data-paddle') || '0');
+                this.selectPaddle(paddleIndex);
+            });
+        });
     }
     
     private sendChatMessage(): void 
@@ -389,7 +580,7 @@ export class GameLobby extends BaseComponent
         const time = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
         
         this.chatMessages.push({
-            player: 'PLAYER 1',
+            player: this.currentUser?.username || 'PLAYER 1',
             message: chatInput.value.trim().toUpperCase(),
             time: time
         });
@@ -414,25 +605,119 @@ export class GameLobby extends BaseComponent
     
     private handleAddPlayer(slotId: number): void 
     {
-        const slot = this.playerSlots[slotId];
-        if (slot && !slot.playerName) 
+        if (this.config.gameType === 'podracer') 
         {
-            slot.playerName = `PLAYER ${slotId + 1}`;
-            slot.isAI = true;
-            slot.isReady = false;
-            slot.customization = this.config.gameType === 'podracer' ? AVAILABLE_PODS[slotId % AVAILABLE_PODS.length] : null;
-            this.refresh();
+            // Pod Racer: Show invite modal
+            this.showInviteModal(slotId);
         }
+        else 
+        {
+            // Pong: Show AI difficulty selection
+            this.showAIModal(slotId);
+        }
+    }
+    
+    private showInviteModal(slotId: number): void 
+    {
+        this.currentCustomizingSlot = slotId;
+        const modal = document.getElementById('inviteModal');
+        if (modal) 
+        {
+            modal.style.display = 'flex';
+        }
+    }
+    
+    private closeInviteModal(): void 
+    {
+        const modal = document.getElementById('inviteModal');
+        if (modal) 
+        {
+            modal.style.display = 'none';
+        }
+        this.currentCustomizingSlot = null;
+    }
+    
+    private invitePlayer(username: string, userId: string): void 
+    {
+        if (this.currentCustomizingSlot === null) 
+        {
+            return;
+        }
+        
+        const friend = this.friends.find(f => f.username === username);
+        if (!friend) 
+        {
+            return;
+        }
+        
+        const slot = this.playerSlots[this.currentCustomizingSlot];
+        if (slot) 
+        {
+            slot.playerName = username;
+            slot.userId = userId;
+            slot.isOnline = true;
+            slot.isAI = false;
+            slot.isReady = false;
+            slot.avatarUrl = friend.avatarUrl || '/assets/images/default-avatar.jpeg';
+            slot.customization = this.config.gameType === 'podracer' ? AVAILABLE_PODS[this.currentCustomizingSlot % AVAILABLE_PODS.length] : null;
+        }
+        
+        this.closeInviteModal();
+        this.refresh();
+    }
+    
+    private showAIModal(slotId: number): void 
+    {
+        this.currentCustomizingSlot = slotId;
+        const modal = document.getElementById('aiDifficultyModal');
+        if (modal) 
+        {
+            modal.style.display = 'flex';
+        }
+    }
+    
+    private closeAIModal(): void 
+    {
+        const modal = document.getElementById('aiDifficultyModal');
+        if (modal) 
+        {
+            modal.style.display = 'none';
+        }
+        this.currentCustomizingSlot = null;
+    }
+    
+    private addAIPlayer(difficulty: AiDifficulty): void 
+    {
+        if (this.currentCustomizingSlot === null) 
+        {
+            return;
+        }
+        
+        const slot = this.playerSlots[this.currentCustomizingSlot];
+        if (slot) 
+        {
+            slot.playerName = `AI BOT ${this.currentCustomizingSlot}`;
+            slot.userId = null;
+            slot.isAI = true;
+            slot.aiDifficulty = difficulty;
+            slot.isReady = true;
+            slot.customization = null;
+        }
+        
+        this.closeAIModal();
+        this.refresh();
     }
     
     private handleRemovePlayer(slotId: number): void 
     {
         const slot = this.playerSlots[slotId];
-        if (slot && slot.isAI) 
+        if (slot && slotId !== 0) 
         {
             slot.playerName = null;
+            slot.userId = null;
             slot.isOnline = false;
             slot.isAI = false;
+            slot.aiDifficulty = undefined;
             slot.isReady = false;
             slot.customization = null;
             this.refresh();
@@ -459,8 +744,35 @@ export class GameLobby extends BaseComponent
         }
         else 
         {
-            console.log('Paddle selection - placeholder');
+            // Show paddle selection for Pong
+            this.showPaddleModal();
         }
+    }
+    
+    private showPaddleModal(): void 
+    {
+        const modal = document.getElementById('paddleSelectionModal');
+        if (modal) 
+        {
+            modal.style.display = 'flex';
+        }
+    }
+    
+    private closePaddleModal(): void 
+    {
+        const modal = document.getElementById('paddleSelectionModal');
+        if (modal) 
+        {
+            modal.style.display = 'none';
+        }
+        this.currentCustomizingSlot = null;
+    }
+    
+    private selectPaddle(paddleIndex: number): void 
+    {
+        console.log(`Selected paddle: ${paddleIndex}`);
+        // TODO: Store paddle selection for slot
+        this.closePaddleModal();
     }
     
     private showPodSelectionModal(): void 
@@ -515,7 +827,6 @@ export class GameLobby extends BaseComponent
     
     private refresh(): void 
     {
-        // Only refresh the lobby container, not the whole page
         const container = document.getElementById('lobbyContainer');
         if (container) 
         {

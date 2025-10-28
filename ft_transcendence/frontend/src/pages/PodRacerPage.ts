@@ -10,7 +10,6 @@ export default class PodRacerPage extends BaseComponent
     private podSelection: PodSelection | null = null;
     private selectedPodConfig: PodConfig = AVAILABLE_PODS[0];
     private isDisposed: boolean = false;
-    private selectedMode: 'training' | 'multiplayer' | null = null;
     
     render(): string 
     {
@@ -113,8 +112,6 @@ export default class PodRacerPage extends BaseComponent
 
     private selectMode(mode: 'training' | 'multiplayer'): void 
     {
-        this.selectedMode = mode;
-        
         if (mode === 'training') 
         {
             // Hide mode selection, show pod selection
