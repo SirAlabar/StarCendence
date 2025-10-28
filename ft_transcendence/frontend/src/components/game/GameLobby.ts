@@ -38,6 +38,7 @@ export class GameLobby extends BaseComponent
     private chatMessages: Array<{player: string, message: string, time: string}> = [];
     private currentUser: UserProfile | null = null;
     private friends: any[] = [];
+    private mountSelector: string | null = null;
     
     constructor(config: LobbyConfig) 
     {
@@ -432,140 +433,123 @@ export class GameLobby extends BaseComponent
         return activePlayers.length >= 2 && allReady;
     }
     
-    async mount(containerId?: string): Promise<void> 
+    async mount(selector?: string): Promise<void> 
     {
+        this.mountSelector = selector ?? '#game-content';
+
         await this.initializePlayerSlots();
         this.initializeChatMessages();
-        
-        const container = containerId ? document.getElementById(containerId) : null;
-        if (container) 
-        {
+
+        const container = document.querySelector(this.mountSelector);
+        if (container) {
             container.innerHTML = this.render();
         }
-        
+
         this.attachEventListeners();
     }
-    
-    private attachEventListeners(): void 
+
+    private attachEventListeners(): void
     {
-        const startBtn = document.getElementById('startGameBtn');
-        if (startBtn) 
-        {
-            startBtn.addEventListener('click', () => this.handleStartGame());
-        }
-        
-        const backBtn = document.getElementById('backBtn');
-        if (backBtn) 
-        {
-            backBtn.addEventListener('click', () => this.config.onBack());
-        }
-        
-        const chatInput = document.getElementById('chatInput') as HTMLInputElement;
-        const sendBtn = document.getElementById('sendChatBtn');
-        
-        if (sendBtn) 
-        {
-            sendBtn.addEventListener('click', () => this.sendChatMessage());
-        }
-        
-        if (chatInput) 
-        {
-            chatInput.addEventListener('keypress', (e) => 
-            {
-                if (e.key === 'Enter') 
-                {
+        if (!this.mountSelector) return;
+
+        const root = document.querySelector(this.mountSelector);
+        if (!root) return;
+
+        // Delegação de click
+        root.addEventListener('click', (e: Event) => {
+            const target = e.target as HTMLElement;
+
+            // START GAME
+            if (target.closest('#startGameBtn')) {
+                this.handleStartGame();
+                return;
+            }
+
+            // BACK BUTTON
+            if (target.closest('#backBtn')) {
+                this.config.onBack();
+                return;
+            }
+
+            // ADD PLAYER
+            const addBtn = target.closest('.add-player-btn') as HTMLElement | null;
+            if (addBtn) {
+                const slotId = parseInt(addBtn.dataset.slot!, 10);
+                this.handleAddPlayer(slotId);
+                return;
+            }
+
+            // CHANGE CUSTOMIZATION
+            const changeBtn = target.closest('.change-btn') as HTMLElement | null;
+            if (changeBtn) {
+                const slotId = parseInt(changeBtn.dataset.slot!, 10);
+                this.handleChangeCustomization(slotId);
+                return;
+            }
+
+            // READY ✅
+            const readyBtn = target.closest('.ready-btn') as HTMLElement | null;
+            if (readyBtn) {
+                const slotId = parseInt(readyBtn.dataset.slot!, 10);
+                this.toggleReady(slotId);
+                return;
+            }
+
+            // REMOVE PLAYER / BOT ❌
+            const removeBtn = target.closest('.remove-btn') as HTMLElement | null;
+            if (removeBtn) {
+                const slotId = parseInt(removeBtn.dataset.slot!, 10);
+                this.handleRemovePlayer(slotId);
+                return;
+            }
+
+            // INVITE FRIEND ✅
+            const inviteBtn = target.closest('.invite-friend-btn') as HTMLElement | null;
+            if (inviteBtn) {
+                const username = inviteBtn.dataset.username!;
+                const userId = inviteBtn.dataset.userid!;
+                this.invitePlayer(username, userId);
+                return;
+            }
+
+            // CLOSE INVITE MODAL
+            if (target.closest('#closeInviteModal')) {
+                this.closeInviteModal();
+                return;
+            }
+
+            // AI SELECT
+            if (target.closest('#selectEasyAI')) {
+                this.addAIPlayer('easy');
+                return;
+            }
+            if (target.closest('#selectHardAI')) {
+                this.addAIPlayer('hard');
+                return;
+            }
+            if (target.closest('#closeAIModal')) {
+                this.closeAIModal();
+                return;
+            }
+
+            // PADDLE SELECT
+            const paddleBtn = target.closest('.select-paddle-btn') as HTMLElement | null;
+            if (paddleBtn) {
+                const paddleIndex = parseInt(paddleBtn.dataset.paddle!, 10);
+                this.selectPaddle(paddleIndex);
+                return;
+            }
+        });
+
+        // ENTER para enviar mensagem
+        const chatInput = root.querySelector('#chatInput') as HTMLInputElement | null;
+        if (chatInput) {
+            chatInput.addEventListener('keydown', (e: KeyboardEvent) => {
+                if (e.key === 'Enter') {
                     this.sendChatMessage();
                 }
             });
         }
-        
-        document.querySelectorAll('.add-player-btn').forEach(btn => 
-        {
-            btn.addEventListener('click', (e) => 
-            {
-                const slotId = parseInt((e.target as HTMLElement).getAttribute('data-slot') || '0');
-                this.handleAddPlayer(slotId);
-            });
-        });
-        
-        document.querySelectorAll('.change-btn').forEach(btn => 
-        {
-            btn.addEventListener('click', (e) => 
-            {
-                const slotId = parseInt((e.target as HTMLElement).getAttribute('data-slot') || '0');
-                this.handleChangeCustomization(slotId);
-            });
-        });
-        
-        document.querySelectorAll('.ready-btn').forEach(btn => 
-        {
-            btn.addEventListener('click', (e) => 
-            {
-                const slotId = parseInt((e.target as HTMLElement).getAttribute('data-slot') || '0');
-                this.toggleReady(slotId);
-            });
-        });
-        
-        document.querySelectorAll('.remove-btn').forEach(btn => 
-        {
-            btn.addEventListener('click', (e) => 
-            {
-                const slotId = parseInt((e.target as HTMLElement).getAttribute('data-slot') || '0');
-                this.handleRemovePlayer(slotId);
-            });
-        });
-        
-        // Invite modal listeners
-        const closeInviteBtn = document.getElementById('closeInviteModal');
-        if (closeInviteBtn) 
-        {
-            closeInviteBtn.addEventListener('click', () => this.closeInviteModal());
-        }
-        
-        document.querySelectorAll('.invite-friend-btn').forEach(btn => 
-        {
-            btn.addEventListener('click', (e) => 
-            {
-                const target = e.currentTarget as HTMLElement;
-                const username = target.getAttribute('data-username') || '';
-                const userId = target.getAttribute('data-userid') || '';
-                this.invitePlayer(username, userId);
-            });
-        });
-        
-        // AI Difficulty modal listeners
-        const selectEasyBtn = document.getElementById('selectEasyAI');
-        const selectHardBtn = document.getElementById('selectHardAI');
-        const closeAIBtn = document.getElementById('closeAIModal');
-        
-        if (selectEasyBtn) 
-        {
-            selectEasyBtn.addEventListener('click', () => this.addAIPlayer('easy'));
-        }
-        if (selectHardBtn) 
-        {
-            selectHardBtn.addEventListener('click', () => this.addAIPlayer('hard'));
-        }
-        if (closeAIBtn) 
-        {
-            closeAIBtn.addEventListener('click', () => this.closeAIModal());
-        }
-        
-        // Paddle selection listeners
-        const closePaddleBtn = document.getElementById('closePaddleModal');
-        if (closePaddleBtn) 
-        {
-            closePaddleBtn.addEventListener('click', () => this.closePaddleModal());
-        }
-        
-        document.querySelectorAll('.select-paddle-btn').forEach(btn => 
-        {
-            btn.addEventListener('click', (e) => 
-            {
-                const paddleIndex = parseInt((e.currentTarget as HTMLElement).getAttribute('data-paddle') || '0');
-                this.selectPaddle(paddleIndex);
-            });
-        });
     }
     
     private sendChatMessage(): void 
@@ -827,12 +811,12 @@ export class GameLobby extends BaseComponent
     
     private refresh(): void 
     {
-        const container = document.getElementById('lobbyContainer');
-        if (container) 
-        {
-            container.outerHTML = this.render();
-            this.attachEventListeners();
-        }
+        if (!this.mountSelector) return;
+        
+        const container = document.querySelector(this.mountSelector);
+        if (!container) return;
+
+        container.innerHTML = this.render();
     }
     
     public dispose(): void 
