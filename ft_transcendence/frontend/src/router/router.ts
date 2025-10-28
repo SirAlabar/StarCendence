@@ -112,8 +112,8 @@ const routeConfig: Record<string, any> =
     {
         component: () => import('../pages/PongPage'),
         title: '3D Pong - Transcendence',
-        layout: 'default',
-        headerType: 'default'
+        layout: 'game',
+        headerType: 'game'
     },
     '/login':
     {

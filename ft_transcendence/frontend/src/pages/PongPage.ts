@@ -50,7 +50,7 @@ export default class PongPage extends BaseComponent
                 <div class="grid grid-cols-3 gap-6 mb-12">
                     <div id="multiplayerCard" class="mode-card rounded-2xl p-8 border-2 border-purple-500/40 bg-gradient-to-br from-purple-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/50 relative">
                         <div class="flex flex-col items-center">
-                            <img src="/assets/images/eny1.png" alt="Multiplayer" class="w-24 h-24 mb-4 opacity-80">
+                            <img src="/assets/images/multiplayer.png" alt="Multiplayer" class="w-24 h-24 mb-4 opacity-80">
                             <h3 class="text-2xl font-bold text-purple-400 mb-2">MULTIPLAYER</h3>
                             <p class="text-gray-400 text-sm mb-6">Play with friends</p>
                             <button class="select-mode-btn w-full py-3 px-6 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold transition-all">
@@ -66,7 +66,7 @@ export default class PongPage extends BaseComponent
                     
                     <div id="aiCard" class="mode-card rounded-2xl p-8 border-2 border-green-500/40 bg-gradient-to-br from-green-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-green-500 hover:shadow-2xl hover:shadow-green-500/50 relative">
                         <div class="flex flex-col items-center">
-                            <img src="/assets/images/eny2.png" alt="AI" class="w-24 h-24 mb-4 opacity-80">
+                            <img src="/assets/images/ia_bot.png" alt="AI" class="w-24 h-24 mb-4 opacity-80">
                             <h3 class="text-2xl font-bold text-green-400 mb-2">PLAY VS AI</h3>
                             <p class="text-gray-400 text-sm mb-6">Battle the CPU</p>
                             <button class="select-mode-btn w-full py-3 px-6 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold transition-all">
@@ -82,7 +82,7 @@ export default class PongPage extends BaseComponent
                     
                     <div id="tournamentCard" class="mode-card rounded-2xl p-8 border-2 border-orange-500/40 bg-gradient-to-br from-orange-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-500/50 relative">
                         <div class="flex flex-col items-center">
-                            <img src="/assets/images/eny3.png" alt="Tournament" class="w-24 h-24 mb-4 opacity-80">
+                            <img src="/assets/images/tournament.png" alt="Tournament" class="w-24 h-24 mb-4 opacity-80">
                             <h3 class="text-2xl font-bold text-orange-400 mb-2">TOURNAMENT</h3>
                             <p class="text-gray-400 text-sm mb-6">Win a cup</p>
                             <button class="select-mode-btn w-full py-3 px-6 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold transition-all">
@@ -183,7 +183,7 @@ export default class PongPage extends BaseComponent
                     <!-- Easy Card -->
                     <div id="easyCard" class="difficulty-card rounded-2xl p-12 border-2 border-yellow-500/40 bg-gradient-to-br from-yellow-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-yellow-500 hover:shadow-2xl hover:shadow-yellow-500/50">
                         <div class="flex flex-col items-center">
-                            <div class="text-6xl mb-6">😊</div>
+                            <div class="text-6xl mb-6"><img src="/assets/images/ia_easy.png" alt="AI" class="w-24 h-24 mb-4 opacity-80"></div>
                             <h3 class="text-3xl font-bold text-yellow-400 mb-3">EASY</h3>
                             <p class="text-gray-400 text-center mb-8">Balanced gameplay</p>
                         </div>
@@ -192,7 +192,7 @@ export default class PongPage extends BaseComponent
                     <!-- Hard Card -->
                     <div id="hardCard" class="difficulty-card rounded-2xl p-12 border-2 border-red-500/40 bg-gradient-to-br from-red-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-red-500 hover:shadow-2xl hover:shadow-red-500/50">
                         <div class="flex flex-col items-center">
-                            <div class="text-6xl mb-6">😈</div>
+                            <div class="text-6xl mb-6"><img src="/assets/images/ia_hard.png" alt="AI" class="w-24 h-24 mb-4 opacity-80"></div>
                             <h3 class="text-3xl font-bold text-red-400 mb-3">HARD</h3>
                             <p class="text-gray-400 text-center mb-8">Accurate predictions, tough to beat</p>
                         </div>

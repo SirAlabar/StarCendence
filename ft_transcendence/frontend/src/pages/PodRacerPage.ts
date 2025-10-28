@@ -43,9 +43,9 @@ export default class PodRacerPage extends BaseComponent
                     <!-- Training Mode Card -->
                     <div id="trainingCard" class="mode-card rounded-2xl p-12 border-2 border-blue-500/40 bg-gradient-to-br from-blue-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/50">
                         <div class="flex flex-col items-center">
-                            <img src="/assets/images/eny1.png" alt="Training" class="w-32 h-32 mb-6 opacity-80">
+                            <img src="/assets/images/training_racer.png" alt="Training" class="w-32 h-32 mb-6 opacity-80">
                             <h3 class="text-3xl font-bold text-blue-400 mb-4">TRAINING</h3>
-                            <p class="text-gray-400 text-center mb-8">Practice solo and master your skills</p>
+                            <p class="text-gray-400 text-center mb-8">Practice solo</p>
                             <button class="w-full py-4 px-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xl transition-all">
                                 PLAY
                             </button>
@@ -55,7 +55,7 @@ export default class PodRacerPage extends BaseComponent
                     <!-- Multiplayer Mode Card -->
                     <div id="multiplayerCard" class="mode-card rounded-2xl p-12 border-2 border-orange-500/40 bg-gradient-to-br from-orange-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-500/50">
                         <div class="flex flex-col items-center">
-                            <img src="/assets/images/eny2.png" alt="Multiplayer" class="w-32 h-32 mb-6 opacity-80">
+                            <img src="/assets/images/multiplayer_racer.png" alt="Multiplayer" class="w-32 h-32 mb-6 opacity-80">
                             <h3 class="text-3xl font-bold text-orange-400 mb-4">MULTIPLAYER</h3>
                             <p class="text-gray-400 text-center mb-8">Race with others online</p>
                             <button class="w-full py-4 px-8 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold text-xl transition-all">
