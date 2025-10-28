@@ -3,12 +3,15 @@ import { AiDifficulty } from '@/game/engines/pong2D/entities/EnemyAi';
 import { gameManager } from '@/game/managers/PongManager';
 import { Pong3Dscene } from '@/game/engines/pong3D/Engine';
 
+
+
 export default class PongPage extends BaseComponent 
 {
     private resizeListener: (() => void) | null = null;
     private selectedDifficulty: AiDifficulty = 'easy'; 
     private gameEndHandler: ((event: Event) => void) | null = null;
     private pong3D: Pong3Dscene | null = null
+    private PaddleColor?: string;
 
       render(): string 
       {
@@ -132,7 +135,7 @@ export default class PongPage extends BaseComponent
         `;
 
         document.getElementById("playWithAI")?.addEventListener("click", () => this.showAIDifficultySelection3D());
-        document.getElementById("playMultiplayer")?.addEventListener("click", () => this.start3DPong());
+        document.getElementById("playMultiplayer")?.addEventListener("click", () => this.start3DPong("multiplayer"));
         document.getElementById("tournament")?.addEventListener("click", () => this.tournamentbtn());
         document.getElementById("backToMainMenu")?.addEventListener("click", () => this.renderMainMenu());
     }
@@ -164,7 +167,7 @@ export default class PongPage extends BaseComponent
         document.getElementById("easyBtn")?.addEventListener("click", () => 
         {
             this.selectedDifficulty = 'easy';
-            this.start2DPong("ai");
+            this.selectPaddleColor();
         });
         document.getElementById("hardBtn")?.addEventListener("click", () => 
         {
@@ -173,6 +176,63 @@ export default class PongPage extends BaseComponent
         });
         document.getElementById("backToModeSelect")?.addEventListener("click", () => this.show2DModeSelection());
     }
+
+        private selectPaddleColor():void
+        {
+            const mainMenu = document.getElementById("mainMenu");
+            if (!mainMenu) 
+                return;
+            mainMenu.innerHTML = `
+                <h2 class="text-4xl font-bold mb-6 text-white">Select Paddle Color</h2>
+                <div class="flex flex-col space-y-4">
+                    <button id="NeonBtn" class="bg-yellow-500 text-white px-8 py-4 rounded-lg hover:bg-yellow-600 text-xl">
+                        Neon
+                    </button>
+                    <button id="FireBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
+                        Fire
+                    </button>
+                    <button id="IceBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
+                        Ice
+                    </button>
+                    <button id="RainbowBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
+                        Rainbow
+                    </button>
+                        <button id="MatrixBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
+                        Matrix
+                    </button>
+                    <button id="GoldBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
+                        Gold 
+                    </button>
+                    <button id="ShadowBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
+                        Shadow
+                    </button>
+                    <button id="backToModeSelect" class="mt-4 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
+                        ← Back
+                    </button>
+                </div>
+            `;
+            document.getElementById("backToModeSelect")?.addEventListener("click", ()=> this.showAIDifficultySelection());
+
+            const colorButton:Record <string, string> = {
+                NeonBtn: "Neon",
+                FireBtn: "Fire",
+                IceBtn: "Ice",
+                RainbowBtn: "Rainbow",
+                MatrixBtn: "Matrix",
+                GoldBtn: "Gold",
+                ShadowBtn: "Shadow",
+            };
+
+            Object.entries(colorButton).forEach(([id, color]) => {
+            document.getElementById(id)?.addEventListener("click", () => {
+                this.PaddleColor = color;
+                console.log(this.PaddleColor)
+                this.start2DPong("ai");
+            });
+        });
+            
+        }
+
 
      private showAIDifficultySelection3D(): void 
     {
@@ -251,7 +311,7 @@ export default class PongPage extends BaseComponent
             // Initialize game through GameManager
             const config = mode === "ai" 
                 ? { mode, difficulty: this.selectedDifficulty }
-                : { mode };
+                : { mode, paddleColor: this.PaddleColor};
                 
             gameManager.initGame(canvas, config);
             gameManager.startGame();

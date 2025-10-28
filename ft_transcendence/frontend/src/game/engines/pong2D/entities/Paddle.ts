@@ -11,7 +11,7 @@ export class paddle
     directionY: number;                                             //direction on y
     color: string;
     
-    constructor(side: "left" | "right", canvas: HTMLCanvasElement, colorName: keyof typeof PADDLE_COLORS = "default")
+    constructor(side: "left" | "right", canvas: HTMLCanvasElement, colorKey: keyof typeof PADDLE_COLORS)
     {
         this.width = 10;
         this.height = 100;
@@ -20,7 +20,7 @@ export class paddle
         this.x = 0;
         this.y = (canvas.height - this.height) /2;                  //Position on center of the screen
         
-        const color = PADDLE_COLORS[colorName];
+        const color = PADDLE_COLORS[colorKey];
         this.color = color.toHexString();
 
         if(side === 'left')                                         //if constructor called with left position left paddle

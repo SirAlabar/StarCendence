@@ -27,6 +27,7 @@ export class PongScene
         
     constructor(ctx: CanvasRenderingContext2D, mode: "multiplayer" | "ai", aiDifficulty: AiDifficulty = 'easy') 
     {
+        
         this.ctx = ctx;
         this.paused = false;
         this.canvas = ctx.canvas;
@@ -34,7 +35,7 @@ export class PongScene
         this.ball = new Ball(this.canvas.width /2 , this.canvas.height /2 , 10);
         this.ball.dx = 3;
         this.ball.dy = 1;
-        this.paddle_left = new paddle("left" , this.canvas, "gold");
+        this.paddle_left = new paddle("left" , this.canvas, "ice");
         this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
 
         if (mode === "multiplayer") 
