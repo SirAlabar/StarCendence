@@ -1,4 +1,3 @@
-
 import { BaseComponent } from '../components/BaseComponent';
 import { PodSelection, PodSelectionEvent } from './PodSelectionPage';
 import { RacerRenderer } from '../game/engines/racer/RacerRenderer';
@@ -11,6 +10,7 @@ export default class PodRacerPage extends BaseComponent
     private podSelection: PodSelection | null = null;
     private selectedPodConfig: PodConfig = AVAILABLE_PODS[0];
     private isDisposed: boolean = false;
+    private selectedMode: 'training' | 'multiplayer' | null = null;
     
     render(): string 
     {
@@ -23,8 +23,60 @@ export default class PodRacerPage extends BaseComponent
                     style="background: linear-gradient(to bottom, #1a1a2e, #16213e); display: none;"
                 ></canvas>
 
+                <!-- Mode Selection Container -->
+                <div id="modeSelectionContainer" class="absolute inset-0 flex items-center justify-center">
+                    ${this.renderModeSelection()}
+                </div>
+
                 <!-- Pod Selection Container -->
-                <div id="podSelectionContainer"></div>
+                <div id="podSelectionContainer" style="display: none;"></div>
+            </div>
+        `;
+    }
+
+    private renderModeSelection(): string 
+    {
+        return `
+            <div class="w-full max-w-4xl mx-auto px-6">
+                <h1 class="text-6xl font-bold mb-16 text-center text-cyan-300 glow-text-cyan">CHOOSE YOUR MODE</h1>
+                
+                <div class="grid grid-cols-2 gap-8 mb-12">
+                    <!-- Training Mode Card -->
+                    <div id="trainingCard" class="mode-card rounded-2xl p-12 border-2 border-blue-500/40 bg-gradient-to-br from-blue-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/50">
+                        <div class="flex flex-col items-center">
+                            <img src="/assets/images/eny1.png" alt="Training" class="w-32 h-32 mb-6 opacity-80">
+                            <h3 class="text-3xl font-bold text-blue-400 mb-4">TRAINING</h3>
+                            <p class="text-gray-400 text-center mb-8">Practice solo and master your skills</p>
+                            <button class="w-full py-4 px-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xl transition-all">
+                                PLAY
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Multiplayer Mode Card -->
+                    <div id="multiplayerCard" class="mode-card rounded-2xl p-12 border-2 border-orange-500/40 bg-gradient-to-br from-orange-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-500/50">
+                        <div class="flex flex-col items-center">
+                            <img src="/assets/images/eny2.png" alt="Multiplayer" class="w-32 h-32 mb-6 opacity-80">
+                            <h3 class="text-3xl font-bold text-orange-400 mb-4">MULTIPLAYER</h3>
+                            <p class="text-gray-400 text-center mb-8">Race with others online</p>
+                            <button class="w-full py-4 px-8 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold text-xl transition-all">
+                                JOIN
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Back Button -->
+                <button id="backToGames" class="w-full py-4 px-8 rounded-lg bg-gray-600 hover:bg-gray-700 text-white font-bold text-xl transition-all">
+                    BACK
+                </button>
+                
+                <style>
+                    .glow-text-cyan 
+                    {
+                        text-shadow: 0 0 20px rgba(34, 211, 238, 0.8), 0 0 40px rgba(34, 211, 238, 0.4);
+                    }
+                </style>
             </div>
         `;
     }
@@ -33,12 +85,63 @@ export default class PodRacerPage extends BaseComponent
     {
         this.isDisposed = false;
         (window as any).podRacerPage = this;
-        this.showPodSelection();
+        this.attachModeSelectionListeners();
         this.setupPageCleanup();
+    }
+
+    private attachModeSelectionListeners(): void 
+    {
+        const trainingCard = document.getElementById('trainingCard');
+        const multiplayerCard = document.getElementById('multiplayerCard');
+        const backToGames = document.getElementById('backToGames');
+        
+        if (trainingCard) 
+        {
+            trainingCard.addEventListener('click', () => this.selectMode('training'));
+        }
+        
+        if (multiplayerCard) 
+        {
+            multiplayerCard.addEventListener('click', () => this.selectMode('multiplayer'));
+        }
+        
+        if (backToGames) 
+        {
+            backToGames.addEventListener('click', () => this.goBack());
+        }
+    }
+
+    private selectMode(mode: 'training' | 'multiplayer'): void 
+    {
+        this.selectedMode = mode;
+        
+        if (mode === 'training') 
+        {
+            // Hide mode selection, show pod selection
+            this.showPodSelection();
+        }
+        else if (mode === 'multiplayer') 
+        {
+            // Navigate to racer lobby
+            navigateTo('/racer-lobby');
+        }
     }
 
     public showPodSelection(): void 
     {
+        const modeContainer = document.getElementById('modeSelectionContainer');
+        const podContainer = document.getElementById('podSelectionContainer');
+        
+        if (modeContainer) 
+        {
+            modeContainer.style.display = 'none';
+        }
+        
+        if (podContainer) 
+        {
+            podContainer.style.display = 'block';
+        }
+        
         if (!this.podSelection) 
         {
             this.podSelection = new PodSelection((event: PodSelectionEvent) => 
@@ -46,10 +149,9 @@ export default class PodRacerPage extends BaseComponent
                 this.onPodSelected(event);
             });
             
-            const container = document.getElementById('podSelectionContainer');
-            if (container) 
+            if (podContainer) 
             {
-                container.innerHTML = this.podSelection.render();
+                podContainer.innerHTML = this.podSelection.render();
                 this.podSelection.mount();
             }
         }
@@ -92,26 +194,22 @@ export default class PodRacerPage extends BaseComponent
     {
         try
         {
-            // Check if already disposed
             if (this.isDisposed)
             {
                 return;
             }
             
-            // Clean up any existing renderer
             if (this.racerRenderer)
             {
                 this.racerRenderer.dispose();
                 this.racerRenderer = null;
             }
             
-            // Check again after async operation
             if (this.isDisposed)
             {
                 return;
             }
             
-            // Create fresh renderer
             this.racerRenderer = new RacerRenderer(
             {
                 debugMode: false,
@@ -124,7 +222,6 @@ export default class PodRacerPage extends BaseComponent
                 throw new Error('Failed to create RacerRenderer');
             }
             
-            // Check before async initialization
             if (this.isDisposed)
             {
                 this.racerRenderer.dispose();
@@ -132,10 +229,8 @@ export default class PodRacerPage extends BaseComponent
                 return;
             }
             
-            // Initialize
             await this.racerRenderer.initialize('gameCanvas', this.selectedPodConfig);
             
-            // Check after async initialization
             if (this.isDisposed)
             {
                 if (this.racerRenderer)
@@ -151,10 +246,8 @@ export default class PodRacerPage extends BaseComponent
                 throw new Error('RacerRenderer became null after initialization');
             }
             
-            // Start race
             await this.racerRenderer.startVisualRace();
             
-            // Final check
             if (this.isDisposed)
             {
                 if (this.racerRenderer)
@@ -169,7 +262,6 @@ export default class PodRacerPage extends BaseComponent
         {
             console.error('Race start failed:', error);
             
-            // Only show alert if not disposed (user didn't navigate away)
             if (!this.isDisposed)
             {
                 alert('Failed to start race. Returning to game selection.');
@@ -197,24 +289,20 @@ export default class PodRacerPage extends BaseComponent
     
     dispose(): void 
     {
-        // Mark as disposed to stop any async operations
         this.isDisposed = true;
         
-        // Clean up renderer
         if (this.racerRenderer) 
         {
             this.racerRenderer.dispose();
             this.racerRenderer = null;
         }
         
-        // Clean up pod selection
         if (this.podSelection) 
         {
             this.podSelection.dispose();
             this.podSelection = null;
         }
         
-        // Clean up window reference
         if ((window as any).podRacerPage === this) 
         {
             delete (window as any).podRacerPage;

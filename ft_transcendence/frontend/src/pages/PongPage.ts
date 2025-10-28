@@ -2,45 +2,34 @@ import { BaseComponent } from '../components/BaseComponent';
 import { AiDifficulty } from '@/game/engines/pong2D/entities/EnemyAi';
 import { gameManager } from '@/game/managers/PongManager';
 import { Pong3Dscene } from '@/game/engines/pong3D/Engine';
+import { navigateTo } from '../router/router';
+
+type GameMode = 'multiplayer' | 'ai' | 'tournament' | null;
+type ViewType = '2d' | '3d' | null;
 
 export default class PongPage extends BaseComponent 
 {
     private resizeListener: (() => void) | null = null;
     private selectedDifficulty: AiDifficulty = 'easy'; 
     private gameEndHandler: ((event: Event) => void) | null = null;
-    private pong3D: Pong3Dscene | null = null
+    private pong3D: Pong3Dscene | null = null;
+    private selectedMode: GameMode = null;
+    private selectedView: ViewType = null;
 
-      render(): string 
-      {
+    render(): string 
+    {
         return `
             <div class="container mx-auto px-6 -mt-20 pt-20">
-                <!-- Centered Canvas Container with 4:3 aspect ratio -->
                 <div class="flex items-center justify-center">
-                    <!-- allow vertical resize to constrain the board -->
                     <div class="relative w-full max-w-7xl" style="aspect-ratio: 4/3; max-height: 80vh;">
-                         <canvas 
-                             id="pongCanvas" 
-                             class="w-full h-full rounded-2xl border-2 border-cyan-500 bg-black shadow-2xl shadow-cyan-500/50"
-                         ></canvas>
+                        <canvas 
+                            id="pongCanvas" 
+                            class="w-full h-full rounded-2xl border-2 border-cyan-500 bg-black shadow-2xl shadow-cyan-500/50"
+                            style="display: none;"
+                        ></canvas>
                        
-                       <!-- Menu Overlay -->
-                       <div id="pongMenuContainer" class="absolute inset-0 flex flex-col items-center justify-center text-center space-y-4 z-50">
-                            <div id="mainMenu" class="flex flex-col space-y-3 bg-black/90 backdrop-blur-md p-8 rounded-2xl border border-cyan-500/50">
-                                <h1 class="text-5xl font-bold mb-6 text-white">🏓 Pong Game</h1>
-
-                                <div class="flex flex-col space-y-3">
-                                    <button id="start2DPongBtn" class="bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700">
-                                        Play 2D Pong
-                                    </button>
-                                    <button id="start3DPongBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
-                                        Play 3D Pong
-                                    </button>
-                                </div>
-
-                                <button id="backBtn" class="mt-6 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                                    Back to Games
-                                </button>
-                            </div>
+                        <div id="pongMenuContainer" class="absolute inset-0 flex flex-col items-center justify-center text-center z-50">
+                            ${this.renderModeSelection()}
                         </div>
                     </div>
                 </div>
@@ -48,205 +37,451 @@ export default class PongPage extends BaseComponent
         `;
     }
 
+    private renderModeSelection(): string 
+    {
+        return `
+            <div class="w-full max-w-6xl mx-auto px-4">
+                <h1 class="text-6xl font-bold mb-4 text-cyan-300 glow-text-cyan">CHOOSE YOUR MODE</h1>
+                <p class="text-xl text-gray-300 mb-12">Pick How You Want to Play Pong</p>
+                
+                <div class="grid grid-cols-3 gap-6 mb-12">
+                    <div id="multiplayerCard" class="mode-card rounded-2xl p-8 border-2 border-purple-500/40 bg-gradient-to-br from-purple-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/50 relative">
+                        <div class="flex flex-col items-center">
+                            <img src="/assets/images/eny1.png" alt="Multiplayer" class="w-24 h-24 mb-4 opacity-80">
+                            <h3 class="text-2xl font-bold text-purple-400 mb-2">MULTIPLAYER</h3>
+                            <p class="text-gray-400 text-sm mb-6">Play with friends</p>
+                            <button class="select-mode-btn w-full py-3 px-6 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold transition-all">
+                                SELECT
+                            </button>
+                        </div>
+                        <div class="selected-indicator absolute top-4 right-4 w-10 h-10 bg-purple-500 rounded-full items-center justify-center hidden shadow-lg shadow-purple-500/50">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div id="aiCard" class="mode-card rounded-2xl p-8 border-2 border-green-500/40 bg-gradient-to-br from-green-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-green-500 hover:shadow-2xl hover:shadow-green-500/50 relative">
+                        <div class="flex flex-col items-center">
+                            <img src="/assets/images/eny2.png" alt="AI" class="w-24 h-24 mb-4 opacity-80">
+                            <h3 class="text-2xl font-bold text-green-400 mb-2">PLAY VS AI</h3>
+                            <p class="text-gray-400 text-sm mb-6">Battle the CPU</p>
+                            <button class="select-mode-btn w-full py-3 px-6 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold transition-all">
+                                SELECT
+                            </button>
+                        </div>
+                        <div class="selected-indicator absolute top-4 right-4 w-10 h-10 bg-green-500 rounded-full items-center justify-center hidden shadow-lg shadow-green-500/50">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div id="tournamentCard" class="mode-card rounded-2xl p-8 border-2 border-orange-500/40 bg-gradient-to-br from-orange-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-500/50 relative">
+                        <div class="flex flex-col items-center">
+                            <img src="/assets/images/eny3.png" alt="Tournament" class="w-24 h-24 mb-4 opacity-80">
+                            <h3 class="text-2xl font-bold text-orange-400 mb-2">TOURNAMENT</h3>
+                            <p class="text-gray-400 text-sm mb-6">Win a cup</p>
+                            <button class="select-mode-btn w-full py-3 px-6 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold transition-all">
+                                JOIN
+                            </button>
+                        </div>
+                        <div class="selected-indicator absolute top-4 right-4 w-10 h-10 bg-orange-500 rounded-full items-center justify-center hidden shadow-lg shadow-orange-500/50">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-cyan-300 mb-4">GAME VIEW TYPE</h2>
+                    <div class="flex justify-center gap-4">
+                        <button id="view2DBtn" class="view-toggle-btn relative py-3 px-12 rounded-lg border-2 border-cyan-500/50 bg-cyan-900/30 text-cyan-300 font-bold text-xl transition-all hover:bg-cyan-600 hover:text-white">
+                            2D
+                            <div class="view-selected-indicator absolute -top-2 -right-2 w-7 h-7 bg-cyan-500 rounded-full items-center justify-center hidden shadow-lg shadow-cyan-500/50">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                        </button>
+                        <button id="view3DBtn" class="view-toggle-btn relative py-3 px-12 rounded-lg border-2 border-cyan-500/50 bg-cyan-900/30 text-cyan-300 font-bold text-xl transition-all hover:bg-cyan-600 hover:text-white">
+                            3D
+                            <div class="view-selected-indicator absolute -top-2 -right-2 w-7 h-7 bg-cyan-500 rounded-full items-center justify-center hidden shadow-lg shadow-cyan-500/50">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex gap-4 justify-center">
+                    <button id="backBtn" class="py-4 px-12 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold text-xl transition-all shadow-lg">
+                        CANCEL
+                    </button>
+                    <button id="continueBtn" class="py-4 px-16 rounded-lg bg-gray-600 text-gray-400 font-bold text-xl cursor-not-allowed opacity-50 transition-all" disabled>
+                        CONTINUE
+                    </button>
+                </div>
+                
+                <style>
+                    .glow-text-cyan 
+                    {
+                        text-shadow: 0 0 20px rgba(34, 211, 238, 0.8), 0 0 40px rgba(34, 211, 238, 0.4);
+                    }
+                    
+                    .mode-card.selected 
+                    {
+                        border-width: 3px;
+                        transform: scale(1.05);
+                        box-shadow: 0 0 40px rgba(34, 211, 238, 0.4);
+                    }
+                    
+                    .mode-card.selected .selected-indicator 
+                    {
+                        display: flex;
+                        animation: checkmarkPop 0.3s ease-out;
+                    }
+                    
+                    .view-toggle-btn.selected 
+                    {
+                        background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+                        color: white;
+                        border-color: #0ea5e9;
+                        box-shadow: 0 0 30px rgba(14, 165, 233, 0.6);
+                    }
+                    
+                    .view-toggle-btn.selected .view-selected-indicator 
+                    {
+                        display: flex;
+                        animation: checkmarkPop 0.3s ease-out;
+                    }
+                    
+                    @keyframes checkmarkPop 
+                    {
+                        0% { transform: scale(0); }
+                        50% { transform: scale(1.2); }
+                        100% { transform: scale(1); }
+                    }
+                </style>
+            </div>
+        `;
+    }
+
+    private renderDifficultySelection(): string 
+    {
+        return `
+            <div class="w-full max-w-4xl mx-auto px-4">
+                <h1 class="text-6xl font-bold mb-4 text-cyan-300 glow-text-cyan">SELECT AI DIFFICULTY</h1>
+                <p class="text-xl text-gray-300 mb-12">Choose your challenge level</p>
+                
+                <div class="grid grid-cols-2 gap-8 mb-12">
+                    <!-- Easy Card -->
+                    <div id="easyCard" class="difficulty-card rounded-2xl p-12 border-2 border-yellow-500/40 bg-gradient-to-br from-yellow-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-yellow-500 hover:shadow-2xl hover:shadow-yellow-500/50">
+                        <div class="flex flex-col items-center">
+                            <div class="text-6xl mb-6">😊</div>
+                            <h3 class="text-3xl font-bold text-yellow-400 mb-3">EASY</h3>
+                            <p class="text-gray-400 text-center mb-8">Balanced gameplay</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Hard Card -->
+                    <div id="hardCard" class="difficulty-card rounded-2xl p-12 border-2 border-red-500/40 bg-gradient-to-br from-red-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-red-500 hover:shadow-2xl hover:shadow-red-500/50">
+                        <div class="flex flex-col items-center">
+                            <div class="text-6xl mb-6">😈</div>
+                            <h3 class="text-3xl font-bold text-red-400 mb-3">HARD</h3>
+                            <p class="text-gray-400 text-center mb-8">Accurate predictions, tough to beat</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="backToModeSelect" class="w-full py-4 px-8 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold text-xl transition-all">
+                    ← BACK
+                </button>
+                
+                <style>
+                    .glow-text-cyan 
+                    {
+                        text-shadow: 0 0 20px rgba(34, 211, 238, 0.8), 0 0 40px rgba(34, 211, 238, 0.4);
+                    }
+                    
+                    .difficulty-card:hover 
+                    {
+                        transform: scale(1.05);
+                    }
+                </style>
+            </div>
+        `;
+    }
+
     mount(): void 
     {
-        this.attachMainMenuListeners();
+        this.attachModeSelectionListeners();
         this.gameEndHandler = this.handleGameEnd.bind(this);
         window.addEventListener('gameManager:showMenu', this.gameEndHandler);
     }
 
-    private attachMainMenuListeners(): void 
+    private attachModeSelectionListeners(): void 
     {
-        const start2D = document.getElementById("start2DPongBtn");
-        const start3D = document.getElementById("start3DPongBtn");
-        const backBtn = document.getElementById("backBtn");
-
-        if (start2D) 
+        const multiplayerCard = document.getElementById('multiplayerCard');
+        const aiCard = document.getElementById('aiCard');
+        const tournamentCard = document.getElementById('tournamentCard');
+        
+        if (multiplayerCard) 
         {
-            start2D.addEventListener("click", () => this.show2DModeSelection());
+            multiplayerCard.addEventListener('click', () => this.selectMode('multiplayer'));
         }
-        if (start3D) 
+        if (aiCard) 
         {
-            start3D.addEventListener("click", () => this.show3DModeSelection());
+            aiCard.addEventListener('click', () => this.selectMode('ai'));
         }
+        if (tournamentCard) 
+        {
+            tournamentCard.addEventListener('click', () => this.selectMode('tournament'));
+        }
+        
+        const view2DBtn = document.getElementById('view2DBtn');
+        const view3DBtn = document.getElementById('view3DBtn');
+        
+        if (view2DBtn) 
+        {
+            view2DBtn.addEventListener('click', () => this.selectView('2d'));
+        }
+        if (view3DBtn) 
+        {
+            view3DBtn.addEventListener('click', () => this.selectView('3d'));
+        }
+        
+        const continueBtn = document.getElementById('continueBtn');
+        if (continueBtn) 
+        {
+            continueBtn.addEventListener('click', () => this.handleContinue());
+        }
+        
+        const backBtn = document.getElementById('backBtn');
         if (backBtn) 
         {
-            backBtn.addEventListener("click", () => this.goBack());
+            backBtn.addEventListener('click', () => this.goBack());
         }
     }
 
-    private show2DModeSelection(): void 
+    private attachDifficultyListeners(): void 
     {
-        const mainMenu = document.getElementById("mainMenu");
-        if (!mainMenu) 
-            return;
-
-
-        mainMenu.innerHTML = `
-            <h2 class="text-4xl font-bold mb-6 text-white">Select Game Mode</h2>
-            <div class="flex flex-col space-y-4">
-                <button id="playMultiplayer" class="bg-purple-600 text-white px-8 py-4 rounded-lg hover:bg-purple-700 text-xl">
-                    🎮 Multiplayer (Local)
-                </button>
-                <button id="playWithAI" class="bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 text-xl">
-                    🤖 Play vs AI
-                </button>
-                <button id="tournament" class="bg-orange-600 text-white px-8 py-4 rounded-lg hover:bg-orange-700 text-xl">
-                    🏆 Tournament
-                </button>
-                <button id="backToMainMenu" class="mt-4 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                    ← Back
-                </button>
-            </div>
-        `;
-
-        document.getElementById("playWithAI")?.addEventListener("click", () => this.showAIDifficultySelection());
-        document.getElementById("playMultiplayer")?.addEventListener("click", () => this.start2DPong("multiplayer"));
-        document.getElementById("tournament")?.addEventListener("click", () => this.tournamentbtn());
-        document.getElementById("backToMainMenu")?.addEventListener("click", () => this.renderMainMenu());
-    }
-
-    private show3DModeSelection(): void 
-    {
-        const mainMenu = document.getElementById("mainMenu");
-        if (!mainMenu) 
-            return;
-
-
-        mainMenu.innerHTML = `
-            <h2 class="text-4xl font-bold mb-6 text-white">Select Game Mode</h2>
-            <div class="flex flex-col space-y-4">
-                <button id="playMultiplayer" class="bg-purple-600 text-white px-8 py-4 rounded-lg hover:bg-purple-700 text-xl">
-                    🎮 Multiplayer (Local)
-                </button>
-                <button id="playWithAI" class="bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 text-xl">
-                    🤖 Play vs AI
-                </button>
-                <button id="tournament" class="bg-orange-600 text-white px-8 py-4 rounded-lg hover:bg-orange-700 text-xl">
-                    🏆 Tournament
-                </button>
-                <button id="backToMainMenu" class="mt-4 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                    ← Back
-                </button>
-            </div>
-        `;
-
-        document.getElementById("playWithAI")?.addEventListener("click", () => this.comingSoon());
-        document.getElementById("playMultiplayer")?.addEventListener("click", () => this.start3DPong());
-        document.getElementById("tournament")?.addEventListener("click", () => this.tournamentbtn());
-        document.getElementById("backToMainMenu")?.addEventListener("click", () => this.renderMainMenu());
-    }
-
-    private showAIDifficultySelection(): void 
-    {
-        const mainMenu = document.getElementById("mainMenu");
-        if (!mainMenu) 
-            return;
-
-
-        mainMenu.innerHTML = `
-            <h2 class="text-4xl font-bold mb-6 text-white">Select AI Difficulty</h2>
-            <div class="flex flex-col space-y-4">
-                <button id="easyBtn" class="bg-yellow-500 text-white px-8 py-4 rounded-lg hover:bg-yellow-600 text-xl">
-                    😐 Easy
-                    <div class="text-sm mt-1 opacity-80">Balanced gameplay</div>
-                </button>
-                <button id="hardBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
-                    😈 Hard
-                    <div class="text-sm mt-1 opacity-80">Accurate predictions, tough to beat</div>
-                </button>
-                <button id="backToModeSelect" class="mt-4 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                    ← Back
-                </button>
-            </div>
-        `;
-
-        document.getElementById("easyBtn")?.addEventListener("click", () => 
+        const easyCard = document.getElementById('easyCard');
+        const hardCard = document.getElementById('hardCard');
+        const backBtn = document.getElementById('backToModeSelect');
+        
+        if (easyCard) 
         {
-            this.selectedDifficulty = 'easy';
-            this.start2DPong("ai");
-        });
-        document.getElementById("hardBtn")?.addEventListener("click", () => 
+            easyCard.addEventListener('click', () => 
+            {
+                this.selectedDifficulty = 'easy';
+                this.startGame();
+            });
+        }
+        
+        if (hardCard) 
         {
-            this.selectedDifficulty = 'hard';
-            this.start2DPong("ai");
-        });
-        document.getElementById("backToModeSelect")?.addEventListener("click", () => this.show2DModeSelection());
+            hardCard.addEventListener('click', () => 
+            {
+                this.selectedDifficulty = 'hard';
+                this.startGame();
+            });
+        }
+        
+        if (backBtn) 
+        {
+            backBtn.addEventListener('click', () => this.resetSelection());
+        }
     }
 
-    private renderMainMenu(): void 
+    private selectMode(mode: GameMode): void 
     {
-        const mainMenu = document.getElementById("mainMenu");
-        if (!mainMenu) 
+        this.selectedMode = mode;
+        
+        document.querySelectorAll('.mode-card').forEach(card => 
+        {
+            card.classList.remove('selected');
+        });
+        
+        const cardMap = 
+        {
+            'multiplayer': 'multiplayerCard',
+            'ai': 'aiCard',
+            'tournament': 'tournamentCard'
+        };
+        
+        if (mode && cardMap[mode]) 
+        {
+            const card = document.getElementById(cardMap[mode]);
+            if (card) 
+            {
+                card.classList.add('selected');
+            }
+        }
+        
+        this.updateContinueButton();
+    }
+
+    private selectView(view: ViewType): void 
+    {
+        this.selectedView = view;
+        
+        document.querySelectorAll('.view-toggle-btn').forEach(btn => 
+        {
+            btn.classList.remove('selected');
+        });
+        
+        const btnId = view === '2d' ? 'view2DBtn' : 'view3DBtn';
+        const btn = document.getElementById(btnId);
+        if (btn) 
+        {
+            btn.classList.add('selected');
+        }
+        
+        this.updateContinueButton();
+    }
+
+    private updateContinueButton(): void 
+    {
+        const continueBtn = document.getElementById('continueBtn') as HTMLButtonElement;
+        if (!continueBtn) 
         {
             return;
         }
-
-        mainMenu.innerHTML = `
-            <h1 class="text-5xl font-bold mb-6 text-white">🏓 Pong Game</h1>
-            <div class="flex flex-col space-y-3">
-                <button id="start2DPongBtn" class="bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700">
-                    Play 2D Pong
-                </button>
-                <button id="start3DPongBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
-                    Play 3D Pong
-                </button>
-            </div>
-            <button id="backBtn" class="mt-6 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                Back to Games
-            </button>
-        `;
-
-        this.attachMainMenuListeners();
+        
+        if (this.selectedMode && this.selectedView) 
+        {
+            continueBtn.disabled = false;
+            continueBtn.classList.remove('bg-gray-600', 'text-gray-400', 'cursor-not-allowed', 'opacity-50');
+            continueBtn.classList.add('bg-gradient-to-r', 'from-purple-600', 'to-pink-600', 'hover:from-purple-500', 'hover:to-pink-500', 'text-white', 'cursor-pointer', 'opacity-100');
+            continueBtn.style.boxShadow = '0 0 30px rgba(168, 85, 247, 0.6)';
+        }
+        else 
+        {
+            continueBtn.disabled = true;
+            continueBtn.classList.add('bg-gray-600', 'text-gray-400', 'cursor-not-allowed', 'opacity-50');
+            continueBtn.classList.remove('bg-gradient-to-r', 'from-purple-600', 'to-pink-600', 'hover:from-purple-500', 'hover:to-pink-500', 'text-white', 'cursor-pointer', 'opacity-100');
+            continueBtn.style.boxShadow = '';
+        }
     }
 
-    private start2DPong(mode: "ai" | "multiplayer"): void 
+    private handleContinue(): void 
     {
-        const menu = document.getElementById("pongMenuContainer");
-        const canvas = document.getElementById("pongCanvas") as HTMLCanvasElement;
+        if (!this.selectedMode || !this.selectedView) 
+        {
+            return;
+        }
+        
+        if (this.selectedMode === 'ai') 
+        {
+            this.showDifficultySelection();
+        }
+        else if (this.selectedMode === 'multiplayer') 
+        {
+            navigateTo('/pong-lobby');
+        }
+        else if (this.selectedMode === 'tournament') 
+        {
+            navigateTo('/pong-lobby');
+        }
+    }
+
+    private showDifficultySelection(): void 
+    {
+        const menuContainer = document.getElementById('pongMenuContainer');
+        if (!menuContainer) 
+        {
+            return;
+        }
+        
+        menuContainer.innerHTML = this.renderDifficultySelection();
+        this.attachDifficultyListeners();
+    }
+
+    private startGame(): void 
+    {
+        const menu = document.getElementById('pongMenuContainer');
+        const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
         
         if (menu) 
         {
-            menu.style.display = "none";
+            menu.style.display = 'none';
         }
-
+        
         if (canvas) 
         {
+            canvas.style.display = 'block';
             this.resize(canvas);
             
-            // Initialize game through GameManager
-            const config = mode === "ai" 
-                ? { mode, difficulty: this.selectedDifficulty }
-                : { mode };
-                
-            gameManager.initGame(canvas, config);
-            gameManager.startGame();
-            
-            // Setup resize listener
-            if (this.resizeListener) 
+            if (this.selectedView === '2d') 
             {
-                window.removeEventListener("resize", this.resizeListener);
+                this.start2DPong();
             }
-            
-            this.resizeListener = () => 
-                {
-                    if (!canvas) 
-                        return;
-                    gameManager.pauseGame();
-                    const container = canvas.parentElement;
-                    if (!container) 
-                        return;
-                    const newWidth = container.clientWidth;
-                    const newHeight = container.clientHeight;
-                    gameManager.resizeGame(newWidth, newHeight);
-                    gameManager.redraw();
-                };
-            
-            window.addEventListener("resize", this.resizeListener);
+            else if (this.selectedView === '3d') 
+            {
+                this.start3DPong();
+            }
         }
     }
 
-    resize(canvas: HTMLCanvasElement) 
+    private start2DPong(): void 
+    {
+        const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
+        
+        if (!canvas) 
+        {
+            return;
+        }
+        
+        const config = this.selectedMode === 'ai' 
+            ? { mode: 'ai' as const, difficulty: this.selectedDifficulty }
+            : { mode: 'multiplayer' as const };
+            
+        gameManager.initGame(canvas, config);
+        gameManager.startGame();
+        
+        if (this.resizeListener) 
+        {
+            window.removeEventListener('resize', this.resizeListener);
+        }
+        
+        this.resizeListener = () => 
+        {
+            if (!canvas) 
+            {
+                return;
+            }
+            gameManager.pauseGame();
+            const container = canvas.parentElement;
+            if (!container) 
+            {
+                return;
+            }
+            const newWidth = container.clientWidth;
+            const newHeight = container.clientHeight;
+            gameManager.resizeGame(newWidth, newHeight);
+            gameManager.redraw();
+        };
+        
+        window.addEventListener('resize', this.resizeListener);
+    }
+
+    private start3DPong(): void 
+    {
+        const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
+        
+        if (!canvas) 
+        {
+            return;
+        }
+        
+        gameManager.cleanup();
+        this.pong3D = new Pong3Dscene(canvas);
+    }
+
+    private resize(canvas: HTMLCanvasElement): void 
     {
         const container = canvas.parentElement;
         if (!container) 
@@ -254,11 +489,9 @@ export default class PongPage extends BaseComponent
             return;
         }
         
-        // Get container dimensions
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
         
-        // Set canvas to match container (which has 4:3 aspect-ratio from CSS)
         canvas.width = containerWidth;
         canvas.height = containerHeight;
     }
@@ -270,64 +503,51 @@ export default class PongPage extends BaseComponent
         
         console.log(`${winner} won the game!`);
         
-        // Show menu again
-        const menu = document.getElementById("pongMenuContainer");
+        const menu = document.getElementById('pongMenuContainer');
+        const canvas = document.getElementById('pongCanvas');
         
         if (menu) 
         {
-            menu.style.display = "flex";
+            menu.style.display = 'flex';
         }
         
-        // Reset to main menu
-        this.renderMainMenu();
+        if (canvas) 
+        {
+            canvas.style.display = 'none';
+        }
+        
+        this.resetSelection();
     }
 
-    private start3DPong(): void 
+    private resetSelection(): void 
     {
-        const menu = document.getElementById("pongMenuContainer");
-        const canvas = document.getElementById("pongCanvas") as HTMLCanvasElement;
-
-        if(menu)
-            menu.style.display = "none";
-        if(canvas)
+        this.selectedMode = null;
+        this.selectedView = null;
+        
+        const menuContainer = document.getElementById('pongMenuContainer');
+        if (menuContainer) 
         {
-            gameManager.cleanup();
-            this.pong3D = new Pong3Dscene(canvas);
+            menuContainer.innerHTML = this.renderModeSelection();
+            this.attachModeSelectionListeners();
         }
     }
 
-    private tournamentbtn(): void
-    {
-        alert("🚧 Tournament coming soon!")
-    }
-
-    private comingSoon(): void
-    {
-        alert("🚧Coming Soon!");
-    }
     private goBack(): void 
     {
         this.dispose();
-        
-        // Use SPA navigation
-        if ((window as any).navigateTo) 
-        {
-            (window as any).navigateTo('/games');
-        }
+        navigateTo('/games');
     }
 
     public dispose(): void 
     {
-        // Cleanup GameManager
         gameManager.cleanup();
         
-        if(this.pong3D)
+        if (this.pong3D) 
         {
             this.pong3D.dispose();
             this.pong3D = null;
         }
-
-        // Remove event listener
+        
         if (this.gameEndHandler) 
         {
             window.removeEventListener('gameManager:showMenu', this.gameEndHandler);
@@ -336,10 +556,8 @@ export default class PongPage extends BaseComponent
         
         if (this.resizeListener) 
         {
-            window.removeEventListener("resize", this.resizeListener);
+            window.removeEventListener('resize', this.resizeListener);
             this.resizeListener = null;
         }
     }
-
-    
 }

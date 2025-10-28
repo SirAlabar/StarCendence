@@ -183,6 +183,20 @@ const routeConfig: Record<string, any> =
         layout: 'auth',
         headerType: 'minimal'
     },
+    '/pong-lobby':
+    {
+        component: () => import('../pages/PongLobbyPage'),
+        title: 'Pong Lobby - Transcendence',
+        layout: 'game',
+        headerType: 'default'
+    },
+    '/racer-lobby':
+    {
+        component: () => import('../pages/RacerLobbyPage'),
+        title: 'Racer Lobby - Transcendence',
+        layout: 'game',
+        headerType: 'default'
+    },
     '/404':
     {
         component: () => import('../pages/NotFoundPage'),
