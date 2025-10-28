@@ -34,12 +34,12 @@ export class PongScene
         this.ball = new Ball(this.canvas.width /2 , this.canvas.height /2 , 10);
         this.ball.dx = 3;
         this.ball.dy = 1;
-        this.paddle_left = new paddle("left" , this.canvas);
+        this.paddle_left = new paddle("left" , this.canvas, "gold");
         this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
 
         if (mode === "multiplayer") 
         {
-            this.paddle_right = new paddle("right", this.canvas);
+            this.paddle_right = new paddle("right", this.canvas, "default");
             this.player1 = new player();
             this.player2 = new player();
             this.player1.score = 0;
