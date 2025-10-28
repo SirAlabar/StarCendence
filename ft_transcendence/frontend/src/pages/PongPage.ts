@@ -131,7 +131,7 @@ export default class PongPage extends BaseComponent
             </div>
         `;
 
-        document.getElementById("playWithAI")?.addEventListener("click", () => this.comingSoon());
+        document.getElementById("playWithAI")?.addEventListener("click", () => this.showAIDifficultySelection3D());
         document.getElementById("playMultiplayer")?.addEventListener("click", () => this.start3DPong());
         document.getElementById("tournament")?.addEventListener("click", () => this.tournamentbtn());
         document.getElementById("backToMainMenu")?.addEventListener("click", () => this.renderMainMenu());
@@ -174,6 +174,43 @@ export default class PongPage extends BaseComponent
         document.getElementById("backToModeSelect")?.addEventListener("click", () => this.show2DModeSelection());
     }
 
+     private showAIDifficultySelection3D(): void 
+    {
+        const mainMenu = document.getElementById("mainMenu");
+        if (!mainMenu) 
+            return;
+
+
+        mainMenu.innerHTML = `
+            <h2 class="text-4xl font-bold mb-6 text-white">Select AI Difficulty</h2>
+            <div class="flex flex-col space-y-4">
+                <button id="easyBtn" class="bg-yellow-500 text-white px-8 py-4 rounded-lg hover:bg-yellow-600 text-xl">
+                    😐 Easy
+                    <div class="text-sm mt-1 opacity-80">Balanced gameplay</div>
+                </button>
+                <button id="hardBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
+                    😈 Hard
+                    <div class="text-sm mt-1 opacity-80">Accurate predictions, tough to beat</div>
+                </button>
+                <button id="backToModeSelect" class="mt-4 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
+                    ← Back
+                </button>
+            </div>
+        `;
+
+        document.getElementById("easyBtn")?.addEventListener("click", () => 
+        {
+            this.selectedDifficulty = 'easy';
+            this.start3DPong("ai");
+        });
+        document.getElementById("hardBtn")?.addEventListener("click", () => 
+        {
+            this.selectedDifficulty = 'hard';
+            this.start3DPong("ai");
+        });
+        document.getElementById("backToModeSelect")?.addEventListener("click", () => this.show2DModeSelection());
+    }
+
     private renderMainMenu(): void 
     {
         const mainMenu = document.getElementById("mainMenu");
@@ -206,10 +243,7 @@ export default class PongPage extends BaseComponent
         const canvas = document.getElementById("pongCanvas") as HTMLCanvasElement;
         
         if (menu) 
-        {
             menu.style.display = "none";
-        }
-
         if (canvas) 
         {
             this.resize(canvas);
@@ -282,7 +316,7 @@ export default class PongPage extends BaseComponent
         this.renderMainMenu();
     }
 
-    private start3DPong(): void 
+    private start3DPong(mode: "ai" | "multiplayer"): void 
     {
         const menu = document.getElementById("pongMenuContainer");
         const canvas = document.getElementById("pongCanvas") as HTMLCanvasElement;
@@ -292,7 +326,11 @@ export default class PongPage extends BaseComponent
         if(canvas)
         {
             gameManager.cleanup();
-            this.pong3D = new Pong3Dscene(canvas);
+            if(mode === "ai")
+                this.pong3D = new Pong3Dscene(canvas, "ai", this.selectedDifficulty);
+            else
+                this.pong3D = new Pong3Dscene(canvas, "multiplayer");
+
         }
     }
 

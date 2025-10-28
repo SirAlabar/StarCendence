@@ -1,6 +1,7 @@
 import {Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes, AbstractMesh} from "@babylonjs/core";
 import { Skybox } from "./entities/Skybox";
 import { loadModel } from "./entities/ModelLoader";
+import { AiDifficulty3D, Enemy3D} from "./entities/EnemyAi3D";
 
 export class Pong3Dscene 
 {
@@ -17,27 +18,48 @@ export class Pong3Dscene
     private gravity = -0.02; 
     private canChangeCamera: boolean = true;
     private platform: AbstractMesh[] = [];
+    private mode?: "multiplayer" | "ai";
     
-    private readonly FIELD_WIDTH = 60;          // X-axis (paddle to paddle distance)
-    private readonly FIELD_LENGTH = 50;         // Z-axis (wall to wall distance)
-    private readonly GROUND_HEIGHT = 45;         // Ground level
+    // AI properties
+    private enemy3D?: Enemy3D;
+    private aiDifficulty: AiDifficulty3D;
+    
+    // Score tracking
+    private player1Score: number = 0;
+    private player2Score: number = 0;
+    private readonly WINNING_SCORE = 3;
+    
+    private readonly FIELD_WIDTH = 60;
+    private readonly FIELD_LENGTH = 50;
+    private readonly GROUND_HEIGHT = 45;
     
     private keys: Record<string, boolean> = {};
+    private lastTime: number = 0;
+    private goalScored: boolean = false; // Prevent multiple goal detections
     
-    constructor(private canvas: HTMLCanvasElement) 
+    constructor(private canvas: HTMLCanvasElement, mode: "multiplayer" | "ai", aiDifficulty: AiDifficulty3D = 'easy') 
     {
         this.engine = new Engine(canvas, true);
         this.scene = new Scene(this.engine);
         this.scene.clearColor = new Color4(0, 0, 0, 1);
+        this.mode = mode;
+        this.aiDifficulty = aiDifficulty;
+        
         this.setupInput();
         this.createCamera();
         this.createLight();
         this.createEnvironment();
         this.createGameObjects();
         this.enableCollisions();
+        
+        // Initialize AI if in AI mode
+        if (this.mode === "ai") {
+            this.enemy3D = new Enemy3D(this.paddle_right, this.ball, this.aiDifficulty);
+            console.log(`AI initialized with difficulty: ${aiDifficulty}`);
+        }
+        
         this.setupGameLoop();
         window.addEventListener("resize", () => this.engine.resize());
-        console.log(this.canvas);
     }
     
     private setupInput() 
@@ -50,12 +72,10 @@ export class Pong3Dscene
     
     private createCamera() 
     {
-
         this.camera = new FreeCamera("camera", new Vector3(0, 0, 0), this.scene);
         this.camera.position = new Vector3(-100, 70, 0);
         this.camera.rotation = new Vector3(Math.PI / 11, Math.PI / 2, 0);
         
-
         this.topCamera = new FreeCamera("topCamera", new Vector3(0, 102.50, 0), this.scene);
         this.topCamera.rotation = new Vector3(Math.PI / 2, 0, 0);
         this.scene.activeCamera = this.camera;
@@ -69,14 +89,14 @@ export class Pong3Dscene
     
     private async createEnvironment() 
     {
-        const ground = MeshBuilder.CreateGround("ground", {width: this.FIELD_WIDTH,height: this.FIELD_LENGTH}, this.scene);
+        const ground = MeshBuilder.CreateGround("ground", {width: this.FIELD_WIDTH, height: this.FIELD_LENGTH}, this.scene);
         ground.position.y = this.GROUND_HEIGHT;
         ground.visibility = 0;
         ground.checkCollisions = true;
-        // Load skybox
+        
         Skybox.createFromGLB(this.scene, "assets/images/skybox2.glb");
-        this.platform = await loadModel(this.scene,"assets/models/pong/", "sci-fi_platform.glb", new Vector3(0, 0, 0));
-        this.platform[0].scaling = new Vector3(6.5,6.5,6.5);
+        this.platform = await loadModel(this.scene, "assets/models/pong/", "sci-fi_platform.glb", new Vector3(0, 0, 0));
+        this.platform[0].scaling = new Vector3(6.5, 6.5, 6.5);
         this.platform[0].position = new Vector3(0, -70, 0);
     }
     
@@ -85,14 +105,13 @@ export class Pong3Dscene
         this.ball = MeshBuilder.CreateSphere("ball", { diameter: 2 }, this.scene);
         const ballMat = new StandardMaterial("ballMat", this.scene);
         ballMat.diffuseColor = new Color3(1, 1, 0);
-        ballMat.emissiveColor = new Color3(0.2, 0.2, 0);          // glow
+        ballMat.emissiveColor = new Color3(0.2, 0.2, 0);
         this.ball.material = ballMat;
         this.ball.position = new Vector3(0, this.GROUND_HEIGHT + 1, 0);
         
-
         const paddleMat = new StandardMaterial("paddleMat", this.scene);
         paddleMat.diffuseColor = new Color3(0.9, 0.1, 0.1);
-        paddleMat.emissiveColor = new Color3(0.3, 0.05, 0.05); // Slight glow
+        paddleMat.emissiveColor = new Color3(0.3, 0.05, 0.05);
         
         this.paddle_left = MeshBuilder.CreateBox("left_paddle", {width: 1.5, height: 2, depth: 10}, this.scene);
         this.paddle_left.position = new Vector3(-this.FIELD_WIDTH / 2 + 5, this.GROUND_HEIGHT + 1, 0);
@@ -105,9 +124,6 @@ export class Pong3Dscene
         this.paddle_right = MeshBuilder.CreateBox("right_paddle", {width: 1.5, height: 2, depth: 10}, this.scene);
         this.paddle_right.position = new Vector3(this.FIELD_WIDTH / 2 - 5, this.GROUND_HEIGHT + 1, 0);
         this.paddle_right.material = paddleMat2;
-
-        
-
     }
     
     private enableCollisions() 
@@ -123,8 +139,14 @@ export class Pong3Dscene
     
     private setupGameLoop() 
     {
+        this.lastTime = performance.now();
+        
         this.scene.onBeforeRenderObservable.add(() => {
-          
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
+            this.lastTime = currentTime;
+            
+            // Ball physics
             this.ballVelocity.y += this.gravity;
             this.ball.position.addInPlace(this.ballVelocity);
             
@@ -141,20 +163,79 @@ export class Pong3Dscene
             if (Math.abs(this.ball.position.z) >= wallBoundary) 
                 this.ballWallCollision();
             
-            
             this.checkPaddleCollision();
             this.limitBallSpeed();
             
             // Goal detection (X-axis)
-            const goalBoundary = this.FIELD_WIDTH / 2;
-            if (this.ball.position.x > goalBoundary || this.ball.position.x < -goalBoundary)
-                this.resetBall();
+            this.checkGoals();
             
+            // Update AI if in AI mode
+            if (this.mode === "ai" && this.enemy3D && this.ballVelocity.x > 0) {
+                this.enemy3D.update(deltaTime);
+            }
             
+            // Handle player input
             this.handleKeys();
         });
         
         this.engine.runRenderLoop(() => this.scene.render());
+    }
+    
+    private checkGoals(): void 
+    {
+        // Prevent multiple goal detections
+        if (this.goalScored) 
+            return;
+        
+        const goalBoundary = this.FIELD_WIDTH / 2;
+        
+        // Right goal (Player 1 scores)
+        if (this.ball.position.x > goalBoundary) 
+        {
+            this.goalScored = true;
+            this.player1Score++;
+            console.log(`Player 1 scored! Score: ${this.player1Score} - ${this.player2Score}`);
+            this.resetBall(-1); // Ball goes left
+            this.checkWinCondition();
+        }
+        
+        // Left goal (Player 2/AI scores)
+        else if (this.ball.position.x < -goalBoundary) 
+        {
+            this.goalScored = true;
+            this.player2Score++;
+            const opponent = this.mode === "ai" ? "AI" : "Player 2";
+            console.log(`${opponent} scored! Score: ${this.player1Score} - ${this.player2Score}`);
+            this.resetBall(1); // Ball goes right
+            this.checkWinCondition();
+        }
+    }
+    
+    private checkWinCondition(): void 
+    {
+        if (this.player1Score >= this.WINNING_SCORE) 
+        {
+            console.log("Player 1 wins!");
+            this.endGame("Player 1");
+        } 
+        else if (this.player2Score >= this.WINNING_SCORE) 
+        {
+            const winner = this.mode === "ai" ? "AI" : "Player 2";
+            console.log(`${winner} wins!`);
+            this.endGame(winner);
+        }
+    }
+    
+    private endGame(winner: string): void 
+    {
+        // Stop the game
+        this.engine.stopRenderLoop();
+        
+        // Dispatch event to show menu
+        const event = new CustomEvent('gameManager:showMenu', {
+            detail: { winner }
+        });
+        window.dispatchEvent(event);
     }
     
     private limitBallSpeed(): void
@@ -168,7 +249,6 @@ export class Pong3Dscene
     {
         this.ballVelocity.z *= -1;
         
-        // Clamp ball position to prevent getting stuck
         const wallBoundary = this.FIELD_LENGTH / 2 - 1;
         if (this.ball.position.z > wallBoundary) 
         {
@@ -180,6 +260,7 @@ export class Pong3Dscene
             this.flashWallHit(new Vector3(this.ball.position.x, this.ball.position.y, -wallBoundary));
             this.ball.position.z = -wallBoundary;
         }
+        
         const minSpeedx = 0.2;
         if (Math.abs(this.ballVelocity.x) < minSpeedx) 
         {
@@ -188,7 +269,7 @@ export class Pong3Dscene
         }
     }
     
-    private async resetBall(): Promise<void>
+    private async resetBall(direction: number = 1): Promise<void>
     {
         this.ball.isVisible = false;
         await this.delay(2000);
@@ -196,8 +277,8 @@ export class Pong3Dscene
         this.ball.position.set(0, this.GROUND_HEIGHT + 1, 0);
         this.ball.isVisible = true;
         
-        const direction = Math.random() < 0.5 ? 1 : -1;
         this.ballVelocity = new Vector3(0.2 * direction, 0, 0.1);
+        this.goalScored = false;
     }
     
     private delay(ms: number): Promise<void>
@@ -211,7 +292,7 @@ export class Pong3Dscene
         if (this.ball.intersectsMesh(this.paddle_left, false)) 
         {
             this.repositionPaddle();
-            this.ballVelocity.x = Math.abs(this.ballVelocity.x) * 1.05; // Slight speed boost
+            this.ballVelocity.x = Math.abs(this.ballVelocity.x) * 1.05;
             const hitOffset = this.ball.position.z - this.paddle_left.position.z;
             this.ballVelocity.z += hitOffset * 0.02;
         }
@@ -220,7 +301,7 @@ export class Pong3Dscene
         if (this.ball.intersectsMesh(this.paddle_right, false)) 
         {
             this.repositionPaddle();
-            this.ballVelocity.x = -Math.abs(this.ballVelocity.x) * 1.05; // Slight speed boost
+            this.ballVelocity.x = -Math.abs(this.ballVelocity.x) * 1.05;
             const hitOffset = this.ball.position.z - this.paddle_right.position.z;
             this.ballVelocity.z += hitOffset * 0.02;
         }
@@ -247,22 +328,25 @@ export class Pong3Dscene
     
     private handleKeys(): void
     {
-        const paddleSpeed = 0.5;                        
-        const moveBoundary = this.FIELD_LENGTH / 2 - 6; 
+        const paddleSpeed = 0.5;
+        const moveBoundary = this.FIELD_LENGTH / 2 - 6;
         
-        // Player 1
+        // Player 1 (left paddle)
         const moveVector = new Vector3(0, 0, 0);
         if (this.keys["a"] && this.paddle_left.position.z < moveBoundary) 
             moveVector.z += paddleSpeed;
         if (this.keys["d"] && this.paddle_left.position.z > -moveBoundary) 
             moveVector.z -= paddleSpeed;
         
-        // Player 2
-        const moveVector2 = new Vector3(0, 0, 0);
-        if (this.keys["4"] && this.paddle_right.position.z < moveBoundary) 
-            moveVector2.z += paddleSpeed;
-        if (this.keys["6"] && this.paddle_right.position.z > -moveBoundary) 
-            moveVector2.z -= paddleSpeed;
+        // Player 2 (right paddle) - only in multiplayer mode
+        if (this.mode === "multiplayer") {
+            const moveVector2 = new Vector3(0, 0, 0);
+            if (this.keys["4"] && this.paddle_right.position.z < moveBoundary) 
+                moveVector2.z += paddleSpeed;
+            if (this.keys["6"] && this.paddle_right.position.z > -moveBoundary) 
+                moveVector2.z -= paddleSpeed;
+            this.paddle_right.moveWithCollisions(moveVector2);
+        }
         
         // Camera switch
         if (this.keys["c"] && this.canChangeCamera)
@@ -273,7 +357,6 @@ export class Pong3Dscene
         }
         
         this.paddle_left.moveWithCollisions(moveVector);
-        this.paddle_right.moveWithCollisions(moveVector2);
     }
     
     private flashWallHit(position: Vector3): void 
@@ -282,19 +365,18 @@ export class Pong3Dscene
         if (this.ball.position.x > goalBoundary || this.ball.position.x < -goalBoundary)
             return;
         
-        const size = 4; 
+        const size = 4;
         const flash = MeshBuilder.CreatePlane("flash", { size }, this.scene);
         
         const mat = new StandardMaterial("flashMat", this.scene);
         mat.diffuseColor = new Color3(1, 0, 0);
         mat.emissiveColor = new Color3(1, 0, 0);
-        mat.alpha = 0.8; 
-        mat.backFaceCulling = false; // Make it visible from both sides
+        mat.alpha = 0.8;
+        mat.backFaceCulling = false;
         flash.material = mat;
         
         flash.position.copyFrom(position);
         
-        // Fade out animation
         let alpha = 0.8;
         const interval = setInterval(() => {
             alpha -= 0.05;
@@ -305,10 +387,7 @@ export class Pong3Dscene
             }
         }, 30);
     }
-
-
-
-
+    
     dispose() 
     {
         this.engine.stopRenderLoop();

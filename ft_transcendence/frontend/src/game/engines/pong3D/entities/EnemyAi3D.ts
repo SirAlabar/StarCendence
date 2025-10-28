@@ -47,7 +47,7 @@ export class Enemy3D
         const error = (Math.random() - 0.5) * this.setting.errorMargin;
         this.targetZ = prediction + error;
 
-        const speed = 5 * deltaTime;
+        const speed = 10 * deltaTime;
         this.paddle.position.z += Math.sign(this.targetZ - this.paddle.position.z) * speed;
         this.paddle.position.z = BABYLON.Scalar.Clamp(this.paddle.position.z, -9.5, 9.5);
     }
