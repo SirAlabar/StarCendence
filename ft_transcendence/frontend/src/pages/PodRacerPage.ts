@@ -2,7 +2,7 @@ import { BaseComponent } from '../components/BaseComponent';
 import { PodSelection, PodSelectionEvent } from './PodSelectionPage';
 import { RacerRenderer } from '../game/engines/racer/RacerRenderer';
 import { PodConfig, AVAILABLE_PODS } from '../game/utils/PodConfig';
-import { navigateTo } from '../router/router';
+import { navigateTo, isAuthenticated } from '../router/router';
 
 export default class PodRacerPage extends BaseComponent 
 {
@@ -15,6 +15,9 @@ export default class PodRacerPage extends BaseComponent
     {
         return `
             <div class="h-screen w-full relative">
+                <!-- Message Container -->
+                <div id="racerMessage" class="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-4xl px-4"></div>
+                
                 <!-- 3D Canvas -->
                 <canvas 
                     id="gameCanvas" 
@@ -114,14 +117,82 @@ export default class PodRacerPage extends BaseComponent
     {
         if (mode === 'training') 
         {
-            // Hide mode selection, show pod selection
+            // Training mode - no auth needed
             this.showPodSelection();
         }
         else if (mode === 'multiplayer') 
         {
-            // Navigate to racer lobby
+            // Check authentication for multiplayer
+            if (!isAuthenticated()) 
+            {
+                this.showMessage(
+                    'You need to be logged in to play online!\nRedirecting to login...',
+                    'error'
+                );
+
+                setTimeout(() => 
+                {
+                    localStorage.setItem('redirectAfterLogin', '/racer-lobby');
+                    navigateTo('/login');
+                }, 3000);
+
+                return;
+            }
+            
+            // Navigate to racer lobby if authenticated
             navigateTo('/racer-lobby');
         }
+    }
+
+    private showMessage(message: string, type: 'success' | 'error'): void 
+    {
+        const container = document.getElementById('racerMessage');
+        if (!container) 
+        {
+            return;
+        }
+
+        const bgColor = type === 'success' ? 'bg-green-900/80' : 'bg-red-900/80';
+        const borderColor = type === 'success' ? 'border-green-500' : 'border-red-500';
+        const textColor = type === 'success' ? 'text-green-300' : 'text-red-300';
+        const icon = type === 'success' ? '✓' : '⚠';
+
+        container.innerHTML = `
+            <div class="${bgColor} ${borderColor} border-2 rounded-xl p-4 backdrop-blur-sm shadow-2xl animate-pulse-slow">
+                <div class="flex items-center gap-3">
+                    <div class="text-2xl">${icon}</div>
+                    <p class="${textColor} font-bold text-lg">
+                        ${this.escapeHtml(message)}
+                    </p>
+                </div>
+            </div>
+            <style>
+                @keyframes pulse-slow 
+                {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.8; }
+                }
+                .animate-pulse-slow 
+                {
+                    animation: pulse-slow 2s ease-in-out infinite;
+                }
+            </style>
+        `;
+
+        setTimeout(() => 
+        {
+            if (container) 
+            {
+                container.innerHTML = '';
+            }
+        }, 4000);
+    }
+
+    private escapeHtml(text: string): string 
+    {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     public showPodSelection(): void 

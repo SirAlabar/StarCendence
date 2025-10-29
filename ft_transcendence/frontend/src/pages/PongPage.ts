@@ -4,7 +4,7 @@ import { gameManager } from '@/game/managers/PongManager';
 import { Pong3Dscene } from '@/game/engines/pong3D/Engine';
 import { navigateTo, isAuthenticated } from '../router/router';
 
-type GameMode = 'multiplayer' | 'ai' | 'tournament' | null;
+type GameMode = 'local' | 'online' | 'ai' | 'tournament' | null;
 type ViewType = '2d' | '3d' | null;
 
 export default class PongPage extends BaseComponent 
@@ -19,19 +19,20 @@ export default class PongPage extends BaseComponent
     render(): string 
     {
         return `
-            <div class="container mx-auto px-6 -mt-20 pt-20">
+            <div class="w-full h-screen flex flex-col">
                 <!-- Message Container -->
-                <div id="pongMessage" class="mb-4"></div>
+                <div id="pongMessage" class="w-full px-4 pt-4"></div>
                 
-                <div class="flex items-center justify-center">
-                    <div class="relative w-full max-w-7xl" style="aspect-ratio: 4/3; max-height: 80vh;">
+                <!-- Main Content Area -->
+                <div class="flex-1 flex items-center justify-center p-4 overflow-auto">
+                    <div class="relative w-full max-w-7xl">
                         <canvas 
                             id="pongCanvas" 
                             class="w-full h-full rounded-2xl border-2 border-cyan-500 bg-black shadow-2xl shadow-cyan-500/50"
-                            style="display: none;"
+                            style="display: none; aspect-ratio: 4/3;"
                         ></canvas>
                        
-                        <div id="pongMenuContainer" class="absolute inset-0 flex flex-col items-center justify-center text-center z-50">
+                        <div id="pongMenuContainer" class="w-full">
                             ${this.renderModeSelection()}
                         </div>
                     </div>
@@ -43,75 +44,95 @@ export default class PongPage extends BaseComponent
     private renderModeSelection(): string 
     {
         return `
-            <div class="w-full max-w-6xl mx-auto px-4">
-                <h1 class="text-6xl font-bold mb-4 text-cyan-300 glow-text-cyan">CHOOSE YOUR MODE</h1>
-                <p class="text-xl text-gray-300 mb-12">Pick How You Want to Play Pong</p>
+            <div class="w-full mx-auto px-2 sm:px-4 py-4">
+                <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-2 md:mb-4 text-cyan-300 glow-text-cyan text-center">CHOOSE YOUR MODE</h1>
+                <p class="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 mb-4 md:mb-8 text-center">Pick How You Want to Play Pong</p>
                 
-                <div class="grid grid-cols-3 gap-6 mb-12">
-                    <div id="multiplayerCard" class="mode-card rounded-2xl p-8 border-2 border-purple-500/40 bg-gradient-to-br from-purple-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/50 relative">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8">
+                    <!-- LOCAL MULTIPLAYER -->
+                    <div id="localCard" class="mode-card rounded-xl md:rounded-2xl p-6 md:p-10 border-2 border-blue-500/40 bg-gradient-to-br from-blue-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/50 relative">
                         <div class="flex flex-col items-center">
-                            <img src="/assets/images/multiplayer.png" alt="Multiplayer" class="w-24 h-24 mb-4 opacity-80">
-                            <h3 class="text-2xl font-bold text-purple-400 mb-2">MULTIPLAYER</h3>
-                            <p class="text-gray-400 text-sm mb-6">Play with friends</p>
-                            <button class="select-mode-btn w-full py-3 px-6 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold transition-all">
+                            <img src="/assets/images/multiplayer.png" alt="Local" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 mb-2 md:mb-4 opacity-80">
+                            <h3 class="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-blue-400 mb-1 md:mb-2">LOCAL 2P</h3>
+                            <p class="text-xs sm:text-sm md:text-base text-gray-400 mb-3 md:mb-6">Same keyboard</p>
+                            <button class="select-mode-btn w-full py-2 md:py-3 px-4 md:px-6 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm md:text-base transition-all">
                                 SELECT
                             </button>
                         </div>
-                        <div class="selected-indicator absolute top-4 right-4 w-10 h-10 bg-purple-500 rounded-full items-center justify-center hidden shadow-lg shadow-purple-500/50">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="selected-indicator absolute top-2 right-2 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 bg-blue-500 rounded-full items-center justify-center hidden shadow-lg shadow-blue-500/50">
+                            <svg class="w-4 h-4 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                             </svg>
                         </div>
                     </div>
                     
-                    <div id="aiCard" class="mode-card rounded-2xl p-8 border-2 border-green-500/40 bg-gradient-to-br from-green-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-green-500 hover:shadow-2xl hover:shadow-green-500/50 relative">
+                    <!-- ONLINE MULTIPLAYER -->
+                    <div id="onlineCard" class="mode-card rounded-xl md:rounded-2xl p-6 md:p-10 border-2 border-purple-500/40 bg-gradient-to-br from-purple-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/50 relative">
                         <div class="flex flex-col items-center">
-                            <img src="/assets/images/ia_bot.png" alt="AI" class="w-24 h-24 mb-4 opacity-80">
-                            <h3 class="text-2xl font-bold text-green-400 mb-2">PLAY VS AI</h3>
-                            <p class="text-gray-400 text-sm mb-6">Battle the CPU</p>
-                            <button class="select-mode-btn w-full py-3 px-6 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold transition-all">
+                            <img src="/assets/images/multiplayer.png" alt="Online" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 mb-2 md:mb-4 opacity-80">
+                            <h3 class="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-purple-400 mb-1 md:mb-2">ONLINE</h3>
+                            <p class="text-xs sm:text-sm md:text-base text-gray-400 mb-3 md:mb-6">With friends</p>
+                            <button class="select-mode-btn w-full py-2 md:py-3 px-4 md:px-6 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs sm:text-sm md:text-base transition-all">
                                 SELECT
                             </button>
                         </div>
-                        <div class="selected-indicator absolute top-4 right-4 w-10 h-10 bg-green-500 rounded-full items-center justify-center hidden shadow-lg shadow-green-500/50">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="selected-indicator absolute top-2 right-2 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 bg-purple-500 rounded-full items-center justify-center hidden shadow-lg shadow-purple-500/50">
+                            <svg class="w-4 h-4 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                             </svg>
                         </div>
                     </div>
                     
-                    <div id="tournamentCard" class="mode-card rounded-2xl p-8 border-2 border-orange-500/40 bg-gradient-to-br from-orange-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-500/50 relative">
+                    <!-- AI -->
+                    <div id="aiCard" class="mode-card rounded-xl md:rounded-2xl p-6 md:p-10 border-2 border-green-500/40 bg-gradient-to-br from-green-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-green-500 hover:shadow-2xl hover:shadow-green-500/50 relative">
                         <div class="flex flex-col items-center">
-                            <img src="/assets/images/tournament.png" alt="Tournament" class="w-24 h-24 mb-4 opacity-80">
-                            <h3 class="text-2xl font-bold text-orange-400 mb-2">TOURNAMENT</h3>
-                            <p class="text-gray-400 text-sm mb-6">Win a cup</p>
-                            <button class="select-mode-btn w-full py-3 px-6 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold transition-all">
+                            <img src="/assets/images/ia_bot.png" alt="AI" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 mb-2 md:mb-4 opacity-80">
+                            <h3 class="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-green-400 mb-1 md:mb-2">VS AI</h3>
+                            <p class="text-xs sm:text-sm md:text-base text-gray-400 mb-3 md:mb-6">Battle CPU</p>
+                            <button class="select-mode-btn w-full py-2 md:py-3 px-4 md:px-6 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold text-xs sm:text-sm md:text-base transition-all">
+                                SELECT
+                            </button>
+                        </div>
+                        <div class="selected-indicator absolute top-2 right-2 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 bg-green-500 rounded-full items-center justify-center hidden shadow-lg shadow-green-500/50">
+                            <svg class="w-4 h-4 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <!-- TOURNAMENT -->
+                    <div id="tournamentCard" class="mode-card rounded-xl md:rounded-2xl p-6 md:p-10 border-2 border-orange-500/40 bg-gradient-to-br from-orange-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-500/50 relative">
+                        <div class="flex flex-col items-center">
+                            <img src="/assets/images/tournament.png" alt="Tournament" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 mb-2 md:mb-4 opacity-80">
+                            <h3 class="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-orange-400 mb-1 md:mb-2">TOURNAMENT</h3>
+                            <p class="text-xs sm:text-sm md:text-base text-gray-400 mb-3 md:mb-6">Win a cup</p>
+                            <button class="select-mode-btn w-full py-2 md:py-3 px-4 md:px-6 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs sm:text-sm md:text-base transition-all">
                                 JOIN
                             </button>
                         </div>
-                        <div class="selected-indicator absolute top-4 right-4 w-10 h-10 bg-orange-500 rounded-full items-center justify-center hidden shadow-lg shadow-orange-500/50">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="selected-indicator absolute top-2 right-2 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 bg-orange-500 rounded-full items-center justify-center hidden shadow-lg shadow-orange-500/50">
+                            <svg class="w-4 h-4 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                             </svg>
                         </div>
                     </div>
                 </div>
                 
-                <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-cyan-300 mb-4">GAME VIEW TYPE</h2>
-                    <div class="flex justify-center gap-4">
-                        <button id="view2DBtn" class="view-toggle-btn relative py-3 px-12 rounded-lg border-2 border-cyan-500/50 bg-cyan-900/30 text-cyan-300 font-bold text-xl transition-all hover:bg-cyan-600 hover:text-white">
+                <div class="mb-4 md:mb-6">
+                    <h2 class="text-lg sm:text-xl md:text-2xl font-bold text-cyan-300 mb-2 md:mb-3 text-center">GAME VIEW TYPE</h2>
+                    <div class="flex justify-center gap-3 md:gap-4">
+                        <button id="view2DBtn" class="view-toggle-btn relative py-2 md:py-3 px-8 md:px-12 rounded-lg border-2 border-cyan-500/50 bg-cyan-900/30 text-cyan-300 font-bold text-base sm:text-lg md:text-xl transition-all hover:bg-cyan-600 hover:text-white">
                             2D
-                            <div class="view-selected-indicator absolute -top-2 -right-2 w-7 h-7 bg-cyan-500 rounded-full items-center justify-center hidden shadow-lg shadow-cyan-500/50">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="view-selected-indicator absolute -top-1 -right-1 md:-top-2 md:-right-2 w-6 h-6 md:w-7 md:h-7 bg-cyan-500 rounded-full items-center justify-center hidden shadow-lg shadow-cyan-500/50">
+                                <svg class="w-3 h-3 md:w-4 md:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                                 </svg>
                             </div>
                         </button>
-                        <button id="view3DBtn" class="view-toggle-btn relative py-3 px-12 rounded-lg border-2 border-cyan-500/50 bg-cyan-900/30 text-cyan-300 font-bold text-xl transition-all hover:bg-cyan-600 hover:text-white">
+                        <button id="view3DBtn" class="view-toggle-btn relative py-2 md:py-3 px-8 md:px-12 rounded-lg border-2 border-cyan-500/50 bg-cyan-900/30 text-cyan-300 font-bold text-base sm:text-lg md:text-xl transition-all hover:bg-cyan-600 hover:text-white">
                             3D
-                            <div class="view-selected-indicator absolute -top-2 -right-2 w-7 h-7 bg-cyan-500 rounded-full items-center justify-center hidden shadow-lg shadow-cyan-500/50">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="view-selected-indicator absolute -top-1 -right-1 md:-top-2 md:-right-2 w-6 h-6 md:w-7 md:h-7 bg-cyan-500 rounded-full items-center justify-center hidden shadow-lg shadow-cyan-500/50">
+                                <svg class="w-3 h-3 md:w-4 md:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                                 </svg>
                             </div>
@@ -119,11 +140,11 @@ export default class PongPage extends BaseComponent
                     </div>
                 </div>
                 
-                <div class="flex gap-4 justify-center">
-                    <button id="backBtn" class="py-4 px-12 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold text-xl transition-all shadow-lg">
+                <div class="flex gap-3 md:gap-4 justify-center">
+                    <button id="backBtn" class="py-3 md:py-4 px-8 md:px-12 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold text-base sm:text-lg md:text-xl transition-all shadow-lg">
                         CANCEL
                     </button>
-                    <button id="continueBtn" class="py-4 px-16 rounded-lg bg-gray-600 text-gray-400 font-bold text-xl cursor-not-allowed opacity-50 transition-all" disabled>
+                    <button id="continueBtn" class="py-3 md:py-4 px-10 md:px-16 rounded-lg bg-gray-600 text-gray-400 font-bold text-base sm:text-lg md:text-xl cursor-not-allowed opacity-50 transition-all" disabled>
                         CONTINUE
                     </button>
                 </div>
@@ -175,31 +196,31 @@ export default class PongPage extends BaseComponent
     private renderDifficultySelection(): string 
     {
         return `
-            <div class="w-full max-w-4xl mx-auto px-4">
-                <h1 class="text-6xl font-bold mb-4 text-cyan-300 glow-text-cyan">SELECT AI DIFFICULTY</h1>
-                <p class="text-xl text-gray-300 mb-12">Choose your challenge level</p>
+            <div class="w-full max-w-4xl mx-auto px-4 py-4">
+                <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-2 md:mb-4 text-cyan-300 glow-text-cyan text-center">SELECT AI DIFFICULTY</h1>
+                <p class="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 mb-4 md:mb-8 text-center">Choose your challenge level</p>
                 
-                <div class="grid grid-cols-2 gap-8 mb-12">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8 mb-6 md:mb-8">
                     <!-- Easy Card -->
-                    <div id="easyCard" class="difficulty-card rounded-2xl p-12 border-2 border-yellow-500/40 bg-gradient-to-br from-yellow-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-yellow-500 hover:shadow-2xl hover:shadow-yellow-500/50">
+                    <div id="easyCard" class="difficulty-card rounded-xl md:rounded-2xl p-8 md:p-12 border-2 border-yellow-500/40 bg-gradient-to-br from-yellow-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-yellow-500 hover:shadow-2xl hover:shadow-yellow-500/50">
                         <div class="flex flex-col items-center">
-                            <div class="text-6xl mb-6"><img src="/assets/images/ia_easy.png" alt="AI" class="w-24 h-24 mb-4 opacity-80"></div>
-                            <h3 class="text-3xl font-bold text-yellow-400 mb-3">EASY</h3>
-                            <p class="text-gray-400 text-center mb-8">Balanced gameplay</p>
+                            <div class="text-6xl mb-4 md:mb-6"><img src="/assets/images/ia_easy.png" alt="AI" class="w-20 h-20 md:w-24 md:h-24 mb-3 md:mb-4 opacity-80"></div>
+                            <h3 class="text-2xl sm:text-3xl font-bold text-yellow-400 mb-2 md:mb-3">EASY</h3>
+                            <p class="text-sm sm:text-base text-gray-400 text-center mb-4 md:mb-6">Balanced gameplay</p>
                         </div>
                     </div>
                     
                     <!-- Hard Card -->
-                    <div id="hardCard" class="difficulty-card rounded-2xl p-12 border-2 border-red-500/40 bg-gradient-to-br from-red-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-red-500 hover:shadow-2xl hover:shadow-red-500/50">
+                    <div id="hardCard" class="difficulty-card rounded-xl md:rounded-2xl p-8 md:p-12 border-2 border-red-500/40 bg-gradient-to-br from-red-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-red-500 hover:shadow-2xl hover:shadow-red-500/50">
                         <div class="flex flex-col items-center">
-                            <div class="text-6xl mb-6"><img src="/assets/images/ia_hard.png" alt="AI" class="w-24 h-24 mb-4 opacity-80"></div>
-                            <h3 class="text-3xl font-bold text-red-400 mb-3">HARD</h3>
-                            <p class="text-gray-400 text-center mb-8">Accurate predictions, tough to beat</p>
+                            <div class="text-6xl mb-4 md:mb-6"><img src="/assets/images/ia_hard.png" alt="AI" class="w-20 h-20 md:w-24 md:h-24 mb-3 md:mb-4 opacity-80"></div>
+                            <h3 class="text-2xl sm:text-3xl font-bold text-red-400 mb-2 md:mb-3">HARD</h3>
+                            <p class="text-sm sm:text-base text-gray-400 text-center mb-4 md:mb-6">Accurate predictions, tough to beat</p>
                         </div>
                     </div>
                 </div>
                 
-                <button id="backToModeSelect" class="w-full py-4 px-8 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold text-xl transition-all">
+                <button id="backToModeSelect" class="w-full py-3 md:py-4 px-6 md:px-8 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold text-base sm:text-lg md:text-xl transition-all">
                     ← BACK
                 </button>
                 
@@ -227,13 +248,18 @@ export default class PongPage extends BaseComponent
 
     private attachModeSelectionListeners(): void 
     {
-        const multiplayerCard = document.getElementById('multiplayerCard');
+        const localCard = document.getElementById('localCard');
+        const onlineCard = document.getElementById('onlineCard');
         const aiCard = document.getElementById('aiCard');
         const tournamentCard = document.getElementById('tournamentCard');
         
-        if (multiplayerCard) 
+        if (localCard) 
         {
-            multiplayerCard.addEventListener('click', () => this.selectMode('multiplayer'));
+            localCard.addEventListener('click', () => this.selectMode('local'));
+        }
+        if (onlineCard) 
+        {
+            onlineCard.addEventListener('click', () => this.selectMode('online'));
         }
         if (aiCard) 
         {
@@ -310,7 +336,8 @@ export default class PongPage extends BaseComponent
         
         const cardMap = 
         {
-            'multiplayer': 'multiplayerCard',
+            'local': 'localCard',
+            'online': 'onlineCard',
             'ai': 'aiCard',
             'tournament': 'tournamentCard'
         };
@@ -377,18 +404,20 @@ export default class PongPage extends BaseComponent
             return;
         }
         
-        // Check authentication for multiplayer and tournament
-        if (this.selectedMode === 'multiplayer' || this.selectedMode === 'tournament') 
+        // Check authentication ONLY for online multiplayer and tournament
+        if (this.selectedMode === 'online' || this.selectedMode === 'tournament') 
         {
             if (!isAuthenticated()) 
             {
                 this.showMessage(
-                    'You need to be logged in to play multiplayer mode!\nRedirecting to login...',
+                    'You need to be logged in to play online!\nRedirecting to login...',
                     'error'
                 );
 
-                setTimeout(() => {
-                    localStorage.setItem('redirectAfterLogin', '/pong-lobby');
+                setTimeout(() => 
+                {
+                    const redirectPath = this.selectedMode === 'tournament' ? '/pong' : '/pong-lobby';
+                    localStorage.setItem('redirectAfterLogin', redirectPath);
                     navigateTo('/login');
                 }, 3000);
 
@@ -396,17 +425,23 @@ export default class PongPage extends BaseComponent
             }
         }
         
+        // Handle different modes
         if (this.selectedMode === 'ai') 
         {
             this.showDifficultySelection();
         }
-        else if (this.selectedMode === 'multiplayer') 
+        else if (this.selectedMode === 'local') 
+        {
+            // Start local multiplayer immediately (2 players, same keyboard)
+            this.startGame();
+        }
+        else if (this.selectedMode === 'online') 
         {
             navigateTo('/pong-lobby');
         }
         else if (this.selectedMode === 'tournament') 
         {
-            navigateTo('/pong-lobby');
+            navigateTo('/tournaments');
         }
     }
 
@@ -433,11 +468,13 @@ export default class PongPage extends BaseComponent
                 </div>
             </div>
             <style>
-                @keyframes pulse-slow {
+                @keyframes pulse-slow 
+                {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0.8; }
                 }
-                .animate-pulse-slow {
+                .animate-pulse-slow 
+                {
                     animation: pulse-slow 2s ease-in-out infinite;
                 }
             </style>
