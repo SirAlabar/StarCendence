@@ -93,8 +93,6 @@ mount(_selector: string): void
 			}, index * 350);
 		});
 
-
-		// HERO — sempre anima ao abrir a rota
 		const heroContent = document.querySelector(".hero-content");
 		const heroMedia = document.querySelector(".hero-media");
 

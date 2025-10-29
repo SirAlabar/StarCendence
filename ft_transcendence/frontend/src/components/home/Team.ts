@@ -1,44 +1,48 @@
 import { BaseComponent } from '../BaseComponent';
 
-interface TeamMember 
-{
+interface TeamMember {
     role: string;
     description: string;
     technologies: string[];
     accentColor: 'cyan' | 'purple' | 'pink';
-    githubUrl: string;
+    avatarUrl: string;
+    profileUrl: string;
 }
 
 export class Team extends BaseComponent 
 {
     private teamMembers: TeamMember[] = [
         {
-            role: 'DEV 1',
-            description: 'SirAlabar - Developer',
-            technologies: ['TypeScript', 'React', 'Node.js', 'Docker'],
+            role: 'Full Stack Developer',
+            description: 'Architecture • 3D Game • Integration',
+            technologies: ['TypeScript', 'Node.js', 'Docker', 'Nginx', 'Redis', 'Babylon.js', 'Ammo.js'],
             accentColor: 'cyan',
-            githubUrl: 'https://avatars.githubusercontent.com/u/150078628?v=4'
+            avatarUrl: 'https://avatars.githubusercontent.com/u/150078628?v=4',
+            profileUrl: 'https://github.com/SirAlabar'
         },
         {
             role: 'DEV 2',
-            description: 'Frontend Developer',
+            description: 'm3irel3s - Developer',
             technologies: ['Vue.js', 'CSS', 'JavaScript', 'Webpack'],
             accentColor: 'purple',
-            githubUrl: 'https://github.com/octocat.png'
+            avatarUrl: 'https://avatars.githubusercontent.com/u/160427475?v=4',
+            profileUrl: 'https://github.com/m3irel3s'
         },
         {
             role: 'DEV 3',
-            description: 'Game Developer',
+            description: 'therappha - Developer',
             technologies: ['Babylon.js', '3D Graphics', 'WebGL', 'Physics'],
             accentColor: 'pink',
-            githubUrl: 'https://github.com/octocat.png'
+            avatarUrl: 'https://avatars.githubusercontent.com/u/102710499?v=4',
+            profileUrl: 'https://github.com/therappha'
         },
         {
             role: 'DEV 4',
-            description: 'Backend Developer',
+            description: 'joaorema - Developer',
             technologies: ['Fastify', 'PostgreSQL', 'Redis', 'Docker'],
             accentColor: 'cyan',
-            githubUrl: 'https://github.com/octocat.png'
+            avatarUrl: 'https://avatars.githubusercontent.com/u/175852784?v=4',
+            profileUrl: 'https://github.com/joaorema'
         }
     ];
 
@@ -92,14 +96,19 @@ export class Team extends BaseComponent
     private renderMemberAvatar(member: TeamMember): string 
     {
         return `
-            <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-${member.accentColor}-400/50 mb-4 hover:border-${member.accentColor}-400 transition-colors duration-300">
+            <a 
+                href="${member.profileUrl}" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="w-24 h-24 rounded-full overflow-hidden border-2 border-${member.accentColor}-400/50 mb-4 hover:border-${member.accentColor}-400 transition-colors duration-300 cursor-pointer"
+            >
                 <img 
-                    src="${member.githubUrl}" 
+                    src="${member.avatarUrl}" 
                     alt="${member.role} Profile Picture" 
                     class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     onerror="this.src='https://github.com/octocat.png'"
                 >
-            </div>
+            </a>
         `;
     }
 
