@@ -39,7 +39,7 @@ export class About extends BaseComponent {
           About 42 Transcendence
         </h2>
 
-        <div class="relative w-full overflow-hidden mx-auto px-2 md:px-4 py-8">
+        <div class="relative w-screen overflow-visible max-w-none px-0 py-8">
           <div class="about-track flex gap-6 md:gap-8 will-change-transform cursor-grab active:cursor-grabbing select-none" data-speed="0.3">
             ${this.items.map(i => this.renderAboutCard(i)).join('')}
             ${this.items.map(i => this.renderAboutCard(i)).join('')}

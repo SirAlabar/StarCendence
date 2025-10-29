@@ -67,19 +67,19 @@ export default class LandingPage extends BaseComponent
             const featureCards = document.querySelectorAll(".feature-card");
             featureCards.forEach((card, index) =>
             {
-                card.classList.remove("opacity-100", "translate-x-0");
+                card.classList.remove("opacity-100");
                 card.classList.add(
                     "opacity-0",
-                    index % 2 === 0 ? "-translate-x-32" : "translate-x-32",
                     "transition-all",
                     "duration-700",
                     "ease-out"
                 );
-                setTimeout(() =>
-                {
-                    card.classList.remove("opacity-0", "-translate-x-32", "translate-x-32");
-                    card.classList.add("opacity-100", "translate-x-0");
+
+                setTimeout(() => {
+                    card.classList.remove("opacity-0");
+                    card.classList.add("opacity-100");
                 }, index * 150);
+
             });
 
             // === ABOUT ANIMATION (fade + bottom to top)
@@ -244,12 +244,16 @@ export default class LandingPage extends BaseComponent
 
         // Auto-scroll
         const speed = parseFloat(track.dataset.speed || '0.7');
+        const children = Array.from(track.children);
+        children.forEach(c => track.appendChild(c.cloneNode(true)));
+
+        const itemWidth = children[0].clientWidth + 24; // gap
+        const totalWidth = itemWidth * children.length;
+
         const animate = () => {
             if (!paused && !isDragging) {
                 offset -= speed;
-                if (Math.abs(offset) >= track.scrollWidth / 2) {
-                    offset = 0;
-                }
+                if (offset <= -totalWidth) offset = 0;
                 track.style.transform = `translateX(${offset}px)`;
             }
             requestAnimationFrame(animate);

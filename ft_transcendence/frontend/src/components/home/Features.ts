@@ -120,7 +120,7 @@ export class Features extends BaseComponent
         </h2>
 
         <!-- GAMEPLAY CAROUSEL - Show 3 cards -->
-        <div class="relative w-full overflow-hidden mx-auto px-2 md:px-4 py-8 mb-12">
+        <div class="relative w-screen overflow-visible max-w-none px-0 py-8 mb-12">
           <div class="gameplay-track flex gap-6 md:gap-8 will-change-transform cursor-grab active:cursor-grabbing select-none" data-speed="0.5">
             ${this.renderGameplay()}
             ${this.renderGameplay()}
@@ -128,7 +128,7 @@ export class Features extends BaseComponent
         </div>
 
         <!-- TECH + SOCIAL CAROUSEL - Show 2 cards -->
-        <div class="relative w-full overflow-hidden mx-auto px-2 md:px-4 py-6">
+        <div class="relative w-screen overflow-visible max-w-none px-0 py-6">
           <div class="techsocial-track flex gap-6 md:gap-8 will-change-transform cursor-grab active:cursor-grabbing select-none" data-speed="0.4">
             ${this.renderTechSocial()}
             ${this.renderTechSocial()}
