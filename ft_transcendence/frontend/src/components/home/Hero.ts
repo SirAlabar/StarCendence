@@ -15,7 +15,7 @@ export class Hero extends BaseComponent
     private renderContent(): string 
     {
         return `
-            <article class="sm:w-2/3">
+            <article class="hero-content sm:w-2/3">
                 <h2 class="max-w-lg text-center text-4xl font-bold font-game text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-400 sm:text-left sm:text-5xl lg:text-6xl">
                     TRANSCENDENCE
                 </h2>
@@ -45,7 +45,7 @@ export class Hero extends BaseComponent
     private renderGamePreview(): string 
     {
         return `
-            <div class="sm:w-1/2">
+            <div class="hero-media sm:w-1/2">
                 <div class="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-3xl p-8 border border-gray-600">
                     <div class="aspect-video bg-gradient-to-br from-purple-500/20 to-cyan-400/20 rounded-2xl flex items-center justify-center">
                         <div class="text-6xl opacity-50">🏓</div>

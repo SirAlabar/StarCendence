@@ -73,8 +73,7 @@ export class Team extends BaseComponent
     private renderTeamMember(member: TeamMember): string 
     {
         return `
-            <div class="flex flex-col items-center justify-center bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl p-6 border border-gray-600 hover:border-${member.accentColor}-400 transition-all duration-300 relative">
-                ${this.renderMemberBadge(member.accentColor)}
+            <div class="team-card flex flex-col items-center justify-center bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl p-6 border border-gray-600 hover:border-${member.accentColor}-400 transition-all duration-300 relative">                ${this.renderMemberBadge(member.accentColor)}
                 ${this.renderMemberAvatar(member)}
                 ${this.renderMemberInfo(member)}
             </div>

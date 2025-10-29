@@ -34,7 +34,7 @@ export class About extends BaseComponent
     private renderProjectInfo(): string 
     {
         return `
-            <div class="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl p-8 border border-gray-600">
+            <div class="about-box bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl p-8 border border-gray-600">
                 <h3 class="text-2xl font-bold text-cyan-400 mb-4 font-game">🎯 Project Mission</h3>
                 <p class="text-gray-300 leading-relaxed">
                     42 Transcendence is the final project of 42 School's web development curriculum. 
@@ -50,7 +50,7 @@ export class About extends BaseComponent
         const technologies = ['TypeScript', 'Babylon.js', 'Fastify', 'Redis', 'SQLite', 'Docker'];
         
         return `
-            <div class="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl p-8 border border-gray-600">
+            <div class="about-box bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl p-8 border border-gray-600">
                 <h3 class="text-2xl font-bold text-purple-400 mb-4 font-game">⚡ Technology Stack</h3>
                 <div class="grid grid-cols-2 gap-3 text-sm">
                     ${technologies.map(tech => `

@@ -66,7 +66,7 @@ export class Features extends BaseComponent
     private renderFeature(feature: Feature): string 
     {
         return `
-            <div class="flex flex-col items-center rounded-3xl border border-gray-600 bg-gradient-to-br from-gray-800/80 to-gray-900/80 py-8 px-6 shadow-xl hover:border-${feature.color}-400 transition-all duration-300">
+            <div class="feature-card flex flex-col items-center rounded-3xl border border-gray-600 bg-gradient-to-br from-gray-800/80 to-gray-900/80 py-8 px-6 shadow-xl hover:border-${feature.color}-400 transition-all duration-300">
                 <div class="text-6xl mb-6">${feature.icon}</div>
                 <h3 class="text-2xl text-${feature.color}-400 font-bold font-game mb-4">${feature.title}</h3>
                 <p class="text-gray-400 mb-6 text-center">${feature.description}</p>

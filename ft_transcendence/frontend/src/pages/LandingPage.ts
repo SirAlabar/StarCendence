@@ -38,18 +38,140 @@ export default class LandingPage extends BaseComponent
         `;
     }
 
-    mount(_selector: string): void 
-    {
-        // Add smooth scrolling for internal navigation
-        document.addEventListener('click', (e) => 
+mount(_selector: string): void 
+{
+	const resetAndAnimate = () =>
+	{
+		const teamCards = document.querySelectorAll(".team-card");
+		teamCards.forEach((card, index) =>
+		{
+			const fromTop = index % 2 === 0;
+
+			card.classList.remove("opacity-100", "translate-y-0", "scale-100");
+			card.classList.add(
+				"opacity-0",
+				fromTop ? "-translate-y-48" : "translate-y-48",
+				"scale-60",
+				"transition-all",
+				"duration-900",
+				"ease-[cubic-bezier(0.13,1.22,0.35,1.0)]"
+			);
+
+			setTimeout(() =>
+			{
+				card.classList.remove("opacity-0", "-translate-y-48", "translate-y-48", "scale-60");
+				card.classList.add("opacity-100", "translate-y-0", "scale-100");
+			}, index * 350);
+		});
+
+		const featureCards = document.querySelectorAll(".feature-card");
+		featureCards.forEach((card, index) =>
+		{
+			const fromLeft = index === 0;
+			const rotation = fromLeft ? "-rotate-24" : "rotate-24";
+
+			card.classList.remove("opacity-100", "translate-x-0", "rotate-0");
+			card.classList.add(
+				"opacity-0",
+				fromLeft ? "-translate-x-48" : "translate-x-48",
+				rotation,
+				"transition-all",
+				"duration-900",
+				"ease-[cubic-bezier(0.13,1.22,0.35,1.0)]"
+			);
+
+			setTimeout(() =>
+			{
+				card.classList.remove(
+					"opacity-0",
+					"-translate-x-48",
+					"translate-x-48",
+					"-rotate-24",
+					"rotate-24"
+				);
+				card.classList.add("opacity-100", "translate-x-0", "rotate-0");
+			}, index * 350);
+		});
+
+
+		// HERO — sempre anima ao abrir a rota
+		const heroContent = document.querySelector(".hero-content");
+		const heroMedia = document.querySelector(".hero-media");
+
+		if (heroContent)
+		{
+			heroContent.classList.remove("opacity-100", "translate-x-0");
+			heroContent.classList.add(
+				"opacity-0",
+				"-translate-x-48",
+				"transition-all",
+				"duration-900",
+				"ease-[cubic-bezier(0.13,1.22,0.35,1.0)]"
+			);
+		}
+
+		if (heroMedia)
+		{
+			heroMedia.classList.remove("opacity-100", "translate-x-0");
+			heroMedia.classList.add(
+				"opacity-0",
+				"translate-x-48",
+				"transition-all",
+				"duration-900",
+				"ease-[cubic-bezier(0.13,1.22,0.35,1.0)]"
+			);
+		}
+
+        const aboutBoxes = document.querySelectorAll(".about-box");
+
+        aboutBoxes.forEach((box, index) =>
         {
-            const target = e.target as HTMLElement;
-            if (target.tagName === 'A' && target.getAttribute('href')?.startsWith('#')) 
-            {
-                e.preventDefault();
-                const section = document.querySelector(target.getAttribute('href')!);
-                section?.scrollIntoView({ behavior: 'smooth' });
-            }
+            box.classList.remove("opacity-100", "translate-y-0", "rotate-0");
+
+            box.classList.add(
+                "opacity-0",
+                "translate-y-48",
+                "-rotate-12",
+                "transition-all",
+                "duration-[1100ms]",
+                "ease-[cubic-bezier(0.22,1.0,0.36,1.0)]"
+            );
+
+            setTimeout(() => {
+                box.classList.remove("opacity-0", "translate-y-48", "-rotate-12");
+                box.classList.add("opacity-100", "translate-y-0", "rotate-0");
+            }, index * 350);
         });
-    }
+
+
+		setTimeout(() =>
+		{
+			if (heroContent) heroContent.classList.remove("opacity-0", "-translate-x-48");
+			if (heroContent) heroContent.classList.add("opacity-100", "translate-x-0");
+
+			if (heroMedia) heroMedia.classList.remove("opacity-0", "translate-x-48");
+			if (heroMedia) heroMedia.classList.add("opacity-100", "translate-x-0");
+		}, 200);
+	};
+
+	resetAndAnimate();
+
+	window.addEventListener("popstate", resetAndAnimate);
+	window.addEventListener("hashchange", resetAndAnimate);
+
+	document.addEventListener("click", (e) => {
+		const target = e.target as HTMLElement;
+		if (target.tagName === "A" && target.getAttribute("href")?.startsWith("#")) {
+			setTimeout(() => resetAndAnimate(), 100);
+		}
+	});
+}
+
+
+
+
+
+
+
+
 }
