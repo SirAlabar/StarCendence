@@ -380,10 +380,18 @@ export default class PongPage extends BaseComponent
         // Check authentication for multiplayer and tournament
         if (this.selectedMode === 'multiplayer' || this.selectedMode === 'tournament') 
         {
-
             if (!isAuthenticated()) 
             {
-                this.showMessage('You need to be logged in to play multiplayer mode!', 'error');
+                this.showMessage(
+                    'You need to be logged in to play multiplayer mode!\nRedirecting to login...',
+                    'error'
+                );
+
+                setTimeout(() => {
+                    localStorage.setItem('redirectAfterLogin', '/pong-lobby');
+                    navigateTo('/login');
+                }, 3000);
+
                 return;
             }
         }
