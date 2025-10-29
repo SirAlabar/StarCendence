@@ -1,4 +1,4 @@
-import { PADDLE_COLORS } from "./PaddleColor";
+import { PADDLE_COLORS } from "../../pong3D/PaddleColor";
 
 //paddle for 2d
 export class paddle

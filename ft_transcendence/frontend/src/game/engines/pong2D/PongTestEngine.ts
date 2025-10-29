@@ -1,3 +1,6 @@
+//old code before for testing in local 
+
+/*
 import { Ball } from "./entities/Ball"
 import { paddle } from "./entities/Paddle";
 import { player } from "./entities/Player";
@@ -393,3 +396,4 @@ export class PongScene
 
 
 }
+    */

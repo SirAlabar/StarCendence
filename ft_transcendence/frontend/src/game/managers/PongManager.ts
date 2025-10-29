@@ -1,6 +1,6 @@
 // managers/ImprovedGameManager.ts
 import { GameConfig, GameState, GameEvent, IGameEngine, Paddlecolor } from '../utils/GameTypes';
-import { LocalPongEngine } from '../engines/LocalPong';
+import { LocalPongEngine } from '../engines/pong2D/Pong2Engine';
 
 // import { OnlinePongEngine } from '../engines/OnlinePongEngine'; // Future implementation
 

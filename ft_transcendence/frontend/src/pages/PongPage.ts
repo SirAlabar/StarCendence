@@ -1,48 +1,33 @@
+// pages/PongPage.ts
 import { BaseComponent } from '../components/BaseComponent';
-import { AiDifficulty } from '@/game/engines/pong2D/entities/EnemyAi';
-import { gameManager } from '@/game/managers/PongManager';
+import { gameManager } from '../game/managers/PongManager';
+import { GameMode, Paddlecolor } from '../game/utils/GameTypes';
 import { Pong3Dscene } from '@/game/engines/pong3D/Engine';
-
-
 
 export default class PongPage extends BaseComponent 
 {
     private resizeListener: (() => void) | null = null;
-    private selectedDifficulty: AiDifficulty = 'easy'; 
-    private gameEndHandler: ((event: Event) => void) | null = null;
-    private pong3D: Pong3Dscene | null = null
-    private PaddleColor?: string;
-
-      render(): string 
-      {
+    private selectedMode: GameMode = 'local-multiplayer';
+    private selectedDifficulty: 'easy' | 'hard' = 'easy';
+    private selectedPaddle1Color: Paddlecolor = 'default';
+    private selectedPaddle2Color: Paddlecolor = 'default';
+    private pong3d!: Pong3Dscene;
+    
+    render(): string 
+    {
         return `
             <div class="container mx-auto px-6 -mt-20 pt-20">
-                <!-- Centered Canvas Container with 4:3 aspect ratio -->
                 <div class="flex items-center justify-center">
-                    <!-- allow vertical resize to constrain the board -->
                     <div class="relative w-full max-w-7xl" style="aspect-ratio: 4/3; max-height: 80vh;">
-                         <canvas 
-                             id="pongCanvas" 
-                             class="w-full h-full rounded-2xl border-2 border-cyan-500 bg-black shadow-2xl shadow-cyan-500/50"
-                         ></canvas>
-                       
-                       <!-- Menu Overlay -->
-                       <div id="pongMenuContainer" class="absolute inset-0 flex flex-col items-center justify-center text-center space-y-4 z-50">
+                        <canvas 
+                            id="pongCanvas" 
+                            class="w-full h-full rounded-2xl border-2 border-cyan-500 bg-black shadow-2xl shadow-cyan-500/50"
+                        ></canvas>
+                    
+                        <!-- Menu Overlay -->
+                        <div id="pongMenuContainer" class="absolute inset-0 flex flex-col items-center justify-center text-center space-y-4 z-50">
                             <div id="mainMenu" class="flex flex-col space-y-3 bg-black/90 backdrop-blur-md p-8 rounded-2xl border border-cyan-500/50">
-                                <h1 class="text-5xl font-bold mb-6 text-white">🏓 Pong Game</h1>
-
-                                <div class="flex flex-col space-y-3">
-                                    <button id="start2DPongBtn" class="bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700">
-                                        Play 2D Pong
-                                    </button>
-                                    <button id="start3DPongBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
-                                        Play 3D Pong
-                                    </button>
-                                </div>
-
-                                <button id="backBtn" class="mt-6 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                                    Back to Games
-                                </button>
+                                ${this.renderModeSelection()}
                             </div>
                         </div>
                     </div>
@@ -51,330 +36,180 @@ export default class PongPage extends BaseComponent
         `;
     }
 
-    mount(): void 
+
+    private renderModeSelection(): string 
     {
-        this.attachMainMenuListeners();
-        this.gameEndHandler = this.handleGameEnd.bind(this);
-        window.addEventListener('gameManager:showMenu', this.gameEndHandler);
-    }
-
-    private attachMainMenuListeners(): void 
-    {
-        const start2D = document.getElementById("start2DPongBtn");
-        const start3D = document.getElementById("start3DPongBtn");
-        const backBtn = document.getElementById("backBtn");
-
-        if (start2D) 
-        {
-            start2D.addEventListener("click", () => this.show2DModeSelection());
-        }
-        if (start3D) 
-        {
-            start3D.addEventListener("click", () => this.show3DModeSelection());
-        }
-        if (backBtn) 
-        {
-            backBtn.addEventListener("click", () => this.goBack());
-        }
-    }
-
-    private show2DModeSelection(): void 
-    {
-        const mainMenu = document.getElementById("mainMenu");
-        if (!mainMenu) 
-            return;
-
-
-        mainMenu.innerHTML = `
-            <h2 class="text-4xl font-bold mb-6 text-white">Select Game Mode</h2>
+        return `
+            <h1 class="text-5xl font-bold mb-6 text-white">🏓 Select Game Type</h1>
             <div class="flex flex-col space-y-4">
-                <button id="playMultiplayer" class="bg-purple-600 text-white px-8 py-4 rounded-lg hover:bg-purple-700 text-xl">
-                    🎮 Multiplayer (Local)
+                <button id="mode2d" class="bg-cyan-600 text-white px-8 py-4 rounded-lg hover:bg-cyan-700 text-xl transition">
+                    🕹️ 2D Pong
                 </button>
-                <button id="playWithAI" class="bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 text-xl">
-                    🤖 Play vs AI
-                </button>
-                <button id="tournament" class="bg-orange-600 text-white px-8 py-4 rounded-lg hover:bg-orange-700 text-xl">
-                    🏆 Tournament
-                </button>
-                <button id="backToMainMenu" class="mt-4 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                    ← Back
+                <button id="mode3d" class="bg-purple-600 text-white px-8 py-4 rounded-lg hover:bg-purple-700 text-xl transition">
+                    🎮 3D Pong
                 </button>
             </div>
-        `;
-
-        document.getElementById("playWithAI")?.addEventListener("click", () => this.showAIDifficultySelection());
-        document.getElementById("playMultiplayer")?.addEventListener("click", () => this.start2DPong("multiplayer"));
-        document.getElementById("tournament")?.addEventListener("click", () => this.tournamentbtn());
-        document.getElementById("backToMainMenu")?.addEventListener("click", () => this.renderMainMenu());
-    }
-
-    private show3DModeSelection(): void 
-    {
-        const mainMenu = document.getElementById("mainMenu");
-        if (!mainMenu) 
-            return;
-
-
-        mainMenu.innerHTML = `
-            <h2 class="text-4xl font-bold mb-6 text-white">Select Game Mode</h2>
-            <div class="flex flex-col space-y-4">
-                <button id="playMultiplayer" class="bg-purple-600 text-white px-8 py-4 rounded-lg hover:bg-purple-700 text-xl">
-                    🎮 Multiplayer (Local)
-                </button>
-                <button id="playWithAI" class="bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 text-xl">
-                    🤖 Play vs AI
-                </button>
-                <button id="tournament" class="bg-orange-600 text-white px-8 py-4 rounded-lg hover:bg-orange-700 text-xl">
-                    🏆 Tournament
-                </button>
-                <button id="backToMainMenu" class="mt-4 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                    ← Back
-                </button>
-            </div>
-        `;
-
-        document.getElementById("playWithAI")?.addEventListener("click", () => this.showAIDifficultySelection3D());
-        document.getElementById("playMultiplayer")?.addEventListener("click", () => this.start3DPong("multiplayer"));
-        document.getElementById("tournament")?.addEventListener("click", () => this.tournamentbtn());
-        document.getElementById("backToMainMenu")?.addEventListener("click", () => this.renderMainMenu());
-    }
-
-    private showAIDifficultySelection(): void 
-    {
-        const mainMenu = document.getElementById("mainMenu");
-        if (!mainMenu) 
-            return;
-
-
-        mainMenu.innerHTML = `
-            <h2 class="text-4xl font-bold mb-6 text-white">Select AI Difficulty</h2>
-            <div class="flex flex-col space-y-4">
-                <button id="easyBtn" class="bg-yellow-500 text-white px-8 py-4 rounded-lg hover:bg-yellow-600 text-xl">
-                    😐 Easy
-                    <div class="text-sm mt-1 opacity-80">Balanced gameplay</div>
-                </button>
-                <button id="hardBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
-                    😈 Hard
-                    <div class="text-sm mt-1 opacity-80">Accurate predictions, tough to beat</div>
-                </button>
-                <button id="backToModeSelect" class="mt-4 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                    ← Back
-                </button>
-            </div>
-        `;
-
-        document.getElementById("easyBtn")?.addEventListener("click", () => 
-        {
-            this.selectedDifficulty = 'easy';
-            this.selectPaddleColor();
-        });
-        document.getElementById("hardBtn")?.addEventListener("click", () => 
-        {
-            this.selectedDifficulty = 'hard';
-            this.start2DPong("ai");
-        });
-        document.getElementById("backToModeSelect")?.addEventListener("click", () => this.show2DModeSelection());
-    }
-
-        private selectPaddleColor():void
-        {
-            const mainMenu = document.getElementById("mainMenu");
-            if (!mainMenu) 
-                return;
-            mainMenu.innerHTML = `
-                <h2 class="text-4xl font-bold mb-6 text-white">Select Paddle Color</h2>
-                <div class="flex flex-col space-y-4">
-                    <button id="NeonBtn" class="bg-yellow-500 text-white px-8 py-4 rounded-lg hover:bg-yellow-600 text-xl">
-                        Neon
-                    </button>
-                    <button id="FireBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
-                        Fire
-                    </button>
-                    <button id="IceBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
-                        Ice
-                    </button>
-                    <button id="RainbowBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
-                        Rainbow
-                    </button>
-                        <button id="MatrixBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
-                        Matrix
-                    </button>
-                    <button id="GoldBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
-                        Gold 
-                    </button>
-                    <button id="ShadowBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
-                        Shadow
-                    </button>
-                    <button id="backToModeSelect" class="mt-4 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                        ← Back
-                    </button>
-                </div>
-            `;
-            document.getElementById("backToModeSelect")?.addEventListener("click", ()=> this.showAIDifficultySelection());
-
-            const colorButton:Record <string, string> = {
-                NeonBtn: "Neon",
-                FireBtn: "Fire",
-                IceBtn: "Ice",
-                RainbowBtn: "Rainbow",
-                MatrixBtn: "Matrix",
-                GoldBtn: "Gold",
-                ShadowBtn: "Shadow",
-            };
-
-            Object.entries(colorButton).forEach(([id, color]) => {
-            document.getElementById(id)?.addEventListener("click", () => {
-                this.PaddleColor = color;
-                console.log(this.PaddleColor)
-                this.start2DPong("ai");
-            });
-        });
-            
-        }
-
-
-     private showAIDifficultySelection3D(): void 
-    {
-        const mainMenu = document.getElementById("mainMenu");
-        if (!mainMenu) 
-            return;
-
-
-        mainMenu.innerHTML = `
-            <h2 class="text-4xl font-bold mb-6 text-white">Select AI Difficulty</h2>
-            <div class="flex flex-col space-y-4">
-                <button id="easyBtn" class="bg-yellow-500 text-white px-8 py-4 rounded-lg hover:bg-yellow-600 text-xl">
-                    😐 Easy
-                    <div class="text-sm mt-1 opacity-80">Balanced gameplay</div>
-                </button>
-                <button id="hardBtn" class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 text-xl">
-                    😈 Hard
-                    <div class="text-sm mt-1 opacity-80">Accurate predictions, tough to beat</div>
-                </button>
-                <button id="backToModeSelect" class="mt-4 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                    ← Back
-                </button>
-            </div>
-        `;
-
-        document.getElementById("easyBtn")?.addEventListener("click", () => 
-        {
-            this.selectedDifficulty = 'easy';
-            this.start3DPong("ai");
-        });
-        document.getElementById("hardBtn")?.addEventListener("click", () => 
-        {
-            this.selectedDifficulty = 'hard';
-            this.start3DPong("ai");
-        });
-        document.getElementById("backToModeSelect")?.addEventListener("click", () => this.show2DModeSelection());
-    }
-
-    private renderMainMenu(): void 
-    {
-        const mainMenu = document.getElementById("mainMenu");
-        if (!mainMenu) 
-        {
-            return;
-        }
-
-        mainMenu.innerHTML = `
-            <h1 class="text-5xl font-bold mb-6 text-white">🏓 Pong Game</h1>
-            <div class="flex flex-col space-y-3">
-                <button id="start2DPongBtn" class="bg-cyan-600 text-white px-6 py-3 rounded-lg hover:bg-cyan-700">
-                    Play 2D Pong
-                </button>
-                <button id="start3DPongBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
-                    Play 3D Pong
-                </button>
-            </div>
-            <button id="backBtn" class="mt-6 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                Back to Games
+            <button id="backBtn" class="mt-6 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition">
+                ← Back to Games
             </button>
         `;
-
-        this.attachMainMenuListeners();
     }
 
-    private start2DPong(mode: "ai" | "multiplayer"): void 
+    
+    mount(): void 
     {
-        const menu = document.getElementById("pongMenuContainer");
-        const canvas = document.getElementById("pongCanvas") as HTMLCanvasElement;
+        this.attachModeSelectionListeners();
+
+        gameManager.on('game:ended', (e: Event) => {
+            const customEvent = e as CustomEvent;
+            this.handleGameEnd(customEvent.detail.winner);
+        });
         
-        if (menu) 
-            menu.style.display = "none";
-        if (canvas) 
-        {
-            this.resize(canvas);
-            
-            // Initialize game through GameManager
-            const config = mode === "ai" 
-                ? { mode, difficulty: this.selectedDifficulty }
-                : { mode, paddleColor: this.PaddleColor};
+        gameManager.on('game:goal', () => {
+            console.log('⚽ GOAL!');
+        });
+    }
+
+    
+    private attachModeSelectionListeners(): void 
+    {
+        document.getElementById('mode2d')?.addEventListener('click', () => {
+            this.showMainMenu(); // load existing 2D menu
+        });
+
+        document.getElementById('mode3d')?.addEventListener('click', () => {
+            this.start3DPong('multiplayer'); // start the 3D mode
+        });
+
+        document.getElementById('backBtn')?.addEventListener('click', () => {
+            this.goBack();
+        });
+    }
+
+    private renderMainMenu(): string 
+    {
+        return `
+            <h1 class="text-5xl font-bold mb-6 text-white">🏓 Pong Game</h1>
+            <div class="flex flex-col space-y-3">
+                <button id="playLocal" class="bg-purple-600 text-white px-8 py-4 rounded-lg hover:bg-purple-700 text-xl transition">
+                    🎮 Local Multiplayer
+                </button>
+                <button id="playAI" class="bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 text-xl transition">
+                    🤖 Play vs AI
+                </button>
+                <button id="playOnline" class="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 text-xl transition opacity-50 cursor-not-allowed" disabled>
+                    🌐 Online Multiplayer (Coming Soon)
+                </button>
+                <button id="tournament" class="bg-orange-600 text-white px-8 py-4 rounded-lg hover:bg-orange-700 text-xl transition opacity-50 cursor-not-allowed" disabled>
+                    🏆 Tournament (Coming Soon)
+                </button>
                 
-            gameManager.initGame(canvas, config);
-            gameManager.startGame();
-            
-            // Setup resize listener
-            if (this.resizeListener) 
-            {
-                window.removeEventListener("resize", this.resizeListener);
-            }
-            
-            this.resizeListener = () => 
-                {
-                    if (!canvas) 
-                        return;
-                    gameManager.pauseGame();
-                    const container = canvas.parentElement;
-                    if (!container) 
-                        return;
-                    const newWidth = container.clientWidth;
-                    const newHeight = container.clientHeight;
-                    gameManager.resizeGame(newWidth, newHeight);
-                    gameManager.redraw();
-                };
-            
-            window.addEventListener("resize", this.resizeListener);
-        }
+            </div>
+            <button id="backBtn" class="mt-6 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition">
+                ← Back to Games
+            </button>
+        `;
     }
-
-    resize(canvas: HTMLCanvasElement) 
+    
+    private renderColorSelection(forMultiplayer: boolean = false): string 
     {
-        const container = canvas.parentElement;
-        if (!container) 
-        {
-            return;
-        }
+        const colors: Array<{id: Paddlecolor, name: string, bg: string}> = 
+        [
+            { id: 'neon', name: '✨ Neon', bg: 'bg-yellow-500' },
+            { id: 'fire', name: '🔥 Fire', bg: 'bg-red-600' },
+            { id: 'ice', name: '❄️ Ice', bg: 'bg-blue-400' },
+            { id: 'rainbow', name: '🌈 Rainbow', bg: 'bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500' },
+            { id: 'matrix', name: '💚 Matrix', bg: 'bg-green-500' },
+            { id: 'gold', name: '✨ Gold', bg: 'bg-yellow-600' },
+            { id: 'shadow', name: '🌑 Shadow', bg: 'bg-gray-800' },
+            { id: 'default', name: '⚪ Default', bg: 'bg-white' }
+        ];
         
-        // Get container dimensions
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
+        const title = forMultiplayer 
+            ? 'Select Paddle Colors' 
+            : 'Select Your Paddle Color';
         
-        // Set canvas to match container (which has 4:3 aspect-ratio from CSS)
-        canvas.width = containerWidth;
-        canvas.height = containerHeight;
+        const colorButtons = colors.map(color => `
+            <button 
+                data-color="${color.id}" 
+                class="paddle-color-btn ${color.bg} text-white px-6 py-3 rounded-lg hover:scale-105 transition transform"
+            >
+                ${color.name}
+            </button>
+        `).join('');
+        
+        return `
+            <h2 class="text-4xl font-bold mb-6 text-white">${title}</h2>
+            ${forMultiplayer ? `
+                <div class="mb-4 text-left">
+                    <p class="text-cyan-400 text-sm mb-2">Player 1 Color: <span id="p1ColorDisplay" class="font-bold">${this.selectedPaddle1Color}</span></p>
+                    <p class="text-pink-400 text-sm mb-2">Player 2 Color: <span id="p2ColorDisplay" class="font-bold">${this.selectedPaddle2Color}</span></p>
+                </div>
+            ` : ''}
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                ${colorButtons}
+            </div>
+            ${forMultiplayer ? `
+                <button id="startGameBtn" class="w-full bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 text-xl mb-2">
+                    ▶️ Start Game
+                </button>
+            ` : ''}
+            <button id="backBtn" class="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
+                ← Back
+            </button>
+        `;
     }
-
-    private handleGameEnd(event: Event): void 
+    
+    private renderDifficultySelection(): string 
     {
-        const customEvent = event as CustomEvent;
-        const winner = customEvent.detail.winner;
-        
-        console.log(`${winner} won the game!`);
-        
-        // Show menu again
-        const menu = document.getElementById("pongMenuContainer");
-        
-        if (menu) 
-        {
-            menu.style.display = "flex";
-        }
-        
-        // Reset to main menu
-        this.renderMainMenu();
+        return `
+            <h2 class="text-4xl font-bold mb-6 text-white">Select AI Difficulty</h2>
+            <div class="flex flex-col space-y-4">
+                <button id="easyBtn" class="bg-green-500 text-white px-8 py-4 rounded-lg hover:bg-green-600 text-xl transition">
+                    😊 Easy
+                    <div class="text-sm mt-1 opacity-80">Perfect for beginners</div>
+                </button>
+                <button id="hardBtn" class="bg-red-600 text-white px-8 py-4 rounded-lg hover:bg-red-700 text-xl transition">
+                    😈 Hard
+                    <div class="text-sm mt-1 opacity-80">Challenging opponent</div>
+                </button>
+            </div>
+            <button id="backBtn" class="mt-6 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
+                ← Back
+            </button>
+        `;
     }
+    
+  
+    private attachMainMenuListeners(): void 
+    {
+        document.getElementById('playLocal')?.addEventListener('click', () => {
+            this.selectedMode = 'local-multiplayer';
+            this.showMultiplayerColorSelection();
+        });
+        
+        document.getElementById('playAI')?.addEventListener('click', () => {
+            this.selectedMode = 'ai';
+            this.showDifficultySelection();
+        });
+        
+        document.getElementById('playOnline')?.addEventListener('click', () => {
+            alert('🚧 Online multiplayer coming soon!\nYour friend is working on the WebSocket server.');
+        });
+        
+        document.getElementById('tournament')?.addEventListener('click', () => {
+            alert('🚧 Tournament mode coming soon!');
+        });
+        
+        document.getElementById('backBtn')?.addEventListener('click', () => {
+            this.goBack();
+        });
+
+        document.getElementById('pong3d')?.addEventListener('click', () => {
+            this.start3DPong("multiplayer");
+        } )
+    }
+    
 
     private start3DPong(mode: "ai" | "multiplayer"): void 
     {
@@ -385,59 +220,262 @@ export default class PongPage extends BaseComponent
             menu.style.display = "none";
         if(canvas)
         {
+            console.log(mode);
+            console.log(this.pong3d);
             gameManager.cleanup();
-            if(mode === "ai")
-                this.pong3D = new Pong3Dscene(canvas, "ai", this.selectedDifficulty);
-            else
-                this.pong3D = new Pong3Dscene(canvas, "multiplayer");
+                this.pong3d = new Pong3Dscene(canvas, "multiplayer");
 
         }
     }
 
-    private tournamentbtn(): void
+    private showDifficultySelection(): void 
     {
-        alert("🚧 Tournament coming soon!")
+        const mainMenu = document.getElementById('mainMenu');
+        if (!mainMenu) return;
+        
+        mainMenu.innerHTML = this.renderDifficultySelection();
+        
+        document.getElementById('easyBtn')?.addEventListener('click', () => {
+            this.selectedDifficulty = 'easy';
+            this.showColorSelection(false);
+        });
+        
+        document.getElementById('hardBtn')?.addEventListener('click', () => {
+            this.selectedDifficulty = 'hard';
+            this.showColorSelection(false);
+        });
+        
+        document.getElementById('backBtn')?.addEventListener('click', () => {
+            this.showMainMenu();
+        });
     }
-
-    private comingSoon(): void
+    
+    private showColorSelection(forMultiplayer: boolean): void 
     {
-        alert("🚧Coming Soon!");
+        const mainMenu = document.getElementById('mainMenu');
+        if (!mainMenu) return;
+        
+        mainMenu.innerHTML = this.renderColorSelection(forMultiplayer);
+        
+        const colorButtons = mainMenu.querySelectorAll('.paddle-color-btn');
+        colorButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const target = e.currentTarget as HTMLElement;
+                const color = target.dataset.color as Paddlecolor;
+                
+                if (forMultiplayer) 
+                {
+                    
+                    if (this.selectedPaddle1Color === 'default') 
+                    {
+                        this.selectedPaddle1Color = color;
+                        gameManager.setPaddleColor(1, color);
+                        this.updateColorDisplays();
+                    } 
+                    else if (this.selectedPaddle2Color === 'default') 
+                    {
+                        this.selectedPaddle2Color = color;
+                        gameManager.setPaddleColor(2, color);
+                        this.updateColorDisplays();
+                    } 
+                    else 
+                    {
+                        this.selectedPaddle1Color = this.selectedPaddle2Color;
+                        this.selectedPaddle2Color = color;
+                        gameManager.setPaddleColor(1, this.selectedPaddle1Color);
+                        gameManager.setPaddleColor(2, color);
+                        this.updateColorDisplays();
+                    }
+                } 
+                else 
+                {
+                    // For AI mode, just select paddle color and start
+                    this.selectedPaddle1Color = color;
+                    gameManager.setPaddleColor(1, color);
+                    this.startGame();
+                }
+            });
+        });
+        
+        if (forMultiplayer) 
+        {
+            document.getElementById('startGameBtn')?.addEventListener('click', () => {
+                if (this.selectedPaddle1Color === 'default' || this.selectedPaddle2Color === 'default') {
+                    alert('Please select colors for both players!');
+                    return;
+                }
+                this.startGame();
+            });
+        }
+        
+        document.getElementById('backBtn')?.addEventListener('click', () => {
+            this.selectedPaddle1Color = 'default';
+            this.selectedPaddle2Color = 'default';
+            
+            if (this.selectedMode === 'ai') 
+            {
+                this.showDifficultySelection();
+            } 
+            else 
+            {
+                this.showMainMenu();
+            }
+        });
     }
+    
+    private showMultiplayerColorSelection(): void 
+    {
+        this.showColorSelection(true);
+    }
+    
+    private updateColorDisplays(): void 
+    {
+        const p1Display = document.getElementById('p1ColorDisplay');
+        const p2Display = document.getElementById('p2ColorDisplay');
+        
+        if (p1Display) 
+        {
+            p1Display.textContent = this.selectedPaddle1Color.toUpperCase();
+        }
+        if (p2Display) 
+        {
+            p2Display.textContent = this.selectedPaddle2Color.toUpperCase();
+        }
+    }
+    
+    private showMainMenu(): void 
+    {
+        const mainMenu = document.getElementById('mainMenu');
+        if (!mainMenu) return;
+        
+        mainMenu.innerHTML = this.renderMainMenu();
+        this.attachMainMenuListeners();
+    }
+    
+    private async startGame(): Promise<void> 
+    {
+        const menu = document.getElementById('pongMenuContainer');
+        const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
+        
+        if (!canvas) 
+        {
+            console.error('Canvas not found');
+            return;
+        }
+        
+        // Hide menu
+        if (menu) 
+        {
+            menu.style.display = 'none';
+        }
+        
+        // Resize canvas to fit container
+        this.resizeCanvas(canvas);
+        
+        // Initialize game 
+        try 
+        {
+            await gameManager.initGame(canvas, 
+            {
+                mode: this.selectedMode,
+                difficulty: this.selectedMode === 'ai' ? this.selectedDifficulty : undefined,
+                paddlecolor1: this.selectedPaddle1Color,
+                paddlecolor2: this.selectedPaddle2Color, 
+                gamewidth: canvas.width,                 
+                gameheight: canvas.height 
+            });
+            
+            gameManager.startGame();
+            
+           
+            this.setupResizeListener(canvas);
+            
+        } 
+        catch (error) 
+        {
+            console.error('Failed to start game:', error);
+            alert('Failed to start game. Please try again.');
+            this.showMainMenu();
+            if (menu) menu.style.display = 'flex';
+        }
+    }
+    
+    private handleGameEnd(winner: 'player1' | 'player2'): void 
+    {
+        const winnerName = winner === 'player1' ? 'Player 1' : 
+                          (this.selectedMode === 'ai' ? 'AI' : 'Player 2');
+        
+        console.log(` ${winnerName} wins!`);
+        
+       
+        setTimeout(() => {
+            const menu = document.getElementById('pongMenuContainer');
+            if (menu) {
+                menu.style.display = 'flex';
+            }
+            
+            // Reset selections
+            this.selectedPaddle1Color = 'default';
+            this.selectedPaddle2Color = 'default';
+            
+            this.showMainMenu();
+        }, 2000);
+    }
+    
+    
+    
+    private resizeCanvas(canvas: HTMLCanvasElement): void 
+    {
+        const container = canvas.parentElement;
+        if (!container) return;
+        
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+    
+    private setupResizeListener(canvas: HTMLCanvasElement): void 
+    {
+        if (this.resizeListener) {
+            window.removeEventListener('resize', this.resizeListener);
+        }
+        
+        this.resizeListener = () => {
+            if (!canvas) return;
+            
+            const container = canvas.parentElement;
+            if (!container) return;
+            
+            const newWidth = container.clientWidth;
+            const newHeight = container.clientHeight;
+            
+            gameManager.pauseGame();
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            // Note: You'll need to add resize method to your game manager
+            gameManager.resumeGame();
+        };
+        
+        window.addEventListener('resize', this.resizeListener);
+    }
+    
     private goBack(): void 
     {
         this.dispose();
         
-        // Use SPA navigation
-        if ((window as any).navigateTo) 
-        {
+        if ((window as any).navigateTo) {
             (window as any).navigateTo('/games');
         }
     }
-
+    
+  
+    
     public dispose(): void 
     {
-        // Cleanup GameManager
         gameManager.cleanup();
         
-        if(this.pong3D)
-        {
-            this.pong3D.dispose();
-            this.pong3D = null;
-        }
-
-        // Remove event listener
-        if (this.gameEndHandler) 
-        {
-            window.removeEventListener('gameManager:showMenu', this.gameEndHandler);
-            this.gameEndHandler = null;
-        }
-        
-        if (this.resizeListener) 
-        {
-            window.removeEventListener("resize", this.resizeListener);
+        if (this.resizeListener) {
+            window.removeEventListener('resize', this.resizeListener);
             this.resizeListener = null;
         }
     }
-
-    
 }

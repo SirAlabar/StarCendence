@@ -1,3 +1,4 @@
+/*
 import * as BABYLON from "@babylonjs/core";
 
 export type AiDifficulty3D = 'easy' | 'hard';
@@ -79,10 +80,9 @@ export class Enemy3D
         }
     }
     
-    /**
      * Main update function - called every frame
      * Simulates limited vision: AI can only "see" once per reactionTime
-     */
+    
     public update(currentTime: number, ballVelocity: BABYLON.Vector3): void
     {
         // Check if it's time for a new observation
@@ -99,7 +99,7 @@ export class Enemy3D
     /**
      * AI "observes" the game state and makes a decision
      * This only happens once per second (or per reactionTime)
-     */
+     
     private observeGame(currentTime: number, ballVelocity: BABYLON.Vector3): void
     {
         // Take a snapshot of the current game state
@@ -150,7 +150,7 @@ export class Enemy3D
     /**
      * Physics-based prediction of where ball will intersect paddle's X position
      * Accounts for: velocity, gravity, wall bounces
-     */
+     
     private predictBallImpact(pos: BABYLON.Vector3, vel: BABYLON.Vector3): number
     {
         // Apply prediction accuracy - less accurate AI makes more mistakes
@@ -211,7 +211,7 @@ export class Enemy3D
     
     /**
      * Decide which key to "press" based on predicted impact point
-     */
+     
     private makeDecision(): void
     {
         const paddleZ = this.paddle.position.z;
@@ -239,7 +239,7 @@ export class Enemy3D
     
     /**
      * When ball is moving away, return paddle to center position
-     */
+     
     private returnToCenter(): void
     {
         const paddleZ = this.paddle.position.z;
@@ -266,7 +266,7 @@ export class Enemy3D
     /**
      * Execute the movement - this simulates holding down a key
      * Called every frame, but decision is only made once per second
-     */
+     
     private executeMovement(): void
     {
         // The actual movement will be handled by the main game loop
@@ -276,7 +276,7 @@ export class Enemy3D
     
     /**
      * Get the current keyboard input the AI is simulating
-     */
+     
     public getSimulatedInput(): string | null
     {
         return this.currentKey;
@@ -284,7 +284,7 @@ export class Enemy3D
     
     /**
      * Get AI's target position for debugging
-     */
+     
     public getTargetPosition(): number
     {
         return this.predictedImpactZ;
@@ -292,9 +292,10 @@ export class Enemy3D
     
     /**
      * Check if AI is currently trying to miss
-     */
+     
     public isMissing(): boolean
     {
         return this.shouldMissThisShot;
     }
 }
+*/

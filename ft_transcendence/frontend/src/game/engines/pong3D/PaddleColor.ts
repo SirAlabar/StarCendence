@@ -1,4 +1,5 @@
-import {Color3} from "babylonjs"
+
+import { Color3 } from "@babylonjs/core";
 
 
 export const PADDLE_COLORS: Record<string, Color3> = 
