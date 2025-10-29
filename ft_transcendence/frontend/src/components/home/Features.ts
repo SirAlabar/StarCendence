@@ -20,7 +20,7 @@ export class Features extends BaseComponent
       description: 'Competitive multiplayer with stunning visuals.',
       bullets: ['Tournament Mode', 'Anti-Cheat System', 'Adaptive AI'],
       icon: '🔥',
-      imageUrl: '/assets/feature-pong3d.jpg'
+      imageUrl: '/assets/images/feature-pong3d.jpg'
     },
     {
       category: 'gameplay',
@@ -28,7 +28,7 @@ export class Features extends BaseComponent
       description: 'Classic camera with modern netcode and fairplay checks.',
       bullets: ['Retro View', 'Low Latency', 'Server Validation'],
       icon: '🕹️',
-      imageUrl: '/assets/feature-pong2d.jpg'
+      imageUrl: '/assets/images/pong_2d.png'
     },
     {
       category: 'gameplay',
@@ -36,7 +36,7 @@ export class Features extends BaseComponent
       description: 'High-speed racing with collision physics and real-time sync.',
       bullets: ['Advanced Physics', 'Matchmaking', 'Babylon 3D'],
       icon: '🚀',
-      imageUrl: '/assets/feature-racing.jpg'
+      imageUrl: '/assets/images/pod_racer.png'
     },
     {
       category: 'gameplay',
@@ -44,7 +44,7 @@ export class Features extends BaseComponent
       description: 'Smooth play under unstable networks with fair reconciliations.',
       bullets: ['Client Hints', 'Replays', 'Bounds Checks'],
       icon: '⚡',
-      imageUrl: '/assets/feature-netcode.jpg'
+      imageUrl: '/assets/images/feature-netcode.jpg'
     }
   ];
 
@@ -55,7 +55,7 @@ export class Features extends BaseComponent
       description: 'Real-time messaging, invites and presence.',
       bullets: ['Invitations', 'Presence', 'Moderation'],
       icon: '💬',
-      imageUrl: '/assets/feature-chat.jpg'
+      imageUrl: '/assets/images/feature-chat.jpg'
     },
     {
       category: 'social',
@@ -63,7 +63,7 @@ export class Features extends BaseComponent
       description: 'Avatars, friendship and blocking for safe play.',
       bullets: ['Avatars', 'Friends List', 'Chat Integration'],
       icon: '👤',
-      imageUrl: '/assets/feature-profiles.jpg'
+      imageUrl: '/assets/images/user_profile.png'
     },
     {
       category: 'social',
@@ -71,7 +71,7 @@ export class Features extends BaseComponent
       description: 'Progression and match history dashboards.',
       bullets: ['Leaderboards', 'History', 'Badges'],
       icon: '📊',
-      imageUrl: '/assets/feature-stats.jpg'
+      imageUrl: '/assets/images/feature-stats.jpg'
     }
   ];
 
@@ -82,7 +82,7 @@ export class Features extends BaseComponent
       description: 'Low-latency event bus for gameplay and chat.',
       bullets: ['60 FPS Streams', 'Room Routing', 'Broadcast'],
       icon: '🔌',
-      imageUrl: '/assets/feature-ws.jpg'
+      imageUrl: '/assets/images/feature-ws.jpg'
     },
     {
       category: 'tech',
@@ -90,7 +90,7 @@ export class Features extends BaseComponent
       description: 'JWT, 2FA and OAuth for protected gameplay.',
       bullets: ['JWT & 2FA', 'Google OAuth', 'Rate Limits'],
       icon: '🔒',
-      imageUrl: '/assets/feature-security.jpg'
+      imageUrl: '/assets/images/login.png'
     },
     {
       category: 'tech',
@@ -98,7 +98,7 @@ export class Features extends BaseComponent
       description: 'Fastify services orchestrated by Nginx + Redis.',
       bullets: ['Redis PubSub', 'Nginx Gateway', 'SQLite Persistent'],
       icon: '🧩',
-      imageUrl: '/assets/feature-micro.jpg'
+      imageUrl: '/assets/images/feature-micro.jpg'
     },
     {
       category: 'tech',
@@ -106,7 +106,7 @@ export class Features extends BaseComponent
       description: 'Observability across services and gameplay.',
       bullets: ['Prometheus', 'Grafana', 'Alerts'],
       icon: '📈',
-      imageUrl: '/assets/feature-monitor.jpg'
+      imageUrl: '/assets/images/grafana.png'
     }
   ];
 
@@ -181,7 +181,7 @@ export class Features extends BaseComponent
     `;
   }
 
-  // Tech card - 50/50 split with FULL HEIGHT image
+  // Tech card - 50/50 split
   private cardTech(f: Feature): string {
     const themeColor = f.category === 'tech' ? 'purple' : 'cyan';
     const borderColor = themeColor === 'purple' ? 'border-purple-500/40' : 'border-cyan-400/40';
