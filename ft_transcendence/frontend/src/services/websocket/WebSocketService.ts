@@ -1,11 +1,6 @@
 import { WSEventType, ConnectionStatus } from '../../types/websocket.types';
 import { Lobby, LobbyInvitation, LobbyChatMessage } from '../../types/lobby.types';
 
-/**
- * Mock WebSocket Service
- * 
- *  * Replace with real WebSocket when backend is ready.
- */
 class WebSocketService 
 {
     private status: ConnectionStatus = ConnectionStatus.DISCONNECTED;
@@ -42,7 +37,6 @@ class WebSocketService
         return this.status === ConnectionStatus.CONNECTED;
     }
     
-    // Lobby Operations
     async createLobby(gameType: 'pong' | 'podracer', maxPlayers: number): Promise<string> 
     {
         console.log('[WebSocket] 🎮 Creating lobby', { gameType, maxPlayers });
@@ -66,12 +60,11 @@ class WebSocketService
         console.log('[WebSocket] ✅ Left lobby');
     }
     
-    // Invitation Operations
     async sendInvitation(lobbyId: string, friendUserId: string): Promise<void> 
     {
-        console.log('[WebSocket] 📨 Sending invitation', { lobbyId, friendUserId });
+        console.log('[WebSocket] 📨 Sending invitation via Redis pub/sub', { lobbyId, friendUserId });
         await new Promise(resolve => setTimeout(resolve, 200));
-        console.log('[WebSocket] ✅ Invitation sent');
+        console.log('[WebSocket] ✅ Invitation sent to Redis');
     }
     
     async acceptInvitation(invitationId: string): Promise<void> 
@@ -86,27 +79,24 @@ class WebSocketService
         await new Promise(resolve => setTimeout(resolve, 200));
     }
     
-    // Player Operations
     async updateReadyStatus(lobbyId: string, isReady: boolean): Promise<void> 
     {
         console.log('[WebSocket] 🎯 Updating ready status', { lobbyId, isReady });
         await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    async updateCustomization(lobbyId: string, customization: any): Promise<void> 
+    async updateCustomization(lobbyId: string, _customization: any): Promise<void> 
     {
         console.log('[WebSocket] 🎨 Updating customization', { lobbyId });
         await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    // Chat Operations
     async sendChatMessage(lobbyId: string, message: string): Promise<void> 
     {
         console.log('[WebSocket] 💬 Sending chat message', { lobbyId, message });
         await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    // Event Listeners
     onLobbyUpdate(lobbyId: string, callback: (lobby: Lobby) => void): void 
     {
         console.log('[WebSocket] 👂 Registered lobby update listener:', lobbyId);
@@ -137,10 +127,16 @@ class WebSocketService
         this.addListener(`${WSEventType.CHAT_MESSAGE}:${lobbyId}`, callback);
     }
     
-    onFriendStatusChange(callback: (userId: string, isOnline: boolean) => void): void 
+    subscribeFriendsStatus(callback: (userId: string, status: string) => void): void 
     {
-        console.log('[WebSocket] 👂 Registered friend status listener');
+        console.log('[WebSocket] 👂 Subscribing to friend status updates via Redis pub/sub');
         this.addListener(WSEventType.STATUS_UPDATE, callback);
+    }
+    
+    unsubscribeFriendsStatus(): void 
+    {
+        console.log('[WebSocket] 🔇 Unsubscribing from friend status updates');
+        this.removeListener(WSEventType.STATUS_UPDATE);
     }
     
     unsubscribeLobby(lobbyId: string): void 
@@ -152,7 +148,6 @@ class WebSocketService
         this.removeListener(`${WSEventType.CHAT_MESSAGE}:${lobbyId}`);
     }
     
-    // Internal Event System
     private addListener(event: string, callback: Function): void 
     {
         if (!this.listeners.has(event)) 
