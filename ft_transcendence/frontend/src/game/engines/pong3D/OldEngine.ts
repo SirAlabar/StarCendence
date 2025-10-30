@@ -1,3 +1,5 @@
+//old code for testing in local 
+
 /*
 import {Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes, AbstractMesh} from "@babylonjs/core";
 import { Skybox } from "./entities/Skybox";

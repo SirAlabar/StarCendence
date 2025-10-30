@@ -1,4 +1,3 @@
-// engines/pong3D/LocalPong3DEngine.ts
 import {Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes, AbstractMesh} from "@babylonjs/core";
 import { GameConfig, GameState, GameEvent, IGameEngine } from "../../utils/GameTypes";
 import { Skybox } from "./entities/Skybox";
@@ -84,10 +83,6 @@ export class Pong3D implements IGameEngine
         console.log('LocalPong3DEngine initialized:', config);
     }
     
-    // ============================================
-    // IGameEngine Implementation
-    // ============================================
-    
     start(): void 
     {
         this.paused = false;
@@ -101,7 +96,7 @@ export class Pong3D implements IGameEngine
         });
         
         this.emitEvent({ type: 'game-started' });
-        console.log('▶️ 3D Game started');
+        console.log(' 3D Game started');
     }
     
     stop(): void 
@@ -114,7 +109,7 @@ export class Pong3D implements IGameEngine
     {
         this.paused = true;
         this.emitEvent({ type: 'game-paused' });
-        console.log('⏸️ 3D Game paused');
+        console.log(' 3D Game paused');
     }
     
     resume(): void 
@@ -132,7 +127,7 @@ export class Pong3D implements IGameEngine
         }
         
         this.emitEvent({ type: 'game-resumed' });
-        console.log('▶️ 3D Game resumed');
+        console.log(' 3D Game resumed');
     }
     
     getState(): GameState 

@@ -193,7 +193,7 @@ export default class PongPage extends BaseComponent
         
         overlay.innerHTML = `
             <div class="text-center animate-pulse">
-                <h2 class="text-6xl font-bold text-white mb-4">🎉</h2>
+                <h2 class="text-6xl font-bold text-white mb-4"></h2>
                 <h3 class="text-4xl font-bold text-cyan-400">${winner} Wins!</h3>
             </div>
         `;
