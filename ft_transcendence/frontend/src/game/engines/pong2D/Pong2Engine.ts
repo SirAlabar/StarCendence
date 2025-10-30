@@ -104,7 +104,9 @@ export class LocalPongEngine
     {
         this.paused = true;
         this.emitEvent({type: 'game-paused'})
+        this.drawPauseOverlay();
     }
+
     resume():void
     {
         this.paused = false;
@@ -214,11 +216,11 @@ export class LocalPongEngine
         // Player 2 / AI (right paddle)
         if (this.config.mode === 'local-multiplayer') 
         {
-            if (this.keys['arrowup'] && this.paddleright.y > 0) 
+            if (this.keys['8'] && this.paddleright.y > 0) 
             {
                 this.paddleright.y -= speed;
             }
-            if (this.keys['arrowdown'] && this.paddleright.y + this.paddleright.height < this.canvas.height) 
+            if (this.keys['2'] && this.paddleright.y + this.paddleright.height < this.canvas.height) 
             {
                 this.paddleright.y += speed;
             }
@@ -247,6 +249,8 @@ export class LocalPongEngine
         // Paddle collisions
         this.checkPaddleCollision(this.paddleleft, 'left');
         this.checkPaddleCollision(this.paddleright, 'right');
+        if(this.enemy)
+            this.checkPaddleCollision(this.enemy, 'right');
         
         // Goal detection
         if (this.ball.x + this.ball.radius > this.canvas.width) 
@@ -254,7 +258,8 @@ export class LocalPongEngine
             this.handleGoal('player1');
         }
         
-        if (this.ball.x - this.ball.radius < 0) {
+        if (this.ball.x - this.ball.radius < 0) 
+        {
             this.handleGoal('player2');
         }
     }
@@ -369,10 +374,7 @@ export class LocalPongEngine
         }
         
         // Draw pause overlay if paused
-        if (this.paused) 
-        {
-            this.drawPauseOverlay();
-        }
+        
     }
     
     private drawScore(): void 
