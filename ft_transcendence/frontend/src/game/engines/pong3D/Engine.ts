@@ -35,7 +35,7 @@ export class Pong3Dscene
     
     private keys: Record<string, boolean> = {};
     private lastTime: number = 0;
-    private goalScored: boolean = false; // Prevent multiple goal detections
+    private goalScored: boolean = false
     
     constructor(private canvas: HTMLCanvasElement, mode: "multiplayer" | "ai", aiDifficulty: AiDifficulty3D = 'easy') 
     {
@@ -53,7 +53,8 @@ export class Pong3Dscene
         this.enableCollisions();
         
         // Initialize AI if in AI mode
-        if (this.mode === "ai") {
+        if (this.mode === "ai") 
+        {
             this.enemy3D = new Enemy3D(this.paddle_right, this.ball, this.aiDifficulty);
             console.log(`AI initialized with difficulty: ${aiDifficulty}`);
         }

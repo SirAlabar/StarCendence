@@ -373,8 +373,6 @@ export class LocalPongEngine
             this.enemy.draw(this.ctx);
         }
         
-        // Draw pause overlay if paused
-        
     }
     
     private drawScore(): void 

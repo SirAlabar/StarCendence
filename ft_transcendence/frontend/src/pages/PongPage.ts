@@ -78,7 +78,7 @@ export default class PongPage extends BaseComponent
         });
 
         document.getElementById('mode3d')?.addEventListener('click', () => {
-            this.start3DPong('multiplayer'); // start the 3D mode
+            this.showMainMenu3d(); // load the 3D menu
         });
 
         document.getElementById('backBtn')?.addEventListener('click', () => {
@@ -110,6 +110,32 @@ export default class PongPage extends BaseComponent
             </button>
         `;
     }
+
+    private renderMainMenu3d(): string 
+    {
+        return `
+            <h1 class="text-5xl font-bold mb-6 text-white">🏓 Pong Game</h1>
+            <div class="flex flex-col space-y-3">
+                <button id="playLocal3d" class="bg-purple-600 text-white px-8 py-4 rounded-lg hover:bg-purple-700 text-xl transition">
+                    🎮 Local Multiplayer
+                </button>
+                <button id="playAI3d" class="bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 text-xl transition">
+                    🤖 Play vs AI
+                </button>
+                <button id="playOnline3d" class="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 text-xl transition opacity-50 cursor-not-allowed" disabled>
+                    🌐 Online Multiplayer (Coming Soon)
+                </button>
+                <button id="tournament3d" class="bg-orange-600 text-white px-8 py-4 rounded-lg hover:bg-orange-700 text-xl transition opacity-50 cursor-not-allowed" disabled>
+                    🏆 Tournament (Coming Soon)
+                </button>
+                
+            </div>
+            <button id="backBtn3d" class="mt-6 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition">
+                ← Back to Games
+            </button>
+        `;
+    }
+
     
     private renderColorSelection(forMultiplayer: boolean = false): string 
     {
@@ -202,14 +228,42 @@ export default class PongPage extends BaseComponent
         });
         
         document.getElementById('backBtn')?.addEventListener('click', () => {
-            this.goBack();
+            this.backToFirstMenu();
         });
 
-        document.getElementById('pong3d')?.addEventListener('click', () => {
-            this.start3DPong("multiplayer");
+        document.getElementById('playOnline3d')?.addEventListener('click', () => {
+            alert('🚧 Online multiplayer coming soon!');
+        });
+        
+        document.getElementById('tournament3d')?.addEventListener('click', () => {
+            alert('🚧 Tournament mode coming soon!');
+        });
+        
+        document.getElementById('backBtn3d')?.addEventListener('click', () => {
+            this.backToFirstMenu();
+        });
+
+
+        document.getElementById('playLocal3d')?.addEventListener('click', () => {
+            this.selectedMode = 'local-multiplayer';
+            this.showMultiplayerColorSelection3d();
         } )
+
+        document.getElementById('playAI3d')?.addEventListener('click', () => {
+            this.selectedMode = 'ai';
+            this.showDifficultySelection3d();
+        });
     }
     
+
+    private backToFirstMenu(): void
+    {
+        const mainMenu = document.getElementById('mainMenu');
+        if (!mainMenu) return;
+
+        mainMenu.innerHTML = this.renderModeSelection();
+        this.attachModeSelectionListeners();
+    }
 
     private start3DPong(mode: "ai" | "multiplayer"): void 
     {
@@ -223,7 +277,10 @@ export default class PongPage extends BaseComponent
             console.log(mode);
             console.log(this.pong3d);
             gameManager.cleanup();
+            if(mode === "multiplayer")
                 this.pong3d = new Pong3Dscene(canvas, "multiplayer");
+            else
+                this.pong3d = new Pong3Dscene(canvas, "ai");
 
         }
     }
@@ -247,6 +304,28 @@ export default class PongPage extends BaseComponent
         
         document.getElementById('backBtn')?.addEventListener('click', () => {
             this.showMainMenu();
+        });
+    }
+
+    private showDifficultySelection3d(): void 
+    {
+        const mainMenu = document.getElementById('mainMenu');
+        if (!mainMenu) return;
+        
+        mainMenu.innerHTML = this.renderDifficultySelection();
+        
+        document.getElementById('easyBtn')?.addEventListener('click', () => {
+            this.selectedDifficulty = 'easy';
+            this.showColorSelection3d(false);
+        });
+        
+        document.getElementById('hardBtn')?.addEventListener('click', () => {
+            this.selectedDifficulty = 'hard';
+            this.showColorSelection3d(false);
+        });
+        
+        document.getElementById('backBtn')?.addEventListener('click', () => {
+            this.showMainMenu3d();
         });
     }
     
@@ -323,9 +402,88 @@ export default class PongPage extends BaseComponent
         });
     }
     
+    private showColorSelection3d(forMultiplayer: boolean): void 
+    {
+        const mainMenu = document.getElementById('mainMenu');
+        if (!mainMenu) 
+            return;
+        
+        mainMenu.innerHTML = this.renderColorSelection(forMultiplayer);
+        
+        const colorButtons = mainMenu.querySelectorAll('.paddle-color-btn');
+        colorButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const target = e.currentTarget as HTMLElement;
+                const color = target.dataset.color as Paddlecolor;
+                
+                if (forMultiplayer) 
+                {
+                    
+                    if (this.selectedPaddle1Color === 'default') 
+                    {
+                        this.selectedPaddle1Color = color;
+                        gameManager.setPaddleColor(1, color);
+                        this.updateColorDisplays();
+                    } 
+                    else if (this.selectedPaddle2Color === 'default') 
+                    {
+                        this.selectedPaddle2Color = color;
+                        gameManager.setPaddleColor(2, color);
+                        this.updateColorDisplays();
+                    } 
+                    else 
+                    {
+                        this.selectedPaddle1Color = this.selectedPaddle2Color;
+                        this.selectedPaddle2Color = color;
+                        gameManager.setPaddleColor(1, this.selectedPaddle1Color);
+                        gameManager.setPaddleColor(2, color);
+                        this.updateColorDisplays();
+                    }
+                } 
+                else 
+                {
+                    // For AI mode, just select paddle color and start
+                    this.selectedPaddle1Color = color;
+                    gameManager.setPaddleColor(1, color);
+                    this.start3DPong('ai');
+                }
+            });
+        });
+        
+        if (forMultiplayer) 
+        {
+            document.getElementById('startGameBtn')?.addEventListener('click', () => {
+                if (this.selectedPaddle1Color === 'default' || this.selectedPaddle2Color === 'default') {
+                    alert('Please select colors for both players!');
+                    return;
+                }
+                this.start3DPong("multiplayer");
+            });
+        }
+        
+        document.getElementById('backBtn')?.addEventListener('click', () => {
+            this.selectedPaddle1Color = 'default';
+            this.selectedPaddle2Color = 'default';
+            
+            if (this.selectedMode === 'ai') 
+            {
+                this.showDifficultySelection3d();
+            } 
+            else 
+            {
+                this.showMainMenu3d();
+            }
+        });
+    }
+
     private showMultiplayerColorSelection(): void 
     {
         this.showColorSelection(true);
+    }
+
+    private showMultiplayerColorSelection3d(): void 
+    {
+        this.showColorSelection3d(true);
     }
     
     private updateColorDisplays(): void 
@@ -342,13 +500,26 @@ export default class PongPage extends BaseComponent
             p2Display.textContent = this.selectedPaddle2Color.toUpperCase();
         }
     }
+
+    
     
     private showMainMenu(): void 
     {
         const mainMenu = document.getElementById('mainMenu');
-        if (!mainMenu) return;
+        if (!mainMenu) 
+            return;
         
         mainMenu.innerHTML = this.renderMainMenu();
+        this.attachMainMenuListeners();
+    }
+
+    private showMainMenu3d(): void 
+    {
+        const mainMenu = document.getElementById('mainMenu');
+        if (!mainMenu) 
+            return;
+        
+        mainMenu.innerHTML = this.renderMainMenu3d();
         this.attachMainMenuListeners();
     }
     
