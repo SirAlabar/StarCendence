@@ -146,7 +146,8 @@ export default class PongPage extends BaseComponent
             gameManager.startGame();
             console.log(' 3D Game started successfully');
             
-        } catch (error) 
+        } 
+        catch (error) 
         {
             console.error('❌ Failed to start 3D game:', error);
             alert('Failed to start 3D game. Please try again.');
@@ -171,7 +172,7 @@ export default class PongPage extends BaseComponent
         // Show menu after delay
         setTimeout(() => {
             this.hideWinnerOverlay();
-            this.menu.showMenuAfterGame();
+            this.goBack(); //menu.showMenuAfterGame
         }, 3000);
     }
     

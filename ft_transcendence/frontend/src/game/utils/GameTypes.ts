@@ -105,6 +105,7 @@ export interface IGameEngine
     stop(): void;
     pause(): void;
     resume(): void;
+    destroy(): void;
     getState(): GameState;
     onEvent(callback: (event: GameEvent)=> void): void;
 }

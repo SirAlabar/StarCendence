@@ -82,7 +82,8 @@ export class ImprovedGameManager
         try 
         {
             // Create appropriate engine based on dimension and mode
-            if (dimension === '2d') {
+            if (dimension === '2d') 
+            {
                 switch (config.mode) 
                 {
                     case 'local-multiplayer':
@@ -96,7 +97,9 @@ export class ImprovedGameManager
                     default:
                         throw new Error(`Unknown game mode: ${config.mode}`);
                 }
-            } else if (dimension === '3d') {
+            } 
+            else if (dimension === '3d') 
+            {
                 switch (config.mode) 
                 {
                     case 'local-multiplayer':
@@ -184,7 +187,7 @@ export class ImprovedGameManager
         if (this.currentEngine) 
         {
             this.currentEngine.stop();
-            //this.currentEngine.destroy();
+            this.currentEngine.destroy();
             this.currentEngine = null;
         }
         
