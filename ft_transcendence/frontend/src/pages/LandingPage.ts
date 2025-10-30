@@ -40,6 +40,7 @@ export default class LandingPage extends BaseComponent
 
     mount(_selector: string): void 
     {
+        this.hero.mount();
         const resetAndAnimate = () =>
         {
             // === TEAM ANIMATION (2 up / 2 down)

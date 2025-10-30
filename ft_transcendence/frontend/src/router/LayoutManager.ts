@@ -32,7 +32,7 @@ export function renderDefault(component: BaseComponent): void
         const isLandingPage = component.constructor.name === 'LandingPage';
         if (isLandingPage) 
         {
-            contentMountAfter.className = 'pt-20';
+            contentMountAfter.className = '';
             const pageContent = layout.renderPageSection(
                 'page-content', 
                 component.render(), 

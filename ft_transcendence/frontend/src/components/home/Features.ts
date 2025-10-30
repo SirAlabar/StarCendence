@@ -115,7 +115,7 @@ export class Features extends BaseComponent
   {
     return `
       <div class="text-center">
-        <h2 class="mb-16 text-3xl md:text-4xl lg:text-5xl font-bold font-game text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
+        <h2 class="mb-16 text-3xl md:text-4xl lg:text-5xl font-bold font-game text-atransparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
           Platform Features
         </h2>
 

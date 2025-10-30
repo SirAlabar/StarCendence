@@ -24,12 +24,11 @@ export class Layout extends BaseComponent
     }
 
     // Page-level section wrapper - handles 100vh, alignment, spacing
-    renderPageSection(id: string, content: string, addPadding: boolean = true): string 
+    renderPageSection(id: string, content: string, _addPadding: boolean = true): string 
     {
-        const paddingClass = addPadding ? 'pt-20' : '';
         return `
-            <section id="${id}" class="min-h-screen flex items-center justify-center scroll-mt-20 p-6 ${paddingClass}">
-                <div class="w-full max-w-7xl mx-auto">
+            <section id="${id}" class="min-h-screen flex items-center justify-center scroll-mt-20">
+                <div class="w-full">
                     ${content}
                 </div>
             </section>
