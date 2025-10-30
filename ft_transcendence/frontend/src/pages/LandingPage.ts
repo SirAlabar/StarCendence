@@ -26,7 +26,7 @@ export default class LandingPage extends BaseComponent
     render(): string 
     {
         return `
-            <div class="space-y-0">
+            <div class="space-y-0 overflow-x-hidden">
                 ${this.layout.renderPageSection('hero', this.hero.render(), true)}
                 ${this.layout.renderSectionSeparator()}
                 ${this.layout.renderPageSection('team', this.team.render(), false)}
