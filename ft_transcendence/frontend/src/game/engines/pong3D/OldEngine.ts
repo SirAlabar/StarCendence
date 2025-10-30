@@ -1,3 +1,4 @@
+/*
 import {Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes, AbstractMesh} from "@babylonjs/core";
 import { Skybox } from "./entities/Skybox";
 import { loadModel } from "./entities/ModelLoader";
@@ -396,3 +397,4 @@ export class Pong3Dscene
         this.engine.dispose();
     }
 }
+    */
