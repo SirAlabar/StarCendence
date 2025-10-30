@@ -307,17 +307,22 @@ export default class LoginPage extends BaseComponent
             {
                 this.showMessage('Login successful! Redirecting...', 'success');
                 
-                setTimeout(() => 
+            setTimeout(() => 
+            {
+                if (this.dispose) this.dispose();
+
+                const redirectPath = localStorage.getItem('redirectAfterLogin') || '/profile';
+                localStorage.removeItem('redirectAfterLogin');
+
+                if ((window as any).navigateTo)
                 {
-                    if ((window as any).navigateTo) 
-                    {
-                        (window as any).navigateTo('/profile');
-                    } 
-                    else 
-                    {
-                        window.location.href = '/profile';
-                    }
-                }, 1500);
+                    (window as any).navigateTo(redirectPath);
+                }
+                else
+                {
+                    window.location.href = redirectPath;
+                }
+            }, 1500);
             } 
             else 
             {
@@ -405,4 +410,15 @@ export default class LoginPage extends BaseComponent
             }
         }
     }
+
+    private dispose(): void 
+    {
+        this.emailInput = null;
+        this.passwordInput = null;
+        this.usernameInput = null;
+        this.submitButton = null;
+        this.messageContainer = null;
+    }
 }
+
+
