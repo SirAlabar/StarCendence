@@ -111,6 +111,7 @@ export default class PongPage extends BaseComponent
         if (canvas) 
         {
             console.log('Starting 3D Pong:', mode);
+            console.log(this.pong3d);
             gameManager.cleanup();
             
             if (mode === "multiplayer") {
