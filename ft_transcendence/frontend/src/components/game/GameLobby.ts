@@ -206,30 +206,6 @@ export class GameLobby extends BaseComponent
                     </div>
                 </div>
                 
-                <div id="playerTypeModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm items-center justify-center z-50" style="display: none;">
-                    <div class="bg-gradient-to-br from-gray-900 to-blue-900/50 rounded-2xl border-2 border-cyan-500/50 p-8 max-w-4xl w-full mx-4">
-                        <h2 class="text-3xl font-bold text-cyan-300 mb-8 text-center">ADD PLAYER</h2>
-                        
-                        <div class="grid grid-cols-2 gap-6 mb-6">
-                            <button id="selectInviteFriend" class="p-8 rounded-xl border-2 border-cyan-500/40 bg-gradient-to-br from-cyan-900/40 to-gray-900/60 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/50 transition-all">
-                                <div class="text-6xl mb-4">👥</div>
-                                <h3 class="text-2xl font-bold text-cyan-400 mb-2">INVITE FRIEND</h3>
-                                <p class="text-gray-400">Play with online friends</p>
-                            </button>
-                            
-                            <button id="selectAddAI" class="p-8 rounded-xl border-2 border-purple-500/40 bg-gradient-to-br from-purple-900/40 to-gray-900/60 hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/50 transition-all">
-                                <div class="text-6xl mb-4">🤖</div>
-                                <h3 class="text-2xl font-bold text-purple-400 mb-2">ADD AI BOT</h3>
-                                <p class="text-gray-400">Play against computer</p>
-                            </button>
-                        </div>
-                        
-                        <button id="closePlayerTypeModal" class="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold">
-                            CANCEL
-                        </button>
-                    </div>
-                </div>
-                
                 <!-- Player Type Selection Modal (Friend or AI) -->
                 <div id="playerTypeModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm items-center justify-center z-50" style="display: none;">
                     <div class="bg-gradient-to-br from-gray-900 to-blue-900/50 rounded-2xl border-2 border-cyan-500/50 p-8 max-w-3xl w-full mx-4">
