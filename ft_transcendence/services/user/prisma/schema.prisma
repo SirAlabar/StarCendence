@@ -39,6 +39,11 @@ model UserProfile {
   totalWins Int @default(0)
   totalLosses Int @default(0)
   totalDraws Int @default(0)
+  totalPongWins Int @default(0)
+  totalPongLoss Int @default(0)
+  totalRacerWins Int @default(0)
+  totalRacerLoss Int @default(0)
+  totalWinPercent Float? 
 
   // rank Int @default(1000)
   // points Int @default(0)

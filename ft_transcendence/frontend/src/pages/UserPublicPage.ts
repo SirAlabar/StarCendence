@@ -157,8 +157,90 @@ export default class UserPublicPage extends BaseComponent
                 <div class="mt-6 text-sm text-gray-400">
                     <p>Member since ${this.formatDate(this.userProfile.createdAt)}</p>
                 </div>
+
+                <!-- Player Statistics Section -->
+                <div class="mt-10">
+                    <h3 class="text-xl font-bold text-cyan-400 mb-4 tracking-wider text-center" style="text-shadow: 0 0 8px #00ffff;">
+                        PLAYER STATISTICS
+                    </h3>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                        <div class="p-4 rounded-lg bg-gray-900/40 border border-gray-700/40">
+                        <p class="text-gray-400 text-sm">Total Games</p>
+                        <p class="text-cyan-300 text-lg font-bold">${this.userProfile.totalGames ?? 0}</p>
+                        </div>
+
+                        <div class="p-4 rounded-lg bg-gray-900/40 border border-gray-700/40">
+                        <p class="text-gray-400 text-sm">Total Wins</p>
+                        <p class="text-green-400 text-lg font-bold">${this.userProfile.totalWins ?? 0}</p>
+                        </div>
+
+                        <div class="p-4 rounded-lg bg-gray-900/40 border border-gray-700/40">
+                        <p class="text-gray-400 text-sm">Total Losses</p>
+                        <p class="text-red-400 text-lg font-bold">${this.userProfile.totalLosses ?? 0}</p>
+                        </div>
+
+                        <div class="p-4 rounded-lg bg-gray-900/40 border border-gray-700/40">
+                        <p class="text-gray-400 text-sm">Total Draws</p>
+                        <p class="text-yellow-400 text-lg font-bold">${this.userProfile.totalDraws ?? 0}</p>
+                        </div>
+
+                        <div class="p-4 rounded-lg bg-gray-900/40 border border-gray-700/40">
+                        <p class="text-gray-400 text-sm">Tournament Wins</p>
+                        <p class="text-cyan-300 text-lg font-bold">${this.userProfile.tournamentWins ?? 0}</p>
+                        </div>
+
+                        <div class="p-4 rounded-lg bg-gray-900/40 border border-gray-700/40">
+                        <p class="text-gray-400 text-sm">Tournaments Played</p>
+                        <p class="text-cyan-300 text-lg font-bold">${this.userProfile.tournamentParticipations ?? 0}</p>
+                        </div>
+                    </div>
+
+                    <h4 class="text-lg font-bold text-cyan-400 mt-8 mb-3 text-center tracking-wider">GAME MODES</h4>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                        <div class="p-4 rounded-lg bg-gray-900/40 border border-gray-700/40">
+                        <p class="text-gray-400 text-sm">Pong Wins</p>
+                        <p class="text-green-400 text-lg font-bold">${this.userProfile.totalPongWins ?? 0}</p>
+                        </div>
+                        <div class="p-4 rounded-lg bg-gray-900/40 border border-gray-700/40">
+                        <p class="text-gray-400 text-sm">Pong Losses</p>
+                        <p class="text-red-400 text-lg font-bold">${this.userProfile.totalPongLoss ?? 0}</p>
+                        </div>
+                        <div class="p-4 rounded-lg bg-gray-900/40 border border-gray-700/40">
+                        <p class="text-gray-400 text-sm">Racer Wins</p>
+                        <p class="text-green-400 text-lg font-bold">${this.userProfile.totalRacerWins ?? 0}</p>
+                        </div>
+                        <div class="p-4 rounded-lg bg-gray-900/40 border border-gray-700/40">
+                        <p class="text-gray-400 text-sm">Racer Losses</p>
+                        <p class="text-red-400 text-lg font-bold">${this.userProfile.totalRacerLoss ?? 0}</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 text-center">
+                        <p class="text-cyan-400 font-bold text-lg tracking-wide">
+                        WIN RATE: ${(this.userProfile.totalWinPercent ?? this.calculateWinPercent()).toFixed(1)}%
+                        </p>
+                    </div>
+                </div>
+
             </div>
         `;
+    }
+
+    private calculateWinPercent(): number 
+    {
+        if (!this.userProfile) 
+        {
+            return 0;
+        }
+        const total = this.userProfile.totalGames || 0;
+        const wins = this.userProfile.totalWins || 0;
+        if (total === 0) 
+        {
+            return 0;
+        }
+        return ((wins / total) * 100);
     }
 
     private renderActionButtons(): string 

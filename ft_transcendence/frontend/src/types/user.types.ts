@@ -8,14 +8,28 @@ export enum UserStatus
 
 export interface UserProfile 
 {
-    id: string;
-    email: string;
-    username: string;
-    bio?: string | null;
-    avatarUrl?: string | null;
-    status?: UserStatus;
-    createdAt: string;
-    updatedAt: string;
+  id: string;
+  email: string;
+  username: string;
+  bio?: string;
+  avatarUrl?: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+
+  tournamentWins: number;
+  tournamentParticipations: number;
+
+  totalGames: number;
+  totalWins: number;
+  totalLosses: number;
+  totalDraws: number;
+
+  totalPongWins?: number;
+  totalPongLoss?: number;
+  totalRacerWins?: number;
+  totalRacerLoss?: number;
+  totalWinPercent?: number;
 }
 
 export interface UpdateUserBody 
