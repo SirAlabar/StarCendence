@@ -1,4 +1,4 @@
-// Pong paddle entity
+import { PADDLE_COLORS } from "../../pong3D/entities/PaddleColor";
 
 //paddle for 2d
 export class paddle
@@ -9,8 +9,9 @@ export class paddle
     height : number;                                                //size
     speed : number;                                                 //speed        
     directionY: number;                                             //direction on y
+    color: string;
     
-    constructor(side: "left" | "right", canvas: HTMLCanvasElement)
+    constructor(side: "left" | "right", canvas: HTMLCanvasElement, colorKey: keyof typeof PADDLE_COLORS)
     {
         this.width = 10;
         this.height = 100;
@@ -18,6 +19,9 @@ export class paddle
         this.directionY = 0;
         this.x = 0;
         this.y = (canvas.height - this.height) /2;                  //Position on center of the screen
+        
+        const color = PADDLE_COLORS[colorKey];
+        this.color = color.toHexString();
 
         if(side === 'left')                                         //if constructor called with left position left paddle
             this.x = 30;
@@ -36,7 +40,7 @@ export class paddle
 
     draw(ctx: CanvasRenderingContext2D)
     {
-        ctx.fillStyle = "red";
+        ctx.fillStyle = this.color;
         ctx.fillRect(this.x, this.y, this.width, this.height)
     }
 }

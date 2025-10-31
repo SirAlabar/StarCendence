@@ -28,6 +28,7 @@ export class Enemy3D
         this.setting = this.getSetting(difficulty);
         console.log(this.dificulty);
         console.log(this.shouldMiss);
+        console.log(this.setting);
     }
 
     private getSetting(difficulty: AiDifficulty3D): DifficultySettings
@@ -43,13 +44,12 @@ export class Enemy3D
 
     public update(deltaTime: number)
     {
-        const prediction = this.ball.position.z * this.setting.predictionAccuracy;
-        const error = (Math.random() - 0.5) * this.setting.errorMargin;
-        this.targetZ = prediction + error;
+        const prediction = this.ball.position.z;
+        this.targetZ = prediction;
 
-        const speed = 5 * deltaTime;
+        const speed = 15 * deltaTime;
         this.paddle.position.z += Math.sign(this.targetZ - this.paddle.position.z) * speed;
-        this.paddle.position.z = BABYLON.Scalar.Clamp(this.paddle.position.z, -9.5, 9.5);
+        //this.paddle.position.z = BABYLON.Scalar.Clamp(this.paddle.position.z, -29.5, 29.5);
     }
 
 

@@ -1,18 +1,18 @@
 import { BaseComponent } from '../components/BaseComponent';
-import { AiDifficulty } from '@/game/engines/pong2D/entities/EnemyAi';
-import { gameManager } from '@/game/managers/PongManager';
-import { Pong3Dscene } from '@/game/engines/pong3D/Engine';
+import { gameManager } from '../game/managers/PongManager';
 import { navigateTo, isAuthenticated } from '../router/router';
 
-type GameMode = 'local' | 'online' | 'ai' | 'tournament' | null;
+type GameMode = 'local-multiplayer' | 'online-multiplayer' | 'ai' | 'tournament' | null;
 type ViewType = '2d' | '3d' | null;
+type AiDifficulty = 'easy' | 'hard';
 
 export default class PongPage extends BaseComponent 
 {
     private resizeListener: (() => void) | null = null;
     private selectedDifficulty: AiDifficulty = 'easy'; 
     private gameEndHandler: ((event: Event) => void) | null = null;
-    private pong3D: Pong3Dscene | null = null;
+    private gameGoalHandler: ((event: Event) => void) | null = null;
+    private gamePaddleHitHandler: ((event: Event) => void) | null = null;
     private selectedMode: GameMode = null;
     private selectedView: ViewType = null;
 
@@ -34,6 +34,10 @@ export default class PongPage extends BaseComponent
                        
                         <div id="pongMenuContainer" class="w-full">
                             ${this.renderModeSelection()}
+                        </div>
+                        
+                        <!-- Winner Overlay -->
+                        <div id="winnerOverlay" class="absolute inset-0 flex items-center justify-center bg-black/80 z-40" style="display: none;">
                         </div>
                     </div>
                 </div>
@@ -242,8 +246,18 @@ export default class PongPage extends BaseComponent
     mount(): void 
     {
         this.attachModeSelectionListeners();
+        
+        // Set up event handlers
         this.gameEndHandler = this.handleGameEnd.bind(this);
-        window.addEventListener('gameManager:showMenu', this.gameEndHandler);
+        this.gameGoalHandler = this.handleGameGoal.bind(this);
+        this.gamePaddleHitHandler = this.handlePaddleHit.bind(this);
+        
+        // Subscribe to game events
+        gameManager.on('game:ended', this.gameEndHandler);
+        gameManager.on('game:goal', this.gameGoalHandler);
+        gameManager.on('game:paddle-hit', this.gamePaddleHitHandler);
+        
+        console.log('✅ PongPage mounted');
     }
 
     private attachModeSelectionListeners(): void 
@@ -255,11 +269,11 @@ export default class PongPage extends BaseComponent
         
         if (localCard) 
         {
-            localCard.addEventListener('click', () => this.selectMode('local'));
+            localCard.addEventListener('click', () => this.selectMode('local-multiplayer'));
         }
         if (onlineCard) 
         {
-            onlineCard.addEventListener('click', () => this.selectMode('online'));
+            onlineCard.addEventListener('click', () => this.selectMode('online-multiplayer'));
         }
         if (aiCard) 
         {
@@ -336,8 +350,8 @@ export default class PongPage extends BaseComponent
         
         const cardMap = 
         {
-            'local': 'localCard',
-            'online': 'onlineCard',
+            'local-multiplayer': 'localCard',
+            'online-multiplayer': 'onlineCard',
             'ai': 'aiCard',
             'tournament': 'tournamentCard'
         };
@@ -405,7 +419,7 @@ export default class PongPage extends BaseComponent
         }
         
         // Check authentication ONLY for online multiplayer and tournament
-        if (this.selectedMode === 'online' || this.selectedMode === 'tournament') 
+        if (this.selectedMode === 'online-multiplayer' || this.selectedMode === 'tournament') 
         {
             if (!isAuthenticated()) 
             {
@@ -416,7 +430,7 @@ export default class PongPage extends BaseComponent
 
                 setTimeout(() => 
                 {
-                    const redirectPath = this.selectedMode === 'tournament' ? '/pong' : '/pong-lobby';
+                    const redirectPath = this.selectedMode === 'tournament' ? '/tournaments' : '/pong-lobby';
                     localStorage.setItem('redirectAfterLogin', redirectPath);
                     navigateTo('/login');
                 }, 3000);
@@ -430,12 +444,11 @@ export default class PongPage extends BaseComponent
         {
             this.showDifficultySelection();
         }
-        else if (this.selectedMode === 'local') 
+        else if (this.selectedMode === 'local-multiplayer') 
         {
-            // Start local multiplayer immediately (2 players, same keyboard)
             this.startGame();
         }
-        else if (this.selectedMode === 'online') 
+        else if (this.selectedMode === 'online-multiplayer') 
         {
             navigateTo('/pong-lobby');
         }
@@ -508,10 +521,16 @@ export default class PongPage extends BaseComponent
         this.attachDifficultyListeners();
     }
 
-    private startGame(): void 
+    private async startGame(): Promise<void> 
     {
         const menu = document.getElementById('pongMenuContainer');
         const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
+        
+        if (!canvas) 
+        {
+            console.error('❌ Canvas not found');
+            return;
+        }
         
         if (menu) 
         {
@@ -521,35 +540,63 @@ export default class PongPage extends BaseComponent
         if (canvas) 
         {
             canvas.style.display = 'block';
-            this.resize(canvas);
+            this.resizeCanvas(canvas);
             
-            if (this.selectedView === '2d') 
+            try 
             {
-                this.start2DPong();
+                // Build game config
+                const config = 
+                {
+                    mode: this.selectedMode === 'ai' ? 'ai' as const : 'local-multiplayer' as const,
+                    difficulty: this.selectedMode === 'ai' ? this.selectedDifficulty : undefined,
+                    paddlecolor1: gameManager.getPaddleColor(1),
+                    paddlecolor2: gameManager.getPaddleColor(2),
+                    gamewidth: canvas.width,
+                    gameheight: canvas.height
+                };
+                
+                console.log('🎮 Starting game with config:', config);
+                
+                // Initialize game based on view type
+                if (this.selectedView === '2d') 
+                {
+                    await gameManager.init2DGame(canvas, config);
+                }
+                else if (this.selectedView === '3d') 
+                {
+                    await gameManager.init3DGame(canvas, config);
+                }
+                
+                gameManager.startGame();
+                this.setupResizeListener(canvas);
+                
+                console.log('✅ Game started successfully');
             }
-            else if (this.selectedView === '3d') 
+            catch (error) 
             {
-                this.start3DPong();
+                console.error('❌ Failed to start game:', error);
+                this.showMessage('Failed to start game. Please try again.', 'error');
+                this.resetSelection();
             }
         }
     }
 
-    private start2DPong(): void 
+    private resizeCanvas(canvas: HTMLCanvasElement): void 
     {
-        const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
-        
-        if (!canvas) 
+        const container = canvas.parentElement;
+        if (!container) 
         {
             return;
         }
         
-        const config = this.selectedMode === 'ai' 
-            ? { mode: 'ai' as const, difficulty: this.selectedDifficulty }
-            : { mode: 'multiplayer' as const };
-            
-        gameManager.initGame(canvas, config);
-        gameManager.startGame();
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
         
+        console.log(`📐 Canvas resized to ${canvas.width}x${canvas.height}`);
+    }
+
+    private setupResizeListener(canvas: HTMLCanvasElement): void 
+    {
         if (this.resizeListener) 
         {
             window.removeEventListener('resize', this.resizeListener);
@@ -561,47 +608,32 @@ export default class PongPage extends BaseComponent
             {
                 return;
             }
-            gameManager.pauseGame();
+            
+            // Only handle resize for 2D games
+            if (gameManager.getCurrentDimension() !== '2d') 
+            {
+                return;
+            }
+            
             const container = canvas.parentElement;
             if (!container) 
             {
                 return;
             }
+            
+            console.log('📏 Window resized, adjusting canvas...');
+            gameManager.pauseGame();
+            
             const newWidth = container.clientWidth;
             const newHeight = container.clientHeight;
-            gameManager.resizeGame(newWidth, newHeight);
-            gameManager.redraw();
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            
+            gameManager.resumeGame();
         };
         
         window.addEventListener('resize', this.resizeListener);
-    }
-
-    private start3DPong(): void 
-    {
-        const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
-        
-        if (!canvas) 
-        {
-            return;
-        }
-        
-        gameManager.cleanup();
-        this.pong3D = new Pong3Dscene(canvas);
-    }
-
-    private resize(canvas: HTMLCanvasElement): void 
-    {
-        const container = canvas.parentElement;
-        if (!container) 
-        {
-            return;
-        }
-        
-        const containerWidth = container.clientWidth;
-        const containerHeight = container.clientHeight;
-        
-        canvas.width = containerWidth;
-        canvas.height = containerHeight;
+        console.log('✅ Resize listener attached');
     }
 
     private handleGameEnd(event: Event): void 
@@ -609,22 +641,63 @@ export default class PongPage extends BaseComponent
         const customEvent = event as CustomEvent;
         const winner = customEvent.detail.winner;
         
-        console.log(`${winner} won the game!`);
-        
-        const menu = document.getElementById('pongMenuContainer');
-        const canvas = document.getElementById('pongCanvas');
-        
-        if (menu) 
+        let winnerName: string;
+        if (winner === 'player1') 
         {
-            menu.style.display = 'flex';
+            winnerName = 'Player 1';
+        }
+        else 
+        {
+            winnerName = this.selectedMode === 'ai' ? 'AI' : 'Player 2';
         }
         
-        if (canvas) 
+        console.log(`🏆 ${winnerName} wins!`);
+        this.showWinnerOverlay(winnerName);
+        
+        // Return to games page after showing winner
+        setTimeout(() => 
         {
-            canvas.style.display = 'none';
+            this.hideWinnerOverlay();
+            this.goBack();
+        }, 3000);
+    }
+
+    private handleGameGoal(_event: Event): void 
+    {
+        console.log('⚽ GOAL!');
+        // TODO: Add goal sound effect
+    }
+
+    private handlePaddleHit(_event: Event): void 
+    {
+        console.log('🏓 Paddle hit!');
+        // TODO: Add paddle hit sound effect
+    }
+
+    private showWinnerOverlay(winner: string): void 
+    {
+        const overlay = document.getElementById('winnerOverlay');
+        if (!overlay) 
+        {
+            return;
         }
         
-        this.resetSelection();
+        overlay.innerHTML = `
+            <div class="text-center animate-pulse">
+                <h2 class="text-6xl font-bold text-white mb-4">🏆</h2>
+                <h3 class="text-4xl font-bold text-cyan-400">${this.escapeHtml(winner)} Wins!</h3>
+            </div>
+        `;
+        overlay.style.display = 'flex';
+    }
+
+    private hideWinnerOverlay(): void 
+    {
+        const overlay = document.getElementById('winnerOverlay');
+        if (overlay) 
+        {
+            overlay.style.display = 'none';
+        }
     }
 
     private resetSelection(): void 
@@ -636,36 +709,57 @@ export default class PongPage extends BaseComponent
         if (menuContainer) 
         {
             menuContainer.innerHTML = this.renderModeSelection();
+            menuContainer.style.display = 'block';
             this.attachModeSelectionListeners();
+        }
+        
+        const canvas = document.getElementById('pongCanvas');
+        if (canvas) 
+        {
+            canvas.style.display = 'none';
         }
     }
 
     private goBack(): void 
     {
+        console.log('🔙 Navigating back to games');
         this.dispose();
         navigateTo('/games');
     }
 
     public dispose(): void 
     {
+        console.log('🧹 Disposing PongPage...');
+        
+        // Cleanup game manager
         gameManager.cleanup();
         
-        if (this.pong3D) 
-        {
-            this.pong3D.dispose();
-            this.pong3D = null;
-        }
-        
+        // Remove event listeners
         if (this.gameEndHandler) 
         {
-            window.removeEventListener('gameManager:showMenu', this.gameEndHandler);
+            gameManager.off('game:ended', this.gameEndHandler);
             this.gameEndHandler = null;
         }
         
+        if (this.gameGoalHandler) 
+        {
+            gameManager.off('game:goal', this.gameGoalHandler);
+            this.gameGoalHandler = null;
+        }
+        
+        if (this.gamePaddleHitHandler) 
+        {
+            gameManager.off('game:paddle-hit', this.gamePaddleHitHandler);
+            this.gamePaddleHitHandler = null;
+        }
+        
+        // Remove resize listener
         if (this.resizeListener) 
         {
             window.removeEventListener('resize', this.resizeListener);
             this.resizeListener = null;
         }
+        
+        console.log('✅ PongPage disposed');
     }
 }
