@@ -1,6 +1,7 @@
 import { BaseComponent } from '../BaseComponent';
 import { PodConfig, AVAILABLE_PODS } from '../../game/utils/PodConfig';
 import { PodSelection, PodSelectionEvent } from '../../pages/PodSelectionPage';
+import { POD_THUMBNAILS } from '../../pages/PodSelectionPage';
 import UserService from '../../services/user/UserService';
 import FriendService from '../../services/user/FriendService';
 import OnlineFriendsService, { FriendWithStatus } from '../../services/websocket/OnlineFriendsService';
@@ -233,21 +234,23 @@ export class GameLobby extends BaseComponent
                 <div id="playerTypeModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm items-center justify-center z-50" style="display: none;">
                     <div class="bg-gradient-to-br from-gray-900 to-blue-900/50 rounded-2xl border-2 border-cyan-500/50 p-8 max-w-3xl w-full mx-4">
                         <h2 class="text-3xl font-bold text-cyan-300 mb-8 text-center">ADD PLAYER</h2>
-                        
-                        <div class="grid grid-cols-2 gap-6 mb-6">
+
+                        <div class="grid grid-cols-${this.config.gameType === 'podracer' ? '1' : '2'} gap-6 mb-6">
                             <button id="selectInviteFriend" class="p-8 rounded-xl border-2 border-cyan-500/40 bg-gradient-to-br from-cyan-900/40 to-gray-900/60 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/50 transition-all">
                                 <div class="text-6xl mb-4">👥</div>
                                 <h3 class="text-2xl font-bold text-cyan-400 mb-2">INVITE FRIEND</h3>
                                 <p class="text-gray-400">Play with online friends</p>
                             </button>
-                            
+
+                            ${this.config.gameType !== 'podracer' ? `
                             <button id="selectAddAI" class="p-8 rounded-xl border-2 border-purple-500/40 bg-gradient-to-br from-purple-900/40 to-gray-900/60 hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/50 transition-all">
                                 <div class="text-6xl mb-4">🤖</div>
                                 <h3 class="text-2xl font-bold text-purple-400 mb-2">ADD AI</h3>
                                 <p class="text-gray-400">Play against bot</p>
                             </button>
+                            ` : ''}
                         </div>
-                        
+
                         <button id="closePlayerTypeModal" class="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold">
                             CANCEL
                         </button>
@@ -348,7 +351,9 @@ export class GameLobby extends BaseComponent
                 <div class="player-card rounded-xl p-6 border-2 border-gray-700/50 bg-gradient-to-br from-gray-800/60 to-gray-900/80 backdrop-blur-sm">
                     <div class="flex flex-col items-center justify-center h-full min-h-[140px]">
                         <div class="text-5xl mb-3 opacity-20">+</div>
-                        <h3 class="text-base font-bold text-gray-600 mb-3">ADD PLAYER / AI</h3>
+                        <h3 class="text-base font-bold text-gray-600 mb-3">
+                            ${this.config.gameType === 'podracer' ? 'ADD PLAYER' : 'ADD PLAYER / AI'}
+                        </h3>
                         <button class="add-player-btn px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-400 text-sm font-bold transition-all" data-slot="${slot.id}">
                             PRESS ENTER
                         </button>
@@ -404,8 +409,14 @@ export class GameLobby extends BaseComponent
     {
         if (this.config.gameType === 'podracer' && slot.customization) 
         {
+            const podId = slot.customization.id;
+            let podImage = POD_THUMBNAILS[podId] || '/assets/images/eny1.jpeg';
+            if (!podImage.startsWith('/')) 
+            {
+                podImage = `/${podImage}`;
+            }
             return `
-                <img src="/assets/images/eny1.png" alt="Pod" class="w-16 h-16 mb-1 opacity-70">
+                <img src="${podImage}" alt="${slot.customization.name}" class="w-16 h-16 mb-1 opacity-70">
                 <p class="text-cyan-300 font-bold text-xs text-center truncate w-full">${slot.customization.name}</p>
                 <p class="text-gray-500 text-xs text-center truncate w-full">${slot.customization.pilot}</p>
             `;

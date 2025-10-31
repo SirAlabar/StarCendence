@@ -16,7 +16,7 @@ const POD_VIDEOS: { [podId: string]: string } = {
   'ph-qw-4l-ec-ro-nx': 'assets/images/pods/ph-qw-4l-ec-ro-nx.png'
 };
 
-const POD_THUMBNAILS: { [podId: string]: string } = {
+export const POD_THUMBNAILS: { [podId: string]: string } = {
   'anakin_classic': 'assets/images/pods/thumbnails/anakin_pod1.jpg',
   'anakin_galaxies': 'assets/images/pods/thumbnails/anakin_pod2.jpg',
   'ben_quadinaros': 'assets/images/pods/thumbnails/ben_pod.jpg',
