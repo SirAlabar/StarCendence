@@ -40,7 +40,19 @@ export class paddle
 
     draw(ctx: CanvasRenderingContext2D)
     {
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.width, this.height)
+        
+        const baseColor = this.color;
+
+        
+        const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y + this.height);
+        gradient.addColorStop(0, `${baseColor}`);
+        gradient.addColorStop(0.5, `${baseColor}aa`);  // semi-transparent mid tone
+        gradient.addColorStop(1, `${baseColor}55`);   // fading glow bottom
+
+        ctx.fillStyle = gradient;
+        ctx.shadowColor = baseColor;
+        ctx.shadowBlur = 20;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.shadowBlur = 0; 
     }
 }

@@ -189,6 +189,8 @@ export class LocalPongEngine
     {
         this.ball.x += this.ball.dx;
         this.ball.y += this.ball.dy;
+        const pulse = Math.sin(Date.now() / 200) * 2;
+        this.ball.radius = 15 + pulse;
         
         // Top/bottom wall collision
         if (this.ball.y + this.ball.radius > this.canvas.height || 
