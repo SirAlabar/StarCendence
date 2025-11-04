@@ -173,9 +173,29 @@ export class enemy
 
 
     draw(ctx: CanvasRenderingContext2D): void 
-    {
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-    }
+        {
+            
+            let color = this.color.startsWith('#') ? this.color : '#ff0000';
+
+            // Optional pulse animation
+            const t = Date.now() / 300;
+            const pulse = (Math.sin(t) + 1) / 2; // 0–1
+            const glow = 10 + pulse * 15;
+
+            // Create gradient
+            const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y + this.height);
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(0.5, `${color}aa`);
+            gradient.addColorStop(1, `${color}33`);
+
+            // Draw glowing paddle
+            ctx.shadowColor = color;
+            ctx.shadowBlur = glow;
+            ctx.fillStyle = gradient;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+
+            // Reset shadow so other drawings aren't affected
+            ctx.shadowBlur = 0;
+        }
 
 }

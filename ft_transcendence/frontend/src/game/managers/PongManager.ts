@@ -1,5 +1,3 @@
-// managers/ImprovedGameManager.ts
-
 import { GameConfig, GameState, GameEvent, IGameEngine, Paddlecolor } from '../utils/GameTypes';
 import { LocalPongEngine } from '../engines/pong2D/Pong2dEngine';
 import { Pong3D } from '../engines/pong3D/Pong3dEngine';
@@ -27,8 +25,8 @@ export class ImprovedGameManager
     // Player preferences (persisted)
     private playerPreferences = 
     {
-        paddle1Color: 'default' as Paddlecolor,
-        paddle2Color: 'default' as Paddlecolor,
+        paddle1Color: 'fire' as Paddlecolor,
+        paddle2Color: 'fire' as Paddlecolor,
         lastDifficulty: 'easy' as 'easy' | 'hard',
         lastDimension: '2d' as GameDimension,
         soundEnabled: true,
@@ -76,7 +74,7 @@ export class ImprovedGameManager
         this.currentDimension = dimension;
         
         // Apply player preferences to config
-        config.paddlecolor1 = config.paddlecolor1 || this.playerPreferences.paddle1Color;
+        config.paddlecolor1 = config.paddlecolor1;
         config.paddlecolor2 = config.paddlecolor2 || this.playerPreferences.paddle2Color;
         
         try 
@@ -127,7 +125,7 @@ export class ImprovedGameManager
             this.savePreferences();
             
             this.emitEvent('game:initialized', { config, dimension });
-            console.log(`✅ ${dimension.toUpperCase()} Game initialized:`, config);
+            
             
         } 
         catch (error) 
@@ -149,7 +147,7 @@ export class ImprovedGameManager
         this.currentState = 'playing';
         this.currentEngine.start();
         this.emitEvent('game:started', {});
-        console.log('▶️ Game started');
+        
     }
     
     public pauseGame(): void 
@@ -160,7 +158,7 @@ export class ImprovedGameManager
         this.currentState = 'paused';
         this.currentEngine.pause();
         this.emitEvent('game:paused', {});
-        console.log('⏸️ Game paused');
+        
     }
     
     public resumeGame(): void 
@@ -171,7 +169,7 @@ export class ImprovedGameManager
         this.currentState = 'playing';
         this.currentEngine.resume();
         this.emitEvent('game:resumed', {});
-        console.log('▶️ Game resumed');
+        
     }
     
     public togglePause(): void 
@@ -197,7 +195,6 @@ export class ImprovedGameManager
         this.currentState = 'menu';
         
         this.emitEvent('game:cleanup', {});
-        console.log('🧹 Game cleanup complete');
     }
     
     public async restartGame(): Promise<void> 
@@ -248,14 +245,15 @@ export class ImprovedGameManager
         
         this.savePreferences();
         this.emitEvent('preferences:updated', { paddle, color });
-        console.log(`🎨 Paddle ${paddle} color set to: ${color}`);
+        
     }
     
     public getPaddleColor(paddle: 1 | 2): Paddlecolor 
     {
+        //current way to setup paddle color
         return paddle === 1 
-            ? this.playerPreferences.paddle1Color 
-            : this.playerPreferences.paddle2Color;
+            ? "neon"
+            : "ice";
     }
     
     public setDifficulty(difficulty: 'easy' | 'hard'): void 
@@ -396,7 +394,7 @@ export class ImprovedGameManager
     {
         this.cleanup();
         this.eventListeners.clear();
-        console.log('💀 GameManager destroyed');
+       
     }
 }
 

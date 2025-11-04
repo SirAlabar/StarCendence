@@ -15,6 +15,7 @@ export class LocalPongEngine
     private paddleleft: paddle;
     private paddleright: paddle;
     private player1: player;
+    
     private player2?: player;
     private enemy?: enemy;
 
@@ -38,6 +39,7 @@ export class LocalPongEngine
     {
         this.canvas = canvas;
         this.config = config;
+        
 
         const ctx = canvas.getContext("2d");
         if(!ctx)
@@ -57,6 +59,7 @@ export class LocalPongEngine
 
         this.player1 = new player();
         this.player1.score = 0;
+        
 
         //configs
         if(config.mode === 'local-multiplayer')
@@ -85,6 +88,7 @@ export class LocalPongEngine
         {
             this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
         }
+        
         this.emitEvent({type: 'game-started'});
         this.update();
 
@@ -160,7 +164,6 @@ export class LocalPongEngine
         this.stop;
         this.removeInputHandlers();
         this.eventCallBack = [];
-        console.log('Local Pong Engine Destroyed');
     }
 
     private update = (): void =>
