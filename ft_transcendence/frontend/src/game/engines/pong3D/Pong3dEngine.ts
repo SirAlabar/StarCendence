@@ -190,7 +190,7 @@ export class Pong3D implements IGameEngine
     {
         // Side view camera
         this.camera = new FreeCamera("camera", new Vector3(0, 0, 0), this.scene);
-        this.camera.position = new Vector3(-100, 70, 0);
+        this.camera.position = new Vector3(-110, 90, 0);
         this.camera.rotation = new Vector3(Math.PI / 11, Math.PI / 2, 0);
         
         // Top-down camera

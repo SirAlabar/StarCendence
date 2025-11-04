@@ -1,75 +1,118 @@
-// Player entity implementation
-//pong2d
+// entities/Player.ts
+import UserService from "@/services/user/UserService";
 
-export class player
-{
-    score : number;
-    
-
-    constructor()
-    {
-        this.score = 0;
-    }
-}
-
-
-/*
 
 export interface UserProfile 
 {
-    id: number;
+    id: string;
     username: string;
+    email?: string;
     avatarUrl?: string;
+    displayName?: string;
+    level?: number;
     wins?: number;
+    losses?: number;
+   
 }
 
-export class Player 
+export class player 
 {
-    private score: number;
-    private userId?: string;
-    private username?: string;
-    private avatarUrl?: string;
-    private totalWins?: number;
-
+    score: number;
+    
+    // User profile data
+    userId?: string;
+    username?: string;
+    avatarUrl?: string;
+   
+    isAuthenticated: boolean;
+    
+    // Game stats (if available from profile)
+    totalWins?: number;
+    totalLosses?: number;
+    level?: number;
     
     constructor() 
     {
         this.score = 0;
-        this.loadProfile();
+        this.isAuthenticated = false;
     }
-    
     
     async loadProfile(): Promise<boolean> 
     {
-        const currentUser = await UserService.getProfile();
-        if(!currentUser)
+        try 
         {
-            console.log("failed to load profile");
+            console.log('[Player] 🔄 Loading user profile...');
+            
+            
+            const profile = await UserService.getProfile();
+            
+            // Store profile data
+            this.userId = profile.id;
+            this.username = profile.username;
+            this.avatarUrl = profile.avatarUrl || '/assets/images/default-avatar.jpeg';
+            
+            this.isAuthenticated = true;
+            
+           
+            
+            console.log('[Player] ✅ Profile loaded:', 
+            {
+                userId: this.userId,
+                username: this.username,
+                wins: this.totalWins,
+                losses: this.totalLosses
+            });
+            
+            return true;
+            
+        } catch (error) 
+        {
+            console.warn('[Player] ⚠️ Failed to load profile (user might not be logged in):', error);
+            this.isAuthenticated = false;
             return false;
         }
-        this.userId = currentUser.id;
-        this.username = currentUser.username;
-        this.avatarUrl = currentUser.avatarUrl;
-        this.totalWins = currentUser.totalWinPercent;
-        return true;
     }
     
-    getUsername():string
+    
+    hasProfile(): boolean 
     {
-        return this.username || "Guest";
+        return this.isAuthenticated && !!this.userId;
     }
+    
+
+    getAvatarUrl(): string 
+    {
+        return this.avatarUrl || '/assets/images/default-avatar.jpeg';
+    }
+    
 
     getPlayerInfo() 
     {
-        return 
-        {
+        return {
             userId: this.userId,
             username: this.username,
-            avatarUrl: this.avatarUrl,
+            avatarUrl: this.getAvatarUrl(),
             score: this.score,
-            totalWins: this.totalWins
+            isAuthenticated: this.isAuthenticated
         };
     }
     
+    
+    resetScore(): void 
+    {
+        this.score = 0;
+    }
+    
+    
+    clearProfile(): void 
+    {
+        this.userId = undefined;
+        this.username = undefined;
+        this.avatarUrl = undefined;
+        this.isAuthenticated = false;
+        this.totalWins = undefined;
+        this.totalLosses = undefined;
+        this.level = undefined;
+        this.score = 0;
+    }
 }
-*/

@@ -147,6 +147,7 @@ export class ImprovedGameManager
         this.currentState = 'playing';
         this.currentEngine.start();
         this.emitEvent('game:started', {});
+        this.emitEvent('Player info: ola', {});
         
     }
     
