@@ -37,6 +37,12 @@ export default class ProfilePage extends BaseComponent
                 
                 <!-- Action Buttons -->
                 <div class="flex flex-row flex-wrap justify-center gap-3 sm:gap-4">
+                    <button id="dashboard-btn" class="neon-border px-6 sm:px-8 py-3 rounded-lg font-bold text-cyan-400 tracking-wide flex-1 sm:flex-initial min-w-[200px]">
+                        <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        DASHBOARD
+                    </button>
                     <button id="search-users-btn" class="neon-border px-6 sm:px-8 py-3 rounded-lg font-bold text-cyan-400 tracking-wide flex-1 sm:flex-initial min-w-[200px]">
                         <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -109,7 +115,8 @@ export default class ProfilePage extends BaseComponent
         {
             const friendsData = await FriendService.getFriends();
 
-            if (!friendsData.friends) {
+            if (!friendsData.friends) 
+            {
                 this.friends = [];
                 return;
             }
@@ -219,6 +226,15 @@ export default class ProfilePage extends BaseComponent
 
     private setupActionButtons(): void 
     {
+        const dashboardBtn = document.getElementById('dashboard-btn');
+        if (dashboardBtn) 
+        {
+            dashboardBtn.addEventListener('click', () => 
+            {
+                (window as any).navigateTo('/dashboard');
+            });
+        }
+
         const searchUsersBtn = document.getElementById('search-users-btn');
         if (searchUsersBtn) 
         {
