@@ -430,7 +430,7 @@ export default class PongPage extends BaseComponent
 
                 setTimeout(() => 
                 {
-                    const redirectPath = this.selectedMode === 'tournament' ? '/tournaments' : '/pong-lobby';
+                    const redirectPath = this.selectedMode === 'tournament' ? '/tournament' : '/pong-lobby';
                     localStorage.setItem('redirectAfterLogin', redirectPath);
                     navigateTo('/login');
                 }, 3000);
@@ -454,7 +454,7 @@ export default class PongPage extends BaseComponent
         }
         else if (this.selectedMode === 'tournament') 
         {
-            navigateTo('/tournaments');
+            navigateTo('/tournament');
         }
     }
 
