@@ -123,21 +123,6 @@ export async function searchUsers(req: FastifyRequest, reply: FastifyReply)
   return reply.send(users);
 }
 
-// GET /leaderboard - Get top players
-export async function getLeaderboard(req: FastifyRequest, reply: FastifyReply)
-{
-  const { limit } = req.query as { limit?: string };
-  const limitNum = limit ? parseInt(limit, 10) : 10;
-
-  if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) 
-  {
-    return reply.status(400).send({ error: 'Limit must be between 1 and 100' });
-  }
-
-  const leaderboard = await userService.getLeaderboard(limitNum);
-  return reply.send(leaderboard);
-}
-
 // GET /rank - Get current user's rank
 export async function getUserRank(req: FastifyRequest, reply: FastifyReply)
 {

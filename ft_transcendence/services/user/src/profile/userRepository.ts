@@ -83,28 +83,7 @@ export async function searchUsersByUsername(query: string)
   });
 }
 
-// Get leaderboard - top players by points
-export async function getLeaderboard(limit: number = 10)
-{
-  return prisma.userProfile.findMany(
-  {
-    select: 
-    {
-      id: true,
-      username: true,
-      avatarUrl: true,
-      status: true,
-      totalWins: true,
-      totalLosses: true,
-      points: true
-    },
-    orderBy: 
-    {
-      points: 'desc'
-    },
-    take: limit
-  });
-}
+
 
 // Get user rank by their ID
 export async function getUserRank(userId: string)
