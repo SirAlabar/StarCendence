@@ -170,17 +170,18 @@ export default class LeaderboardPage extends BaseComponent
     {
         if (rank === 1) 
         {
-            return 'bg-gradient-to-br from-yellow-500/20 to-yellow-600/30 border-yellow-500/50';
+            return 'bg-gradient-to-br from-yellow-300/30 via-yellow-500/20 to-amber-600/30 border-yellow-400/60 shadow-[0_0_15px_rgba(255,215,0,0.2)]';
         }
         if (rank === 2) 
         {
-            return 'bg-gradient-to-br from-gray-400/20 to-gray-500/30 border-gray-400/50';
+            return 'bg-gradient-to-br from-gray-200/20 via-gray-400/30 to-gray-600/30 border-gray-300/60 shadow-[0_0_15px_rgba(200,200,200,0.2)]';
         }
         if (rank === 3) 
         {
-            return 'bg-gradient-to-br from-orange-500/20 to-orange-600/30 border-orange-500/50';
+            return 'bg-gradient-to-br from-orange-400/20 via-amber-600/20 to-amber-800/30 border-orange-400/60 shadow-[0_0_15px_rgba(255,140,0,0.2)]';
         }
-        return 'bg-gray-800/40 border-gray-700/50';
+
+        return 'bg-gradient-to-br from-gray-800/50 via-gray-900/50 to-black/50 border-gray-700/50';
     }
 
     private getStatusColor(status: string): string 
