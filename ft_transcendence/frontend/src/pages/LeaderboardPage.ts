@@ -1,5 +1,6 @@
 import { BaseComponent } from '../components/BaseComponent';
 import { getUserApiUrl, getBaseUrl } from '../types/api.types';
+import { showLoading, hideLoading } from '../router/LayoutManager';
 
 interface UserStats 
 {
@@ -17,7 +18,6 @@ export default class LeaderboardPage extends BaseComponent
 {
     private leaderboard: UserStats[] = [];
     private userRank: UserStats | null = null;
-    private loading: boolean = true;
     private error: string | null = null;
 
     async mount(selector: string): Promise<void> 
@@ -28,10 +28,14 @@ export default class LeaderboardPage extends BaseComponent
 
     private async loadData(): Promise<void> 
     {
+        showLoading();
+        
         await Promise.all([
             this.loadLeaderboard(),
             this.loadUserRank()
         ]);
+        
+        hideLoading();
     }
 
     private getPlaceholderLeaderboard(): UserStats[] 
@@ -65,10 +69,11 @@ export default class LeaderboardPage extends BaseComponent
     {
         try 
         {
-            this.loading = true;
-            const response = await fetch(getUserApiUrl('/leaderboard?limit=20'), {
+            const response = await fetch(getUserApiUrl('/leaderboard?limit=20'), 
+            {
                 method: 'GET',
-                headers: {
+                headers: 
+                {
                     'Content-Type': 'application/json'
                 }
             });
@@ -80,16 +85,13 @@ export default class LeaderboardPage extends BaseComponent
 
             this.leaderboard = await response.json();
             this.error = null;
+            this.update();
         } 
         catch (error) 
         {
             console.error('Failed to load leaderboard:', error);
             this.error = 'Unable to load live data';
             this.leaderboard = this.getPlaceholderLeaderboard();
-        }
-        finally
-        {
-            this.loading = false;
             this.update();
         }
     }
@@ -104,9 +106,11 @@ export default class LeaderboardPage extends BaseComponent
                 return;
             }
 
-            const response = await fetch(getUserApiUrl('/rank'), {
+            const response = await fetch(getUserApiUrl('/rank'), 
+            {
                 method: 'GET',
-                headers: {
+                headers: 
+                {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
@@ -205,18 +209,6 @@ export default class LeaderboardPage extends BaseComponent
 
     render(): string 
     {
-        if (this.loading) 
-        {
-            return `
-                <div class="min-h-screen flex items-center justify-center">
-                    <div class="text-center">
-                        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cyan-500 mx-auto mb-4"></div>
-                        <p class="text-gray-400 text-lg">Loading leaderboard...</p>
-                    </div>
-                </div>
-            `;
-        }
-
         const top3 = this.leaderboard.slice(0, 3);
         const rest = this.leaderboard.slice(3);
 
@@ -334,6 +326,7 @@ export default class LeaderboardPage extends BaseComponent
         {
             podiumOffset = '-translate-y-6';
         }
+        
         return `
             <div class="flex flex-col justify-end transform transition-all duration-300 hover:scale-105 ${podiumOffset}">
                 <div class="relative ${this.getRankClass(player.rank)} rounded-xl border-2 p-6 backdrop-blur-sm min-h-[360px] flex flex-col justify-between">
