@@ -103,3 +103,60 @@ export async function searchUsers(query: string)
   return users;
 }
 
+// Get leaderboard
+export async function getLeaderboard(limit: number = 10)
+{
+  if (limit < 1 || limit > 100) 
+  {
+    throw new HttpError('Limit must be between 1 and 100', 400);
+  }
+
+  const users = await userRepository.getLeaderboard(limit);
+  
+  return users.map((user, index) => (
+  {
+    id: user.id,
+    username: user.username,
+    avatarUrl: user.avatarUrl,
+    status: user.status,
+    wins: user.totalWins || 0,
+    losses: user.totalLosses || 0,
+    points: user.points || 0,
+    rank: index + 1
+  }));
+}
+
+// Get user rank
+export async function getUserRank(userId: string)
+{
+  const userWithRank = await userRepository.getUserRank(userId);
+  
+  if (!userWithRank) 
+  {
+    throw new HttpError('User not found', 404);
+  }
+
+  return {
+    id: userWithRank.id,
+    username: userWithRank.username,
+    avatarUrl: userWithRank.avatarUrl,
+    status: userWithRank.status,
+    wins: userWithRank.totalWins || 0,
+    losses: userWithRank.totalLosses || 0,
+    points: userWithRank.points || 0,
+    rank: userWithRank.rank
+  };
+}
+
+// Update user stats (internal - called after game)
+export async function updateUserStats(userId: string, won: boolean, pointsEarned: number)
+{
+  const user = await userRepository.updateUserStats(userId, won, pointsEarned);
+  
+  if (!user) 
+  {
+    throw new HttpError('User not found', 404);
+  }
+
+  return user;
+}

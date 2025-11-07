@@ -1,4 +1,5 @@
 import { BaseComponent } from '../components/BaseComponent';
+import { getUserApiUrl, getBaseUrl } from '../types/api.types';
 
 interface UserStats 
 {
@@ -48,8 +49,7 @@ export default class LeaderboardPage extends BaseComponent
             { username: 'Player10', wins: 72, losses: 87, points: 1200 }
         ];
 
-        return placeholderData.map((player, index) => (
-        {
+        return placeholderData.map((player, index) => ({
             id: `placeholder-${index}`,
             username: player.username,
             avatarUrl: '/assets/images/default-avatar.jpeg',
@@ -66,7 +66,12 @@ export default class LeaderboardPage extends BaseComponent
         try 
         {
             this.loading = true;
-            const response = await fetch('/api/leaderboard?limit=20');
+            const response = await fetch(getUserApiUrl('/leaderboard?limit=20'), {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
             
             if (!response.ok) 
             {
@@ -75,14 +80,15 @@ export default class LeaderboardPage extends BaseComponent
 
             this.leaderboard = await response.json();
             this.error = null;
-            this.loading = false;
-            this.update();
         } 
         catch (error) 
         {
             console.error('Failed to load leaderboard:', error);
             this.error = 'Unable to load live data';
             this.leaderboard = this.getPlaceholderLeaderboard();
+        }
+        finally
+        {
             this.loading = false;
             this.update();
         }
@@ -98,11 +104,11 @@ export default class LeaderboardPage extends BaseComponent
                 return;
             }
 
-            const response = await fetch('/api/rank', 
-            {
-                headers: 
-                {
-                    'Authorization': `Bearer ${token}`
+            const response = await fetch(getUserApiUrl('/rank'), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
@@ -177,6 +183,26 @@ export default class LeaderboardPage extends BaseComponent
         return 'bg-gray-500';
     }
 
+    private getAvatarUrl(avatarUrl: string | null): string 
+    {
+        if (!avatarUrl) 
+        {
+            return '/avatars/default.jpeg';
+        }
+        
+        if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) 
+        {
+            return avatarUrl;
+        }
+        
+        if (avatarUrl.startsWith('/assets/')) 
+        {
+            return avatarUrl;
+        }
+        
+        return `${getBaseUrl()}${avatarUrl}`;
+    }
+
     render(): string 
     {
         if (this.loading) 
@@ -209,7 +235,7 @@ export default class LeaderboardPage extends BaseComponent
                         <div class="flex items-center gap-3">
                             <span class="text-2xl">⚠️</span>
                             <div>
-                                <p class="text-yellow-400 font-semibold">${this.error}</p>
+                                <p class="text-yellow-400 font-semibold">${this.escapeHtml(this.error)}</p>
                                 <p class="text-gray-400 text-sm">Showing placeholder data. Please refresh to try again.</p>
                             </div>
                         </div>
@@ -223,7 +249,7 @@ export default class LeaderboardPage extends BaseComponent
                     <h2 class="text-2xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">
                         TOP CHAMPIONS
                     </h2>
-                    <div class="grid md:grid-cols-3 gap-6">
+                    <div class="flex justify-center items-end gap-8 md:gap-12 flex-wrap md:flex-nowrap">
                         ${top3.map((player, index) => this.renderTopPlayer(player, index)).join('')}
                     </div>
                 </div>
@@ -279,7 +305,7 @@ export default class LeaderboardPage extends BaseComponent
                             <p class="text-gray-400 text-sm">Points</p>
                             <p class="text-2xl font-bold text-yellow-400">${this.userRank.points}</p>
                         </div>
-                    </div>
+                    </div>-
                 </div>
             </div>
         `;
@@ -287,30 +313,70 @@ export default class LeaderboardPage extends BaseComponent
 
     private renderTopPlayer(player: UserStats, index: number): string 
     {
+        const avatarUrl = this.getAvatarUrl(player.avatarUrl);
+
+        let avatarSizeClass = 'w-24 h-24';
+        if (player.rank === 1) 
+        {
+            avatarSizeClass = 'w-36 h-36';
+        } 
+        else if (player.rank === 2) 
+        {
+            avatarSizeClass = 'w-28 h-28';
+        }
+
+        let podiumOffset = 'translate-y-0';
+        if (player.rank === 1) 
+        {
+            podiumOffset = '-translate-y-12';
+        } 
+        else if (player.rank === 2) 
+        {
+            podiumOffset = '-translate-y-6';
+        }
         return `
-            <div class="transform transition-all duration-300 hover:scale-105 ${index === 0 ? 'md:-translate-y-4' : ''}">
-                <div class="relative ${this.getRankClass(player.rank)} rounded-xl border-2 p-6 backdrop-blur-sm">
+            <div class="flex flex-col justify-end transform transition-all duration-300 hover:scale-105 ${podiumOffset}">
+                <div class="relative ${this.getRankClass(player.rank)} rounded-xl border-2 p-6 backdrop-blur-sm min-h-[360px] flex flex-col justify-between">
                     <div class="absolute -top-4 -right-4 text-5xl drop-shadow-lg">
                         ${this.getRankIcon(player.rank)}
                     </div>
-                    <div class="text-center">
+                    <div class="text-center flex flex-col items-center justify-center flex-1">
                         <div class="relative inline-block mb-4">
                             <img 
-                                src="${player.avatarUrl || '/avatars/default.jpeg'}" 
-                                alt="${player.username}"
-                                class="w-24 h-24 rounded-full border-4 ${player.rank === 1 ? 'border-yellow-500' : player.rank === 2 ? 'border-gray-400' : 'border-orange-500'} object-cover"
+                                src="${avatarUrl}" 
+                                alt="${this.escapeHtml(player.username)}"
+                                class="${avatarSizeClass} rounded-full border-4 ${
+                                    player.rank === 1
+                                        ? 'border-yellow-500'
+                                        : player.rank === 2
+                                            ? 'border-gray-400'
+                                            : 'border-orange-500'
+                                } object-cover"
+                                onerror="this.src='/avatars/default.jpeg'"
                             />
                             <div class="absolute bottom-0 right-0 w-4 h-4 ${this.getStatusColor(player.status)} rounded-full border-2 border-gray-900"></div>
                         </div>
-                        <h3 class="font-bold text-xl mb-2 ${player.rank === 1 ? 'text-yellow-400' : player.rank === 2 ? 'text-gray-300' : 'text-orange-400'}">
-                            ${player.username}
+                        <h3 class="font-bold text-xl mb-2 ${
+                            player.rank === 1
+                                ? 'text-yellow-400'
+                                : player.rank === 2
+                                    ? 'text-gray-300'
+                                    : 'text-orange-400'
+                        }">
+                            ${this.escapeHtml(player.username)}
                         </h3>
                         <div class="flex justify-center gap-4 text-sm mb-3">
                             <span class="text-green-400">${player.wins}W</span>
                             <span class="text-gray-500">|</span>
                             <span class="text-red-400">${player.losses}L</span>
                         </div>
-                        <div class="text-2xl font-bold ${player.rank === 1 ? 'text-yellow-400' : player.rank === 2 ? 'text-gray-300' : 'text-orange-400'}">
+                        <div class="text-2xl font-bold ${
+                            player.rank === 1
+                                ? 'text-yellow-400'
+                                : player.rank === 2
+                                    ? 'text-gray-300'
+                                    : 'text-orange-400'
+                        }">
                             ${player.points.toLocaleString()} pts
                         </div>
                     </div>
@@ -340,6 +406,8 @@ export default class LeaderboardPage extends BaseComponent
 
     private renderPlayerRow(player: UserStats): string 
     {
+        const avatarUrl = this.getAvatarUrl(player.avatarUrl);
+
         return `
             <div class="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors">
                 <div class="flex items-center gap-4 flex-1 min-w-0">
@@ -348,14 +416,15 @@ export default class LeaderboardPage extends BaseComponent
                     </div>
                     <div class="relative flex-shrink-0">
                         <img 
-                            src="${player.avatarUrl || '/avatars/default.jpeg'}" 
-                            alt="${player.username}"
+                            src="${avatarUrl}" 
+                            alt="${this.escapeHtml(player.username)}"
                             class="w-12 h-12 rounded-full border-2 border-gray-600 object-cover"
+                            onerror="this.src='/avatars/default.jpeg'"
                         />
                         <div class="absolute bottom-0 right-0 w-3 h-3 ${this.getStatusColor(player.status)} rounded-full border-2 border-gray-900"></div>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-white font-semibold truncate">${player.username}</p>
+                        <p class="text-white font-semibold truncate">${this.escapeHtml(player.username)}</p>
                         <div class="flex gap-3 text-xs">
                             <span class="text-green-400">${player.wins}W</span>
                             <span class="text-red-400">${player.losses}L</span>
@@ -368,5 +437,12 @@ export default class LeaderboardPage extends BaseComponent
                 </div>
             </div>
         `;
+    }
+
+    private escapeHtml(text: string): string 
+    {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }

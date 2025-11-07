@@ -45,9 +45,10 @@ model UserProfile {
   totalRacerLoss Int @default(0)
   totalWinPercent Float? 
 
-  // rank Int @default(1000)
-  // points Int @default(0)
+  rank Int @default(1000)
+  points Int @default(0)
 
+  @@index([points(sort: Desc)])
   @@map("users")
 }
 

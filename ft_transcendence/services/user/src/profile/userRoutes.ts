@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { verifyUserToken } from '../middleware/authMiddleware';
 import * as userController from './userController';
-import { searchUserByUsernameSchema, updateUserProfileSchema, searchUsersSchema } from './userSchema';
+import { searchUserByUsernameSchema, updateUserProfileSchema, searchUsersSchema, getLeaderboardSchema } from './userSchema';
 import { UpdateUserBody } from './user.types';
 import * as userRepository from './userRepository';
 
@@ -55,4 +55,17 @@ export async function userRoutes(fastify: FastifyInstance)
     preHandler: [verifyUserToken]
   },
   userController.uploadProfileImage);
+  
+  fastify.get('/leaderboard',
+  {
+    schema: getLeaderboardSchema
+  },
+  userController.getLeaderboard);
+
+  fastify.get('/rank',
+  {
+    preHandler: [verifyUserToken]
+  },
+  userController.getUserRank);
+
 }
