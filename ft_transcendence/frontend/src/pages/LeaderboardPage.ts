@@ -250,7 +250,7 @@ export default class LeaderboardPage extends BaseComponent
                         TOP CHAMPIONS
                     </h2>
                     <div class="flex justify-center items-end gap-8 md:gap-12 flex-wrap md:flex-nowrap">
-                        ${top3.map((player, index) => this.renderTopPlayer(player, index)).join('')}
+                        ${top3.map((player) => this.renderTopPlayer(player)).join('')}
                     </div>
                 </div>
 
@@ -305,13 +305,13 @@ export default class LeaderboardPage extends BaseComponent
                             <p class="text-gray-400 text-sm">Points</p>
                             <p class="text-2xl font-bold text-yellow-400">${this.userRank.points}</p>
                         </div>
-                    </div>-
+                    </div>
                 </div>
             </div>
         `;
     }
 
-    private renderTopPlayer(player: UserStats, index: number): string 
+    private renderTopPlayer(player: UserStats): string 
     {
         const avatarUrl = this.getAvatarUrl(player.avatarUrl);
 
