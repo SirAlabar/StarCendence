@@ -30,12 +30,17 @@ export default class LeaderboardPage extends BaseComponent
     {
         showLoading();
         
-        await Promise.all([
-            this.loadLeaderboard(),
-            this.loadUserRank()
-        ]);
-        
-        hideLoading();
+        try 
+        {
+            await Promise.all([
+                this.loadLeaderboard(),
+                this.loadUserRank()
+            ]);
+        }
+        finally 
+        {
+            hideLoading();
+        }
     }
 
     private getPlaceholderLeaderboard(): UserStats[] 
@@ -103,6 +108,7 @@ export default class LeaderboardPage extends BaseComponent
             const token = localStorage.getItem('access_token');
             if (!token) 
             {
+                console.log('No token - user not logged in');
                 return;
             }
 
@@ -115,6 +121,13 @@ export default class LeaderboardPage extends BaseComponent
                     'Content-Type': 'application/json'
                 }
             });
+
+            if (response.status === 401) 
+            {
+                console.log('Token expired or invalid - clearing token');
+                localStorage.removeItem('access_token');
+                return;
+            }
 
             if (response.ok) 
             {
@@ -269,6 +282,31 @@ export default class LeaderboardPage extends BaseComponent
 
     private renderUserRank(): string 
     {
+        const token = localStorage.getItem('access_token');
+        
+        if (!token) 
+        {
+            return `
+                <div class="mb-8 bg-gradient-to-r from-purple-900/40 to-blue-900/40 rounded-xl border-2 border-purple-500/50 p-6 backdrop-blur-sm">
+                    <div class="flex items-center justify-between flex-wrap gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="text-4xl">🏆</div>
+                            <div>
+                                <p class="text-purple-300 font-bold text-lg">Want to see your rank?</p>
+                                <p class="text-gray-400 text-sm">Login to track your progress and compete!</p>
+                            </div>
+                        </div>
+                        <button 
+                            onclick="navigateTo('/login')" 
+                            class="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
+                        >
+                            🔐 Login Now
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
         if (!this.userRank) 
         {
             return '';

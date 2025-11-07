@@ -1,6 +1,7 @@
 import { BaseComponent } from '../components/BaseComponent';
 import { getUserApiUrl} from '../types/api.types';
 import { UserProfile } from '../types/user.types';
+import { showLoading, hideLoading } from '../router/LayoutManager';
 
 interface MatchHistoryEntry 
 {
@@ -17,17 +18,11 @@ export default class DashboardPage extends BaseComponent
 {
     private userProfile: UserProfile | null = null;
     private matchHistory: MatchHistoryEntry[] = [];
-    private loading: boolean = true;
     private error: string | null = null;
     private currentUserId: string = '';
 
     render(): string 
     {
-        if (this.loading) 
-        {
-            return this.renderLoading();
-        }
-
         if (this.error) 
         {
             return this.renderError();
@@ -253,12 +248,8 @@ export default class DashboardPage extends BaseComponent
         const racerWins = this.userProfile.totalRacerWins || 0;
         const racerLosses = this.userProfile.totalRacerLoss || 0;
 
-        const pongTotal = pongWins + pongLosses;
-        const racerTotal = racerWins + racerLosses;
-        const maxTotal = Math.max(pongTotal, racerTotal, 1);
-
-        const pongHeight = pongTotal > 0 ? (pongTotal / maxTotal) * 100 : 0;
-        const racerHeight = racerTotal > 0 ? (racerTotal / maxTotal) * 100 : 0;
+        const pongRate = pongWins + pongLosses > 0 ? (pongWins / (pongWins + pongLosses)) * 100 : 0;
+        const racerRate = racerWins + racerLosses > 0 ? (racerWins / (racerWins + racerLosses)) * 100 : 0;
 
         return `
             <div class="space-y-6">
@@ -269,7 +260,7 @@ export default class DashboardPage extends BaseComponent
                         <span class="text-gray-400 text-sm">${pongWins}W / ${pongLosses}L</span>
                     </div>
                     <div class="h-8 bg-gray-700/50 rounded-lg overflow-hidden">
-                        <div class="chart-bar h-full rounded-lg" style="width: ${pongHeight}%"></div>
+                        <div class="chart-bar h-full rounded-lg" style="width: ${pongRate.toFixed(1)}%"></div>
                     </div>
                 </div>
 
@@ -280,7 +271,7 @@ export default class DashboardPage extends BaseComponent
                         <span class="text-gray-400 text-sm">${racerWins}W / ${racerLosses}L</span>
                     </div>
                     <div class="h-8 bg-gray-700/50 rounded-lg overflow-hidden">
-                        <div class="chart-bar h-full rounded-lg" style="width: ${racerHeight}%"></div>
+                        <div class="chart-bar h-full rounded-lg" style="width: ${racerRate.toFixed(1)}%"></div>
                     </div>
                 </div>
 
@@ -310,6 +301,10 @@ export default class DashboardPage extends BaseComponent
         const totalLosses = this.userProfile.totalLosses || 0;
         const totalDraws = this.userProfile.totalDraws || 0;
 
+        const winPercentage = totalGames > 0 ? (totalWins / totalGames * 100) : 0;
+        const lossPercentage = totalGames > 0 ? (totalLosses / totalGames * 100) : 0;
+        const drawPercentage = totalGames > 0 ? (totalDraws / totalGames * 100) : 0;
+
         return `
             <div class="space-y-4">
                 <!-- Win/Loss/Draw Distribution -->
@@ -319,7 +314,7 @@ export default class DashboardPage extends BaseComponent
                         <span class="text-gray-300 text-lg font-bold">${totalWins}</span>
                     </div>
                     <div class="h-2 bg-gray-700/50 rounded-full overflow-hidden">
-                        <div class="h-full bg-green-500" style="width: ${totalGames > 0 ? (totalWins / totalGames * 100) : 0}%"></div>
+                        <div class="h-full bg-green-500" style="width: ${winPercentage.toFixed(1)}%"></div>
                     </div>
                 </div>
 
@@ -329,7 +324,7 @@ export default class DashboardPage extends BaseComponent
                         <span class="text-gray-300 text-lg font-bold">${totalLosses}</span>
                     </div>
                     <div class="h-2 bg-gray-700/50 rounded-full overflow-hidden">
-                        <div class="h-full bg-red-500" style="width: ${totalGames > 0 ? (totalLosses / totalGames * 100) : 0}%"></div>
+                        <div class="h-full bg-red-500" style="width: ${lossPercentage.toFixed(1)}%"></div>
                     </div>
                 </div>
 
@@ -339,19 +334,19 @@ export default class DashboardPage extends BaseComponent
                         <span class="text-gray-300 text-lg font-bold">${totalDraws}</span>
                     </div>
                     <div class="h-2 bg-gray-700/50 rounded-full overflow-hidden">
-                        <div class="h-full bg-yellow-500" style="width: ${totalGames > 0 ? (totalDraws / totalGames * 100) : 0}%"></div>
+                        <div class="h-full bg-yellow-500" style="width: ${drawPercentage.toFixed(1)}%"></div>
                     </div>
                 </div>
 
                 <!-- Additional Stats -->
                 <div class="pt-4 border-t border-gray-700/50 space-y-2">
                     <div class="flex justify-between text-sm">
-                        <span class="text-gray-400">Best Streak:</span>
-                        <span class="text-cyan-400 font-bold">Coming Soon</span>
+                        <span class="text-gray-400">Total Points:</span>
+                        <span class="text-cyan-400 font-bold">${this.userProfile.points || 0}</span>
                     </div>
                     <div class="flex justify-between text-sm">
-                        <span class="text-gray-400">Avg Score:</span>
-                        <span class="text-cyan-400 font-bold">Coming Soon</span>
+                        <span class="text-gray-400">Win Percentage:</span>
+                        <span class="text-cyan-400 font-bold">${this.userProfile.totalWinPercent?.toFixed(1) || '0.0'}%</span>
                     </div>
                 </div>
             </div>
@@ -439,20 +434,6 @@ export default class DashboardPage extends BaseComponent
         `;
     }
 
-    private renderLoading(): string 
-    {
-        return `
-            <div class="container mx-auto px-6 py-8 max-w-7xl">
-                <div class="flex flex-col items-center justify-center min-h-[400px]">
-                    <div class="animate-spin rounded-full h-24 w-24 border-t-4 border-b-4 border-cyan-400"></div>
-                    <p class="text-cyan-400 text-xl font-bold mt-8 tracking-wider">
-                        LOADING DASHBOARD...
-                    </p>
-                </div>
-            </div>
-        `;
-    }
-
     private renderError(message?: string): string 
     {
         return `
@@ -479,18 +460,29 @@ export default class DashboardPage extends BaseComponent
 
     private async loadDashboardData(): Promise<void> 
     {
+        showLoading();
+        
         try 
         {
-            this.loading = true;
-
             // Fetch user profile
-            const profileResponse = await fetch(getUserApiUrl('/profile'), {
+            const profileResponse = await fetch(getUserApiUrl('/profile'), 
+            {
                 method: 'GET',
-                headers: {
+                headers: 
+                {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     'Content-Type': 'application/json'
                 }
             });
+
+            if (profileResponse.status === 401) 
+            {
+                console.log('Not authenticated - redirecting to login');
+                localStorage.removeItem('access_token');
+                hideLoading();
+                (window as any).navigateTo('/login');
+                return;
+            }
 
             if (!profileResponse.ok) 
             {
@@ -500,22 +492,32 @@ export default class DashboardPage extends BaseComponent
             this.userProfile = await profileResponse.json();
             this.currentUserId = this.userProfile?.id || '';
 
-            // Fetch match history
-            const matchHistoryResponse = await fetch(getUserApiUrl('/match-history'), {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+            // Fetch match history (optional - won't fail if endpoint doesn't exist)
+            try 
+            {
+                const matchHistoryResponse = await fetch(getUserApiUrl('/match-history'), 
+                {
+                    method: 'GET',
+                    headers: 
+                    {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
 
-            if (matchHistoryResponse.ok) 
+                if (matchHistoryResponse.ok) 
+                {
+                    this.matchHistory = await matchHistoryResponse.json();
+                } 
+                else 
+                {
+                    console.warn('Match history endpoint not available yet');
+                    this.matchHistory = [];
+                }
+            }
+            catch (matchError)
             {
-                this.matchHistory = await matchHistoryResponse.json();
-            } 
-            else 
-            {
-                console.warn('Failed to fetch match history');
+                console.warn('Match history not available:', matchError);
                 this.matchHistory = [];
             }
 
@@ -528,7 +530,7 @@ export default class DashboardPage extends BaseComponent
         } 
         finally 
         {
-            this.loading = false;
+            hideLoading();
             this.rerender();
         }
     }

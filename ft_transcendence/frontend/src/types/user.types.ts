@@ -30,6 +30,9 @@ export interface UserProfile
   totalRacerWins?: number;
   totalRacerLoss?: number;
   totalWinPercent?: number;
+
+  points?: number;
+  rank?: number; 
 }
 
 export interface UpdateUserBody 
