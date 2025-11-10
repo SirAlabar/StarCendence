@@ -58,7 +58,7 @@ export default class LoginPage extends BaseComponent
     private renderLogin(): string 
     {
         return `
-            <div class="max-w-md mx-auto mt-20">
+            <div class="max-w-md mx-auto">
                 <div class="bg-gray-800/80 backdrop-blur rounded-3xl p-8 border border-gray-600">
                     <div class="text-center mb-8">
                         <h1 class="text-3xl font-bold font-game text-cyan-400 mb-2">Welcome Back</h1>
@@ -140,7 +140,7 @@ export default class LoginPage extends BaseComponent
     private render2FAVerify(): string 
     {
         return `
-            <div class="max-w-md mx-auto mt-20">
+            <div class="max-w-md mx-auto">
                 <div class="bg-gray-800/80 backdrop-blur rounded-3xl p-8 border border-gray-600">
                     <div class="text-center mb-8">
                         <h1 class="text-3xl font-bold font-game text-cyan-400 mb-2">Two-Factor Authentication</h1>
@@ -187,7 +187,7 @@ export default class LoginPage extends BaseComponent
     private renderUsernameSetup(): string 
     {
         return `
-            <div class="max-w-md mx-auto mt-20">
+            <div class="max-w-md mx-auto">
                 <div class="bg-gray-800/80 backdrop-blur rounded-3xl p-8 border border-gray-600">
                     <div class="text-center mb-8">
                         <h1 class="text-3xl font-bold font-game text-cyan-400 mb-2">Complete Your Account</h1>
@@ -331,17 +331,13 @@ export default class LoginPage extends BaseComponent
         sessionStorage.removeItem('temp_2fa_token');
         this.tempToken = '';
         this.mode = 'login';
-        
-        window.history.pushState({}, '', '/login');
-        
-        if ((window as any).navigateTo) 
+
+        if (this.dispose) 
         {
-            (window as any).navigateTo('/login');
-        } 
-        else 
-        {
-            window.location.href = '/login';
+            this.dispose();
         }
+        
+        this.mount('#auth-content');
     }
 
     private showMessage(message: string, type: 'success' | 'error'): void 
@@ -400,7 +396,7 @@ export default class LoginPage extends BaseComponent
                     this.dispose();
                 }
                 
-                this.mount('#app');
+                this.mount('#auth-content');
                 return;
             }
 
