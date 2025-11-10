@@ -8,9 +8,10 @@ export default class LoginPage extends BaseComponent
     private emailInput: HTMLInputElement | null = null;
     private passwordInput: HTMLInputElement | null = null;
     private usernameInput: HTMLInputElement | null = null;
+    private twofaCodeInput: HTMLInputElement | null = null;
     private submitButton: HTMLButtonElement | null = null;
     private messageContainer: HTMLElement | null = null;
-    private mode: 'login' | 'set-username' = 'login';
+    private mode: 'login' | 'set-username' | '2fa-verify' = 'login';
     private tempToken: string = '';
 
     render(): string 
@@ -21,33 +22,43 @@ export default class LoginPage extends BaseComponent
         {
             return this.renderUsernameSetup();
         }
+        
+        if (this.mode === '2fa-verify') 
+        {
+            return this.render2FAVerify();
+        }
+        
         return this.renderLogin();
     }
 
-    private checkMode(): void 
+    private checkMode(): void
     {
-        
         const params = new URLSearchParams(window.location.search);
         const setupMode = params.get('mode');
-        
-        // Check for temp token in sessionStorage
-        const token = sessionStorage.getItem('oauth_temp_token');
+        const oauthToken = sessionStorage.getItem('oauth_temp_token');
+        const temp2faToken = sessionStorage.getItem('temp_2fa_token');
 
-        if (setupMode === 'setup' && token) 
+        if (setupMode === 'setup' && oauthToken) 
         {
             this.mode = 'set-username';
-            this.tempToken = token;
+            this.tempToken = oauthToken;
         }
-        else
+        else if (temp2faToken) 
+        {
+            this.mode = '2fa-verify';
+            this.tempToken = temp2faToken;
+        }
+        else 
         {
             this.mode = 'login';
+            this.tempToken = '';
         }
     }
 
     private renderLogin(): string 
     {
         return `
-            <div class="max-w-md mx-auto">
+            <div class="max-w-md mx-auto mt-20">
                 <div class="bg-gray-800/80 backdrop-blur rounded-3xl p-8 border border-gray-600">
                     <div class="text-center mb-8">
                         <h1 class="text-3xl font-bold font-game text-cyan-400 mb-2">Welcome Back</h1>
@@ -126,10 +137,57 @@ export default class LoginPage extends BaseComponent
         `;
     }
 
+    private render2FAVerify(): string 
+    {
+        return `
+            <div class="max-w-md mx-auto mt-20">
+                <div class="bg-gray-800/80 backdrop-blur rounded-3xl p-8 border border-gray-600">
+                    <div class="text-center mb-8">
+                        <h1 class="text-3xl font-bold font-game text-cyan-400 mb-2">Two-Factor Authentication</h1>
+                        <p class="text-gray-300">Enter the 6-digit code from your authenticator app</p>
+                    </div>
+                    
+                    <form class="space-y-6" id="2fa-form">
+                        <div id="message-container" class="mb-4"></div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2 text-center">Verification Code</label>
+                            <input 
+                                type="text" 
+                                id="2fa-code-input"
+                                name="code"
+                                maxlength="6"
+                                class="w-full px-4 py-4 bg-gray-700 border border-gray-600 rounded-lg text-white text-center text-2xl font-mono tracking-widest focus:border-cyan-400 focus:outline-none" 
+                                placeholder="000000"
+                                autocomplete="off"
+                                required
+                            >
+                            <p class="text-gray-400 text-sm mt-2 text-center">Enter the code from your authenticator app</p>
+                        </div>
+                        
+                        <button 
+                            type="submit" 
+                            id="submit-button"
+                            class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-3 rounded-lg font-bold hover:scale-105 transition-transform"
+                        >
+                            Verify & Login
+                        </button>
+                    </form>
+                    
+                    <div class="mt-8 text-center">
+                        <button id="back-to-login" class="text-gray-400 hover:text-white">
+                            ← Back to Login
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     private renderUsernameSetup(): string 
     {
         return `
-            <div class="max-w-md mx-auto">
+            <div class="max-w-md mx-auto mt-20">
                 <div class="bg-gray-800/80 backdrop-blur rounded-3xl p-8 border border-gray-600">
                     <div class="text-center mb-8">
                         <h1 class="text-3xl font-bold font-game text-cyan-400 mb-2">Complete Your Account</h1>
@@ -186,6 +244,10 @@ export default class LoginPage extends BaseComponent
             this.emailInput = document.getElementById('email-input') as HTMLInputElement;
             this.passwordInput = document.getElementById('password-input') as HTMLInputElement;
         } 
+        else if (this.mode === '2fa-verify') 
+        {
+            this.twofaCodeInput = document.getElementById('2fa-code-input') as HTMLInputElement;
+        }
         else 
         {
             this.usernameInput = document.getElementById('username-input') as HTMLInputElement;
@@ -211,6 +273,34 @@ export default class LoginPage extends BaseComponent
                 googleButton.addEventListener('click', () => this.handleGoogleLogin());
             }
         } 
+        else if (this.mode === '2fa-verify') 
+        {
+            const form = document.getElementById('2fa-form');
+            if (form) 
+            {
+                form.addEventListener('submit', (e) => this.handle2FASubmit(e));
+            }
+
+            const backButton = document.getElementById('back-to-login');
+            if (backButton) 
+            {
+                backButton.addEventListener('click', () => {
+                    this.backToLogin();
+                });
+            }
+
+            // Auto-submit when 6 digits entered
+            const codeInput = document.getElementById('2fa-code-input') as HTMLInputElement;
+            if (codeInput) 
+            {
+                codeInput.addEventListener('input', (e) => 
+                {
+                    const value = (e.target as HTMLInputElement).value;
+                    // Only allow numbers
+                    (e.target as HTMLInputElement).value = value.replace(/[^0-9]/g, '');
+                });
+            }
+        }
         else 
         {
             const form = document.getElementById('username-form');
@@ -220,16 +310,11 @@ export default class LoginPage extends BaseComponent
             }
 
             const backButton = document.getElementById('back-to-login');
-            
             if (backButton) 
             {
                 backButton.addEventListener('click', () => {
                     this.backToLogin();
                 });
-            }
-            else
-            {
-                console.error('Back button NOT found in DOM!');
             }
         }
     }
@@ -243,10 +328,12 @@ export default class LoginPage extends BaseComponent
     {
         // Clear temp token
         sessionStorage.removeItem('oauth_temp_token');
+        sessionStorage.removeItem('temp_2fa_token');
+        this.tempToken = '';
+        this.mode = 'login';
         
         window.history.pushState({}, '', '/login');
         
-        // Navigate using your router
         if ((window as any).navigateTo) 
         {
             (window as any).navigateTo('/login');
@@ -301,32 +388,50 @@ export default class LoginPage extends BaseComponent
 
         try 
         {
-            await LoginService.login({ email, password });
-            
-            if (LoginService.isAuthenticated()) 
+            const response = await LoginService.login({ email, password });
+           
+            if (response.type === 'TEMP' && response.tempToken) 
+            {
+                this.tempToken = response.tempToken;
+                this.mode = '2fa-verify';
+                sessionStorage.setItem('temp_2fa_token', response.tempToken);
+                if (this.dispose) 
+                {
+                    this.dispose();
+                }
+                
+                this.mount('#app');
+                return;
+            }
+
+            // Normal login without 2FA
+            if (response.accessToken) 
             {
                 this.showMessage('Login successful! Redirecting...', 'success');
                 
-            setTimeout(() => 
-            {
-                if (this.dispose) this.dispose();
-
-                const redirectPath = localStorage.getItem('redirectAfterLogin') || '/profile';
-                localStorage.removeItem('redirectAfterLogin');
-
-                if ((window as any).navigateTo)
+                setTimeout(() => 
                 {
-                    (window as any).navigateTo(redirectPath);
-                }
-                else
-                {
-                    window.location.href = redirectPath;
-                }
-            }, 1500);
+                    if (this.dispose) 
+                    {
+                        this.dispose();
+                    }
+
+                    const redirectPath = localStorage.getItem('redirectAfterLogin') || '/profile';
+                    localStorage.removeItem('redirectAfterLogin');
+
+                    if ((window as any).navigateTo)
+                    {
+                        (window as any).navigateTo(redirectPath);
+                    }
+                    else
+                    {
+                        window.location.href = redirectPath;
+                    }
+                }, 1500);
             } 
             else 
             {
-                console.error('LoginPage: Login failed');
+                console.error('LoginPage: No tokens received');
                 this.showMessage('Login failed. Please try again.', 'error');
             }
         } 
@@ -344,6 +449,83 @@ export default class LoginPage extends BaseComponent
             }
         }
     }
+
+    private async handle2FASubmit(event: Event): Promise<void> 
+    {
+        event.preventDefault();
+        
+        if (!this.twofaCodeInput)
+        {
+            console.error('LoginPage: 2FA code input not found');
+            return;
+        }
+
+        const code = this.twofaCodeInput.value.trim();
+
+        if (code.length !== 6) 
+        {
+            this.showMessage('Please enter a 6-digit code', 'error');
+            return;
+        }
+
+        if (!this.tempToken) 
+        {
+            this.showMessage('Session expired. Please login again.', 'error');
+            this.backToLogin();
+            return;
+        }
+
+        if (this.submitButton) 
+        {
+            this.submitButton.disabled = true;
+            this.submitButton.textContent = 'Verifying...';
+        }
+
+        try 
+        {
+            await LoginService.verify2FALogin(this.tempToken, code);
+
+            sessionStorage.removeItem('temp_2fa_token');
+            this.tempToken = '';
+
+            this.showMessage('2FA verification successful! Redirecting...', 'success');
+            
+            setTimeout(() => 
+            {
+                if (this.dispose) 
+                {
+                    this.dispose();
+                }
+
+                const redirectPath = localStorage.getItem('redirectAfterLogin') || '/profile';
+                localStorage.removeItem('redirectAfterLogin');
+
+                if ((window as any).navigateTo)
+                {
+                    (window as any).navigateTo(redirectPath);
+                }
+                else
+                {
+                    window.location.href = redirectPath;
+                }
+            }, 1500);
+        } 
+        catch (error: any) 
+        {
+            console.error('LoginPage: 2FA Error:', error);
+            this.showMessage(error.message || 'Invalid code. Please try again.', 'error');
+            this.twofaCodeInput.value = '';
+            this.twofaCodeInput.focus();
+        } 
+        finally 
+        {
+            if (this.submitButton) 
+            {
+                this.submitButton.disabled = false;
+                this.submitButton.textContent = 'Verify & Login';
+            }
+        }
+    }
     
     private async handleUsernameSubmit(event: Event): Promise<void> 
     {
@@ -357,7 +539,6 @@ export default class LoginPage extends BaseComponent
 
         const username = this.usernameInput.value.trim();
 
-        // Validate username using FormValidator
         const usernameError = FormValidator.validateUsername(username);
         if (usernameError) 
         {
@@ -379,7 +560,6 @@ export default class LoginPage extends BaseComponent
                 username: username
             });
 
-            // Clear the temp token after successful setup
             sessionStorage.removeItem('oauth_temp_token');
 
             this.showMessage('Account created successfully! Redirecting...', 'success');
@@ -416,9 +596,8 @@ export default class LoginPage extends BaseComponent
         this.emailInput = null;
         this.passwordInput = null;
         this.usernameInput = null;
+        this.twofaCodeInput = null;
         this.submitButton = null;
         this.messageContainer = null;
     }
 }
-
-
