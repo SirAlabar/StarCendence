@@ -1,17 +1,78 @@
 // Settings.ts - User settings panel with 2FA
 import { BaseComponent } from '../BaseComponent';
 import { TwoFactorService } from '../../services/auth/TwoFactorService';
+import { UserProfile } from '../../types/user.types';
+import UserService from '../../services/user/UserService';
+
+interface SettingsProps 
+{
+    userProfile: UserProfile;
+    onSettingsUpdated: (updatedProfile: UserProfile) => void;
+}
 
 export class Settings extends BaseComponent 
 {
+    private props: SettingsProps;
     private is2FAEnabled: boolean = false;
     private showQRCode: boolean = false;
     private qrCodeDataURL: string = '';
     private secret: string = '';
     private loading: boolean = false;
 
+    // Track settings state
+    private currentSettings = {
+        showOnlineStatus: true,
+        allowFriendRequests: true,
+        showGameActivity: true,
+        notifyFriendRequests: true,
+        notifyGameInvites: true,
+        notifyMessages: true
+    };
+
+    private hasUnsavedChanges: boolean = false;
+
+    constructor(props?: SettingsProps) 
+    {
+        super();
+        
+        // If no props provided, we'll need to load profile
+        if (props) 
+        {
+            this.props = props;
+            this.initializeSettings();
+        } 
+        else 
+        {
+            // Create empty props, will load in afterMount
+            this.props = {
+                userProfile: {} as UserProfile,
+                onSettingsUpdated: () => {}
+            };
+        }
+    }
+
+    private initializeSettings(): void 
+    {
+        const profile = this.props.userProfile;
+        
+        // Initialize 2FA status
+        this.is2FAEnabled = profile.twoFactorEnabled || false;
+        
+        // Initialize settings from profile with defaults
+        this.currentSettings = {
+            showOnlineStatus: profile.showOnlineStatus ?? true,
+            allowFriendRequests: profile.allowFriendRequests ?? true,
+            showGameActivity: profile.showGameActivity ?? true,
+            notifyFriendRequests: profile.notifyFriendRequests ?? true,
+            notifyGameInvites: profile.notifyGameInvites ?? true,
+            notifyMessages: profile.notifyMessages ?? true
+        };
+    }
+
     render(): string 
     {
+        const email = this.props.userProfile?.email || 'Loading...';
+        
         return `
             <div class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" id="settings-modal">
                 <div class="bg-gray-800/95 border-2 border-cyan-500/50 rounded-lg p-4 sm:p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -35,16 +96,16 @@ export class Settings extends BaseComponent
                             <h3 class="text-lg sm:text-xl font-bold text-cyan-300 mb-3 sm:mb-4">ACCOUNT</h3>
                             <div class="space-y-3 sm:space-y-4">
                                 <div>
-                                    <label class="block text-xs sm:text-sm font-medium text-gray-400 mb-2">Email</label>
+                                    <label class="block text-xs sm:text-sm font-medium text-gray-400 mb-2">EMAIL</label>
                                     <input 
                                         type="email" 
                                         class="w-full px-3 sm:px-4 py-2 bg-gray-900/50 border-2 border-gray-700 rounded-lg text-cyan-100 focus:border-cyan-500 focus:outline-none text-sm sm:text-base"
-                                        placeholder="your.email@example.com"
+                                        value="${this.escapeHtml(email)}"
                                         disabled
                                     >
                                 </div>
                                 <div>
-                                    <label class="block text-xs sm:text-sm font-medium text-gray-400 mb-2">Password</label>
+                                    <label class="block text-xs sm:text-sm font-medium text-gray-400 mb-2">PASSWORD</label>
                                     <button id="change-password-btn" class="neon-border px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-cyan-400 text-xs sm:text-sm w-full sm:w-auto">
                                         CHANGE PASSWORD
                                     </button>
@@ -67,7 +128,7 @@ export class Settings extends BaseComponent
                                         </p>
                                     </div>
                                     ${this.is2FAEnabled 
-                                        ? `<button id="disable-2fa-btn" class="neon-border px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-red-400 text-xs sm:text-sm whitespace-nowrap">
+                                        ? `<button id="disable-2fa-btn" class="neon-border-red px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-red-400 text-xs sm:text-sm whitespace-nowrap">
                                             DISABLE
                                         </button>`
                                         : `<button id="enable-2fa-btn" class="neon-border-green px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-green-400 text-xs sm:text-sm whitespace-nowrap">
@@ -89,15 +150,15 @@ export class Settings extends BaseComponent
                             <div class="space-y-2 sm:space-y-3">
                                 <label class="flex items-center justify-between cursor-pointer gap-3">
                                     <span class="text-gray-300 text-sm sm:text-base">Show online status</span>
-                                    <input type="checkbox" class="toggle" checked>
+                                    <input type="checkbox" id="toggle-show-online-status" class="toggle" ${this.currentSettings.showOnlineStatus ? 'checked' : ''}>
                                 </label>
                                 <label class="flex items-center justify-between cursor-pointer gap-3">
                                     <span class="text-gray-300 text-sm sm:text-base">Allow friend requests</span>
-                                    <input type="checkbox" class="toggle" checked>
+                                    <input type="checkbox" id="toggle-allow-friend-requests" class="toggle" ${this.currentSettings.allowFriendRequests ? 'checked' : ''}>
                                 </label>
                                 <label class="flex items-center justify-between cursor-pointer gap-3">
                                     <span class="text-gray-300 text-sm sm:text-base">Show game activity</span>
-                                    <input type="checkbox" class="toggle" checked>
+                                    <input type="checkbox" id="toggle-show-game-activity" class="toggle" ${this.currentSettings.showGameActivity ? 'checked' : ''}>
                                 </label>
                             </div>
                         </div>
@@ -108,23 +169,30 @@ export class Settings extends BaseComponent
                             <div class="space-y-2 sm:space-y-3">
                                 <label class="flex items-center justify-between cursor-pointer gap-3">
                                     <span class="text-gray-300 text-sm sm:text-base">Friend requests</span>
-                                    <input type="checkbox" class="toggle" checked>
+                                    <input type="checkbox" id="toggle-notify-friend-requests" class="toggle" ${this.currentSettings.notifyFriendRequests ? 'checked' : ''}>
                                 </label>
                                 <label class="flex items-center justify-between cursor-pointer gap-3">
                                     <span class="text-gray-300 text-sm sm:text-base">Game invites</span>
-                                    <input type="checkbox" class="toggle" checked>
+                                    <input type="checkbox" id="toggle-notify-game-invites" class="toggle" ${this.currentSettings.notifyGameInvites ? 'checked' : ''}>
                                 </label>
                                 <label class="flex items-center justify-between cursor-pointer gap-3">
                                     <span class="text-gray-300 text-sm sm:text-base">Messages</span>
-                                    <input type="checkbox" class="toggle" checked>
+                                    <input type="checkbox" id="toggle-notify-messages" class="toggle" ${this.currentSettings.notifyMessages ? 'checked' : ''}>
                                 </label>
                             </div>
+                        </div>
+                        
+                        <!-- Save Button (shown when changes detected) -->
+                        <div id="save-settings-container" style="display: ${this.hasUnsavedChanges ? 'block' : 'none'};">
+                            <button id="save-settings-btn" class="neon-border-green px-6 py-3 rounded-lg font-bold text-green-400 text-sm sm:text-base w-full">
+                                💾 SAVE CHANGES
+                            </button>
                         </div>
                         
                         <!-- Danger Zone -->
                         <div>
                             <h3 class="text-lg sm:text-xl font-bold text-red-400 mb-3 sm:mb-4">DANGER ZONE</h3>
-                            <button class="border-2 border-red-500 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-red-400 hover:bg-red-500/20 transition-all text-xs sm:text-sm w-full sm:w-auto">
+                            <button id="delete-account-btn" class="border-2 border-red-500 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-red-400 hover:bg-red-500/20 transition-all text-xs sm:text-sm w-full sm:w-auto">
                                 DELETE ACCOUNT
                             </button>
                         </div>
@@ -167,6 +235,23 @@ export class Settings extends BaseComponent
                     transform: translateY(-2px);
                 }
                 
+                .neon-border-red {
+                    border: 2px solid #ff4444;
+                    box-shadow:
+                        0 0 10px rgba(255, 68, 68, 0.6),
+                        0 0 20px rgba(255, 68, 68, 0.4),
+                        inset 0 0 10px rgba(255, 68, 68, 0.2);
+                    transition: all 0.3s ease;
+                }
+
+                .neon-border-red:hover {
+                    box-shadow:
+                        0 0 15px rgba(255, 68, 68, 0.9),
+                        0 0 30px rgba(255, 68, 68, 0.6),
+                        inset 0 0 15px rgba(255, 68, 68, 0.3);
+                    transform: translateY(-2px);
+                }
+                
                 .toggle {
                     width: 2.5rem;
                     height: 1.25rem;
@@ -193,29 +278,31 @@ export class Settings extends BaseComponent
                 .toggle::before {
                     content: '';
                     position: absolute;
-                    width: 1rem;
-                    height: 1rem;
+                    width: 0.875rem;
+                    height: 0.875rem;
                     border-radius: 50%;
-                    background: white;
-                    top: 0.125rem;
+                    top: 50%;
                     left: 0.125rem;
-                    transition: transform 0.3s;
+                    background: white;
+                    transform: translateY(-50%);
+                    transition: left 0.3s;
                 }
                 
                 @media (min-width: 640px) {
                     .toggle::before {
-                        width: 1.25rem;
-                        height: 1.25rem;
+                        width: 1.125rem;
+                        height: 1.125rem;
+                        left: 0.15rem;
                     }
                 }
                 
                 .toggle:checked::before {
-                    transform: translateX(1.25rem);
+                    left: calc(100% - 1rem);
                 }
                 
                 @media (min-width: 640px) {
                     .toggle:checked::before {
-                        transform: translateX(1.5rem);
+                        left: calc(100% - 1.25rem);
                     }
                 }
             </style>
@@ -227,9 +314,9 @@ export class Settings extends BaseComponent
         if (this.loading) 
         {
             return `
-                <div class="text-center py-6">
-                    <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-cyan-400 mx-auto mb-3"></div>
-                    <p class="text-cyan-400 text-sm">Generating QR Code...</p>
+                <div class="bg-gray-900/50 border-2 border-cyan-500/50 rounded-lg p-4 text-center">
+                    <div class="loader mx-auto mb-4"></div>
+                    <p class="text-cyan-400 text-sm">Setting up 2FA...</p>
                 </div>
             `;
         }
@@ -240,48 +327,40 @@ export class Settings extends BaseComponent
         }
 
         return `
-            <div class="bg-cyan-900/20 border border-cyan-500/30 rounded-lg p-3 sm:p-4 space-y-4">
-                <!-- Instructions -->
-                <div class="bg-gray-900/50 rounded-lg p-3">
-                    <h4 class="text-sm font-bold text-cyan-300 mb-2">Setup Instructions:</h4>
-                    <ol class="text-xs text-gray-300 space-y-1 list-decimal list-inside">
-                        <li>Install Google Authenticator or Authy</li>
-                        <li>Scan the QR code below</li>
-                        <li>Enter the 6-digit code from the app</li>
-                    </ol>
+            <div class="bg-gray-900/50 border-2 border-cyan-500/50 rounded-lg p-4">
+                <p class="text-cyan-300 text-sm mb-4">
+                    Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.):
+                </p>
+                
+                <div class="flex justify-center mb-4">
+                    <img src="${this.qrCodeDataURL}" alt="2FA QR Code" class="border-2 border-cyan-500 rounded-lg">
                 </div>
                 
-                <!-- QR Code -->
-                <div class="flex justify-center">
-                    <div class="bg-white p-3 rounded-lg">
-                        <img src="${this.qrCodeDataURL}" alt="QR Code" class="w-48 h-48">
+                <div class="mb-4">
+                    <p class="text-gray-400 text-xs mb-2">Or enter this secret manually:</p>
+                    <div class="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-cyan-300 font-mono text-xs break-all">
+                        ${this.secret}
                     </div>
                 </div>
                 
-                <!-- Backup Secret -->
-                <div class="bg-gray-900/50 rounded-lg p-3">
-                    <p class="text-xs text-gray-400 mb-1">Backup Secret:</p>
-                    <code class="text-cyan-300 font-mono text-xs break-all">${this.secret}</code>
-                </div>
-                
-                <!-- Verification Input -->
-                <div>
-                    <label class="block text-xs font-bold text-cyan-300 mb-2">Enter 6-Digit Code:</label>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">
+                        Enter the 6-digit code from your app:
+                    </label>
                     <input 
                         type="text" 
                         id="twofa-verify-input"
                         maxlength="6"
                         placeholder="000000"
-                        class="w-full px-3 py-2 bg-gray-900/50 border-2 border-gray-700 rounded-lg text-cyan-100 text-center text-lg font-mono focus:border-cyan-500 focus:outline-none tracking-widest"
+                        class="w-full px-4 py-2 bg-gray-800 border-2 border-gray-700 rounded-lg text-cyan-100 focus:border-cyan-500 focus:outline-none text-center text-lg tracking-widest font-mono"
                     >
                 </div>
                 
-                <!-- Action Buttons -->
-                <div class="flex gap-2">
-                    <button id="verify-2fa-btn" class="neon-border-green flex-1 px-4 py-2 rounded-lg font-bold text-green-400 text-sm">
+                <div class="flex gap-3">
+                    <button id="verify-2fa-btn" class="neon-border-green px-4 py-2 rounded-lg font-bold text-green-400 text-sm flex-1">
                         VERIFY & ENABLE
                     </button>
-                    <button id="cancel-2fa-btn" class="neon-border flex-1 px-4 py-2 rounded-lg font-bold text-cyan-400 text-sm">
+                    <button id="cancel-2fa-btn" class="neon-border px-4 py-2 rounded-lg font-bold text-cyan-400 text-sm flex-1">
                         CANCEL
                     </button>
                 </div>
@@ -289,25 +368,70 @@ export class Settings extends BaseComponent
         `;
     }
 
-    protected afterMount(): void 
+    protected async afterMount(): Promise<void> 
     {
+        // If no profile data, load it
+        if (!this.props.userProfile.id) 
+        {
+            await this.loadUserProfile();
+        }
+        
         this.setupEventListeners();
-        this.check2FAStatus();
     }
+
+    private async loadUserProfile(): Promise<void> 
+    {
+        try 
+        {
+            const profile = await UserService.getProfile();
+            this.props.userProfile = profile;
+            this.initializeSettings();
+            
+            // Re-render with loaded data
+            this.mount('#settings-container');
+        } 
+        catch (error) 
+        {
+            console.error('Failed to load user profile:', error);
+            this.showMessage('Failed to load profile data', 'error');
+        }
+    }
+
+    // private async load2FAStatus(): Promise<void> 
+    // {
+    //     try 
+    //     {
+    //         const status = await TwoFactorService.get2FAStatus();
+    //         this.is2FAEnabled = status.twoFactorEnabled;
+            
+    //         // Update the UI if status changed
+    //         const button2FA = this.is2FAEnabled 
+    //             ? document.getElementById('disable-2fa-btn')
+    //             : document.getElementById('enable-2fa-btn');
+            
+    //         if (!button2FA) 
+    //         {
+    //             // Re-render if button doesn't exist
+    //             this.mount('#settings-container');
+    //         }
+    //     } 
+    //     catch (error) 
+    //     {
+    //         console.error('Failed to load 2FA status:', error);
+    //     }
+    // }
 
     private setupEventListeners(): void 
     {
+        // Close button
         const closeBtn = document.getElementById('close-settings-btn');
-        const modal = document.getElementById('settings-modal');
-        
         if (closeBtn) 
         {
-            closeBtn.addEventListener('click', () => 
-            {
-                this.closeModal();
-            });
+            closeBtn.addEventListener('click', () => this.closeModal());
         }
-        
+
+        // Close on backdrop click
+        const modal = document.getElementById('settings-modal');
         if (modal) 
         {
             modal.addEventListener('click', (e) => 
@@ -319,65 +443,93 @@ export class Settings extends BaseComponent
             });
         }
 
-        // Change Password button
-        const changePasswordBtn = document.getElementById('change-password-btn');
-        if (changePasswordBtn) 
-        {
-            changePasswordBtn.addEventListener('click', () => 
-            {
-                this.showMessage('Change password feature coming soon!', 'info');
-            });
-        }
-
-        // Enable 2FA button
+        // 2FA buttons
         const enable2FABtn = document.getElementById('enable-2fa-btn');
         if (enable2FABtn) 
         {
-            enable2FABtn.addEventListener('click', async () => 
-            {
-                await this.handleEnable2FA();
-            });
+            enable2FABtn.addEventListener('click', async () => await this.handleEnable2FA());
         }
 
-        // Disable 2FA button
         const disable2FABtn = document.getElementById('disable-2fa-btn');
         if (disable2FABtn) 
         {
-            disable2FABtn.addEventListener('click', async () => 
-            {
-                await this.handleDisable2FA();
-            });
+            disable2FABtn.addEventListener('click', async () => await this.handleDisable2FA());
         }
 
-        // Verify 2FA button
-        const verify2FABtn = document.getElementById('verify-2fa-btn');
-        if (verify2FABtn) 
+        // Toggle change listeners
+        this.setupToggleListeners();
+
+        // Save button
+        const saveBtn = document.getElementById('save-settings-btn');
+        if (saveBtn) 
         {
-            verify2FABtn.addEventListener('click', async () => 
-            {
-                await this.handleVerify2FA();
-            });
+            saveBtn.addEventListener('click', async () => await this.handleSaveSettings());
         }
 
-        // Cancel 2FA setup button
-        const cancel2FABtn = document.getElementById('cancel-2fa-btn');
-        if (cancel2FABtn) 
+        // Delete account button
+        const deleteBtn = document.getElementById('delete-account-btn');
+        if (deleteBtn) 
         {
-            cancel2FABtn.addEventListener('click', () => 
-            {
-                this.showQRCode = false;
-                this.qrCodeDataURL = '';
-                this.secret = '';
-                this.updateSetupArea();
-            });
+            deleteBtn.addEventListener('click', () => this.handleDeleteAccount());
         }
     }
 
-    private async check2FAStatus(): Promise<void> 
+    private setupToggleListeners(): void 
     {
-        // TODO: Call backend to check if 2FA is enabled
-        // For now, assume it's disabled
-        this.is2FAEnabled = false;
+        const toggles = [
+            { id: 'toggle-show-online-status', key: 'showOnlineStatus' as const },
+            { id: 'toggle-allow-friend-requests', key: 'allowFriendRequests' as const },
+            { id: 'toggle-show-game-activity', key: 'showGameActivity' as const },
+            { id: 'toggle-notify-friend-requests', key: 'notifyFriendRequests' as const },
+            { id: 'toggle-notify-game-invites', key: 'notifyGameInvites' as const },
+            { id: 'toggle-notify-messages', key: 'notifyMessages' as const }
+        ];
+
+        toggles.forEach(({ id, key }) => 
+        {
+            const toggle = document.getElementById(id) as HTMLInputElement;
+            if (toggle) 
+            {
+                toggle.addEventListener('change', () => 
+                {
+                    this.currentSettings[key] = toggle.checked;
+                    this.hasUnsavedChanges = true;
+                    this.updateSaveButton();
+                });
+            }
+        });
+    }
+
+    private updateSaveButton(): void 
+    {
+        const saveContainer = document.getElementById('save-settings-container');
+        if (saveContainer) 
+        {
+            saveContainer.style.display = this.hasUnsavedChanges ? 'block' : 'none';
+        }
+    }
+
+    private async handleSaveSettings(): Promise<void> 
+    {
+        try 
+        {
+            const updatedProfile = await UserService.updateSettings(this.currentSettings);
+            
+            this.hasUnsavedChanges = false;
+            this.updateSaveButton();
+            
+            this.showMessage('✓ Settings saved successfully!', 'success');
+            
+            // Notify parent component
+            if (this.props.onSettingsUpdated) 
+            {
+                this.props.onSettingsUpdated(updatedProfile);
+            }
+        } 
+        catch (error) 
+        {
+            this.showMessage((error as Error).message || 'Failed to save settings', 'error');
+        }
     }
 
     private async handleEnable2FA(): Promise<void> 
@@ -462,6 +614,66 @@ export class Settings extends BaseComponent
             this.showMessage((error as Error).message || 'Failed to disable 2FA', 'error');
         }
     }
+
+    private async handleDeleteAccount(): Promise<void> 
+    {
+        const confirmed = await this.showConfirmModal(
+            'DELETE ACCOUNT',
+            'Are you sure you want to permanently delete your account? This action cannot be undone!'
+        );
+
+        if (!confirmed) 
+        {
+            return;
+        }
+
+        const finalConfirm = await this.showConfirmModal(
+            'FINAL CONFIRMATION',
+            'This is your last chance. Are you absolutely sure you want to delete your account?'
+        );
+
+        if (finalConfirm) 
+        {
+            this.showMessage('Account deletion is not yet implemented', 'info');
+        }
+    }
+
+    private async showConfirmModal(title: string, message: string): Promise<boolean> 
+    {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.id = 'confirm-modal';
+            modal.innerHTML = `
+                <div class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                    <div class="bg-gray-900/95 border-2 border-cyan-500/50 rounded-xl p-6 max-w-md w-full text-center shadow-[0_0_20px_#00ffff88]">
+                        <h2 class="text-2xl font-bold text-cyan-400 mb-4 tracking-wide" style="text-shadow: 0 0 10px #00ffff;">
+                            ${this.escapeHtml(title)}
+                        </h2>
+                        <p class="text-gray-300 mb-6 text-sm sm:text-base">${this.escapeHtml(message)}</p>
+                        <div class="flex justify-center gap-4">
+                            <button id="confirm-yes" class="neon-border-red px-5 py-2 rounded-lg font-bold text-red-400 hover:text-red-300 transition-all text-sm">
+                                DELETE
+                            </button>
+                            <button id="confirm-cancel" class="neon-border px-5 py-2 rounded-lg font-bold text-cyan-400 hover:text-cyan-300 transition-all text-sm">
+                                CANCEL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const cleanup = (result: boolean) => {
+                modal.remove();
+                resolve(result);
+            };
+
+            modal.querySelector('#confirm-yes')?.addEventListener('click', () => cleanup(true));
+            modal.querySelector('#confirm-cancel')?.addEventListener('click', () => cleanup(false));
+        });
+    }
+
 
     private updateSetupArea(): void 
     {
@@ -550,6 +762,13 @@ export class Settings extends BaseComponent
         if (modal) 
         {
             modal.remove();
+        }
+        
+        // Remove container
+        const container = document.getElementById('settings-container');
+        if (container) 
+        {
+            container.remove();
         }
     }
 
