@@ -35,10 +35,13 @@ export class Hero extends BaseComponent
       <section id="hero-section"
         class="relative w-screen min-h-screen overflow-hidden flex items-center justify-center bg-black">
 
-        <!-- Fundo base -->
-        <div class="absolute inset-0 
-                    bg-[url('/assets/images/backgrounds/space_background.jpg')]
-                    bg-cover bg-center bg-no-repeat"></div>
+        <!-- Fundo base com object-fit cover behavior -->
+        <div class="absolute inset-0 overflow-hidden">
+          <div class="w-full h-full 
+                      bg-[url('/assets/images/backgrounds/space_background.jpg')]
+                      bg-cover bg-center bg-no-repeat">
+          </div>
+        </div>
 
         <!-- Canvas do shader -->
         <canvas id="hero-hover-canvas" class="absolute inset-0 w-full h-full"></canvas>
@@ -76,6 +79,12 @@ export class Hero extends BaseComponent
       this.canvas.width = rect.width * dpr;
       this.canvas.height = rect.height * dpr;
       this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+      
+      // Redraw text canvas on resize
+      if (this.textCanvas)
+      {
+        this.drawConstellationText();
+      }
     };
     
     resize();
@@ -129,14 +138,22 @@ export class Hero extends BaseComponent
         return clamp(edge,0.0,1.0);
       }
 
+      vec2 coverUV(vec2 uv, float canvasAspect, float textureAspect) {
+        vec2 ratio = vec2(
+          min(canvasAspect / textureAspect, 1.0),
+          min(textureAspect / canvasAspect, 1.0)
+        );
+        return vec2(
+          uv.x * ratio.x + (1.0 - ratio.x) * 0.5,
+          uv.y * ratio.y + (1.0 - ratio.y) * 0.5
+        );
+      }
+
       void main(){
-        vec2 uv = vUV;
-        vec2 centered = (uv - 0.5);
-        float aspect = resolution.x / resolution.y;
-        if (aspect > 1.0) centered.x /= aspect;
-        else centered.y *= aspect;
-        uv = centered + 0.5;
-        uv = clamp(uv, 0.0, 1.0);
+        float canvasAspect = resolution.x / resolution.y;
+        float textureAspect = 1.5; // Approximate aspect ratio of background images
+        
+        vec2 uv = coverUV(vUV, canvasAspect, textureAspect);
 
         vec4 base = texture2D(texSpace, uv);
         vec4 n1 = texture2D(texNeb1, uv + vec2(sin(time*0.02), cos(time*0.015))*0.02);
@@ -144,6 +161,7 @@ export class Hero extends BaseComponent
 
         float blend = smoothstep(0.3, 0.7, abs(fract(sin(time*0.1))*2.0 - 1.0));
 
+        // Use vUV for mouse interactions (not coverUV)
         float head = blob(vUV, mouse, time);
         float tail = blob(vUV, prevMouse, time - 0.6) * 0.5;
         float trail = clamp(head + tail, 0.0, 1.0);
@@ -156,7 +174,7 @@ export class Hero extends BaseComponent
         float pulse = 0.8 + 0.2 * sin(time * 2.0);
         col += textTex.rgb * textTex.a * pulse;
 
-        float glow = smoothstep(0.25, 0.0, length(uv - mouse)) * reveal * 0.3;
+        float glow = smoothstep(0.25, 0.0, length(vUV - mouse)) * reveal * 0.3;
         col += vec3(0.5, 0.7, 1.0) * glow;
 
         gl_FragColor = vec4(col, 1.0);
@@ -275,7 +293,28 @@ export class Hero extends BaseComponent
     ctx.scale(1, -1);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `bold ${h * 0.13}px 'Trattorian', 'Orbitron', sans-serif`;
+    
+    // Responsive font size based on viewport width
+    const viewportWidth = window.innerWidth;
+    let fontSize;
+    
+    if (viewportWidth < 640)
+    {
+      // Mobile: smaller font
+      fontSize = Math.min(h * 0.08, viewportWidth * 0.12);
+    }
+    else if (viewportWidth < 1024)
+    {
+      // Tablet: medium font
+      fontSize = Math.min(h * 0.10, viewportWidth * 0.08);
+    }
+    else
+    {
+      // Desktop: larger font
+      fontSize = h * 0.13;
+    }
+    
+    ctx.font = `bold ${fontSize}px 'Trattorian', 'Orbitron', sans-serif`;
 
     const gradient = ctx.createLinearGradient(-w / 3, 0, w / 3, 0);
     gradient.addColorStop(0.0, '#007a8f');
