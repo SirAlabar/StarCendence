@@ -105,12 +105,15 @@ export class Settings extends BaseComponent
                                         disabled
                                     >
                                 </div>
+                                
+                                ${this.shouldShowPasswordButton() ? `
                                 <div>
                                     <label class="block text-xs sm:text-sm font-medium text-gray-400 mb-2">PASSWORD</label>
                                     <button id="change-password-btn" class="neon-border px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-cyan-400 text-xs sm:text-sm w-full sm:w-auto">
                                         CHANGE PASSWORD
                                     </button>
                                 </div>
+                                ` : ''}
                             </div>
                         </div>
                         
@@ -421,6 +424,17 @@ export class Settings extends BaseComponent
     //         console.error('Failed to load 2FA status:', error);
     //     }
     // }
+
+    private shouldShowPasswordButton(): boolean 
+    {
+        const profile = this.props.userProfile;
+        if (profile.hasPassword === false) 
+        {
+            return false;
+        }
+        
+        return true;
+    }
 
     private setupEventListeners(): void 
     {

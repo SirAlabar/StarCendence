@@ -35,6 +35,7 @@ export interface UserProfile
   rank?: number;
 
   twoFactorEnabled?: boolean;
+  hasPassword?: boolean;
   
   // Privacy Settings
   showOnlineStatus?: boolean;
