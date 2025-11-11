@@ -24,4 +24,10 @@ export async function twoFactorRoutes(fastify: FastifyInstance) {
       schema: twoFactorSchema.disableTwoFactorSchema
   },
   twoFactorController.disableTwoFactor);
+
+  fastify.get('/status',
+  {
+      preHandler: [verifyUserToken],
+  },
+  twoFactorController.getTwoFactorStatus);
 }

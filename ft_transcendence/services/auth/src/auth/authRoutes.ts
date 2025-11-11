@@ -19,7 +19,7 @@ export async function authRoutes(fastify: FastifyInstance){
   fastify.post('/login/2fa-verify',
   {
     preHandler: [verifyTempToken],
-    // schema: authSchema.twoFAVerifySchema
+    schema: authSchema.twoFAVerifySchema
   },
   authController.verifyTwoFA);
 
@@ -28,4 +28,11 @@ export async function authRoutes(fastify: FastifyInstance){
     preHandler: [verifyUserToken],
   },
   authController.logout);
+
+  fastify.patch('/update-password',
+  {
+    preHandler: [verifyUserToken],
+    schema: authSchema.updatePasswordSchema
+  },
+  authController.updatePassword);
 }

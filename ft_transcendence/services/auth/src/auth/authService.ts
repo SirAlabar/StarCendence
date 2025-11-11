@@ -84,3 +84,19 @@ export async function verifyTwoFA(tempToken: string, twoFACode: string) {
 
   return tokens;
 }
+
+// Update user password
+export async function updateUserPassword(userId: string, currentPassword: string, newPassword: string) {
+  const user = await userRepository.findUserById(userId);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+
+  const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+  if (!isCurrentPasswordValid) {
+    throw new HttpError('Current password is incorrect', 401);
+  }
+
+  const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+  await userRepository.updateUserPassword(userId, hashedNewPassword);
+}

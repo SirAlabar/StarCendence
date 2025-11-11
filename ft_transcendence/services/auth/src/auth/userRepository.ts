@@ -46,3 +46,11 @@ export async function findUserById(id: string) {
   });
 }
 
+
+// Update user password
+export async function updateUserPassword(userId: string, newHashedPassword: string) {
+  return prisma.authUser.update({
+    where: { id: userId },
+    data: { password: newHashedPassword }
+  });
+}

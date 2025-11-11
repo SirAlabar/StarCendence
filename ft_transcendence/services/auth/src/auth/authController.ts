@@ -82,8 +82,32 @@ export async function logout(req: FastifyRequest, reply: FastifyReply) {
   });
 }
 
+// PATCH /update-password - Update user's password
+export async function updatePassword(req: FastifyRequest, reply: FastifyReply) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(400).send({ error: 'Invalid user' });
+  }
 
+  const userProfile = await userRepository.findUserById(userId);
+  if (!userProfile) {
+    return reply.status(404).send({ error: 'User not found' });
+  }
 
+  if (userProfile.oauthId !== null) {
+    return reply.status(400).send({ error: 'Password update not allowed for OAuth users' });
+  }
 
+  const { currentPassword, newPassword } = req.body as { currentPassword: string; newPassword: string };
+  if (!currentPassword || !newPassword) {
+    return reply.status(400).send({ error: 'Current and new passwords are required' });
+  }
 
+  if (currentPassword === newPassword) {
+    return reply.status(400).send({ error: 'New password must be different from the current password' });
+  }
 
+  await authService.updateUserPassword(userId, currentPassword, newPassword);
+
+  return reply.send({ message: 'Password updated successfully' });
+}

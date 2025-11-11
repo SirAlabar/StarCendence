@@ -16,3 +16,8 @@ export async function verifyTwoFactor(req: FastifyRequest, reply: FastifyReply) 
 export async function disableTwoFactor(req: FastifyRequest, reply: FastifyReply) {
   await twoFactorService.disableTwoFactor(req, reply);
 }
+
+// Get 2FA status
+export async function getTwoFactorStatus(req: FastifyRequest, reply: FastifyReply) {
+  await twoFactorService.getTwoFactorStatus(req, reply);
+}
