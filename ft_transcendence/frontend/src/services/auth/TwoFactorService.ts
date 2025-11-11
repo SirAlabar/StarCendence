@@ -32,6 +32,11 @@ export interface Verify2FALoginResponse
     refreshToken: string;
 }
 
+export interface TwoFactorStatusResponse 
+{
+    twoFactorEnabled: boolean;
+}
+
 export class TwoFactorService 
 {
     private static getHeaders(): HeadersInit 
@@ -41,6 +46,33 @@ export class TwoFactorService
             'Content-Type': 'application/json',
             ...(token && { 'Authorization': `Bearer ${token}` })
         };
+    }
+
+    // Check 2FA status
+    static async get2FAStatus(): Promise<TwoFactorStatusResponse> 
+    {
+        try 
+        {
+            const response = await fetch(getAuthApiUrl('/2fa/status'), 
+            {
+                method: 'GET',
+                headers: this.getHeaders()
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) 
+            {
+                throw new Error(data.message || 'Failed to get 2FA status');
+            }
+
+            return data;
+        } 
+        catch (error) 
+        {
+            console.error('2FA status check error:', error);
+            return { twoFactorEnabled: false };
+        }
     }
 
     // Setup 2FA - Get QR code and secret

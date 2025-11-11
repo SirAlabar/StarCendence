@@ -1,7 +1,7 @@
 // UserService.ts
 import { BaseService } from '../BaseService';
 import { getUserApiUrl } from '../../types/api.types';
-import { UserProfile } from '../../types/user.types';
+import { UserProfile, UpdateSettingsBody } from '../../types/user.types';
 
 class UserService extends BaseService 
 {
@@ -55,6 +55,20 @@ class UserService extends BaseService
             method: 'PUT',
             headers: this.getHeaders(),
             body: JSON.stringify({ bio })
+        });
+
+        return this.handleResponse<UserProfile>(response);
+    }
+
+    // PATCH /settings - Update user's settings (privacy & notifications)
+    async updateSettings(settings: UpdateSettingsBody): Promise<UserProfile> 
+    {
+        this.requireAuth();
+
+        const response = await this.fetchRequest(getUserApiUrl('/settings'), {
+            method: 'PATCH',
+            headers: this.getHeaders(),
+            body: JSON.stringify(settings)
         });
 
         return this.handleResponse<UserProfile>(response);

@@ -32,10 +32,33 @@ export interface UserProfile
   totalWinPercent?: number;
 
   points?: number;
-  rank?: number; 
+  rank?: number;
+
+  twoFactorEnabled?: boolean;
+  
+  // Privacy Settings
+  showOnlineStatus?: boolean;
+  allowFriendRequests?: boolean;
+  showGameActivity?: boolean;
+  
+  // Notification Settings
+  notifyFriendRequests?: boolean;
+  notifyGameInvites?: boolean;
+  notifyMessages?: boolean;
 }
 
 export interface UpdateUserBody 
 {
     bio?: string | null;
+}
+
+
+export interface UpdateSettingsBody 
+{
+    showOnlineStatus?: boolean;
+    allowFriendRequests?: boolean;
+    showGameActivity?: boolean;
+    notifyFriendRequests?: boolean;
+    notifyGameInvites?: boolean;
+    notifyMessages?: boolean;
 }

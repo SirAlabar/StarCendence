@@ -1,5 +1,6 @@
 // LoginService.ts
 import { getAuthApiUrl } from '../../types/api.types';
+import { Modal } from '@/components/common/Modal';
 
 // Types for login operations
 export interface LoginRequest 
@@ -309,10 +310,10 @@ export class LoginService
     }
 
     // Handle session expiry
-    static handleSessionExpiry(): void 
+    static async handleSessionExpiry(): Promise<void> 
     {
         this.clearTokens();
-        alert('Your session has expired. Please log in again.');
+        await Modal.alert('Session Expired','Your session has expired. Please log in again.');
         window.location.href = '/login';
     }
 
