@@ -44,6 +44,11 @@ export async function verifyTwoFA(req: FastifyRequest, reply: FastifyReply) {
     return reply.status(400).send({ error: 'Missing or invalid authorization header' });
   }
 
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(400).send({ error: 'Invalid user' });
+  }
+
   const { twoFACode } = req.body as { twoFACode: string };
   if (!twoFACode) {
     return reply.status(400).send({ error: '2FA code is required' });
@@ -51,9 +56,10 @@ export async function verifyTwoFA(req: FastifyRequest, reply: FastifyReply) {
 
   const tokens = await authService.verifyTwoFA(tempToken, twoFACode);
 
+  await updateUserStatus(userId, 'ONLINE');
+
   return reply.send(tokens);
 }
-
 
 // POST /logout - Invalidate the current JWT token
 export async function logout(req: FastifyRequest, reply: FastifyReply) {
@@ -63,7 +69,7 @@ export async function logout(req: FastifyRequest, reply: FastifyReply) {
   }
 
   await authService.logoutUser(accessToken);
-  
+
   const userId = req.user?.sub;
   if (!userId) {
     return reply.status(400).send({ error: 'Invalid user' });
