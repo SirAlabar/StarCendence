@@ -71,7 +71,7 @@ export class Pong3D implements IGameEngine
                 this.ball, 
                 (config.difficulty || 'easy') as AiDifficulty3D
             );
-            console.log(`3D AI initialized with difficulty: ${config.difficulty}`);
+            
         }
         
         // Setup game loop
@@ -80,7 +80,7 @@ export class Pong3D implements IGameEngine
         // Handle window resize
         window.addEventListener("resize", () => this.engine.resize());
         
-        console.log('LocalPong3DEngine initialized:', config);
+        
     }
     
     start(): void 
@@ -96,7 +96,7 @@ export class Pong3D implements IGameEngine
         });
         
         this.emitEvent({ type: 'game-started' });
-        console.log(' 3D Game started');
+        
     }
     
     stop(): void 
@@ -109,7 +109,7 @@ export class Pong3D implements IGameEngine
     {
         this.paused = true;
         this.emitEvent({ type: 'game-paused' });
-        console.log(' 3D Game paused');
+        
     }
     
     resume(): void 
@@ -127,7 +127,7 @@ export class Pong3D implements IGameEngine
         }
         
         this.emitEvent({ type: 'game-resumed' });
-        console.log(' 3D Game resumed');
+        
     }
     
     getState(): GameState 
@@ -174,7 +174,7 @@ export class Pong3D implements IGameEngine
         this.scene.dispose();
         this.engine.dispose();
         this.eventCallbacks = [];
-        console.log('LocalPong3DEngine destroyed');
+        
     }
     
  
@@ -190,7 +190,7 @@ export class Pong3D implements IGameEngine
     {
         // Side view camera
         this.camera = new FreeCamera("camera", new Vector3(0, 0, 0), this.scene);
-        this.camera.position = new Vector3(-100, 70, 0);
+        this.camera.position = new Vector3(-110, 90, 0);
         this.camera.rotation = new Vector3(Math.PI / 11, Math.PI / 2, 0);
         
         // Top-down camera
@@ -512,7 +512,7 @@ export class Pong3D implements IGameEngine
     {
         if (this.player1Score >= this.WINNING_SCORE) 
         {
-            console.log("Player 1 wins!");
+          
             this.handleGameEnd('player1');
         } 
         else if (this.player2Score >= this.WINNING_SCORE) 

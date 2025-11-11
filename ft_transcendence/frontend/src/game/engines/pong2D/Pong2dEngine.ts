@@ -15,6 +15,7 @@ export class LocalPongEngine
     private paddleleft: paddle;
     private paddleright: paddle;
     private player1: player;
+    
     private player2?: player;
     private enemy?: enemy;
 
@@ -26,6 +27,7 @@ export class LocalPongEngine
 
     //Configs
     private config: GameConfig;
+    private profileLoaded?: boolean = false;
     
     //Events
     private eventCallBack: Array<(event: GameEvent) => void> = [];
@@ -38,6 +40,7 @@ export class LocalPongEngine
     {
         this.canvas = canvas;
         this.config = config;
+        
 
         const ctx = canvas.getContext("2d");
         if(!ctx)
@@ -57,6 +60,7 @@ export class LocalPongEngine
 
         this.player1 = new player();
         this.player1.score = 0;
+        
 
         //configs
         if(config.mode === 'local-multiplayer')
@@ -69,11 +73,45 @@ export class LocalPongEngine
             this.enemy = new enemy(canvas, config.difficulty || 'easy');
             this.enemy.score = 0;
         }
+        this.initializeAsync();
 
         //input handling
         this.setupInputHandlers();
-        console.log('Local Pong Engine', config);
+        console.log('Local Pong Engine', config, this.profileLoaded);
 
+    }
+
+    private async initializeAsync(): Promise<void> 
+    {
+        try 
+        {
+            await this.loadPlayerProfiles();
+            this.profileLoaded = true;
+        } 
+        catch (error) 
+        {
+            console.error('❌ Failed to initialize async components:', error);
+            this.profileLoaded = true; // Continue anyway
+        }
+    }
+    private async loadPlayerProfiles(): Promise<void> 
+    {
+        try 
+        {
+            const profileLoaded = await this.player1.loadProfile();
+            if (profileLoaded) 
+            {
+                console.log('✅ Player 1 profile loaded:', this.player1.getPlayerInfo());
+            } 
+            else 
+            {
+                console.log('⚠️ Playing as guest (not authenticated)');
+            }
+            
+        } catch (error) 
+        {
+            console.error('❌ Failed to load player profiles:', error);
+        }
     }
 
     start(): void
@@ -85,7 +123,9 @@ export class LocalPongEngine
         {
             this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
         }
+        
         this.emitEvent({type: 'game-started'});
+        
         this.update();
 
     }
@@ -160,7 +200,6 @@ export class LocalPongEngine
         this.stop;
         this.removeInputHandlers();
         this.eventCallBack = [];
-        console.log('Local Pong Engine Destroyed');
     }
 
     private update = (): void =>
@@ -189,6 +228,8 @@ export class LocalPongEngine
     {
         this.ball.x += this.ball.dx;
         this.ball.y += this.ball.dy;
+        const pulse = Math.sin(Date.now() / 200) * 2;
+        this.ball.radius = 15 + pulse;
         
         // Top/bottom wall collision
         if (this.ball.y + this.ball.radius > this.canvas.height || 
@@ -310,6 +351,7 @@ export class LocalPongEngine
         }
         
         this.emitEvent({ type: 'goal-scored', scorer });
+        
         
         // Reset ball
         const direction = scorer === 'player1' ? -3 : 3;

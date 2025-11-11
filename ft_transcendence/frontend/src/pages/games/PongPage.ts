@@ -257,7 +257,7 @@ export default class PongPage extends BaseComponent
         gameManager.on('game:goal', this.gameGoalHandler);
         gameManager.on('game:paddle-hit', this.gamePaddleHitHandler);
         
-        console.log('✅ PongPage mounted');
+        
     }
 
     private attachModeSelectionListeners(): void 
@@ -555,7 +555,6 @@ export default class PongPage extends BaseComponent
                     gameheight: canvas.height
                 };
                 
-                console.log('🎮 Starting game with config:', config);
                 
                 // Initialize game based on view type
                 if (this.selectedView === '2d') 
@@ -570,11 +569,10 @@ export default class PongPage extends BaseComponent
                 gameManager.startGame();
                 this.setupResizeListener(canvas);
                 
-                console.log('✅ Game started successfully');
+                
             }
             catch (error) 
             {
-                console.error('❌ Failed to start game:', error);
                 this.showMessage('Failed to start game. Please try again.', 'error');
                 this.resetSelection();
             }
@@ -591,8 +589,6 @@ export default class PongPage extends BaseComponent
         
         canvas.width = container.clientWidth;
         canvas.height = container.clientHeight;
-        
-        console.log(`📐 Canvas resized to ${canvas.width}x${canvas.height}`);
     }
 
     private setupResizeListener(canvas: HTMLCanvasElement): void 
@@ -620,8 +616,6 @@ export default class PongPage extends BaseComponent
             {
                 return;
             }
-            
-            console.log('📏 Window resized, adjusting canvas...');
             gameManager.pauseGame();
             
             const newWidth = container.clientWidth;
@@ -633,7 +627,6 @@ export default class PongPage extends BaseComponent
         };
         
         window.addEventListener('resize', this.resizeListener);
-        console.log('✅ Resize listener attached');
     }
 
     private handleGameEnd(event: Event): void 
@@ -651,7 +644,7 @@ export default class PongPage extends BaseComponent
             winnerName = this.selectedMode === 'ai' ? 'AI' : 'Player 2';
         }
         
-        console.log(`🏆 ${winnerName} wins!`);
+    
         this.showWinnerOverlay(winnerName);
         
         // Return to games page after showing winner
@@ -722,14 +715,12 @@ export default class PongPage extends BaseComponent
 
     private goBack(): void 
     {
-        console.log('🔙 Navigating back to games');
         this.dispose();
         navigateTo('/games');
     }
 
     public dispose(): void 
     {
-        console.log('🧹 Disposing PongPage...');
         
         // Cleanup game manager
         gameManager.cleanup();
@@ -759,7 +750,5 @@ export default class PongPage extends BaseComponent
             window.removeEventListener('resize', this.resizeListener);
             this.resizeListener = null;
         }
-        
-        console.log('✅ PongPage disposed');
     }
 }
