@@ -241,7 +241,6 @@ export class Hero extends BaseComponent
       try
       {
         await this.video.play();
-        console.log('🎥 Vídeo iniciado com sucesso');
         document.removeEventListener('click', tryPlay);
         document.removeEventListener('mousemove', tryPlay);
       }

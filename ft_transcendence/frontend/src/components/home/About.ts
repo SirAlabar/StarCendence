@@ -13,21 +13,21 @@ export class About extends BaseComponent {
       title: 'Project Mission',
       description:
         'Final milestone of the 42 Web Curriculum — building a complete real-time multiplayer gaming platform combining 3D graphics, secure user systems and distributed architecture.',
-      imageUrl: '/assets/about-mission.jpg',
+      imageUrl: '/assets/images/42_project.png',
       icon: '🎯'
     },
     {
       title: 'Platform Technology',
       description:
         'Microservices orchestrated through Nginx, Redis PubSub and secure Fastify APIs with WebSocket real-time engine for seamless multiplayer experiences.',
-      imageUrl: '/assets/about-tech.jpg',
+      imageUrl: '/assets/images/tech.png',
       icon: '⚡'
     },
     {
       title: 'Reliability & Monitoring',
       description:
         'Prometheus metrics, Grafana dashboards and an extensive test suite keep the platform observable, stable and production-ready.',
-      imageUrl: '/assets/about-observability.jpg',
+      imageUrl: '',
       icon: '📊'
     }
   ];

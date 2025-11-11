@@ -108,7 +108,6 @@ export default class LeaderboardPage extends BaseComponent
             const token = localStorage.getItem('access_token');
             if (!token) 
             {
-                console.log('No token - user not logged in');
                 return;
             }
 
@@ -124,7 +123,6 @@ export default class LeaderboardPage extends BaseComponent
 
             if (response.status === 401) 
             {
-                console.log('Token expired or invalid - clearing token');
                 localStorage.removeItem('access_token');
                 return;
             }

@@ -20,7 +20,7 @@ export class Features extends BaseComponent
       description: 'Competitive multiplayer with stunning visuals.',
       bullets: ['Tournament Mode', 'Anti-Cheat System', 'Adaptive AI'],
       icon: '🔥',
-      imageUrl: '/assets/images/feature-pong3d.jpg'
+      imageUrl: '/assets/images/pong_3d.png'
     },
     {
       category: 'gameplay',
@@ -44,7 +44,7 @@ export class Features extends BaseComponent
       description: 'Smooth play under unstable networks with fair reconciliations.',
       bullets: ['Client Hints', 'Replays', 'Bounds Checks'],
       icon: '⚡',
-      imageUrl: '/assets/images/feature-netcode.jpg'
+      imageUrl: ''
     }
   ];
 
@@ -55,7 +55,7 @@ export class Features extends BaseComponent
       description: 'Real-time messaging, invites and presence.',
       bullets: ['Invitations', 'Presence', 'Moderation'],
       icon: '💬',
-      imageUrl: '/assets/images/feature-chat.jpg'
+      imageUrl: ''
     },
     {
       category: 'social',
@@ -71,7 +71,7 @@ export class Features extends BaseComponent
       description: 'Progression and match history dashboards.',
       bullets: ['Leaderboards', 'History', 'Badges'],
       icon: '📊',
-      imageUrl: '/assets/images/feature-stats.jpg'
+      imageUrl: '/assets/images/feature-stats.png'
     }
   ];
 
@@ -82,7 +82,7 @@ export class Features extends BaseComponent
       description: 'Low-latency event bus for gameplay and chat.',
       bullets: ['60 FPS Streams', 'Room Routing', 'Broadcast'],
       icon: '🔌',
-      imageUrl: '/assets/images/feature-ws.jpg'
+      imageUrl: ''
     },
     {
       category: 'tech',
@@ -98,7 +98,7 @@ export class Features extends BaseComponent
       description: 'Fastify services orchestrated by Nginx + Redis.',
       bullets: ['Redis PubSub', 'Nginx Gateway', 'SQLite Persistent'],
       icon: '🧩',
-      imageUrl: '/assets/images/feature-micro.jpg'
+      imageUrl: ''
     },
     {
       category: 'tech',

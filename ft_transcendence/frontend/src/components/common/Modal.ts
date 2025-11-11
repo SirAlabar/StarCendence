@@ -1,6 +1,8 @@
 // Modal dialog component
 export class Modal 
 {
+    private static isModalOpen: boolean = false;
+
     public static async confirm(
         title: string,
         message: string,
@@ -9,6 +11,12 @@ export class Modal
         isDanger: boolean = false
     ): Promise<boolean> 
     {
+        if (Modal.isModalOpen) 
+        {
+            return false;
+        }
+        Modal.isModalOpen = true;
+
         return new Promise((resolve) => 
         {
             const modal = document.createElement('div');
@@ -39,25 +47,36 @@ export class Modal
             
             document.body.appendChild(modal);
             
-            const cleanup = (result: boolean) => 
-            {
-                modal.remove();
-                resolve(result);
-            };
+            let isCleanedUp = false;
             
-            modal.querySelector('#confirm-yes')?.addEventListener('click', () => cleanup(true));
-            modal.querySelector('#confirm-cancel')?.addEventListener('click', () => cleanup(false));
-            
-            // Allow ESC key to cancel
+            // ESC key handler
             const handleEscape = (e: KeyboardEvent) => 
             {
                 if (e.key === 'Escape') 
                 {
                     cleanup(false);
-                    document.removeEventListener('keydown', handleEscape);
                 }
             };
             document.addEventListener('keydown', handleEscape);
+            
+            const cleanup = (result: boolean) => 
+            {
+                if (isCleanedUp) 
+                {
+                    return;
+                }
+                isCleanedUp = true;
+                
+                // ALWAYS remove event listener
+                document.removeEventListener('keydown', handleEscape);
+                
+                modal.remove();
+                Modal.isModalOpen = false;
+                resolve(result);
+            };
+            
+            modal.querySelector('#confirm-yes')?.addEventListener('click', () => cleanup(true));
+            modal.querySelector('#confirm-cancel')?.addEventListener('click', () => cleanup(false));
         });
     }
 
@@ -67,6 +86,12 @@ export class Modal
         buttonText: string = 'OK'
     ): Promise<void> 
     {
+        if (Modal.isModalOpen) 
+        {
+            return;
+        }
+        Modal.isModalOpen = true;
+
         return new Promise((resolve) => 
         {
             const modal = document.createElement('div');
@@ -90,21 +115,34 @@ export class Modal
             
             document.body.appendChild(modal);
 
-            const cleanup = () => {
+            let isCleanedUp = false;
+
+            // ESC key handler
+            const handleEscape = (e: KeyboardEvent) => 
+            {
+                if (e.key === 'Escape') 
+                {
+                    cleanup();
+                }
+            };
+            document.addEventListener('keydown', handleEscape);
+
+            const cleanup = () => 
+            {
+                if (isCleanedUp) 
+                {
+                    return;
+                }
+                isCleanedUp = true;
+
+                document.removeEventListener('keydown', handleEscape);
+
                 modal.remove();
+                Modal.isModalOpen = false;
                 resolve();
             };
 
             modal.querySelector('#alert-ok')?.addEventListener('click', cleanup);
-
-            // Allow ESC key to close
-            const handleEscape = (e: KeyboardEvent) => {
-                if (e.key === 'Escape') {
-                    cleanup();
-                    document.removeEventListener('keydown', handleEscape);
-                }
-            };
-            document.addEventListener('keydown', handleEscape);
         });
     }
 
@@ -116,22 +154,30 @@ export class Modal
         isDanger: boolean = false,
         onConfirm?: () => void,
         onCancel?: () => void
-    ): void {
+    ): void 
+    {
         Modal.confirm(title, message, confirmText, cancelText, isDanger)
-            .then((result) => {
-                if (result && onConfirm) onConfirm();
-                if (!result && onCancel) onCancel();
+            .then((result) => 
+            {
+                if (result && onConfirm) 
+                {
+                    onConfirm();
+                }
+                if (!result && onCancel) 
+                {
+                    onCancel();
+                }
             });
     }
 
     public static showAlert(
-    title: string,
-    message: string,
-    buttonText: string = 'OK'
-    ): void {
+        title: string,
+        message: string,
+        buttonText: string = 'OK'
+    ): void 
+    {
         void Modal.alert(title, message, buttonText);
     }
-
 
     private static escapeHtml(text: string): string 
     {
