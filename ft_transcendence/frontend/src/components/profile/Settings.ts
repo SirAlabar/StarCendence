@@ -3,6 +3,7 @@ import { BaseComponent } from '../BaseComponent';
 import { TwoFactorService } from '../../services/auth/TwoFactorService';
 import { UserProfile } from '../../types/user.types';
 import UserService from '../../services/user/UserService';
+import { Modal } from '@/components/common/Modal';
 
 interface SettingsProps 
 {
@@ -594,7 +595,15 @@ export class Settings extends BaseComponent
 
     private async handleDisable2FA(): Promise<void> 
     {
-        if (!confirm('Are you sure you want to disable 2FA? This will make your account less secure.')) 
+        const confirmed = await Modal.confirm(
+            'Disable Two-Factor Authentication',
+            'Are you sure you want to disable 2FA? This will make your account less secure.',
+            'DISABLE',
+            'CANCEL',
+            true
+        );
+
+        if (!confirmed) 
         {
             return;
         }
@@ -615,65 +624,35 @@ export class Settings extends BaseComponent
         }
     }
 
+
     private async handleDeleteAccount(): Promise<void> 
     {
-        const confirmed = await this.showConfirmModal(
+        const confirmed = await Modal.confirm(
             'DELETE ACCOUNT',
-            'Are you sure you want to permanently delete your account? This action cannot be undone!'
+            'Are you sure you want to permanently delete your account? This action cannot be undone!',
+            'DELETE',
+            'CANCEL',
+            true // isDanger flag for red styling
         );
-
+        
         if (!confirmed) 
         {
             return;
         }
-
-        const finalConfirm = await this.showConfirmModal(
+        
+        const finalConfirm = await Modal.confirm(
             'FINAL CONFIRMATION',
-            'This is your last chance. Are you absolutely sure you want to delete your account?'
+            'This is your last chance. Are you absolutely sure you want to delete your account?',
+            'YES, DELETE',
+            'CANCEL',
+            true
         );
-
+        
         if (finalConfirm) 
         {
             this.showMessage('Account deletion is not yet implemented', 'info');
         }
     }
-
-    private async showConfirmModal(title: string, message: string): Promise<boolean> 
-    {
-        return new Promise((resolve) => {
-            const modal = document.createElement('div');
-            modal.id = 'confirm-modal';
-            modal.innerHTML = `
-                <div class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-                    <div class="bg-gray-900/95 border-2 border-cyan-500/50 rounded-xl p-6 max-w-md w-full text-center shadow-[0_0_20px_#00ffff88]">
-                        <h2 class="text-2xl font-bold text-cyan-400 mb-4 tracking-wide" style="text-shadow: 0 0 10px #00ffff;">
-                            ${this.escapeHtml(title)}
-                        </h2>
-                        <p class="text-gray-300 mb-6 text-sm sm:text-base">${this.escapeHtml(message)}</p>
-                        <div class="flex justify-center gap-4">
-                            <button id="confirm-yes" class="neon-border-red px-5 py-2 rounded-lg font-bold text-red-400 hover:text-red-300 transition-all text-sm">
-                                DELETE
-                            </button>
-                            <button id="confirm-cancel" class="neon-border px-5 py-2 rounded-lg font-bold text-cyan-400 hover:text-cyan-300 transition-all text-sm">
-                                CANCEL
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-
-            const cleanup = (result: boolean) => {
-                modal.remove();
-                resolve(result);
-            };
-
-            modal.querySelector('#confirm-yes')?.addEventListener('click', () => cleanup(true));
-            modal.querySelector('#confirm-cancel')?.addEventListener('click', () => cleanup(false));
-        });
-    }
-
 
     private updateSetupArea(): void 
     {

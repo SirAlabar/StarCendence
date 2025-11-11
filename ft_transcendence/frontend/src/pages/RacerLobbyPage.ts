@@ -1,6 +1,7 @@
 import { BaseComponent } from '../components/BaseComponent';
 import { GameLobby, LobbyConfig } from '../components/game/GameLobby';
 import { navigateTo } from '../router/router';
+import { Modal } from '@/components/common/Modal';
 
 export default class RacerLobbyPage extends BaseComponent 
 {
@@ -35,7 +36,7 @@ export default class RacerLobbyPage extends BaseComponent
     {
         // TODO: Start multiplayer race with selected players and pods
         console.log('Starting Pod Race multiplayer...');
-        alert('Starting Race! (Multiplayer implementation pending)');
+        Modal.showAlert('Alert', 'Starting Race! (Multiplayer implementation pending)');
         // Future: Pass player data and pod selections to race engine
     }
     

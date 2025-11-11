@@ -1,4 +1,5 @@
 import { Header } from '../components/common/Header';
+import { Modal } from '@/components/common/Modal';
 
 // Module-level variables
 let header: Header;
@@ -175,9 +176,17 @@ function handlePauseGame(): void
     window.dispatchEvent(new CustomEvent('game:pause'));
 }
 
-function handleExitGame(): void 
+async function handleExitGame(): Promise<void> 
 {
-    if (confirm('Are you sure you want to exit the game?')) 
+    const confirmed = await Modal.confirm(
+        'Exit Game',
+        'Are you sure you want to exit the game?',
+        'EXIT',
+        'CANCEL',
+        true
+    );
+
+    if (confirmed) 
     {
         window.dispatchEvent(new CustomEvent('game:exit'));
         (window as any).navigateTo('/games');

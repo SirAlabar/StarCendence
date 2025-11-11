@@ -3,6 +3,7 @@ import { PodSelection, PodSelectionEvent } from './PodSelectionPage';
 import { RacerRenderer } from '../game/engines/racer/RacerRenderer';
 import { PodConfig, AVAILABLE_PODS } from '../game/utils/PodConfig';
 import { navigateTo, isAuthenticated } from '../router/router';
+import { Modal } from '@/components/common/Modal';
 
 export default class PodRacerPage extends BaseComponent 
 {
@@ -332,7 +333,7 @@ export default class PodRacerPage extends BaseComponent
             
             if (!this.isDisposed)
             {
-                alert('Failed to start race. Returning to game selection.');
+                await Modal.alert('Race Error','Failed to start race. Returning to game selection.');
                 this.goBack();
             }
         }

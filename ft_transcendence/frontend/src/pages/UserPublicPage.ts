@@ -3,6 +3,7 @@ import UserService from '../services/user/UserService';
 import FriendService from '../services/user/FriendService';
 import { UserProfile } from '../types/user.types';
 import { getBaseUrl } from '@/types/api.types';
+import { Modal } from '@/components/common/Modal';
 
 export default class UserPublicPage extends BaseComponent 
 {
@@ -629,11 +630,19 @@ export default class UserPublicPage extends BaseComponent
             return;
         }
 
-        const confirmed = confirm(`Are you sure you want to remove ${this.userProfile.username} from your friends?`);
+        const confirmed = await Modal.confirm(
+            'Remove Friend',
+            `Are you sure you want to remove ${this.userProfile.username} from your friends?`,
+            'REMOVE',
+            'CANCEL',
+            true
+        );
+
         if (!confirmed) 
         {
             return;
         }
+
 
         try 
         {

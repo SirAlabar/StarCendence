@@ -1,6 +1,7 @@
 import { BaseComponent } from '../components/BaseComponent';
 import { GameLobby, LobbyConfig } from '../components/game/GameLobby';
 import { navigateTo } from '../router/router';
+import { Modal } from '@/components/common/Modal';
 
 export default class PongLobbyPage extends BaseComponent 
 {
@@ -31,11 +32,11 @@ export default class PongLobbyPage extends BaseComponent
         }
     }
     
-    private startPongGame(): void 
+    private async startPongGame(): Promise<void> 
     {
         // TODO: Start multiplayer pong game with selected players
         console.log('Starting Pong multiplayer game...');
-        alert('Starting Pong game! (Multiplayer implementation pending)');
+        await Modal.alert('Alert', 'Starting Pong game! (Multiplayer implementation pending)');
         // Future: Pass player data to game engine and start
     }
     

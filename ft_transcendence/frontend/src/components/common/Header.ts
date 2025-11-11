@@ -1,5 +1,6 @@
 import { BaseComponent } from '../BaseComponent';
 import { LoginService } from '../../services/auth/LoginService';
+import { Modal } from '@/components/common/Modal';
 
 interface NavItem 
 {
@@ -244,7 +245,7 @@ export class Header extends BaseComponent
 
     private async handleLogout(): Promise<void> 
     {
-        if (!confirm('Are you sure you want to logout?')) 
+        if (!await Modal.confirm('LOGOUT', 'Are you sure you want to logout?'))
         {
             return;
         }

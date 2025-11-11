@@ -2,6 +2,7 @@
 import { BaseComponent } from '../BaseComponent';
 import FriendService from '../../services/user/FriendService';
 import { getBaseUrl } from '@/types/api.types';
+import { Modal } from '@/components/common/Modal';
 
 interface Friend 
 {
@@ -313,7 +314,7 @@ export class FriendsList extends BaseComponent
         catch (err) 
         {
             console.error('Failed to accept friend request:', err);
-            alert('Failed to accept friend request');
+            await Modal.alert('Error', 'Failed to accept friend request');
         }
     }
 
@@ -327,13 +328,13 @@ export class FriendsList extends BaseComponent
         catch (err) 
         {
             console.error('Failed to decline friend request:', err);
-            alert('Failed to decline friend request');
+            await Modal.alert('Error', 'Failed to decline friend request');
         }
     }
 
-    private handleChatClick(friendId: number): void 
+    private async handleChatClick(friendId: number): Promise<void> 
     {
-        alert(`Chat feature coming soon for friend ID: ${friendId}`);
+        await Modal.alert('Error', `Chat feature coming soon for friend ID: ${friendId}`);
     }
 
     private handleViewProfile(username: string): void 

@@ -274,7 +274,21 @@ export default class ProfilePage extends BaseComponent
 
     private openSettings(): void 
     {
-        const settings = new Settings();
+        if (!this.userProfile) 
+        {
+            this.showMessage('Failed to load user profile', 'error');
+            return;
+        }
+
+        const settings = new Settings({
+            userProfile: this.userProfile,
+            onSettingsUpdated: async (updatedProfile: UserProfile) => 
+            {
+                this.userProfile = updatedProfile;
+                this.showMessage('Settings updated successfully!', 'success');
+            }
+        });
+
         const settingsContainer = document.createElement('div');
         settingsContainer.id = 'settings-container';
         document.body.appendChild(settingsContainer);
@@ -292,7 +306,7 @@ export default class ProfilePage extends BaseComponent
         const bgColor = type === 'success' ? 'bg-green-900/30' : 'bg-red-900/30';
         const borderColor = type === 'success' ? 'border-green-500/50' : 'border-red-500/50';
         const textColor = type === 'success' ? 'text-green-400' : 'text-red-400';
-        const icon = type === 'success' ? '✔' : '✗';
+        const icon = type === 'success' ? '✓' : '✗';
 
         container.innerHTML = `
             <div class="${bgColor} ${borderColor} backdrop-blur-sm border-2 rounded-lg p-3 sm:p-4">

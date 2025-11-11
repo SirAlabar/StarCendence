@@ -1,6 +1,7 @@
 // components/PongMenu.ts
 import { gameManager } from '../game/managers/PongManager';
 import { GameMode, Paddlecolor } from '../game/utils/GameTypes';
+import { Modal } from '@/components/common/Modal';
 
 export type MenuType = 'mode-selection' | 'game-mode' | 'difficulty' | 'color-selection';
 
@@ -268,11 +269,17 @@ export class PongMenu
         });
         
         document.getElementById('playOnline')?.addEventListener('click', () => {
-            alert('🚧 Online multiplayer coming soon!\nWaiting for WebSocket server.');
+            Modal.showAlert(
+                '🚧 Coming Soon',
+                'Online multiplayer coming soon!\nWaiting for WebSocket server.'
+            );
         });
-        
+
         document.getElementById('tournament')?.addEventListener('click', () => {
-            alert('🚧 Tournament mode coming soon!');
+            Modal.showAlert(
+                '🚧 Coming Soon',
+                'Tournament mode coming soon!'
+            );
         });
         
         document.getElementById('backBtn')?.addEventListener('click', () => {
@@ -327,7 +334,7 @@ export class PongMenu
             document.getElementById('startGameBtn')?.addEventListener('click', () => {
                 if (this.selectedPaddle1Color === 'default' || this.selectedPaddle2Color === 'default') 
                 {
-                    alert('⚠️ Please select colors for both players!');
+                    Modal.showAlert('Alert', '⚠️ Please select colors for both players!');
                     return;
                 }
                 this.startGame();
