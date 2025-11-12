@@ -16,6 +16,8 @@ model UserProfile {
   bio       String?
   avatarUrl String?
   status    String   @default("OFFLINE")
+  twoFactorEnabled  Boolean  @default(false)
+  oauthEnabled Boolean  @default(false)
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

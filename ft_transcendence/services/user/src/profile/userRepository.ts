@@ -9,13 +9,14 @@ export async function findAllUserProfiles() {
 }
 
 // Create a new user profile
-export async function createUserProfile(authId: string, email: string, username: string) {
+export async function createUserProfile(authId: string, email: string, username: string, oauthEnabled: boolean) {
   return prisma.userProfile.create({
     data: {
       id: authId,
       email,
       username,
       avatarUrl: '/avatars/default.jpeg',
+      oauthEnabled,
     }
   });
 }
@@ -168,6 +169,25 @@ export async function updateUserStats(userId: string, won: boolean, pointsEarned
       totalWins: won ? (user.totalWins || 0) + 1 : user.totalWins,
       totalLosses: !won ? (user.totalLosses || 0) + 1 : user.totalLosses,
       points: (user.points || 0) + pointsEarned
+    }
+  });
+}
+
+
+// Update two-factor authentication state
+export async function updateTwoFactorState(userId: string, twoFactorEnabled: boolean) {
+  const user = await prisma.userProfile.findUnique({
+    where: { id: userId }
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  return prisma.userProfile.update({
+    where: { id: userId },
+    data: {
+      twoFactorEnabled
     }
   });
 }

@@ -8,7 +8,8 @@ export const createUserSchema = {
     properties: {
       authId: { type: 'string', format: 'uuid' },
       email: { type: 'string', format: 'email' },
-      username: { type: 'string', minLength: 3, maxLength: 30 }
+      username: { type: 'string', minLength: 3, maxLength: 30 },
+      oauthEnabled: { type: 'boolean' }
     }
   },
   response: {
@@ -141,6 +142,18 @@ export const updateUserStatsSchema =
       userId: { type: 'string' },
       won: { type: 'boolean' },
       pointsEarned: { type: 'number' }
+    }
+  }
+};
+
+// Update two-factor authentication state schema for internal PATCH /internal/update-2fa-state
+export const updateTwoFactorStateSchema = {
+  body: {
+    type: 'object',
+    required: ['userId', 'twoFactorEnabled'],
+    properties: {
+      userId: { type: 'string', format: 'uuid' },
+      twoFactorEnabled: { type: 'boolean' }
     }
   }
 };

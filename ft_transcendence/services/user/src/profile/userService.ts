@@ -5,12 +5,12 @@ import path from "path";
 import fs from 'fs/promises';
 
 // Create a new user profile (internal)
-export async function createUserProfile(authId: string, email: string, username: string) {
+export async function createUserProfile(authId: string, email: string, username: string, oauthEnabled: boolean) {
   if (!authId || !email || !username) {
     throw new HttpError('Auth ID, email, and username are required', 400);
   }
 
-  await userRepository.createUserProfile(authId, email, username);
+  await userRepository.createUserProfile(authId, email, username, oauthEnabled);
 }
 
 // Update user status (internal)
@@ -155,6 +155,17 @@ export async function updateUserStats(userId: string, won: boolean, pointsEarned
   
   if (!user) 
   {
+    throw new HttpError('User not found', 404);
+  }
+
+  return user;
+}
+
+// Update two-factor authentication state (internal)
+export async function updateTwoFactorState(userId: string, twoFactorEnabled: boolean) {
+  const user = await userRepository.updateTwoFactorState(userId, twoFactorEnabled);
+  
+  if (!user) {
     throw new HttpError('User not found', 404);
   }
 

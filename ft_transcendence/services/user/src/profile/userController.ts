@@ -6,12 +6,12 @@ import { UserProfile, UserStatus } from './user.types'
 
 // POST /internal/create-user - Create new user
 export async function createUser( req: FastifyRequest<{ Body: CreateUserBody }>, reply: FastifyReply ) {
-  const { authId, email, username } = req.body
-  if (!authId || !email || !username) {
+  const { authId, email, username, oauthEnabled } = req.body
+  if (!authId || !email || !username || oauthEnabled === undefined) {
     return reply.status(400).send({ error: 'Missing required fields' });
   }
-  
-  await userService.createUserProfile(authId, email, username);
+
+  await userService.createUserProfile(authId, email, username, oauthEnabled);
 
   const user: UserProfile = await userService.findUserProfileById(authId);
 
@@ -165,5 +165,18 @@ export async function updateUserStats(
   }
 
   const updatedUser = await userService.updateUserStats(userId, won, pointsEarned);
+  return reply.send(updatedUser);
+}
+
+// PATCH /internal/update-2fa-state - Update user's two-factor authentication state (internal)
+export async function updateTwoFactorState(req: FastifyRequest<{ Body: { userId: string; twoFactorEnabled: boolean } }>, reply: FastifyReply) {
+  const { userId, twoFactorEnabled } = req.body;
+  
+  if (!userId || typeof twoFactorEnabled !== 'boolean') {
+    return reply.status(400).send({ error: 'Missing or invalid required fields' });
+  }
+
+  const updatedUser: UserProfile = await userService.updateTwoFactorState(userId, twoFactorEnabled);
+
   return reply.send(updatedUser);
 }

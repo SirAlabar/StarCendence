@@ -3,6 +3,7 @@ import { HttpError } from '../utils/HttpError';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { updateTwoFactorState } from '../clients/userServiceClient';
 
 // Setup 2FA: Generate secret and QR code
 export async function setupTwoFactor(req: FastifyRequest, reply: FastifyReply) {
@@ -62,7 +63,9 @@ export async function verifyTwoFactor(req: FastifyRequest, reply: FastifyReply) 
   }
 
   await twoFactorRepository.enableTwoFactor(user.sub);
-  
+  // user service update
+  await updateTwoFactorState(user.sub, true);
+
   return reply.send({ success: true });
 }
 
@@ -74,5 +77,7 @@ export async function disableTwoFactor(req: FastifyRequest, reply: FastifyReply)
   }
   
   await twoFactorRepository.disableTwoFactor(user.sub);
+  // user service update
+  await updateTwoFactorState(user.sub, false);
   return reply.send({ success: true });
 }

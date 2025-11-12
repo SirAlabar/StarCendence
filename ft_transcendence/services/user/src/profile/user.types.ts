@@ -10,7 +10,8 @@ export enum UserStatus {
 export interface CreateUserBody {
   authId: string
   email: string
-  username: string
+  username: string,
+  oauthEnabled?: boolean
 }
 
 export interface UserProfile {
