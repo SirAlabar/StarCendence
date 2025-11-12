@@ -14,9 +14,9 @@ export async function getLeaderboard()
     username: user.username,
     avatarUrl: user.avatarUrl,
     status: user.status,
-    wins: user.totalWins || 0,
-    losses: user.totalLosses || 0,
-    points: user.points || 0,
+    wins: user.gameStatus.totalWins,
+    losses: user.gameStatus.totalLosses,
+    points: user.gameStatus.points,
     rank: index + 1
   }));
 }

@@ -65,6 +65,7 @@ export async function updateUserProfile( req: FastifyRequest<{ Body: UpdateUserB
   }
 
   const updatedData = req.body;
+
   const updatedUser = await userService.updateUserProfile(userId, updatedData);
 
   return reply.send(updatedUser);
@@ -107,15 +108,13 @@ export async function uploadProfileImage(req: FastifyRequest, reply: FastifyRepl
 export async function searchUsers(req: FastifyRequest, reply: FastifyReply)
 {
   const userId = req.user?.sub;
-  if (!userId)
-  {
+  if (!userId){
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
   }
 
   const { q } = req.query as { q?: string };
   
-  if (!q || q.trim().length < 2)
-  {
+  if (!q || q.trim().length < 2) {
     return reply.status(400).send({ error: 'Search query must be at least 2 characters' });
   }
 

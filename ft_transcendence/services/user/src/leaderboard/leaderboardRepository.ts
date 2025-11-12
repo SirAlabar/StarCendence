@@ -13,7 +13,6 @@ export async function getLeaderboard()
       status: true,
       gameStatus:{
         select: {
-          totalGames: true,
           totalWins: true,
           totalLosses: true,
           points: true
