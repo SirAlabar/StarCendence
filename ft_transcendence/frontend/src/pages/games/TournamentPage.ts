@@ -646,4 +646,4 @@ export default class TournamentPage extends BaseComponent
         delete (window as any).handleQuickJoin;
         delete (window as any).handleKickPlayer;
     }
-}
+}``
