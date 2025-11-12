@@ -44,6 +44,11 @@ export async function verifyTwoFA(req: FastifyRequest, reply: FastifyReply) {
     return reply.status(400).send({ error: 'Missing or invalid authorization header' });
   }
 
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(400).send({ error: 'Invalid user' });
+  }
+
   const { twoFACode } = req.body as { twoFACode: string };
   if (!twoFACode) {
     return reply.status(400).send({ error: '2FA code is required' });
@@ -51,9 +56,10 @@ export async function verifyTwoFA(req: FastifyRequest, reply: FastifyReply) {
 
   const tokens = await authService.verifyTwoFA(tempToken, twoFACode);
 
+  await updateUserStatus(userId, 'ONLINE');
+
   return reply.send(tokens);
 }
-
 
 // POST /logout - Invalidate the current JWT token
 export async function logout(req: FastifyRequest, reply: FastifyReply) {
@@ -63,7 +69,7 @@ export async function logout(req: FastifyRequest, reply: FastifyReply) {
   }
 
   await authService.logoutUser(accessToken);
-  
+
   const userId = req.user?.sub;
   if (!userId) {
     return reply.status(400).send({ error: 'Invalid user' });
@@ -76,8 +82,47 @@ export async function logout(req: FastifyRequest, reply: FastifyReply) {
   });
 }
 
+// PATCH /update-password - Update user's password
+export async function updatePassword(req: FastifyRequest, reply: FastifyReply) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(400).send({ error: 'Invalid user' });
+  }
 
+  const userProfile = await userRepository.findUserById(userId);
+  if (!userProfile) {
+    return reply.status(404).send({ error: 'User not found' });
+  }
 
+  if (userProfile.oauthId !== null) {
+    return reply.status(400).send({ error: 'Password update not allowed for OAuth users' });
+  }
 
+  const { currentPassword, newPassword } = req.body as { currentPassword: string; newPassword: string };
+  if (!currentPassword || !newPassword) {
+    return reply.status(400).send({ error: 'Current and new passwords are required' });
+  }
 
+  if (currentPassword === newPassword) {
+    return reply.status(400).send({ error: 'New password must be different from the current password' });
+  }
 
+  await authService.updateUserPassword(userId, currentPassword, newPassword);
+
+  return reply.send({ message: 'Password updated successfully' });
+}
+
+// GET /profile - Get user's profile information
+export async function getProfile(req: FastifyRequest, reply: FastifyReply) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(400).send({ error: 'Invalid user' });
+  }
+
+  const userProfile = await authService.getUserProfile(userId);
+  if (!userProfile) {
+    return reply.status(404).send({ error: 'User not found' });
+  }
+  
+  return reply.send(userProfile);
+}

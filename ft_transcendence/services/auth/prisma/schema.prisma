@@ -21,7 +21,9 @@ model AuthUser {
   twoFactorEnabled  Boolean  @default(false)
 
   refreshToken RefreshToken?  // updated to singular
+
   oauthId     String?   @unique
+  oauthEnabled Boolean  @default(false)
 
   @@map("users")
 }

@@ -9,6 +9,7 @@ export async function createOauthUser(oauthId: string, email: string, username: 
       oauthId,
       email,
       username,
+      oauthEnabled: true,
     },
   });
 }

@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import * as  authSchema  from './authSchema';
-import { verifyUserToken } from '../middleware/authMiddleware';
+import { verifyTempToken, verifyUserToken } from '../middleware/authMiddleware';
 import * as authController from './authController';
 
 export async function authRoutes(fastify: FastifyInstance){
@@ -18,6 +18,7 @@ export async function authRoutes(fastify: FastifyInstance){
 
   fastify.post('/login/2fa-verify',
   {
+    preHandler: [verifyTempToken],
     schema: authSchema.twoFAVerifySchema
   },
   authController.verifyTwoFA);
@@ -27,4 +28,17 @@ export async function authRoutes(fastify: FastifyInstance){
     preHandler: [verifyUserToken],
   },
   authController.logout);
+
+  fastify.patch('/update-password',
+  {
+    preHandler: [verifyUserToken],
+    schema: authSchema.updatePasswordSchema
+  },
+  authController.updatePassword);
+
+  fastify.get('/profile',
+  {
+    preHandler: [verifyUserToken],
+  },
+  authController.getProfile);
 }
