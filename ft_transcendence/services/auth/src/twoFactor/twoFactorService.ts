@@ -76,14 +76,3 @@ export async function disableTwoFactor(req: FastifyRequest, reply: FastifyReply)
   await twoFactorRepository.disableTwoFactor(user.sub);
   return reply.send({ success: true });
 }
-
-// Get 2FA status
-export async function getTwoFactorStatus(req: FastifyRequest, reply: FastifyReply) {
-  const user = req.user;
-  if (!user) {
-      throw new HttpError('Unauthorized', 401);
-  }
-
-  const twoFactorState = await twoFactorRepository.isTwoFactorEnabled(user.sub);
-  return reply.send({ twoFactorEnabled: twoFactorState });
-}

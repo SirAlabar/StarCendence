@@ -111,3 +111,18 @@ export async function updatePassword(req: FastifyRequest, reply: FastifyReply) {
 
   return reply.send({ message: 'Password updated successfully' });
 }
+
+// GET /profile - Get user's profile information
+export async function getProfile(req: FastifyRequest, reply: FastifyReply) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(400).send({ error: 'Invalid user' });
+  }
+
+  const userProfile = await authService.getUserProfile(userId);
+  if (!userProfile) {
+    return reply.status(404).send({ error: 'User not found' });
+  }
+  
+  return reply.send(userProfile);
+}

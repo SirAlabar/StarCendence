@@ -5,7 +5,8 @@ import { HttpError } from '../utils/HttpError';
 import * as tokenService from '../token/tokenService';
 import * as userRepository from './userRepository';
 import * as refreshTokenRepository from '../token/refreshTokenRepository';
-import { TokenPair, TokenType } from '../token/token.types';
+import { TokenType } from '../token/token.types';
+
 
 // Register a new user
 export async function registerUser(email: string, password: string, username: string) {
@@ -92,6 +93,10 @@ export async function updateUserPassword(userId: string, currentPassword: string
     throw new HttpError('User not found', 404);
   }
 
+  if (!user.password) {
+    throw new HttpError('Password update not allowed for OAuth users', 400);
+  }
+
   const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
   if (!isCurrentPasswordValid) {
     throw new HttpError('Current password is incorrect', 401);
@@ -99,4 +104,20 @@ export async function updateUserPassword(userId: string, currentPassword: string
 
   const hashedNewPassword = await bcrypt.hash(newPassword, 10);
   await userRepository.updateUserPassword(userId, hashedNewPassword);
+}
+
+// Get user profile information
+export async function getUserProfile(userId: string) {
+  const user = await userRepository.findUserById(userId);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    twoFactorEnabled: user.twoFactorEnabled,
+    oauthEnabled: user.oauthEnabled
+  };
 }
