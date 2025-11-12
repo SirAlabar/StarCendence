@@ -109,16 +109,7 @@ export async function getUserRank(userId: string) {
     throw new HttpError('User not found', 404);
   }
 
-  return {
-    id: userWithRank.id,
-    username: userWithRank.username,
-    avatarUrl: userWithRank.avatarUrl,
-    status: userWithRank.status,
-    wins: userWithRank.totalWins || 0,
-    losses: userWithRank.totalLosses || 0,
-    points: userWithRank.points || 0,
-    rank: userWithRank.rank
-  };
+  return userWithRank;
 }
 
 // Update user stats (internal - called after game)
@@ -140,5 +131,14 @@ export async function updateTwoFactorState(userId: string, twoFactorEnabled: boo
     throw new HttpError('User not found', 404);
   }
 
+  return user;
+}
+
+// Get personal user profile by ID
+export async function getPersonalUserProfileById(id: string) {
+  const user = await userRepository.getPersonalUserProfileById(id);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
   return user;
 }

@@ -11,12 +11,19 @@ export async function getLeaderboard()
       username: true,
       avatarUrl: true,
       status: true,
-      totalWins: true,
-      totalLosses: true,
-      points: true
+      gameStatus:{
+        select: {
+          totalGames: true,
+          totalWins: true,
+          totalLosses: true,
+          points: true
+        }
+      },
     },
     orderBy: {
-      points: 'desc'
+      gameStatus: {
+        points: 'desc'
+      }
     },
     take: 10
   });

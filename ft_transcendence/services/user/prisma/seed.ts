@@ -265,36 +265,43 @@ async function main()
   {
     const avatarUrl = copyImageToAvatars(userData.avatar, userData.id);
     
-    const user = await prisma.userProfile.create(
-    {
-      data: 
-      {
+    const user = await prisma.userProfile.create({
+      data: {
         id: userData.id,
         username: userData.username,
         email: userData.email,
         bio: userData.bio,
         status: userData.status,
         avatarUrl: avatarUrl || '/avatars/default.jpeg',
-        // Overall stats
-        totalGames: userData.totalGames,
-        totalWins: userData.totalWins,
-        totalLosses: userData.totalLosses,
-        totalDraws: userData.totalDraws,
-        totalWinPercent: userData.totalWinPercent,
-        points: userData.points,
-        // Game modes
-        totalPongWins: userData.totalPongWins,
-        totalPongLoss: userData.totalPongLoss,
-        totalRacerWins: userData.totalRacerWins,
-        totalRacerLoss: userData.totalRacerLoss,
-        // Tournaments
-        tournamentWins: userData.tournamentWins,
-        tournamentParticipations: userData.tournamentParticipations
+        gameStatus: {
+          create: {
+            totalGames: userData.totalGames,
+            totalWins: userData.totalWins,
+            totalLosses: userData.totalLosses,
+            totalDraws: userData.totalDraws,
+            totalWinPercent: userData.totalWinPercent,
+            points: userData.points,
+            totalPongWins: userData.totalPongWins,
+            totalPongLoss: userData.totalPongLoss,
+            totalRacerWins: userData.totalRacerWins,
+            totalRacerLoss: userData.totalRacerLoss,
+            tournamentWins: userData.tournamentWins,
+            tournamentParticipations: userData.tournamentParticipations,
+          }
+        }
       },
+      include: { gameStatus: true }
     });
+
     
     createdUsers.push(user);
-    console.log(`✅ Created user: ${user.username} (${user.totalWins}W/${user.totalLosses}L, ${user.points} pts, ${user.totalWinPercent?.toFixed(1)}% WR)`);
+    console.log(
+      `✅ Created user: ${user.username} (` +
+      `${user.gameStatus?.totalWins}W/${user.gameStatus?.totalLosses}L, ` +
+      `${user.gameStatus?.points} pts, ` +
+      `${user.gameStatus?.totalWinPercent?.toFixed(1)}% WR)`
+    );
+
   }
 
   console.log('\n👥 Creating friendships...\n');

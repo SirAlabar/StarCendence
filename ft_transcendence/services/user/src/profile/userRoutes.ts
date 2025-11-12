@@ -61,5 +61,4 @@ export async function userRoutes(fastify: FastifyInstance)
     preHandler: [verifyUserToken]
   },
   userController.getUserRank);
-
 }
