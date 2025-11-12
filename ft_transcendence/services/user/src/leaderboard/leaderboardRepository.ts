@@ -5,8 +5,7 @@ const prisma = new PrismaClient();
 // Get leaderboard - top players by points
 export async function getLeaderboard()
 {
-  return prisma.userProfile.findMany(
-  {
+  return prisma.userProfile.findMany({
     select: {
       id: true,
       username: true,

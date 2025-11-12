@@ -92,10 +92,8 @@ export async function uploadProfileImage(id: string, image: any): Promise<string
 }
 
 // Search users by username
-export async function searchUsers(query: string)
-{
-  if (!query || query.trim().length < 2)
-  {
+export async function searchUsers(query: string) {
+  if (!query || query.trim().length < 2) {
     throw new HttpError('Search query must be at least 2 characters', 400);
   }
 
@@ -103,36 +101,11 @@ export async function searchUsers(query: string)
   return users;
 }
 
-// Get leaderboard
-export async function getLeaderboard(limit: number = 10)
-{
-  if (limit < 1 || limit > 100) 
-  {
-    throw new HttpError('Limit must be between 1 and 100', 400);
-  }
-
-  const users = await userRepository.getLeaderboard(limit);
-  
-  return users.map((user, index) => (
-  {
-    id: user.id,
-    username: user.username,
-    avatarUrl: user.avatarUrl,
-    status: user.status,
-    wins: user.totalWins || 0,
-    losses: user.totalLosses || 0,
-    points: user.points || 0,
-    rank: index + 1
-  }));
-}
-
 // Get user rank
-export async function getUserRank(userId: string)
-{
+export async function getUserRank(userId: string) {
   const userWithRank = await userRepository.getUserRank(userId);
   
-  if (!userWithRank) 
-  {
+  if (!userWithRank) {
     throw new HttpError('User not found', 404);
   }
 
@@ -149,12 +122,10 @@ export async function getUserRank(userId: string)
 }
 
 // Update user stats (internal - called after game)
-export async function updateUserStats(userId: string, won: boolean, pointsEarned: number)
-{
+export async function updateUserStats(userId: string, won: boolean, pointsEarned: number) {
   const user = await userRepository.updateUserStats(userId, won, pointsEarned);
-  
-  if (!user) 
-  {
+
+  if (!user) {
     throw new HttpError('User not found', 404);
   }
 

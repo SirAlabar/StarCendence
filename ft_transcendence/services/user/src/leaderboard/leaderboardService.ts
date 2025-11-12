@@ -9,8 +9,7 @@ export async function getLeaderboard()
     throw new HttpError("Users not found", 404);
   }
 
-  return users.map((user: any, index: number) => (
-  {
+  return users.map((user: any, index: number) => ({
     id: user.id,
     username: user.username,
     avatarUrl: user.avatarUrl,

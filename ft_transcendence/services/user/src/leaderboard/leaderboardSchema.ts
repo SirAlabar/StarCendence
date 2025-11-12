@@ -3,16 +3,12 @@ import { UserStatus } from '../profile/user.types';
 // Leaderboard schema for GET /leaderboard
 export const getLeaderboardSchema = 
 {
-  response: 
-  {
-    200: 
-    {
+  response: {
+    200: {
       type: 'array',
-      items: 
-      {
+      items: {
         type: 'object',
-        properties: 
-        {
+        properties: {
           id: { type: 'string' },
           username: { type: 'string' },
           avatarUrl: { type: 'string', nullable: true },
