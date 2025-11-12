@@ -6,8 +6,8 @@ import fs from 'fs/promises';
 
 // Create a new user profile (internal)
 export async function createUserProfile(authId: string, email: string, username: string, oauthEnabled: boolean) {
-  if (!authId || !email || !username) {
-    throw new HttpError('Auth ID, email, and username are required', 400);
+  if (!authId || !email || !username || oauthEnabled === undefined) {
+    throw new HttpError('Auth ID, email, username, and OAuth enabled status are required', 400);
   }
 
   await userRepository.createUserProfile(authId, email, username, oauthEnabled);

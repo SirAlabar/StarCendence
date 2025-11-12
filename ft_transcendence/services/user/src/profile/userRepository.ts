@@ -16,7 +16,14 @@ export async function createUserProfile(authId: string, email: string, username:
       email,
       username,
       avatarUrl: '/avatars/default.jpeg',
-      oauthEnabled,
+      settings: {
+        create: {
+          oauthEnabled
+        }
+      },
+      gameStatus: {
+        create: {}
+      }
     }
   });
 }

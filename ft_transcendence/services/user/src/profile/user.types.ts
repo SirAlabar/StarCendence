@@ -20,9 +20,6 @@ export interface UserProfile {
   username: string;
   bio?: string | null;
   avatarUrl?: string | null;
-  totalWins?: number;
-  totalLosses?: number;
-  points?: number;
   createdAt: Date;
   updatedAt: Date;
 }
