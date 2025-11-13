@@ -1,8 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { verifyUserToken } from '../middleware/authMiddleware';
 import * as userController from './userController';
-import { searchUserByUsernameSchema, updateUserProfileSchema, searchUsersSchema } from './userSchema';
-import { UpdateUserBody } from './user.types';
+import * as userSchema from './userSchema';
 import * as userRepository from './userRepository';
 
 export async function userRoutes(fastify: FastifyInstance) 
@@ -25,28 +24,21 @@ export async function userRoutes(fastify: FastifyInstance)
   fastify.get('/profile/:username',
   {
     preHandler: [verifyUserToken],
-    schema: searchUserByUsernameSchema
+    schema: userSchema.searchUserByUsernameSchema
   },
   userController.getUserProfileByUsername);
 
   fastify.get('/users/search',
   {
     preHandler: [verifyUserToken],
-    schema: searchUsersSchema
+    schema: userSchema.searchUsersSchema
   },
   userController.searchUsers);
 
-  fastify.put<{ Body: UpdateUserBody }>('/profile',
+  fastify.patch('/profile',
   {
     preHandler: [verifyUserToken],
-    schema: updateUserProfileSchema
-  },
-  userController.updateUserProfile);
-
-  fastify.patch<{ Body: UpdateUserBody }>('/profile',
-  {
-    preHandler: [verifyUserToken],
-    schema: updateUserProfileSchema
+    schema: userSchema.updateUserProfileSchema
   },
   userController.updateUserProfile);
 
@@ -61,4 +53,11 @@ export async function userRoutes(fastify: FastifyInstance)
     preHandler: [verifyUserToken]
   },
   userController.getUserRank);
+
+  fastify.patch('/settings',
+  {
+    preHandler: [verifyUserToken],
+    schema: userSchema.updateUserSettingsSchema
+  },
+  userController.updateUserSettings);
 }

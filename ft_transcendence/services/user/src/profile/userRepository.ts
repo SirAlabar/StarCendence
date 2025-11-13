@@ -52,7 +52,7 @@ export async function findUserProfileByUsername(username: string) {
 }
 
 // Update user profile
-export async function updateUserProfile(id: string, updatedData: Partial<UserProfile>) {
+export async function updateUserProfile(id: string, updatedData: any) {
   return prisma.userProfile.update({
     where: { id },
     data: updatedData
@@ -184,4 +184,19 @@ export async function getPersonalUserProfileById(id: string) {
     settings: omit(rawUser?.settings, ['userSettingsId'])
   }
   return safeUser;
+}
+
+// Update user settings
+export async function updateUserSettings(id: string, settings: any) {
+  return prisma.userProfile.update({
+    where: { id },
+    data: {
+      settings: {
+        update: settings
+      }
+    },
+    include: {
+      settings: true
+    }
+  });
 }

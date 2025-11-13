@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import * as userService from './userService'
-import { CreateUserBody, UpdateUserBody } from './user.types'
-import { UserProfile, UserStatus } from './user.types'
+import { CreateUserBody } from './user.types'
+import { UserStatus } from './user.types'
 
 
 // POST /internal/create-user - Create new user
@@ -30,7 +30,7 @@ export async function updateUser( req: FastifyRequest<{ Body: { userId: string; 
   return reply.send(updatedUser);
 }
 
-// GET /profile - Get user's profile (requires authentication)
+// GET /profile - Get user's profile
 export async function getUserProfile(req: FastifyRequest, reply: FastifyReply) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -41,7 +41,7 @@ export async function getUserProfile(req: FastifyRequest, reply: FastifyReply) {
   return reply.send(user);
 }
 
-// GET /profile/:username - Get user's profile by username (requires authentication)
+// GET /profile/:username - Get user's profile by username
 export async function getUserProfileByUsername(req: FastifyRequest, reply: FastifyReply) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -57,8 +57,8 @@ export async function getUserProfileByUsername(req: FastifyRequest, reply: Fasti
   return reply.send(user);
 }
 
-// PUT /profile - Update user's profile (requires authentication)
-export async function updateUserProfile( req: FastifyRequest<{ Body: UpdateUserBody }>, reply: FastifyReply ) {
+// PATCH /profile - Update user's profile
+export async function updateUserProfile( req: FastifyRequest, reply: FastifyReply ) {
   const userId = req.user?.sub;
   if (!userId) {
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
@@ -71,7 +71,7 @@ export async function updateUserProfile( req: FastifyRequest<{ Body: UpdateUserB
   return reply.send(updatedUser);
 }
 
-// POST /profile-image - Upload or update user's profile image (requires authentication)
+// POST /profile-image - Upload or update user's profile image
 export async function uploadProfileImage(req: FastifyRequest, reply: FastifyReply) 
 {
   const userId = req.user?.sub;
@@ -104,7 +104,7 @@ export async function uploadProfileImage(req: FastifyRequest, reply: FastifyRepl
   return reply.send({ avatarUrl: imageUrl });
 }
 
-// GET /users/search?q=query - Search users by username (requires authentication)
+// GET /users/search?q=query - Search users by username
 export async function searchUsers(req: FastifyRequest, reply: FastifyReply)
 {
   const userId = req.user?.sub;
@@ -160,3 +160,16 @@ export async function updateTwoFactorState(req: FastifyRequest<{ Body: { userId:
 
   return reply.send(updatedUser);
 }
+
+// Patch /settings - Update user's settings
+export async function updateUserSettings(req: FastifyRequest, reply: FastifyReply) {
+ const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  }
+  const settingsData = req.body;
+
+  await userService.updateUserSettings(userId, settingsData);
+
+  return reply.send({ message: 'User settings updated successfully' });
+};

@@ -1,6 +1,6 @@
-// User creation in user service, internal route /create-user
 import { UserStatus } from "./user.types";
 
+// User creation in user service, internal route /create-user
 export const createUserSchema = {
   body: {
     type: 'object',
@@ -70,43 +70,22 @@ export const searchUsersSchema = {
   {
     type: 'object',
     required: ['q'],
-    properties: 
-    {
+    properties: {
       q: { type: 'string', minLength: 2, maxLength: 50 }
     }
   },
-  response: 
-  {
-    200: 
-    {
+  response: {
+    200: {
       type: 'array',
-      items: 
-      {
+      items: {
         type: 'object',
-        properties: 
-        {
+        properties: {
           id: { type: 'string' },
           username: { type: 'string' },
           avatarUrl: { type: 'string', nullable: true },
           status: { type: 'string', enum: Object.values(UserStatus) }
         }
       }
-    }
-  }
-};
-
-// Update user stats schema for internal PUT /internal/update-user-stats
-export const updateUserStatsSchema = 
-{
-  body: 
-  {
-    type: 'object',
-    required: ['userId', 'won', 'pointsEarned'],
-    properties: 
-    {
-      userId: { type: 'string' },
-      won: { type: 'boolean' },
-      pointsEarned: { type: 'number' }
     }
   }
 };
@@ -122,3 +101,22 @@ export const updateTwoFactorStateSchema = {
     }
   }
 };
+
+// User settings update schema for PATCH /settings
+export const updateUserSettingsSchema = {
+  body: {
+    type: 'object',
+    required:['showOnlineStatus','allowFriendRequests', 'showGameActivity',
+      'notifyFriendRequests','notifyGameInvites','notifyMessages'],
+    properties: {
+      showOnlineStatus: { type: 'boolean' },
+      allowFriendRequests: { type: 'boolean' },
+      showGameActivity: { type: 'boolean' },
+      notifyFriendRequests: { type: 'boolean' },
+      notifyGameInvites: { type: 'boolean' },
+      notifyMessages: { type: 'boolean' }
+    },
+    additionalProperties: false
+  }
+};
+

@@ -23,8 +23,3 @@ export interface UserProfile {
   createdAt: Date;
   updatedAt: Date;
 }
-
-export interface UpdateUserBody {
-  bio?: string | null;
-}
-

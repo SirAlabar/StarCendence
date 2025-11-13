@@ -41,7 +41,7 @@ export async function findUserProfileByUsername(username: string) {
 }
 
 // Update user profile
-export async function updateUserProfile(id: string, updatedData: Partial<UserProfile>) {
+export async function updateUserProfile(id: string, updatedData: any) {
   const user = await userRepository.updateUserProfile(id, updatedData);
   if (!user) {
     throw new HttpError('User not found', 404);
@@ -141,4 +141,18 @@ export async function getPersonalUserProfileById(id: string) {
     throw new HttpError('User not found', 404);
   }
   return user;
+}
+
+// Update user settings
+export async function updateUserSettings(id: string, settings: any) {
+  const user  = await userRepository.findUserProfileById(id);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+
+  const updatedUser = await userRepository.updateUserSettings(id, settings);
+  if (!updatedUser) {
+    throw new HttpError('Failed to update user settings', 500);
+  }
+  return updatedUser;
 }
