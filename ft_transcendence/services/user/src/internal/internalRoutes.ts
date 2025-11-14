@@ -15,4 +15,10 @@ export async function internalRoutes(fastify: FastifyInstance) {
     schema: userSchema.updateUserStatusSchema
   },
   userController.updateUser);
+
+  fastify.patch('/update-2fa-state',
+  {
+    schema: userSchema.updateTwoFactorStateSchema
+  },
+  userController.updateTwoFactorState);
 }

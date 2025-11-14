@@ -19,7 +19,7 @@ export async function registerUser(email: string, password: string, username: st
 
   const authUser = await userRepository.createUser(email, hashedPassword, username);
 
-  await userServiceClient.createUserProfile(authUser.id, email, username);
+  await userServiceClient.createUserProfile(authUser.id, email, username, false);
 }
 
 // Login user and return tokens
@@ -104,20 +104,4 @@ export async function updateUserPassword(userId: string, currentPassword: string
 
   const hashedNewPassword = await bcrypt.hash(newPassword, 10);
   await userRepository.updateUserPassword(userId, hashedNewPassword);
-}
-
-// Get user profile information
-export async function getUserProfile(userId: string) {
-  const user = await userRepository.findUserById(userId);
-  if (!user) {
-    throw new HttpError('User not found', 404);
-  }
-
-  return {
-    id: user.id,
-    email: user.email,
-    username: user.username,
-    twoFactorEnabled: user.twoFactorEnabled,
-    oauthEnabled: user.oauthEnabled
-  };
 }

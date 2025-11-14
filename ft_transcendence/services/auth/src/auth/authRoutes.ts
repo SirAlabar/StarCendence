@@ -5,7 +5,7 @@ import * as authController from './authController';
 
 export async function authRoutes(fastify: FastifyInstance){
   fastify.post('/register',
-  {
+{
     schema: authSchema.registerSchema
   },
   authController.register);
@@ -35,10 +35,4 @@ export async function authRoutes(fastify: FastifyInstance){
     schema: authSchema.updatePasswordSchema
   },
   authController.updatePassword);
-
-  fastify.get('/profile',
-  {
-    preHandler: [verifyUserToken],
-  },
-  authController.getProfile);
 }

@@ -3,7 +3,7 @@ import { HttpError } from '../utils/HttpError';
 import { getInternalApiKey } from '../utils/getSecrets';
 
 // Create user in User Service
-export async function createUserProfile(authId: string, email: string, username: string) {
+export async function createUserProfile(authId: string, email: string, username: string, oauthEnabled: boolean) {
   const response = await fetch('http://user-service:3004/internal/create-user', {
     method: 'POST',
     headers: {
@@ -13,7 +13,8 @@ export async function createUserProfile(authId: string, email: string, username:
     body: JSON.stringify({
       authId,
       email,
-      username
+      username,
+      oauthEnabled
     })
   });
 
@@ -56,6 +57,27 @@ export async function updateUserStatus(authId: string, status: string) {
     body: JSON.stringify({
       userId: authId,
       status
+    })
+  });
+
+  if (!response.ok) {
+    throw new HttpError(`User service responded with ${response.status}`, response.status);
+  }
+
+  return await response.json();
+}
+
+// Update 2FA enabled/disabled in User Service
+export async function updateTwoFactorState(authId: string, state: boolean) {
+  const response = await fetch('http://user-service:3004/internal/update-2fa-state', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': getInternalApiKey()
+    },
+    body: JSON.stringify({
+      userId: authId,
+      twoFactorEnabled: state
     })
   });
 

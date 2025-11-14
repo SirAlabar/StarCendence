@@ -1,19 +1,19 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import * as userService from './userService'
-import { CreateUserBody, UpdateUserBody } from './user.types'
-import { UserProfile, UserStatus } from './user.types'
+import { CreateUserBody } from './user.types'
+import { UserStatus } from './user.types'
 
 
 // POST /internal/create-user - Create new user
 export async function createUser( req: FastifyRequest<{ Body: CreateUserBody }>, reply: FastifyReply ) {
-  const { authId, email, username } = req.body
-  if (!authId || !email || !username) {
+  const { authId, email, username, oauthEnabled } = req.body
+  if (!authId || !email || !username || oauthEnabled === undefined) {
     return reply.status(400).send({ error: 'Missing required fields' });
   }
-  
-  await userService.createUserProfile(authId, email, username);
 
-  const user: UserProfile = await userService.findUserProfileById(authId);
+  await userService.createUserProfile(authId, email, username, oauthEnabled);
+
+  const user = await userService.findUserProfileById(authId);
 
   return reply.status(201).send(user);
 }
@@ -25,23 +25,23 @@ export async function updateUser( req: FastifyRequest<{ Body: { userId: string; 
     return reply.status(400).send({ error: 'Missing required fields' });
   }
 
-  const updatedUser: UserProfile = await userService.updateUserStatus(userId, status);
+  const updatedUser = await userService.updateUserStatus(userId, status);
 
   return reply.send(updatedUser);
 }
 
-// GET /profile - Get user's profile (requires authentication)
+// GET /profile - Get user's profile
 export async function getUserProfile(req: FastifyRequest, reply: FastifyReply) {
   const userId = req.user?.sub;
   if (!userId) {
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
   }
-  const user: UserProfile = await userService.findUserProfileById(userId);
+  const user = await userService.getPersonalUserProfileById(userId);
 
   return reply.send(user);
 }
 
-// GET /profile/:username - Get user's profile by username (requires authentication)
+// GET /profile/:username - Get user's profile by username
 export async function getUserProfileByUsername(req: FastifyRequest, reply: FastifyReply) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -52,25 +52,26 @@ export async function getUserProfileByUsername(req: FastifyRequest, reply: Fasti
     return reply.status(400).send({ error: 'Username is required' });
   }
 
-  const user: UserProfile = await userService.findUserProfileByUsername(username);
+  const user = await userService.findUserProfileByUsername(username);
 
   return reply.send(user);
 }
 
-// PUT /profile - Update user's profile (requires authentication)
-export async function updateUserProfile( req: FastifyRequest<{ Body: UpdateUserBody }>, reply: FastifyReply ) {
+// PATCH /profile - Update user's profile
+export async function updateUserProfile( req: FastifyRequest, reply: FastifyReply ) {
   const userId = req.user?.sub;
   if (!userId) {
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
   }
 
   const updatedData = req.body;
-  const updatedUser: UserProfile = await userService.updateUserProfile(userId, updatedData);
+
+  const updatedUser = await userService.updateUserProfile(userId, updatedData);
 
   return reply.send(updatedUser);
 }
 
-// POST /profile-image - Upload or update user's profile image (requires authentication)
+// POST /profile-image - Upload or update user's profile image
 export async function uploadProfileImage(req: FastifyRequest, reply: FastifyReply) 
 {
   const userId = req.user?.sub;
@@ -103,19 +104,17 @@ export async function uploadProfileImage(req: FastifyRequest, reply: FastifyRepl
   return reply.send({ avatarUrl: imageUrl });
 }
 
-// GET /users/search?q=query - Search users by username (requires authentication)
+// GET /users/search?q=query - Search users by username
 export async function searchUsers(req: FastifyRequest, reply: FastifyReply)
 {
   const userId = req.user?.sub;
-  if (!userId)
-  {
+  if (!userId){
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
   }
 
   const { q } = req.query as { q?: string };
   
-  if (!q || q.trim().length < 2)
-  {
+  if (!q || q.trim().length < 2) {
     return reply.status(400).send({ error: 'Search query must be at least 2 characters' });
   }
 
@@ -123,27 +122,10 @@ export async function searchUsers(req: FastifyRequest, reply: FastifyReply)
   return reply.send(users);
 }
 
-// GET /leaderboard - Get top players
-export async function getLeaderboard(req: FastifyRequest, reply: FastifyReply)
-{
-  const { limit } = req.query as { limit?: string };
-  const limitNum = limit ? parseInt(limit, 10) : 10;
-
-  if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) 
-  {
-    return reply.status(400).send({ error: 'Limit must be between 1 and 100' });
-  }
-
-  const leaderboard = await userService.getLeaderboard(limitNum);
-  return reply.send(leaderboard);
-}
-
 // GET /rank - Get current user's rank
-export async function getUserRank(req: FastifyRequest, reply: FastifyReply)
-{
+export async function getUserRank(req: FastifyRequest, reply: FastifyReply) {
   const userId = req.user?.sub;
-  if (!userId)
-  {
+  if (!userId) {
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
   }
 
@@ -155,15 +137,39 @@ export async function getUserRank(req: FastifyRequest, reply: FastifyReply)
 export async function updateUserStats(
   req: FastifyRequest<{ Body: { userId: string; won: boolean; pointsEarned: number } }>, 
   reply: FastifyReply
-)
-{
+) {
   const { userId, won, pointsEarned } = req.body;
   
-  if (!userId || typeof won !== 'boolean' || typeof pointsEarned !== 'number') 
-  {
+  if (!userId || typeof won !== 'boolean' || typeof pointsEarned !== 'number') {
     return reply.status(400).send({ error: 'Missing or invalid required fields' });
   }
 
   const updatedUser = await userService.updateUserStats(userId, won, pointsEarned);
   return reply.send(updatedUser);
 }
+
+// PATCH /internal/update-2fa-state - Update user's two-factor authentication state (internal)
+export async function updateTwoFactorState(req: FastifyRequest<{ Body: { userId: string; twoFactorEnabled: boolean } }>, reply: FastifyReply) {
+  const { userId, twoFactorEnabled } = req.body;
+  
+  if (!userId || typeof twoFactorEnabled !== 'boolean') {
+    return reply.status(400).send({ error: 'Missing or invalid required fields' });
+  }
+
+  const updatedUser = await userService.updateTwoFactorState(userId, twoFactorEnabled);
+
+  return reply.send(updatedUser);
+}
+
+// Patch /settings - Update user's settings
+export async function updateUserSettings(req: FastifyRequest, reply: FastifyReply) {
+ const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  }
+  const settingsData = req.body;
+
+  await userService.updateUserSettings(userId, settingsData);
+
+  return reply.send({ message: 'User settings updated successfully' });
+};
