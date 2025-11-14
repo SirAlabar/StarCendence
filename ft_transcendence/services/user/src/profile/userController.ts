@@ -122,3 +122,48 @@ export async function searchUsers(req: FastifyRequest, reply: FastifyReply)
   const users = await userService.searchUsers(q);
   return reply.send(users);
 }
+
+// GET /leaderboard - Get top players
+export async function getLeaderboard(req: FastifyRequest, reply: FastifyReply)
+{
+  const { limit } = req.query as { limit?: string };
+  const limitNum = limit ? parseInt(limit, 10) : 10;
+
+  if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) 
+  {
+    return reply.status(400).send({ error: 'Limit must be between 1 and 100' });
+  }
+
+  const leaderboard = await userService.getLeaderboard(limitNum);
+  return reply.send(leaderboard);
+}
+
+// GET /rank - Get current user's rank
+export async function getUserRank(req: FastifyRequest, reply: FastifyReply)
+{
+  const userId = req.user?.sub;
+  if (!userId)
+  {
+    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
+  }
+
+  const userRank = await userService.getUserRank(userId);
+  return reply.send(userRank);
+}
+
+// PUT Update user stats after game
+export async function updateUserStats(
+  req: FastifyRequest<{ Body: { userId: string; won: boolean; pointsEarned: number } }>, 
+  reply: FastifyReply
+)
+{
+  const { userId, won, pointsEarned } = req.body;
+  
+  if (!userId || typeof won !== 'boolean' || typeof pointsEarned !== 'number') 
+  {
+    return reply.status(400).send({ error: 'Missing or invalid required fields' });
+  }
+
+  const updatedUser = await userService.updateUserStats(userId, won, pointsEarned);
+  return reply.send(updatedUser);
+}

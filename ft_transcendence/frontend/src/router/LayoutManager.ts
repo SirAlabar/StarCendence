@@ -32,7 +32,7 @@ export function renderDefault(component: BaseComponent): void
         const isLandingPage = component.constructor.name === 'LandingPage';
         if (isLandingPage) 
         {
-            contentMountAfter.className = 'pt-20';
+            contentMountAfter.className = '';
             const pageContent = layout.renderPageSection(
                 'page-content', 
                 component.render(), 
@@ -60,7 +60,7 @@ export function renderGame(component: BaseComponent): void
     const app = document.querySelector('#app')!;
     
     app.innerHTML = `
-        <div class="h-screen overflow-hidden bg-black" data-route-content="true">
+        <div class="h-screen overflow-hidden" data-route-content="true">
             <main class="h-full">
                 <div id="game-content" class="h-full"></div>
             </main>
