@@ -60,6 +60,16 @@ export async function createRedisClient(): Promise<RedisClientType> {
       socket: {
         host: config.host,
         port: config.port,
+        keepAlive: 30000, // 30 seconds
+        reconnectStrategy: (retries) => {
+          if (retries > 10) {
+            console.error('Redis: Max reconnection attempts reached');
+            return new Error('Max reconnection attempts reached');
+          }
+          const delay = Math.min(retries * 100, 3000);
+          console.log(`Redis: Reconnecting in ${delay}ms (attempt ${retries})`);
+          return delay;
+        },
       },
       password: config.password,
     });
@@ -75,6 +85,16 @@ export async function createRedisClient(): Promise<RedisClientType> {
 
     redisClient.on('ready', () => {
       console.log('Redis client ready');
+      // Start keepalive ping every 20 seconds (before 30s timeout)
+      setInterval(async () => {
+        try {
+          if (redisClient && redisClient.isReady) {
+            await redisClient.ping();
+          }
+        } catch (error) {
+          // Silent fail - connection will reconnect if needed
+        }
+      }, 20000);
     });
 
     redisClient.on('reconnecting', () => {

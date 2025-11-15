@@ -55,6 +55,7 @@ services:
     restart: unless-stopped
     depends_on:
       - frontend-builder
+      - websocket-service
 
   # Cloudflare Tunnel (cloudflare profile)
   cloudflared:
@@ -161,6 +162,7 @@ services:
       - .env
     depends_on:
       - redis
+      - auth-service
     restart: always
 
   # Redis Cache
@@ -235,22 +237,22 @@ networks:
 
 secrets:
   redis_password:
-    file: ../secrets/redis_password.txt
+    file: ./secrets/redis_password.txt
   jwt_secret:
-    file: ../secrets/jwt_secret_example.txt
+    file: ./secrets/jwt_secret_example.txt
   internal_api_key:
-    file: ../secrets/internal_api_key.txt
+    file: ./secrets/internal_api_key.txt
   google_client_id:
-    file: ../secrets/google_client_id.txt
+    file: ./secrets/google_client_id.txt
   google_client_secret:
-    file: ../secrets/google_client_secret.txt
+    file: ./secrets/google_client_secret.txt
   ssl_certificate:
-    file: ../secrets/ssl_certificate.pem
+    file: ./secrets/ssl_certificate.pem
   ssl_private_key:
-    file: ../secrets/ssl_private_key.key
+    file: ./secrets/ssl_private_key.key
   cloudflare_tunnel_token:
-    file: ../secrets/cloudflare_tunnel_token.txt
+    file: ./secrets/cloudflare_tunnel_token.txt
   cloudflare_tunnel_credentials:
-    file: ../secrets/cloudflare_tunnel_credentials.json
+    file: ./secrets/cloudflare_tunnel_credentials.json
   cloudflare_origin_cert:
-    file: ../secrets/cloudflare_origin_cert.pem
+    file: ./secrets/cloudflare_origin_cert.pem

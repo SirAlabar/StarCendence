@@ -1,6 +1,7 @@
 // WebSocket server entry point
 import { createApp } from './app';
 import { getWSConfig } from './config/wsConfig';
+import { connectionPool } from './connections/ConnectionPool';
 
 async function start() {
   try {
@@ -16,6 +17,14 @@ async function start() {
     console.log(`WebSocket path: ${config.path}`);
     console.log(`Health check: ${address}${config.healthPath}`);
     console.log(`Environment: ${config.nodeEnv}`);
+
+    // Periodic logging of connected users (every 2 minutes)
+    setInterval(() => {
+      connectionPool.logConnectedUsers();
+    }, 120000); // 2 minutes
+
+    // Log initial state
+    connectionPool.logConnectedUsers();
   } catch (error) {
     console.error('Error starting server:', error);
     process.exit(1);

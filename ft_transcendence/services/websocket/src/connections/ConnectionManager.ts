@@ -45,6 +45,7 @@ export class ConnectionManager {
       const connectionInfo: ConnectionInfo = {
         connectionId,
         userId: authResult.userId,
+        username: authResult.username,
         socket,
         connectedAt: new Date(),
         ip: typeof ip === 'string' ? ip : ip?.[0] || undefined,
@@ -53,6 +54,18 @@ export class ConnectionManager {
 
       // Add to connection pool
       connectionPool.add(connectionInfo);
+
+      // Log successful connection (PRODUCTION - not a test)
+      console.log(`[PRODUCTION] WebSocket connection established:`, {
+        connectionId,
+        userId: authResult.userId,
+        username: authResult.username,
+        ip: connectionInfo.ip,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Log connected users summary
+      connectionPool.logConnectedUsers();
 
       // Send connection acknowledgment
       this.sendMessage(socket, {
@@ -65,8 +78,18 @@ export class ConnectionManager {
       });
 
       // Set up connection close handler
-      socket.on('close', () => {
+      socket.on('close', (code, reason) => {
+        console.log(`[PRODUCTION] WebSocket connection closed:`, {
+          connectionId,
+          userId: authResult.userId,
+          username: authResult.username,
+          code,
+          reason: reason?.toString(),
+          timestamp: new Date().toISOString(),
+        });
         connectionPool.remove(connectionId);
+        // Log updated connected users summary
+        connectionPool.logConnectedUsers();
       });
 
       // Set up error handler

@@ -131,6 +131,56 @@ export class ConnectionPool {
     this.connectionsBySocketId.clear();
     this.connectionsByUserId.clear();
   }
+
+  /**
+   * Get summary of connected users
+   */
+  getConnectedUsersSummary(): { totalConnections: number; users: Array<{ userId: string; username?: string; connectionCount: number }> } {
+    const usersMap = new Map<string, { username?: string; connectionCount: number }>();
+
+    for (const connection of this.connectionsBySocketId.values()) {
+      const existing = usersMap.get(connection.userId);
+      if (existing) {
+        existing.connectionCount++;
+      } else {
+        usersMap.set(connection.userId, {
+          username: connection.username,
+          connectionCount: 1,
+        });
+      }
+    }
+
+    const users = Array.from(usersMap.entries()).map(([userId, data]) => ({
+      userId,
+      username: data.username,
+      connectionCount: data.connectionCount,
+    }));
+
+    return {
+      totalConnections: this.connectionsBySocketId.size,
+      users,
+    };
+  }
+
+  /**
+   * Log connected users summary
+   */
+  logConnectedUsers(): void {
+    const summary = this.getConnectedUsersSummary();
+    
+    if (summary.totalConnections === 0) {
+      console.log('📊 Connected Users: 0 connections');
+      return;
+    }
+
+    console.log(`📊 Connected Users: ${summary.totalConnections} connection(s) from ${summary.users.length} user(s)`);
+    
+    for (const user of summary.users) {
+      const usernameDisplay = user.username || 'Unknown';
+      const connectionText = user.connectionCount > 1 ? 'connections' : 'connection';
+      console.log(`   • ${usernameDisplay} (${user.userId.substring(0, 8)}...): ${user.connectionCount} ${connectionText}`);
+    }
+  }
 }
 
 // Export singleton instance

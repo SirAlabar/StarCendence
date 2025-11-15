@@ -19,7 +19,7 @@
     "websocket",
     "redis",
     "real-time"
-  },
+  ],
   "author": "ft_transcendence",
   "license": "MIT",
   "dependencies": {

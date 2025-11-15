@@ -28,14 +28,23 @@ export class RedisBroadcast {
 
       // For Redis v4+, we need separate client connections for pub/sub
       // Create subscriber client
-      const { getRedisConfig } = require('../config/redisConfig');
+      const { getRedisConfig } = await import('../config/redisConfig');
       const redisConfig = getRedisConfig();
-      const { createClient } = require('redis');
+      const { createClient } = await import('redis');
       
       this.subscriber = createClient({
         socket: {
           host: redisConfig.host,
           port: redisConfig.port,
+          keepAlive: 30000, // 30 seconds
+          reconnectStrategy: (retries) => {
+            if (retries > 10) {
+              console.error('Redis Subscriber: Max reconnection attempts reached');
+              return new Error('Max reconnection attempts reached');
+            }
+            const delay = Math.min(retries * 100, 3000);
+            return delay;
+          },
         },
         password: redisConfig.password,
       }) as RedisClientType;
@@ -44,6 +53,15 @@ export class RedisBroadcast {
         socket: {
           host: redisConfig.host,
           port: redisConfig.port,
+          keepAlive: 30000, // 30 seconds
+          reconnectStrategy: (retries) => {
+            if (retries > 10) {
+              console.error('Redis Publisher: Max reconnection attempts reached');
+              return new Error('Max reconnection attempts reached');
+            }
+            const delay = Math.min(retries * 100, 3000);
+            return delay;
+          },
         },
         password: redisConfig.password,
       }) as RedisClientType;
@@ -57,8 +75,34 @@ export class RedisBroadcast {
         console.error('Redis Subscriber Error:', err);
       });
 
+      this.subscriber.on('ready', () => {
+        // Keepalive ping every 20 seconds for subscriber
+        setInterval(async () => {
+          try {
+            if (this.subscriber && this.subscriber.isReady) {
+              await this.subscriber.ping();
+            }
+          } catch (error) {
+            // Silent fail - connection will reconnect if needed
+          }
+        }, 20000);
+      });
+
       this.publisher.on('error', (err) => {
         console.error('Redis Publisher Error:', err);
+      });
+
+      this.publisher.on('ready', () => {
+        // Keepalive ping every 20 seconds for publisher
+        setInterval(async () => {
+          try {
+            if (this.publisher && this.publisher.isReady) {
+              await this.publisher.ping();
+            }
+          } catch (error) {
+            // Silent fail - connection will reconnect if needed
+          }
+        }, 20000);
       });
 
       // Subscribe to broadcast channel

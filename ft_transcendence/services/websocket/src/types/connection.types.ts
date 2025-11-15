@@ -4,6 +4,7 @@ import { WebSocket } from '@fastify/websocket';
 export interface ConnectionInfo {
   connectionId: string;
   userId: string;
+  username?: string;
   socket: WebSocket;
   connectedAt: Date;
   ip?: string;

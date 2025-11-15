@@ -110,9 +110,9 @@ setup:
 	@printf "$(CYAN)Building frontend...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory front
 	@printf "$(CYAN)Building containers...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) build nginx redis user-service auth-service
+	@$(DOCKER_COMPOSE) build nginx redis user-service auth-service websocket-service
 	@printf "$(CYAN)Starting services...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service
+	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service websocket-service
 	@printf "$(CYAN)Waiting for services...$(DEFAULT)\n"
 	@sleep 5
 	@printf "$(CYAN)Pushing database schema...$(DEFAULT)\n"
