@@ -105,3 +105,15 @@ export async function updateUserPassword(userId: string, currentPassword: string
   const hashedNewPassword = await bcrypt.hash(newPassword, 10);
   await userRepository.updateUserPassword(userId, hashedNewPassword);
 }
+
+// Delete user account
+export async function deleteAuthProfile(userId: string) {
+  const user = await userRepository.findUserById(userId);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+
+  await userServiceClient.deleteUserProfile(userId);
+
+  await userRepository.deleteAuthProfile(userId);
+}

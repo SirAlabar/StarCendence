@@ -120,3 +120,12 @@ export const updateUserSettingsSchema = {
   }
 };
 
+export const deleteUserProfileSchema = {
+  body: {
+    type: 'object',
+    required: ['userId'],
+    properties: {
+      userId: { type: 'string', format: 'uuid' }
+    }
+  }
+};
