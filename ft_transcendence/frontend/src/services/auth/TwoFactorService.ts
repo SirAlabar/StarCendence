@@ -1,4 +1,4 @@
-// TwoFactorService.ts - 2FA management
+// TwoFactorService.ts - 2FA management with rate limit handling
 import { getAuthApiUrl } from '../../types/api.types';
 import { LoginService } from './LoginService';
 
@@ -37,6 +37,19 @@ export interface TwoFactorStatusResponse
     twoFactorEnabled: boolean;
 }
 
+// Custom error class to include status code
+export class TwoFactorError extends Error 
+{
+    status: number;
+    
+    constructor(message: string, status: number) 
+    {
+        super(message);
+        this.status = status;
+        this.name = 'TwoFactorError';
+    }
+}
+
 export class TwoFactorService 
 {
     private static getHeaders(): HeadersInit 
@@ -46,6 +59,32 @@ export class TwoFactorService
             'Content-Type': 'application/json',
             ...(token && { 'Authorization': `Bearer ${token}` })
         };
+    }
+
+    // Helper to handle fetch responses with proper error codes
+    private static async handleResponse<T>(response: Response): Promise<T> 
+    {
+        const data = await response.json();
+
+        if (!response.ok) 
+        {
+            // Handle rate limiting (429)
+            if (response.status === 429) 
+            {
+                throw new TwoFactorError(
+                    data.message || 'Too many requests. Please wait a moment before trying again.',
+                    429
+                );
+            }
+
+            // Handle other errors
+            throw new TwoFactorError(
+                data.message || 'Request failed',
+                response.status
+            );
+        }
+
+        return data;
     }
 
     // Check 2FA status
@@ -59,18 +98,12 @@ export class TwoFactorService
                 headers: this.getHeaders()
             });
 
-            const data = await response.json();
-
-            if (!response.ok) 
-            {
-                throw new Error(data.message || 'Failed to get 2FA status');
-            }
-
-            return data;
+            return await this.handleResponse<TwoFactorStatusResponse>(response);
         } 
         catch (error) 
         {
             console.error('2FA status check error:', error);
+            // Return default for status check (non-critical)
             return { twoFactorEnabled: false };
         }
     }
@@ -87,14 +120,7 @@ export class TwoFactorService
                 body: JSON.stringify({})
             });
 
-            const data = await response.json();
-
-            if (!response.ok) 
-            {
-                throw new Error(data.message || 'Failed to setup 2FA');
-            }
-
-            return data;
+            return await this.handleResponse<Setup2FAResponse>(response);
         } 
         catch (error) 
         {
@@ -115,14 +141,7 @@ export class TwoFactorService
                 body: JSON.stringify({ token: code })
             });
 
-            const data = await response.json();
-
-            if (!response.ok) 
-            {
-                throw new Error(data.message || 'Invalid 2FA code');
-            }
-
-            return data;
+            return await this.handleResponse<Verify2FAResponse>(response);
         } 
         catch (error) 
         {
@@ -143,14 +162,7 @@ export class TwoFactorService
                 body: JSON.stringify({})
             });
 
-            const data = await response.json();
-
-            if (!response.ok) 
-            {
-                throw new Error(data.message || 'Failed to disable 2FA');
-            }
-
-            return data;
+            return await this.handleResponse<Verify2FAResponse>(response);
         } 
         catch (error) 
         {
@@ -175,12 +187,7 @@ export class TwoFactorService
                 body: JSON.stringify({ token: code })
             });
 
-            const data = await response.json();
-
-            if (!response.ok) 
-            {
-                throw new Error(data.message || 'Invalid 2FA code');
-            }
+            const data = await this.handleResponse<Verify2FALoginResponse>(response);
 
             // Store tokens after successful 2FA verification
             if (data.accessToken && data.refreshToken) 

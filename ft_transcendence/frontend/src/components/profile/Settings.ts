@@ -4,6 +4,7 @@ import { TwoFactorService } from '../../services/auth/TwoFactorService';
 import { UserProfile } from '../../types/user.types';
 import UserService from '../../services/user/UserService';
 import { Modal } from '@/components/common/Modal';
+import { FormValidator } from '@services/user/FormValidator';
 
 interface SettingsProps 
 {
@@ -19,6 +20,7 @@ export class Settings extends BaseComponent
     private qrCodeDataURL: string = '';
     private secret: string = '';
     private loading: boolean = false;
+    private isLocked = false;
 
     // Track settings state
     private currentSettings = {
@@ -531,8 +533,22 @@ export class Settings extends BaseComponent
         }
     }
 
+    private lockFor(ms: number) 
+    {
+        this.isLocked = true;
+        setTimeout(() => { this.isLocked = false; }, ms);
+    }
+
     private async handleEnable2FA(): Promise<void> 
     {
+        if (this.isLocked) 
+        {
+            this.showMessage('Please wait a moment before trying again.', 'error');
+            return;
+        }
+
+        this.lockFor(3000); // 3 seconds cooldown
+
         try 
         {
             this.loading = true;
@@ -543,21 +559,32 @@ export class Settings extends BaseComponent
             
             this.qrCodeDataURL = response.qrCodeDataURL;
             this.secret = response.secret;
-            this.loading = false;
+
+            this.showMessage('Scan the QR Code and enter the 6-digit code.', 'success');
             
-            this.updateSetupArea();
         } 
         catch (error) 
         {
-            this.loading = false;
-            this.showQRCode = false;
-            this.updateSetupArea();
             this.showMessage((error as Error).message || 'Failed to setup 2FA', 'error');
+            this.showQRCode = false;
+        } 
+        finally 
+        {
+            this.loading = false;
+            this.updateSetupArea();
         }
     }
 
-    private async handleVerify2FA(): Promise<void> 
+    private async handleVerify2FA(): Promise<void>
     {
+        if (this.isLocked) 
+        {
+            this.showMessage('Please wait a moment before trying again.', 'error');
+            return;
+        }
+
+        this.lockFor(2000); // 2 seconds cooldown
+
         const input = document.getElementById('twofa-verify-input') as HTMLInputElement;
         if (!input) 
         {
@@ -574,15 +601,13 @@ export class Settings extends BaseComponent
         try 
         {
             await TwoFactorService.verify2FA(code);
-            
+
             this.is2FAEnabled = true;
             this.showQRCode = false;
             this.qrCodeDataURL = '';
             this.secret = '';
             
             this.showMessage('✓ 2FA enabled successfully!', 'success');
-            
-            // Remount to update UI
             this.mount('#settings-container');
         } 
         catch (error) 
@@ -590,6 +615,7 @@ export class Settings extends BaseComponent
             this.showMessage((error as Error).message || 'Invalid code', 'error');
         }
     }
+
 
     private async handleDisable2FA(): Promise<void> 
     {
@@ -650,8 +676,9 @@ export class Settings extends BaseComponent
                                 type="password" 
                                 id="new-password"
                                 class="w-full px-4 py-2 bg-gray-900/50 border-2 border-gray-700 rounded-lg text-cyan-100 focus:border-cyan-500 focus:outline-none"
-                                placeholder="Enter new password (min 8 characters)"
+                                placeholder="Min 8 chars, upper, lower, number, special"
                             >
+                            <p class="text-xs text-gray-500 mt-1">Must contain uppercase, lowercase, number, and special character (@$!%*?&.)</p>
                         </div>
                         
                         <div>
@@ -698,49 +725,44 @@ export class Settings extends BaseComponent
                 
                 const errorDiv = document.getElementById('password-error');
                 
+                const showError = (message: string) => {
+                    if (errorDiv) 
+                    {
+                        errorDiv.innerHTML = `
+                            <div class="bg-red-900/30 border-2 border-red-500/50 rounded-lg p-3">
+                                <p class="text-red-400 text-sm text-center">${this.escapeHtml(message)}</p>
+                            </div>
+                        `;
+                    }
+                };
+                
+                // Validate all fields are filled
                 if (!currentPassword || !newPassword || !confirmPassword) 
                 {
-                    if (errorDiv) 
-                    {
-                        errorDiv.innerHTML = `
-                            <div class="bg-red-900/30 border-2 border-red-500/50 rounded-lg p-3">
-                                <p class="text-red-400 text-sm text-center">All fields are required</p>
-                            </div>
-                        `;
-                    }
+                    showError('All fields are required');
                     return;
                 }
                 
-                if (newPassword.length < 8) 
+                // Validate new password using FormValidator
+                const passwordError = FormValidator.validatePassword(newPassword);
+                if (passwordError) 
                 {
-                    if (errorDiv) 
-                    {
-                        errorDiv.innerHTML = `
-                            <div class="bg-red-900/30 border-2 border-red-500/50 rounded-lg p-3">
-                                <p class="text-red-400 text-sm text-center">Password must be at least 8 characters</p>
-                            </div>
-                        `;
-                    }
+                    showError(passwordError);
                     return;
                 }
                 
-                if (newPassword !== confirmPassword) 
+                // Validate passwords match using FormValidator
+                const confirmError = FormValidator.validatePasswordConfirm(newPassword, confirmPassword);
+                if (confirmError) 
                 {
-                    if (errorDiv) 
-                    {
-                        errorDiv.innerHTML = `
-                            <div class="bg-red-900/30 border-2 border-red-500/50 rounded-lg p-3">
-                                <p class="text-red-400 text-sm text-center">Passwords do not match</p>
-                            </div>
-                        `;
-                    }
+                    showError(confirmError);
                     return;
                 }
                 
                 try 
                 {
                     // Call auth service to change password
-                    const response = await fetch('/api/auth//update-password', 
+                    const response = await fetch('/api/auth/update-password', 
                     {
                         method: 'PATCH',
                         headers: 
@@ -753,8 +775,16 @@ export class Settings extends BaseComponent
                     
                     if (!response.ok) 
                     {
-                        const error = await response.json();
-                        throw new Error(error.message || 'Failed to change password');
+                        const contentType = response.headers.get('content-type');
+                        let errorMessage = 'Failed to change password';
+                        
+                        if (contentType && contentType.includes('application/json')) 
+                        {
+                            const error = await response.json();
+                            errorMessage = error.message || errorMessage;
+                        }
+                        
+                        throw new Error(errorMessage);
                     }
                     
                     modal?.remove();
@@ -762,14 +792,7 @@ export class Settings extends BaseComponent
                 } 
                 catch (error) 
                 {
-                    if (errorDiv) 
-                    {
-                        errorDiv.innerHTML = `
-                            <div class="bg-red-900/30 border-2 border-red-500/50 rounded-lg p-3">
-                                <p class="text-red-400 text-sm text-center">${this.escapeHtml((error as Error).message)}</p>
-                            </div>
-                        `;
-                    }
+                    showError((error as Error).message);
                 }
             });
         }
