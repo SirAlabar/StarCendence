@@ -1,6 +1,6 @@
-# WebSocket Persistent Connection - Quick Integration Guide
+# WebSocket Persistent Connection 
 
-This guide shows the **minimal changes** needed to add persistent WebSocket connection to your existing frontend.
+This guide shows the **minimal changes** needed to add persistent WebSocket connection
 
 ## Files You Need to Add
 
@@ -125,13 +125,5 @@ VITE_WS_URL=ws://localhost:8080/ws
 
 **If not set**, the service automatically uses the same hostname/port as your frontend with `/ws` path (e.g., if frontend is at `http://localhost:8080`, WebSocket will connect to `ws://localhost:8080/ws`).
 
-## That's It!
-
-After these changes:
-- ✅ WebSocket connects automatically after login
-- ✅ WebSocket reconnects on page reload if user is authenticated
-- ✅ WebSocket disconnects on logout
-- ✅ Connection persists across page navigation
-- ✅ Automatic reconnection if connection drops
 
 The WebSocket will automatically authenticate using the JWT token from `LoginService.getAccessToken()`.
