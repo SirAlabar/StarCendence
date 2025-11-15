@@ -4,7 +4,7 @@ import { getLeaderboardSchema } from './leaderboardSchema';
 
 export async function leaderboardRoutes(fastify: FastifyInstance) 
 {
-  // GET /leaderboard - Get top 10 players
+  // GET /leaderboard - Get top 20 players
   fastify.get('/leaderboard',
   {
     schema: getLeaderboardSchema

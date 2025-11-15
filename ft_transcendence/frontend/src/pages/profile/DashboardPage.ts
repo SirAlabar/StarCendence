@@ -168,9 +168,9 @@ export default class DashboardPage extends BaseComponent
             return '';
         }
 
-        const totalGames = this.userProfile.totalGames || 0;
-        const totalWins = this.userProfile.totalWins || 0;
-        const totalLosses = this.userProfile.totalLosses || 0;
+        const totalGames = this.userProfile.gameStatus?.totalGames || 0;
+        const totalWins = this.userProfile.gameStatus?.totalWins || 0;
+        const totalLosses = this.userProfile.gameStatus?.totalLosses || 0;
         const winRate = this.calculateWinRate();
 
         return `
@@ -230,7 +230,7 @@ export default class DashboardPage extends BaseComponent
                     </text>
                 </svg>
                 <div class="text-center text-gray-400 text-sm">
-                    <p>${this.userProfile?.totalWins || 0} Wins / ${this.userProfile?.totalGames || 0} Games</p>
+                    <p>${this.userProfile?.gameStatus?.totalWins || 0} Wins / ${this.userProfile?.gameStatus?.totalGames || 0} Games</p>
                 </div>
             </div>
         `;
@@ -243,10 +243,10 @@ export default class DashboardPage extends BaseComponent
             return '';
         }
 
-        const pongWins = this.userProfile.totalPongWins || 0;
-        const pongLosses = this.userProfile.totalPongLoss || 0;
-        const racerWins = this.userProfile.totalRacerWins || 0;
-        const racerLosses = this.userProfile.totalRacerLoss || 0;
+        const pongWins = this.userProfile.gameStatus?.totalPongWins || 0;
+        const pongLosses = this.userProfile.gameStatus?.totalPongLoss || 0;
+        const racerWins = this.userProfile.gameStatus?.totalRacerWins || 0;
+        const racerLosses = this.userProfile.gameStatus?.totalRacerLoss || 0;
 
         const pongRate = pongWins + pongLosses > 0 ? (pongWins / (pongWins + pongLosses)) * 100 : 0;
         const racerRate = racerWins + racerLosses > 0 ? (racerWins / (racerWins + racerLosses)) * 100 : 0;
@@ -279,10 +279,10 @@ export default class DashboardPage extends BaseComponent
                 <div class="pt-4 border-t border-gray-700/50">
                     <div class="flex justify-between items-center">
                         <span class="text-yellow-300 font-bold text-sm">TOURNAMENTS</span>
-                        <span class="text-gray-400 text-sm">${this.userProfile.tournamentWins || 0} Wins</span>
+                        <span class="text-gray-400 text-sm">${this.userProfile.gameStatus?.tournamentWins || 0} Wins</span>
                     </div>
                     <p class="text-gray-500 text-xs mt-1">
-                        ${this.userProfile.tournamentParticipations || 0} Total Participations
+                        ${this.userProfile.gameStatus?.tournamentParticipations || 0} Total Participations
                     </p>
                 </div>
             </div>
@@ -296,10 +296,10 @@ export default class DashboardPage extends BaseComponent
             return '';
         }
 
-        const totalGames = this.userProfile.totalGames || 0;
-        const totalWins = this.userProfile.totalWins || 0;
-        const totalLosses = this.userProfile.totalLosses || 0;
-        const totalDraws = this.userProfile.totalDraws || 0;
+        const totalGames = this.userProfile.gameStatus?.totalGames || 0;
+        const totalWins = this.userProfile.gameStatus?.totalWins || 0;
+        const totalLosses = this.userProfile.gameStatus?.totalLosses || 0;
+        const totalDraws = this.userProfile.gameStatus?.totalDraws || 0;
 
         const winPercentage = totalGames > 0 ? (totalWins / totalGames * 100) : 0;
         const lossPercentage = totalGames > 0 ? (totalLosses / totalGames * 100) : 0;
@@ -342,11 +342,11 @@ export default class DashboardPage extends BaseComponent
                 <div class="pt-4 border-t border-gray-700/50 space-y-2">
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-400">Total Points:</span>
-                        <span class="text-cyan-400 font-bold">${this.userProfile.points || 0}</span>
+                        <span class="text-cyan-400 font-bold">${this.userProfile.gameStatus?.points || 0}</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-400">Win Percentage:</span>
-                        <span class="text-cyan-400 font-bold">${this.userProfile.totalWinPercent?.toFixed(1) || '0.0'}%</span>
+                        <span class="text-cyan-400 font-bold">${this.userProfile.gameStatus?.totalWinPercent?.toFixed(1) || '0.0'}%</span>
                     </div>
                 </div>
             </div>
@@ -360,8 +360,8 @@ export default class DashboardPage extends BaseComponent
             return `
                 <div class="text-center py-12">
                     <div class="text-6xl mb-4 opacity-50">🎮</div>
-                    <p class="text-gray-400 text-lg">No matches played yet</p>
-                    <p class="text-gray-500 text-sm mt-2">Start playing to build your match history!</p>
+                    <p class="text-gray-400 text-lg">No match history available yet</p>
+                    <p class="text-gray-500 text-sm mt-2">Start playing to see your match history here</p>
                 </div>
             `;
         }
@@ -491,7 +491,7 @@ export default class DashboardPage extends BaseComponent
             this.userProfile = await profileResponse.json();
             this.currentUserId = this.userProfile?.id || '';
 
-            // Fetch match history (optional - won't fail if endpoint doesn't exist)
+            // Fetch match history
             try 
             {
                 const matchHistoryResponse = await fetch(getUserApiUrl('/match-history'), 
@@ -573,8 +573,8 @@ export default class DashboardPage extends BaseComponent
             return 0;
         }
 
-        const totalGames = this.userProfile.totalGames || 0;
-        const totalWins = this.userProfile.totalWins || 0;
+        const totalGames = this.userProfile.gameStatus?.totalGames || 0;
+        const totalWins = this.userProfile.gameStatus?.totalWins || 0;
 
         if (totalGames === 0) 
         {

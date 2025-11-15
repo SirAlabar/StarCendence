@@ -47,7 +47,8 @@ export async function findUserProfileById(id: string) {
 // Find user profile by username
 export async function findUserProfileByUsername(username: string) {
   return prisma.userProfile.findUnique({
-    where: { username }
+    where: { username },
+    include: { gameStatus: true }
   });
 }
 

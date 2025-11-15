@@ -24,6 +24,6 @@ export async function getLeaderboard()
         points: 'desc'
       }
     },
-    take: 10
+    take: 20
   });
 }

@@ -56,17 +56,17 @@ export class Settings extends BaseComponent
     {
         const profile = this.props.userProfile;
         
-        // Initialize 2FA status
-        this.is2FAEnabled = profile.twoFactorEnabled || false;
+        // Initialize 2FA status from nested settings
+        this.is2FAEnabled = profile.settings?.twoFactorEnabled || false;
         
         // Initialize settings from profile with defaults
         this.currentSettings = {
-            showOnlineStatus: profile.showOnlineStatus ?? true,
-            allowFriendRequests: profile.allowFriendRequests ?? true,
-            showGameActivity: profile.showGameActivity ?? true,
-            notifyFriendRequests: profile.notifyFriendRequests ?? true,
-            notifyGameInvites: profile.notifyGameInvites ?? true,
-            notifyMessages: profile.notifyMessages ?? true
+            showOnlineStatus: profile.settings?.showOnlineStatus ?? true,
+            allowFriendRequests: profile.settings?.allowFriendRequests ?? true,
+            showGameActivity: profile.settings?.showGameActivity ?? true,
+            notifyFriendRequests: profile.settings?.notifyFriendRequests ?? true,
+            notifyGameInvites: profile.settings?.notifyGameInvites ?? true,
+            notifyMessages: profile.settings?.notifyMessages ?? true
         };
     }
 
@@ -401,34 +401,11 @@ export class Settings extends BaseComponent
         }
     }
 
-    // private async load2FAStatus(): Promise<void> 
-    // {
-    //     try 
-    //     {
-    //         const status = await TwoFactorService.get2FAStatus();
-    //         this.is2FAEnabled = status.twoFactorEnabled;
-            
-    //         // Update the UI if status changed
-    //         const button2FA = this.is2FAEnabled 
-    //             ? document.getElementById('disable-2fa-btn')
-    //             : document.getElementById('enable-2fa-btn');
-            
-    //         if (!button2FA) 
-    //         {
-    //             // Re-render if button doesn't exist
-    //             this.mount('#settings-container');
-    //         }
-    //     } 
-    //     catch (error) 
-    //     {
-    //         console.error('Failed to load 2FA status:', error);
-    //     }
-    // }
-
     private shouldShowPasswordButton(): boolean 
     {
         const profile = this.props.userProfile;
-        if (profile.hasPassword === false) 
+        // If OAuth is enabled, user has no password to change
+        if (profile.settings?.oauthEnabled === true) 
         {
             return false;
         }
@@ -456,6 +433,13 @@ export class Settings extends BaseComponent
                     this.closeModal();
                 }
             });
+        }
+
+        // Change password button
+        const changePasswordBtn = document.getElementById('change-password-btn');
+        if (changePasswordBtn) 
+        {
+            changePasswordBtn.addEventListener('click', async () => await this.handleChangePassword());
         }
 
         // 2FA buttons
@@ -639,6 +623,158 @@ export class Settings extends BaseComponent
     }
 
 
+    private async handleChangePassword(): Promise<void> 
+    {
+        // Show password change modal
+        const modalHtml = `
+            <div id="password-change-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                <div class="bg-gray-800/95 border-2 border-cyan-500/50 rounded-lg p-6 max-w-md w-full">
+                    <h3 class="text-xl font-bold text-cyan-400 mb-4 text-center">CHANGE PASSWORD</h3>
+                    
+                    <div id="password-error" class="mb-4"></div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Current Password</label>
+                            <input 
+                                type="password" 
+                                id="current-password"
+                                class="w-full px-4 py-2 bg-gray-900/50 border-2 border-gray-700 rounded-lg text-cyan-100 focus:border-cyan-500 focus:outline-none"
+                                placeholder="Enter current password"
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">New Password</label>
+                            <input 
+                                type="password" 
+                                id="new-password"
+                                class="w-full px-4 py-2 bg-gray-900/50 border-2 border-gray-700 rounded-lg text-cyan-100 focus:border-cyan-500 focus:outline-none"
+                                placeholder="Enter new password (min 8 characters)"
+                            >
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Confirm New Password</label>
+                            <input 
+                                type="password" 
+                                id="confirm-password"
+                                class="w-full px-4 py-2 bg-gray-900/50 border-2 border-gray-700 rounded-lg text-cyan-100 focus:border-cyan-500 focus:outline-none"
+                                placeholder="Confirm new password"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3 mt-6">
+                        <button id="confirm-password-change" class="neon-border-green px-6 py-3 rounded-lg font-bold text-green-400 flex-1">
+                            CHANGE PASSWORD
+                        </button>
+                        <button id="cancel-password-change" class="neon-border px-6 py-3 rounded-lg font-bold text-cyan-400 flex-1">
+                            CANCEL
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        const confirmBtn = document.getElementById('confirm-password-change');
+        const cancelBtn = document.getElementById('cancel-password-change');
+        const modal = document.getElementById('password-change-modal');
+        
+        if (cancelBtn && modal) 
+        {
+            cancelBtn.addEventListener('click', () => modal.remove());
+        }
+        
+        if (confirmBtn) 
+        {
+            confirmBtn.addEventListener('click', async () => 
+            {
+                const currentPassword = (document.getElementById('current-password') as HTMLInputElement)?.value;
+                const newPassword = (document.getElementById('new-password') as HTMLInputElement)?.value;
+                const confirmPassword = (document.getElementById('confirm-password') as HTMLInputElement)?.value;
+                
+                const errorDiv = document.getElementById('password-error');
+                
+                if (!currentPassword || !newPassword || !confirmPassword) 
+                {
+                    if (errorDiv) 
+                    {
+                        errorDiv.innerHTML = `
+                            <div class="bg-red-900/30 border-2 border-red-500/50 rounded-lg p-3">
+                                <p class="text-red-400 text-sm text-center">All fields are required</p>
+                            </div>
+                        `;
+                    }
+                    return;
+                }
+                
+                if (newPassword.length < 8) 
+                {
+                    if (errorDiv) 
+                    {
+                        errorDiv.innerHTML = `
+                            <div class="bg-red-900/30 border-2 border-red-500/50 rounded-lg p-3">
+                                <p class="text-red-400 text-sm text-center">Password must be at least 8 characters</p>
+                            </div>
+                        `;
+                    }
+                    return;
+                }
+                
+                if (newPassword !== confirmPassword) 
+                {
+                    if (errorDiv) 
+                    {
+                        errorDiv.innerHTML = `
+                            <div class="bg-red-900/30 border-2 border-red-500/50 rounded-lg p-3">
+                                <p class="text-red-400 text-sm text-center">Passwords do not match</p>
+                            </div>
+                        `;
+                    }
+                    return;
+                }
+                
+                try 
+                {
+                    // Call auth service to change password
+                    const response = await fetch('/api/auth//update-password', 
+                    {
+                        method: 'PATCH',
+                        headers: 
+                        {
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ currentPassword, newPassword })
+                    });
+                    
+                    if (!response.ok) 
+                    {
+                        const error = await response.json();
+                        throw new Error(error.message || 'Failed to change password');
+                    }
+                    
+                    modal?.remove();
+                    this.showMessage('✓ Password changed successfully!', 'success');
+                } 
+                catch (error) 
+                {
+                    if (errorDiv) 
+                    {
+                        errorDiv.innerHTML = `
+                            <div class="bg-red-900/30 border-2 border-red-500/50 rounded-lg p-3">
+                                <p class="text-red-400 text-sm text-center">${this.escapeHtml((error as Error).message)}</p>
+                            </div>
+                        `;
+                    }
+                }
+            });
+        }
+    }
+
     private async handleDeleteAccount(): Promise<void> 
     {
         const confirmed = await Modal.confirm(
@@ -646,7 +782,7 @@ export class Settings extends BaseComponent
             'Are you sure you want to permanently delete your account? This action cannot be undone!',
             'DELETE',
             'CANCEL',
-            true // isDanger flag for red styling
+            true
         );
         
         if (!confirmed) 
@@ -662,9 +798,44 @@ export class Settings extends BaseComponent
             true
         );
         
-        if (finalConfirm) 
+        if (!finalConfirm) 
         {
-            this.showMessage('Account deletion is not yet implemented', 'info');
+            return;
+        }
+        
+        try 
+        {
+            const response = await fetch('/api/users/delete', 
+            {
+                method: 'DELETE',
+                headers: 
+                {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) 
+            {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to delete account');
+            }
+            
+            // Clear auth token
+            localStorage.removeItem('access_token');
+            
+            // Show success message
+            this.showMessage('✓ Account deleted successfully', 'success');
+            
+            // Redirect to home after 2 seconds
+            setTimeout(() => 
+            {
+                (window as any).navigateTo('/');
+            }, 2000);
+        } 
+        catch (error) 
+        {
+            this.showMessage((error as Error).message || 'Failed to delete account', 'error');
         }
     }
 
