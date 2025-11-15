@@ -322,8 +322,6 @@ private async getUserAvatarUrl(): Promise<string | null>
     {
       const UserService = (await import('../../../services/user/UserService')).default;
       const profile = await UserService.getProfile();
-
-      console.log('Fetched user profile for avatar URL:', profile);
       
       if (profile.avatarUrl) 
       {

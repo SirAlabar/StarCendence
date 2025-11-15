@@ -24,12 +24,11 @@ export class Layout extends BaseComponent
     }
 
     // Page-level section wrapper - handles 100vh, alignment, spacing
-    renderPageSection(id: string, content: string, addPadding: boolean = true): string 
+    renderPageSection(id: string, content: string, _addPadding: boolean = true): string 
     {
-        const paddingClass = addPadding ? 'pt-20' : '';
         return `
-            <section id="${id}" class="min-h-screen flex items-center justify-center scroll-mt-20 p-6 ${paddingClass}">
-                <div class="w-full max-w-7xl mx-auto">
+            <section id="${id}" class="min-h-screen flex items-center justify-center scroll-mt-20">
+                <div class="w-full">
                     ${content}
                 </div>
             </section>
@@ -47,10 +46,34 @@ export class Layout extends BaseComponent
     private renderBackground(): string 
     {
         return `
-            <div class="fixed inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 -z-10">
-            </div>
+            <div class="neon-background fixed inset-0 -z-10"></div>
+
+            <style>
+                .neon-background {
+                    background: linear-gradient(135deg, 
+                        #0a0a1a 0%, 
+                        #0d1326 25%, 
+                        #0b0f24 50%, 
+                        #141233 75%, 
+                        #1b1760 100%);
+                    position: fixed;
+                    inset: 0;
+                    overflow: hidden;
+                    z-index: -10;
+                }
+
+                .neon-background::before {
+                    content: "";
+                    position: absolute;
+                    inset: 0;
+                    background: radial-gradient(circle at 50% 30%, rgba(0,255,255,0.12), transparent 60%);
+                    filter: blur(40px);
+                    pointer-events: none;
+                }
+            </style>
         `;
     }
+
 
     private renderFooter(): string 
     {
