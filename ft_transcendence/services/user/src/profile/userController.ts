@@ -173,3 +173,16 @@ export async function updateUserSettings(req: FastifyRequest, reply: FastifyRepl
 
   return reply.send({ message: 'User settings updated successfully' });
 };
+
+// DELETE /delete-user-profile - Delete user profile (internal)
+export async function deleteUserProfile(req: FastifyRequest, reply: FastifyReply) {
+  const { userId } = req.body as { userId: string };
+  console.log("Deleting user profile for userId:", userId);
+  if (!userId) {
+    return reply.status(400).send({ error: 'User ID is required' });
+  }
+
+  await userService.deleteUserProfile(userId);
+
+  return reply.send({ message: 'User profile deleted successfully' });
+}

@@ -60,4 +60,10 @@ export async function userRoutes(fastify: FastifyInstance)
     schema: userSchema.updateUserSettingsSchema
   },
   userController.updateUserSettings);
+
+  fastify.delete('/profile',
+  {
+    preHandler: [verifyUserToken]
+  },
+  userController.deleteUserProfile);
 }

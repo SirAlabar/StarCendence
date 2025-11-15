@@ -54,3 +54,16 @@ export async function updateUserPassword(userId: string, newHashedPassword: stri
     data: { password: newHashedPassword }
   });
 }
+
+// Delete user by ID
+export async function deleteAuthProfile(userId: string) {
+  return prisma.$transaction(async (tx) => {
+    await tx.refreshToken.deleteMany({
+      where: { userId }
+    });
+
+    await tx.authUser.delete({
+      where: { id: userId }
+    });
+  });
+}

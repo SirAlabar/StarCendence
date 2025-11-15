@@ -21,4 +21,10 @@ export async function internalRoutes(fastify: FastifyInstance) {
     schema: userSchema.updateTwoFactorStateSchema
   },
   userController.updateTwoFactorState);
+
+  fastify.delete('/delete-user-profile',
+  {
+    schema: userSchema.deleteUserProfileSchema
+  },
+  userController.deleteUserProfile);
 }

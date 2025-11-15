@@ -35,4 +35,10 @@ export async function authRoutes(fastify: FastifyInstance){
     schema: authSchema.updatePasswordSchema
   },
   authController.updatePassword);
+
+  fastify.delete('/delete-account',
+  {
+    preHandler: [verifyUserToken],
+  },
+  authController.deleteAccount);
 }

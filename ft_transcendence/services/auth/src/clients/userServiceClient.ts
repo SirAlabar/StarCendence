@@ -87,3 +87,23 @@ export async function updateTwoFactorState(authId: string, state: boolean) {
 
   return await response.json();
 }
+
+// Delete user profile in User Service
+export async function deleteUserProfile(authId: string) {
+  const response = await fetch(`http://user-service:3004/internal/delete-user-profile`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': getInternalApiKey()
+    },
+    body: JSON.stringify({
+      userId: authId
+    })
+  });
+
+  if (!response.ok) {
+    throw new HttpError(`User service responded with ${response.status}`, response.status);
+  }
+
+  return await response.json();
+}

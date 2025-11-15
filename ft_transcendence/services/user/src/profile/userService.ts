@@ -156,3 +156,13 @@ export async function updateUserSettings(id: string, settings: any) {
   }
   return updatedUser;
 }
+
+// Delete user profile
+export async function deleteUserProfile(id: string) {
+  const user = await userRepository.findUserProfileById(id);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+
+  await userRepository.deleteUserProfile(id);
+}

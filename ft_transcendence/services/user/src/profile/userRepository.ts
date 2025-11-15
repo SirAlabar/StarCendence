@@ -201,3 +201,47 @@ export async function updateUserSettings(id: string, settings: any) {
     }
   });
 }
+
+// Delete user profile
+export async function deleteUserProfile(userId: string) {
+  return prisma.$transaction(async (tx) => {
+    await tx.friendship.deleteMany({
+      where: {
+        OR: [{ senderId: userId }, { recipientId: userId }],
+      },
+    });
+
+    await tx.matchHistory.deleteMany({
+      where: {
+        OR: [{ player1Id: userId }, { player2Id: userId }],
+      },
+    });
+
+    await tx.tournamentMatch.deleteMany({
+      where: {
+        OR: [{ player1Id: userId }, { player2Id: userId }],
+      },
+    });
+
+    await tx.tournamentParticipant.deleteMany({
+      where: { userId },
+    });
+
+    await tx.tournament.updateMany({
+      where: { winnerId: userId },
+      data: { winnerId: null },
+    });
+
+    await tx.userGameStatus.delete({
+      where: { userStatusId: userId },
+    });
+
+    await tx.userSettings.delete({
+      where: { userSettingsId: userId },
+    });
+
+    await tx.userProfile.delete({
+      where: { id: userId },
+    });
+  });
+}

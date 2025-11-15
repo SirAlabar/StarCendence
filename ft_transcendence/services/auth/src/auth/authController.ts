@@ -111,3 +111,15 @@ export async function updatePassword(req: FastifyRequest, reply: FastifyReply) {
 
   return reply.send({ message: 'Password updated successfully' });
 }
+
+// DELETE /delete-account - Delete user's account
+export async function deleteAccount(req: FastifyRequest, reply: FastifyReply) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return reply.status(400).send({ error: 'Invalid user' });
+  }
+
+  await authService.deleteAuthProfile(userId);
+
+  return reply.send({ message: 'Account deleted successfully' });
+}
