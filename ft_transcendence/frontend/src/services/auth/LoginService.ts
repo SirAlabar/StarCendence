@@ -1,5 +1,6 @@
 // LoginService.ts
 import { getAuthApiUrl } from '../../types/api.types';
+import { webSocketService } from '../websocket/websocketService';
 
 // Types for login operations
 export interface LoginRequest 
@@ -58,6 +59,11 @@ export class LoginService
             localStorage.setItem('refresh_token', refreshToken);
         }
         this.accessToken = accessToken;
+        
+        // Connect WebSocket if not already connected
+        if (!webSocketService.isConnected()) {
+            webSocketService.connect(accessToken);
+        }
     }
 
     static getAccessToken(): string | null 
@@ -116,6 +122,9 @@ export class LoginService
             if (data.accessToken) 
             {
                 this.setTokens(data.accessToken, data.refreshToken);
+                
+                // Connect to WebSocket after successful login
+                webSocketService.connect(data.accessToken);
             }
 
             return data;
@@ -174,6 +183,8 @@ export class LoginService
       const refreshToken = this.getRefreshToken();
         if (!refreshToken) 
         {
+            // Disconnect WebSocket before clearing tokens
+            webSocketService.disconnect();
             this.clearTokens();
             return;
         }
@@ -202,6 +213,8 @@ export class LoginService
         } 
         finally 
         {
+            // Disconnect WebSocket before clearing tokens
+            webSocketService.disconnect();
             this.clearTokens();
         }
     }
@@ -224,6 +237,8 @@ export class LoginService
         } 
         finally 
         {
+            // Disconnect WebSocket before clearing tokens
+            webSocketService.disconnect();
             this.clearTokens();
         }
     }

@@ -146,19 +146,22 @@ services:
       - redis
     restart: always
 
-  # # WebSocket Microservice
-  # websocket-service:
-  #   container_name: transcendence_websocket
-  #   build:
-  #     context: ./services/websocket
-  #     dockerfile: Dockerfile
-  #   networks:
-  #     - transcendence_network
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - redis
-  #   restart: always
+  # WebSocket Microservice
+  websocket-service:
+    container_name: transcendence_websocket
+    build:
+      context: ./services/websocket
+      dockerfile: Dockerfile
+    networks:
+      - transcendence_network
+    secrets:
+      - redis_password
+      - jwt_secret
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    restart: always
 
   # Redis Cache
   redis:
