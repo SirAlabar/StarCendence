@@ -15,12 +15,10 @@ export interface WSConfig {
 export function getWSConfig(): WSConfig {
   let jwtSecret: string;
   
-  // Try to read from Docker secret first (production)
   try {
     const fs = require('fs');
     jwtSecret = fs.readFileSync('/run/secrets/jwt_secret', 'utf8').trim();
   } catch {
-    // Fallback to environment variable (development)
     jwtSecret = process.env.JWT_SECRET || '';
     if (!jwtSecret) {
       throw new Error('JWT_SECRET not configured. Set it in .env or Docker secret');

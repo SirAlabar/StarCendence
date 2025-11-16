@@ -203,6 +203,14 @@ const routeConfig: Record<string, any> =
         title: 'Page Not Found - Transcendence',
         layout: 'default',
         headerType: 'default'
+    },
+    '/testws':
+    {
+        component: () => import('../pages/WebSocketTestPage'),
+        title: 'WebSocket Test - Transcendence',
+        layout: 'default',
+        headerType: 'default',
+        requiresAuth: true
     }
 };
 

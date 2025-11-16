@@ -427,7 +427,32 @@ class WebSocketService {
     this.listeners.delete(event);
   }
 
+  /**
+   * Register a listener for all events (wildcard)
+   */
+  on(event: '*' | string, callback: Function): void {
+    if (event === '*') {
+      // For wildcard, add to all events as we emit them
+      this.addListener('*', callback);
+    } else {
+      this.addListener(event, callback);
+    }
+  }
+
   private emit(event: string, data: any): void {
+    // Emit to wildcard listeners
+    const wildcardCallbacks = this.listeners.get('*');
+    if (wildcardCallbacks) {
+      wildcardCallbacks.forEach(cb => {
+        try {
+          cb({ type: event, payload: data });
+        } catch (error) {
+          // Silently handle callback errors
+        }
+      });
+    }
+
+    // Emit to specific event listeners
     const callbacks = this.listeners.get(event);
     if (callbacks) {
       callbacks.forEach(cb => {

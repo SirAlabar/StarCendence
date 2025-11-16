@@ -98,6 +98,34 @@ export class ConnectionManager {
         connectionPool.remove(connectionId);
       });
 
+      // Set up message handler to log incoming messages
+      socket.on('message', (rawMessage: Buffer | string) => {
+        try {
+          const messageStr = typeof rawMessage === 'string' ? rawMessage : rawMessage.toString('utf-8');
+          let message: WebSocketMessage;
+          
+          try {
+            message = JSON.parse(messageStr);
+          } catch (parseError) {
+            console.log(`[WebSocket] Received invalid JSON from connection ${connectionId}:`, messageStr);
+            return;
+          }
+
+          // Log received message
+          console.log(`[WebSocket] Message received from connection ${connectionId} (user: ${authResult.username || authResult.userId}):`, {
+            connectionId,
+            userId: authResult.userId,
+            username: authResult.username,
+            messageType: message.type,
+            payload: message.payload,
+            timestamp: message.timestamp || new Date().toISOString(),
+            receivedAt: new Date().toISOString(),
+          });
+        } catch (error) {
+          console.error(`[WebSocket] Error processing message from connection ${connectionId}:`, error);
+        }
+      });
+
       return connectionInfo;
     } catch (error) {
       console.error('Error handling connection:', error);
