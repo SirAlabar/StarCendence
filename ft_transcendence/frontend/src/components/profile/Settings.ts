@@ -828,7 +828,7 @@ export class Settings extends BaseComponent
         
         try 
         {
-            const response = await fetch('/api/users/delete', 
+            const response = await fetch('/api/auth/delete-account', 
             {
                 method: 'DELETE',
                 headers: 
