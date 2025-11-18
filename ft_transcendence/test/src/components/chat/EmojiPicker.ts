@@ -1,1 +1,0 @@
-//  Emoji selection component
