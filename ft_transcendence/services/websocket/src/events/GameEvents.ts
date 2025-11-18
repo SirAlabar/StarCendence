@@ -1,6 +1,7 @@
 // Game-related events
 import { EventManager } from './EventManager';
 import { ConnectionInfo, WebSocketMessage } from '../types/connection.types';
+import { redisBroadcast } from '../broadcasting/RedisBroadcast';
 
 EventManager.registerHandler('game', async (message: WebSocketMessage, connection: ConnectionInfo): Promise<void> =>
 {
@@ -10,5 +11,8 @@ EventManager.registerHandler('game', async (message: WebSocketMessage, connectio
     messageType: message.type,
     payload: message.payload,
   });
+
+  // Publish to Redis channel 'game'
+  await redisBroadcast.publishToChannel('game', message);
 });
 

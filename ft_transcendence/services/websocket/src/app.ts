@@ -7,6 +7,7 @@ import { redisBroadcast } from './broadcasting/RedisBroadcast';
 import { createRedisClient, closeRedisClient } from './config/redisConfig';
 // Import event handlers to register them
 import './events/GameEvents';
+import './events/RedisEvents';
 
 export async function createApp(): Promise<FastifyInstance>
 {

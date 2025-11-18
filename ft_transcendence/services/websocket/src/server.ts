@@ -24,7 +24,7 @@ async function start()
     setInterval(() =>
     {
       connectionPool.logConnectedUsers();
-    }, 120000); // 2 minutes // 120000 
+    }, 60000); // 1 minute 
 
     // Log initial state
     connectionPool.logConnectedUsers();

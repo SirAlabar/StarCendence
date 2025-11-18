@@ -11,12 +11,19 @@ export interface BroadcastMessage {
   timestamp?: number;
 }
 
+export type RedisChannelHandler = (message: any, channel: string) => Promise<void> | void;
+
 export class RedisBroadcast
 {
   private subscriber: RedisClientType | null = null;
   private publisher: RedisClientType | null = null;
   private readonly channel = 'websocket:broadcast';
   private isSubscribed = false;
+  
+  // Map para handlers: canal -> tipo de mensagem -> handler
+  private channelHandlers: Map<string, Map<string, RedisChannelHandler>> = new Map();
+  // Set de canais que estamos inscritos
+  private subscribedChannels: Set<string> = new Set();
 
   async initialize(): Promise<void>
   {
@@ -229,6 +236,25 @@ export class RedisBroadcast
     }
   }
 
+  async publishToChannel(channel: string, message: any): Promise<void>
+  {
+    try
+    {
+      if (!this.publisher || !this.publisher.isReady)
+      {
+        console.warn('Redis publisher not ready, skipping publish');
+        return;
+      }
+
+      const messageStr = JSON.stringify(message);
+      await this.publisher.publish(channel, messageStr);
+    }
+    catch (error)
+    {
+      console.error(`Error publishing to channel ${channel}:`, error);
+    }
+  }
+
   async broadcastToUser(userId: string, type: string, payload: any): Promise<void>
   {
     await this.publish({
@@ -246,10 +272,166 @@ export class RedisBroadcast
     });
   }
 
+  async subscribeToChannel(channel: string): Promise<void>
+  {
+    try
+    {
+      if (!this.subscriber || !this.subscriber.isReady)
+      {
+        console.warn('Redis subscriber not ready, cannot subscribe');
+        return;
+      }
+
+      // Se já está inscrito, não faz nada
+      if (this.subscribedChannels.has(channel))
+      {
+        return;
+      }
+
+      // Subscreve ao canal com handleChannelMessage como callback
+      await this.subscriber.subscribe(channel, (message) =>
+      {
+        this.handleChannelMessage(channel, message);
+      });
+
+      this.subscribedChannels.add(channel);
+      console.log(`Redis subscribed to channel: ${channel}`);
+    }
+    catch (error)
+    {
+      console.error(`Error subscribing to channel ${channel}:`, error);
+    }
+  }
+
+  async registerChannelHandler(channel: string, messageType: string, handler: RedisChannelHandler): Promise<void>
+  {
+    // Garante que o canal está inscrito
+    await this.subscribeToChannel(channel);
+
+    // Cria Map para o canal se não existe
+    if (!this.channelHandlers.has(channel))
+    {
+      this.channelHandlers.set(channel, new Map());
+    }
+
+    // Registra o handler
+    this.channelHandlers.get(channel)!.set(messageType, handler);
+    console.log(`Registered handler for channel ${channel}, message type ${messageType}`);
+  }
+
+  async unregisterChannelHandler(channel: string, messageType?: string): Promise<void>
+  {
+    if (!this.channelHandlers.has(channel))
+    {
+      return;
+    }
+
+    const channelHandlerMap = this.channelHandlers.get(channel)!;
+
+    if (messageType)
+    {
+      // Remove handler específico
+      channelHandlerMap.delete(messageType);
+      
+      // Se não há mais handlers, remove o canal
+      if (channelHandlerMap.size === 0)
+      {
+        this.channelHandlers.delete(channel);
+        await this.unsubscribeFromChannel(channel);
+      }
+    }
+    else
+    {
+      // Remove todos os handlers do canal
+      this.channelHandlers.delete(channel);
+      await this.unsubscribeFromChannel(channel);
+    }
+  }
+
+  async unsubscribeFromChannel(channel: string): Promise<void>
+  {
+    try
+    {
+      if (!this.subscriber || !this.subscriber.isReady)
+      {
+        return;
+      }
+
+      if (this.subscribedChannels.has(channel))
+      {
+        await this.subscriber.unsubscribe(channel);
+        this.subscribedChannels.delete(channel);
+        console.log(`Redis unsubscribed from channel: ${channel}`);
+      }
+    }
+    catch (error)
+    {
+      console.error(`Error unsubscribing from channel ${channel}:`, error);
+    }
+  }
+
+  private async handleChannelMessage(channel: string, rawMessage: string): Promise<void>
+  {
+    try
+    {
+      const message = JSON.parse(rawMessage);
+      const messageType = message.type;
+
+      if (!messageType)
+      {
+        console.warn(`Message from channel ${channel} has no type field`);
+        return;
+      }
+
+      const channelHandlerMap = this.channelHandlers.get(channel);
+      if (!channelHandlerMap)
+      {
+        console.warn(`No handlers registered for channel: ${channel}`);
+        return;
+      }
+
+      const handler = channelHandlerMap.get(messageType);
+      if (handler)
+      {
+        await handler(message, channel);
+      }
+      else
+      {
+        console.warn(`No handler registered for channel ${channel}, message type ${messageType}`);
+      }
+    }
+    catch (error)
+    {
+      console.error(`Error handling message from channel ${channel}:`, error);
+    }
+  }
+
+  getPublisher(): RedisClientType | null
+  {
+    return this.publisher;
+  }
+
+  getSubscriber(): RedisClientType | null
+  {
+    return this.subscriber;
+  }
+
   async shutdown(): Promise<void>
   {
     try
     {
+      // Unsubscribe de canais customizados
+      for (const channel of this.subscribedChannels)
+      {
+        if (this.subscriber && this.subscriber.isReady)
+        {
+          await this.subscriber.unsubscribe(channel);
+        }
+      }
+      this.subscribedChannels.clear();
+      this.channelHandlers.clear();
+
+      // Unsubscribe do canal principal
       if (this.isSubscribed && this.subscriber)
       {
         await this.subscriber.unsubscribe(this.channel);

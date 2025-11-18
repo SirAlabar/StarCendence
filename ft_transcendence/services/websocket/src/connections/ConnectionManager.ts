@@ -60,7 +60,7 @@ export class ConnectionManager
       // Add to connection pool
       connectionPool.add(connectionInfo);
 
-      // Log that someone connected
+      // Log that someone conected
       console.log(`WebSocket connection established:`, {
         connectionId,
         userId: authResult.userId,
@@ -69,10 +69,10 @@ export class ConnectionManager
         timestamp: new Date().toISOString(),
       });
 
-      // Log connected users summary
+      // Log connected users 
       connectionPool.logConnectedUsers();
 
-      // Send connection acknowledgment
+      // Send connection ackr
       this.sendMessage(socket, {
         type: MESSAGE_TYPES.CONNECTION_ACK,
         payload: {
