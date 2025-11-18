@@ -36,7 +36,6 @@ export class Hero extends BaseComponent
       <section id="hero-section"
         class="relative w-screen min-h-screen overflow-hidden flex items-center justify-center bg-black">
 
-        <!-- Fundo base com object-fit cover behavior -->
         <div class="absolute inset-0 overflow-hidden">
           <div class="w-full h-full 
                       bg-[url('/assets/images/backgrounds/space_background.jpg')]
@@ -44,10 +43,8 @@ export class Hero extends BaseComponent
           </div>
         </div>
 
-        <!-- Canvas do shader -->
         <canvas id="hero-hover-canvas" class="absolute inset-0 w-full h-full"></canvas>
 
-        <!-- Overlay escuro -->
         <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60"></div>
 
       </section>
@@ -132,7 +129,6 @@ export class Hero extends BaseComponent
       }
 
       float blob(vec2 uv, vec2 center, float t, float scale){
-        // Keep blob circular by handling aspect ratio
         float aspect = resolution.x / resolution.y;
         vec2 diff = uv - center;
         diff.x *= aspect;
@@ -169,7 +165,6 @@ export class Hero extends BaseComponent
 
         float blend = smoothstep(0.3, 0.7, abs(fract(sin(time*0.1))*2.0 - 1.0));
 
-        // Use vUV for mouse interactions (not coverUV) with proper scaling
         float head = blob(vUV, mouse, time, blobScale);
         float tail = blob(vUV, prevMouse, time - 0.6, blobScale) * 0.5;
         float trail = clamp(head + tail, 0.0, 1.0);
@@ -182,7 +177,6 @@ export class Hero extends BaseComponent
         float pulse = 0.8 + 0.2 * sin(time * 2.0);
         col += textTex.rgb * textTex.a * pulse;
 
-        // Glow effect that scales with blob
         vec2 glowDiff = vUV - mouse;
         glowDiff.x *= resolution.x / resolution.y;
         float glow = smoothstep(0.25 * blobScale, 0.0, length(glowDiff)) * reveal * 0.3;
@@ -246,7 +240,6 @@ export class Hero extends BaseComponent
       }
       catch
       {
-        console.warn('⏸️ Autoplay bloqueado — mova o mouse ou clique para iniciar o vídeo.');
         document.addEventListener('click', tryPlay);
         document.addEventListener('mousemove', tryPlay);
       }
@@ -312,7 +305,7 @@ export class Hero extends BaseComponent
     if (viewportWidth < 640)
     {
       // Mobile: smaller font
-      fontSize = Math.min(h * 0.08, viewportWidth * 0.12);
+      fontSize = Math.min(h * 0.07, viewportWidth * 0.10);
     }
     else if (viewportWidth < 1024)
     {
@@ -322,7 +315,7 @@ export class Hero extends BaseComponent
     else
     {
       // Desktop: larger font
-      fontSize = h * 0.13;
+      fontSize = h * 0.10;
     }
     
     ctx.font = `bold ${fontSize}px 'Trattorian', 'Orbitron', sans-serif`;
