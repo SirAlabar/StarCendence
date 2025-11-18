@@ -1,4 +1,4 @@
-// Redis pub/sub for cross-server broadcasting
+// redis pub sub for cross server broadcasting
 import { RedisClientType } from 'redis';
 import { getRedisClient, isRedisConnected } from '../config/redisConfig';
 import { connectionPool } from '../connections/ConnectionPool';
@@ -20,9 +20,9 @@ export class RedisBroadcast
   private readonly channel = 'websocket:broadcast';
   private isSubscribed = false;
   
-  // Map para handlers: canal -> tipo de mensagem -> handler
+  // map for handlers channel to message type to handler
   private channelHandlers: Map<string, Map<string, RedisChannelHandler>> = new Map();
-  // Set de canais que estamos inscritos
+  // set of subscribed channels
   private subscribedChannels: Set<string> = new Set();
 
   async initialize(): Promise<void>
@@ -34,7 +34,7 @@ export class RedisBroadcast
         await getRedisClient();
       }
 
-      // Need two separate connections: one to listen, one to send
+  // need two separate clients one to listen one to send
       const { getRedisConfig } = await import('../config/redisConfig');
       const redisConfig = getRedisConfig();
       const { createClient } = await import('redis');
@@ -89,7 +89,7 @@ export class RedisBroadcast
 
       this.subscriber.on('ready', () =>
       {
-        // Keepalive ping every 20 seconds for subscriber
+        // keepalive ping every 20 seconds for subscriber
         setInterval(async () =>
         {
           try
@@ -101,7 +101,7 @@ export class RedisBroadcast
           }
           catch (error)
           {
-            // If ping fails, don't worry - it will reconnect
+            // if ping fails ignore reconnect will happen
           }
         }, 20000);
       });
@@ -113,7 +113,7 @@ export class RedisBroadcast
 
       this.publisher.on('ready', () =>
       {
-        // Keepalive ping every 20 seconds for publisher
+        // keepalive ping every 20 seconds for publisher
         setInterval(async () =>
         {
           try
@@ -125,12 +125,12 @@ export class RedisBroadcast
           }
           catch (error)
           {
-            // If ping fails, don't worry - it will reconnect
+            // if ping fails ignore reconnect will happen
           }
         }, 20000);
       });
 
-      // Subscribe to broadcast channel
+      // subscribe to broadcast channel
       await this.subscriber.subscribe(this.channel, (message) =>
       {
         this.handleIncomingMessage(message);
@@ -138,6 +138,22 @@ export class RedisBroadcast
 
       this.isSubscribed = true;
       console.log(`Redis broadcast subscribed to channel: ${this.channel}`);
+      
+      // if handlers were registered before initialize ran subscribe to them now
+      for (const preChannel of this.channelHandlers.keys())
+      {
+        try
+        {
+          if (!this.subscribedChannels.has(preChannel))
+          {
+            await this.subscribeToChannel(preChannel);
+          }
+        }
+        catch (err)
+        {
+          console.error(`Failed to subscribe to pre registered channel ${preChannel}:`, err);
+        }
+      }
     }
     catch (error)
     {
@@ -146,19 +162,17 @@ export class RedisBroadcast
     }
   }
 
-  /**
-   * Handle incoming message from Redis pub/sub
-   */
+  // handle incoming message from redis pub sub
   private handleIncomingMessage(message: string): void
   {
     try
     {
       const broadcastMessage: BroadcastMessage = JSON.parse(message);
 
-      // Skip messages we sent ourselves
+      // skip messages we sent ourselves
       if (broadcastMessage.targetUserId)
       {
-        // Send to one user
+        // send to one user
         const connections = connectionPool.getConnectionsByUserId(broadcastMessage.targetUserId);
         
         for (const connection of connections)
@@ -183,7 +197,7 @@ export class RedisBroadcast
       }
       else
       {
-        // Send to everyone
+        // send to everyone
         const allConnections = connectionPool.getAll();
         
         for (const connection of allConnections)
@@ -219,7 +233,7 @@ export class RedisBroadcast
     {
       if (!this.publisher || !this.publisher.isReady)
       {
-        console.warn('Redis publisher not ready, skipping broadcast');
+        console.warn('redis publisher not ready skip broadcast');
         return;
       }
 
@@ -242,7 +256,7 @@ export class RedisBroadcast
     {
       if (!this.publisher || !this.publisher.isReady)
       {
-        console.warn('Redis publisher not ready, skipping publish');
+        console.warn('redis publisher not ready skip publish');
         return;
       }
 
@@ -278,21 +292,22 @@ export class RedisBroadcast
     {
       if (!this.subscriber || !this.subscriber.isReady)
       {
-        console.warn('Redis subscriber not ready, cannot subscribe');
+        console.warn('redis subscriber not ready cannot subscribe');
         return;
       }
 
-      // Se já está inscrito, não faz nada
+      // if already subscribed do nothing
       if (this.subscribedChannels.has(channel))
       {
         return;
       }
 
-      // Subscreve ao canal com handleChannelMessage como callback
-      await this.subscriber.subscribe(channel, (message) =>
+      await this.subscriber.subscribe(channel, (message: string) =>
       {
+        // forward message to handler handleChannelMessage is async
         this.handleChannelMessage(channel, message);
       });
+
 
       this.subscribedChannels.add(channel);
       console.log(`Redis subscribed to channel: ${channel}`);
@@ -305,18 +320,15 @@ export class RedisBroadcast
 
   async registerChannelHandler(channel: string, messageType: string, handler: RedisChannelHandler): Promise<void>
   {
-    // Garante que o canal está inscrito
-    await this.subscribeToChannel(channel);
-
-    // Cria Map para o canal se não existe
+    // ensure handler map exists for channel
     if (!this.channelHandlers.has(channel))
     {
       this.channelHandlers.set(channel, new Map());
     }
 
-    // Registra o handler
+    // register the handler
     this.channelHandlers.get(channel)!.set(messageType, handler);
-    console.log(`Registered handler for channel ${channel}, message type ${messageType}`);
+    console.log(`Registered handler for channel ${channel} message type ${messageType}`);
   }
 
   async unregisterChannelHandler(channel: string, messageType?: string): Promise<void>
@@ -328,24 +340,24 @@ export class RedisBroadcast
 
     const channelHandlerMap = this.channelHandlers.get(channel)!;
 
-    if (messageType)
-    {
-      // Remove handler específico
-      channelHandlerMap.delete(messageType);
-      
-      // Se não há mais handlers, remove o canal
-      if (channelHandlerMap.size === 0)
+      if (messageType)
       {
+        // remove specific handler
+        channelHandlerMap.delete(messageType);
+        
+        // if no handlers left remove channel
+        if (channelHandlerMap.size === 0)
+        {
+          this.channelHandlers.delete(channel);
+          await this.unsubscribeFromChannel(channel);
+        }
+      }
+      else
+      {
+        // remove all handlers for channel
         this.channelHandlers.delete(channel);
         await this.unsubscribeFromChannel(channel);
       }
-    }
-    else
-    {
-      // Remove todos os handlers do canal
-      this.channelHandlers.delete(channel);
-      await this.unsubscribeFromChannel(channel);
-    }
   }
 
   async unsubscribeFromChannel(channel: string): Promise<void>

@@ -14,5 +14,6 @@ EventManager.registerHandler('game', async (message: WebSocketMessage, connectio
 
   // Publish to Redis channel 'game'
   await redisBroadcast.publishToChannel('game', message);
+  console.log("Game event published");
 });
 

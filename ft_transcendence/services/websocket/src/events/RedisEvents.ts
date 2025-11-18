@@ -7,6 +7,6 @@ async function handleGameStart(message: any, channel: string): Promise<void>
 }
 
 // Register Redis channel handlers
-redisBroadcast.registerChannelHandler('game', 'game.start', handleGameStart);
+redisBroadcast.registerChannelHandler('game', 'game', handleGameStart);
 
 
