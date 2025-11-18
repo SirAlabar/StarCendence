@@ -3,8 +3,10 @@ import { createApp } from './app';
 import { getWSConfig } from './config/wsConfig';
 import { connectionPool } from './connections/ConnectionPool';
 
-async function start() {
-  try {
+async function start()
+{
+  try
+  {
     const app = await createApp();
     const config = getWSConfig();
 
@@ -19,25 +21,30 @@ async function start() {
     console.log(`Environment: ${config.nodeEnv}`);
 
     // Periodic logging of connected users (every 2 minutes)
-    setInterval(() => {
+    setInterval(() =>
+    {
       connectionPool.logConnectedUsers();
     }, 120000); // 2 minutes // 120000 
 
     // Log initial state
     connectionPool.logConnectedUsers();
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Error starting server:', error);
     process.exit(1);
   }
 }
 
 // Handle graceful shutdown
-process.on('SIGTERM', async () => {
+process.on('SIGTERM', async () =>
+{
   console.log('SIGTERM received, shutting down gracefully...');
   process.exit(0);
 });
 
-process.on('SIGINT', async () => {
+process.on('SIGINT', async () =>
+{
   console.log('SIGINT received, shutting down gracefully...');
   process.exit(0);
 });

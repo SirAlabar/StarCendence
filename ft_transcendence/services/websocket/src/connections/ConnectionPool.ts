@@ -1,51 +1,52 @@
 // Connection pooling
 import { ConnectionInfo } from '../types/connection.types';
 
-export class ConnectionPool {
-  // Primary lookup: connectionId -> ConnectionInfo
+export class ConnectionPool
+{
+  // Store connections by their ID
   private connectionsBySocketId: Map<string, ConnectionInfo> = new Map();
   
-  // Secondary lookup: userId -> Set of connectionIds
+  // Store all connection IDs for each user
   private connectionsByUserId: Map<string, Set<string>> = new Map();
 
-  /**
-   * Add a connection to the pool
-   */
-  add(connectionInfo: ConnectionInfo): void {
+  add(connectionInfo: ConnectionInfo): void
+  {
     const { connectionId, userId } = connectionInfo;
     
-    // Add to primary map
+    // Save connection by ID
     this.connectionsBySocketId.set(connectionId, connectionInfo);
     
-    // Add to secondary map
-    if (!this.connectionsByUserId.has(userId)) {
+    // Save connection ID for this user
+    if (!this.connectionsByUserId.has(userId))
+    {
       this.connectionsByUserId.set(userId, new Set());
     }
     this.connectionsByUserId.get(userId)!.add(connectionId);
   }
 
-  /**
-   * Remove a connection from the pool
-   */
-  remove(connectionId: string): boolean {
+  remove(connectionId: string): boolean
+  {
     const connection = this.connectionsBySocketId.get(connectionId);
     
-    if (!connection) {
+    if (!connection)
+    {
       return false;
     }
 
     const { userId } = connection;
     
-    // Remove from primary map
+    // Remove connection by ID
     this.connectionsBySocketId.delete(connectionId);
     
-    // Remove from secondary map
+    // Remove connection ID from user's list
     const userConnections = this.connectionsByUserId.get(userId);
-    if (userConnections) {
+    if (userConnections)
+    {
       userConnections.delete(connectionId);
       
-      // Clean up empty user set
-      if (userConnections.size === 0) {
+      // If user has no more connections, remove the empty list
+      if (userConnections.size === 0)
+      {
         this.connectionsByUserId.delete(userId);
       }
     }
@@ -53,30 +54,26 @@ export class ConnectionPool {
     return true;
   }
 
-  /**
-   * Get connection by connection ID
-   */
-  get(connectionId: string): ConnectionInfo | undefined {
+  get(connectionId: string): ConnectionInfo | undefined
+  {
     return this.connectionsBySocketId.get(connectionId);
   }
 
-  /**
-   * Get all connection IDs for a user
-   */
-  getByUserId(userId: string): Set<string> {
+  getByUserId(userId: string): Set<string>
+  {
     return this.connectionsByUserId.get(userId) || new Set();
   }
 
-  /**
-   * Get all ConnectionInfo objects for a user
-   */
-  getConnectionsByUserId(userId: string): ConnectionInfo[] {
+  getConnectionsByUserId(userId: string): ConnectionInfo[]
+  {
     const connectionIds = this.getByUserId(userId);
     const connections: ConnectionInfo[] = [];
     
-    for (const connectionId of connectionIds) {
+    for (const connectionId of connectionIds)
+    {
       const connection = this.get(connectionId);
-      if (connection) {
+      if (connection)
+      {
         connections.push(connection);
       }
     }
@@ -84,65 +81,62 @@ export class ConnectionPool {
     return connections;
   }
 
-  /**
-   * Broadcast a message to all connections for a specific user
-   */
-  broadcastToUser(userId: string, message: any): void {
+  broadcastToUser(userId: string, message: any): void
+  {
     const connections = this.getConnectionsByUserId(userId);
     
-    for (const connection of connections) {
-      try {
-        if (connection.socket.readyState === 1) { // WebSocket.OPEN
+    for (const connection of connections)
+    {
+      try
+      {
+        if (connection.socket.readyState === 1) // WebSocket.OPEN
+        {
           connection.socket.send(JSON.stringify(message));
         }
-      } catch (error) {
+      }
+      catch (error)
+      {
         console.error(`Error broadcasting to connection ${connection.connectionId}:`, error);
-        // Remove broken connection
+        // Remove connection that's not working
         this.remove(connection.connectionId);
       }
     }
   }
 
-  /**
-   * Get all active connections
-   */
-  getAll(): ConnectionInfo[] {
+  getAll(): ConnectionInfo[]
+  {
     return Array.from(this.connectionsBySocketId.values());
   }
 
-  /**
-   * Get total number of connections
-   */
-  size(): number {
+  size(): number
+  {
     return this.connectionsBySocketId.size;
   }
 
-  /**
-   * Check if a connection exists
-   */
-  has(connectionId: string): boolean {
+  has(connectionId: string): boolean
+  {
     return this.connectionsBySocketId.has(connectionId);
   }
 
-  /**
-   * Clear all connections (useful for cleanup)
-   */
-  clear(): void {
+  clear(): void
+  {
     this.connectionsBySocketId.clear();
     this.connectionsByUserId.clear();
   }
 
-  /**
-   * Get summary of connected users
-   */
-  getConnectedUsersSummary(): { totalConnections: number; users: Array<{ userId: string; username?: string; connectionCount: number }> } {
+  getConnectedUsersSummary(): { totalConnections: number; users: Array<{ userId: string; username?: string; connectionCount: number }> }
+  {
     const usersMap = new Map<string, { username?: string; connectionCount: number }>();
 
-    for (const connection of this.connectionsBySocketId.values()) {
+    for (const connection of this.connectionsBySocketId.values())
+    {
       const existing = usersMap.get(connection.userId);
-      if (existing) {
+      if (existing)
+      {
         existing.connectionCount++;
-      } else {
+      }
+      else
+      {
         usersMap.set(connection.userId, {
           username: connection.username,
           connectionCount: 1,
@@ -162,20 +156,20 @@ export class ConnectionPool {
     };
   }
 
-  /**
-   * Log connected users summary
-   */
-  logConnectedUsers(): void {
+  logConnectedUsers(): void
+  {
     const summary = this.getConnectedUsersSummary();
     
-    if (summary.totalConnections === 0) {
+    if (summary.totalConnections === 0)
+    {
       console.log('📊 Connected Users: 0 connections');
       return;
     }
 
     console.log(`📊 Connected Users: ${summary.totalConnections} connection(s) from ${summary.users.length} user(s)`);
     
-    for (const user of summary.users) {
+    for (const user of summary.users)
+    {
       const usernameDisplay = user.username || 'Unknown';
       const connectionText = user.connectionCount > 1 ? 'connections' : 'connection';
       console.log(`   • ${usernameDisplay} (${user.userId.substring(0, 8)}...): ${user.connectionCount} ${connectionText}`);

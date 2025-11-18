@@ -13,20 +13,26 @@ let redisClient: RedisClientType | null = null;
 /**
  * Get Redis password from Docker secret or environment variable
  */
-function getRedisPassword(): string {
-  // Try Docker secret first (production)
-  try {
+function getRedisPassword(): string
+{
+  // First try to get password from Docker secret file
+  try
+  {
     const secretPath = '/run/secrets/redis_password';
-    if (fs.existsSync(secretPath)) {
+    if (fs.existsSync(secretPath))
+    {
       return fs.readFileSync(secretPath, 'utf8').trim();
     }
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.warn('Could not read Redis password from Docker secret:', error);
   }
 
-  // Fallback to environment variable (development)
+  // If no secret file, use environment variable
   const envPassword = process.env.REDIS_PASSWORD;
-  if (envPassword) {
+  if (envPassword)
+  {
     return envPassword;
   }
 
@@ -34,10 +40,8 @@ function getRedisPassword(): string {
   throw new Error('REDIS_PASSWORD not configured. Set it in .env or Docker secret');
 }
 
-/**
- * Get Redis configuration
- */
-export function getRedisConfig(): RedisConfig {
+export function getRedisConfig(): RedisConfig
+{
   return {
     host: process.env.REDIS_HOST || 'redis',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
@@ -45,15 +49,15 @@ export function getRedisConfig(): RedisConfig {
   };
 }
 
-/**
- * Create and configure Redis client
- */
-export async function createRedisClient(): Promise<RedisClientType> {
-  if (redisClient && redisClient.isReady) {
+export async function createRedisClient(): Promise<RedisClientType>
+{
+  if (redisClient && redisClient.isReady)
+  {
     return redisClient;
   }
 
-  try {
+  try
+  {
     const config = getRedisConfig();
     
     redisClient = createClient({
@@ -61,8 +65,10 @@ export async function createRedisClient(): Promise<RedisClientType> {
         host: config.host,
         port: config.port,
         keepAlive: 30000, // 30 seconds
-        reconnectStrategy: (retries) => {
-          if (retries > 10) {
+        reconnectStrategy: (retries) =>
+        {
+          if (retries > 10)
+          {
             console.error('Redis: Max reconnection attempts reached');
             return new Error('Max reconnection attempts reached');
           }
@@ -75,29 +81,38 @@ export async function createRedisClient(): Promise<RedisClientType> {
     });
 
     // Error handling
-    redisClient.on('error', (err) => {
+    redisClient.on('error', (err) =>
+    {
       console.error('Redis Client Error:', err);
     });
 
-    redisClient.on('connect', () => {
+    redisClient.on('connect', () =>
+    {
       console.log('Redis client connecting...');
     });
 
-    redisClient.on('ready', () => {
+    redisClient.on('ready', () =>
+    {
       console.log('Redis client ready');
-      // Start keepalive ping every 20 seconds (before 30s timeout)
-      setInterval(async () => {
-        try {
-          if (redisClient && redisClient.isReady) {
+      // Send ping every 20 seconds to keep connection alive
+      setInterval(async () =>
+      {
+        try
+        {
+          if (redisClient && redisClient.isReady)
+          {
             await redisClient.ping();
           }
-        } catch (error) {
-          // Silent fail - connection will reconnect if needed
+        }
+        catch (error)
+        {
+          // If ping fails, don't worry - it will reconnect
         }
       }, 20000);
     });
 
-    redisClient.on('reconnecting', () => {
+    redisClient.on('reconnecting', () =>
+    {
       console.log('Redis client reconnecting...');
     });
 
@@ -105,37 +120,35 @@ export async function createRedisClient(): Promise<RedisClientType> {
     await redisClient.connect();
 
     return redisClient;
-  } catch (error) {
+  }
+  catch (error)
+  {
     console.error('Failed to create Redis client:', error);
     throw error;
   }
 }
 
-/**
- * Get existing Redis client or create new one
- */
-export async function getRedisClient(): Promise<RedisClientType> {
-  if (!redisClient || !redisClient.isReady) {
+export async function getRedisClient(): Promise<RedisClientType>
+{
+  if (!redisClient || !redisClient.isReady)
+  {
     return await createRedisClient();
   }
   return redisClient;
 }
 
-/**
- * Close Redis client connection
- */
-export async function closeRedisClient(): Promise<void> {
-  if (redisClient && redisClient.isReady) {
+export async function closeRedisClient(): Promise<void>
+{
+  if (redisClient && redisClient.isReady)
+  {
     await redisClient.quit();
     redisClient = null;
     console.log('Redis client closed');
   }
 }
 
-/**
- * Check if Redis client is connected
- */
-export function isRedisConnected(): boolean {
+export function isRedisConnected(): boolean
+{
   return redisClient !== null && redisClient.isReady;
 }
 

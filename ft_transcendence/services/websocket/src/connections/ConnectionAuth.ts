@@ -8,19 +8,18 @@ export interface AuthResult {
   username?: string;
 }
 
-export class ConnectionAuth {
-  /**
-   * Verify JWT token and extract user information
-   */
-  static verifyToken(token: string): AuthResult {
-    try {
+export class ConnectionAuth
+{
+  static verifyToken(token: string): AuthResult
+  {
+    try
+    {
       const jwtSecret = getJwtSecret();
       
-      // Verify and decode the token
       const decoded = jwt.verify(token, jwtSecret) as jwt.JwtPayload;
       
-      // Extract user ID from token payload (sub field)
-      if (!decoded.sub) {
+      if (!decoded.sub)
+      {
         throw new Error('Token missing user ID (sub field)');
       }
 
@@ -29,37 +28,41 @@ export class ConnectionAuth {
         email: decoded.email as string | undefined,
         username: decoded.username as string | undefined,
       };
-    } catch (error) {
-      if (error instanceof jwt.JsonWebTokenError) {
+    }
+    catch (error)
+    {
+      if (error instanceof jwt.JsonWebTokenError)
+      {
         throw new Error('Invalid JWT token');
       }
-      if (error instanceof jwt.TokenExpiredError) {
+      if (error instanceof jwt.TokenExpiredError)
+      {
         throw new Error('JWT token has expired');
       }
       throw error;
     }
   }
 
-  /**
-   * Extract token from WebSocket upgrade request
-   * Supports query parameter: ?token=...
-   */
-  static extractTokenFromRequest(url?: string): string | null {
-    if (!url) {
+  static extractTokenFromRequest(url?: string): string | null
+  {
+    if (!url)
+    {
       return null;
     }
 
-    try {
-      // Handle both relative and absolute URLs
-      // If it's a relative path like "/ws?token=...", we need to prepend a base
+    try
+    {
+      // Make sure URL has http:// or ws:// at the start
       const fullUrl = url.startsWith('http') || url.startsWith('ws') 
         ? url 
         : `ws://localhost${url}`;
       
       const urlObj = new URL(fullUrl);
       return urlObj.searchParams.get('token');
-    } catch (error) {
-      // Fallback: try to extract from query string manually
+    }
+    catch (error)
+    {
+      // If URL parsing fails try to find token in the string
       const match = url.match(/[?&]token=([^&]*)/);
       return match ? decodeURIComponent(match[1]) : null;
     }

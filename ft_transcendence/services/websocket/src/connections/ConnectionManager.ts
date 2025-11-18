@@ -5,20 +5,22 @@ import { ConnectionAuth, AuthResult } from './ConnectionAuth';
 import { connectionPool } from './ConnectionPool';
 import { ConnectionInfo, WebSocketMessage } from '../types/connection.types';
 import { MESSAGE_TYPES } from '../utils/constants';
+import { EventManager } from '../events/EventManager';
 
-export class ConnectionManager {
-  /**
-   * Handle new WebSocket connection
-   */
+export class ConnectionManager
+{
   static async handleConnection(
     socket: WebSocket,
     req: any
-  ): Promise<ConnectionInfo | null> {
-    try {
+  ): Promise<ConnectionInfo | null>
+  {
+    try
+    {
       // Extract token from query parameters
       const token = ConnectionAuth.extractTokenFromRequest(req.url);
       
-      if (!token) {
+      if (!token)
+      {
         this.sendError(socket, 'Missing authentication token');
         socket.close(1008, 'Missing authentication token');
         return null;
@@ -26,9 +28,12 @@ export class ConnectionManager {
 
       // Verify token and get user info
       let authResult: AuthResult;
-      try {
+      try
+      {
         authResult = ConnectionAuth.verifyToken(token);
-      } catch (error: any) {
+      }
+      catch (error: any)
+      {
         this.sendError(socket, error.message || 'Invalid authentication token');
         socket.close(1008, error.message || 'Invalid authentication token');
         return null;
@@ -55,8 +60,8 @@ export class ConnectionManager {
       // Add to connection pool
       connectionPool.add(connectionInfo);
 
-      // Log successful connection (PRODUCTION - not a test)
-      console.log(`[PRODUCTION] WebSocket connection established:`, {
+      // Log that someone connected
+      console.log(`WebSocket connection established:`, {
         connectionId,
         userId: authResult.userId,
         username: authResult.username,
@@ -78,8 +83,9 @@ export class ConnectionManager {
       });
 
       // Set up connection close handler
-      socket.on('close', (code, reason) => {
-        console.log(`[PRODUCTION] WebSocket connection closed:`, {
+      socket.on('close', (code, reason) =>
+      {
+        console.log(`WebSocket connection closed:`, {
           connectionId,
           userId: authResult.userId,
           username: authResult.username,
@@ -88,25 +94,31 @@ export class ConnectionManager {
           timestamp: new Date().toISOString(),
         });
         connectionPool.remove(connectionId);
-        // Log updated connected users summary
+        // Show how many users are connected now
         connectionPool.logConnectedUsers();
       });
 
       // Set up error handler
-      socket.on('error', (error) => {
+      socket.on('error', (error) =>
+      {
         console.error(`WebSocket error for connection ${connectionId}:`, error);
         connectionPool.remove(connectionId);
       });
 
       // Set up message handler to log incoming messages
-      socket.on('message', (rawMessage: Buffer | string) => {
-        try {
+      socket.on('message', async (rawMessage: Buffer | string) =>
+      {
+        try
+        {
           const messageStr = typeof rawMessage === 'string' ? rawMessage : rawMessage.toString('utf-8');
           let message: WebSocketMessage;
           
-          try {
+          try
+          {
             message = JSON.parse(messageStr);
-          } catch (parseError) {
+          }
+          catch (parseError)
+          {
             console.log(`[WebSocket] Received invalid JSON from connection ${connectionId}:`, messageStr);
             return;
           }
@@ -121,38 +133,46 @@ export class ConnectionManager {
             timestamp: message.timestamp || new Date().toISOString(),
             receivedAt: new Date().toISOString(),
           });
-        } catch (error) {
+
+          // Route message to EventManager
+          await EventManager.handleMessage(message, connectionInfo);
+        }
+        catch (error)
+        {
           console.error(`[WebSocket] Error processing message from connection ${connectionId}:`, error);
         }
       });
 
       return connectionInfo;
-    } catch (error) {
+    }
+    catch (error)
+    {
       console.error('Error handling connection:', error);
-      if (socket.readyState === 1) { // WebSocket.OPEN
+      if (socket.readyState === 1) // WebSocket.OPEN
+      {
         socket.close(1011, 'Internal server error');
       }
       return null;
     }
   }
 
-  /**
-   * Send a message to a WebSocket connection
-   */
-  private static sendMessage(socket: WebSocket, message: WebSocketMessage): void {
-    try {
-      if (socket.readyState === 1) { // WebSocket.OPEN
+  private static sendMessage(socket: WebSocket, message: WebSocketMessage): void
+  {
+    try
+    {
+      if (socket.readyState === 1) // WebSocket.OPEN
+      {
         socket.send(JSON.stringify(message));
       }
-    } catch (error) {
+    }
+    catch (error)
+    {
       console.error('Error sending message:', error);
     }
   }
 
-  /**
-   * Send an error message to a WebSocket connection
-   */
-  private static sendError(socket: WebSocket, errorMessage: string): void {
+  private static sendError(socket: WebSocket, errorMessage: string): void
+  {
     this.sendMessage(socket, {
       type: MESSAGE_TYPES.ERROR,
       payload: {
@@ -162,17 +182,13 @@ export class ConnectionManager {
     });
   }
 
-  /**
-   * Get connection by ID
-   */
-  static getConnection(connectionId: string): ConnectionInfo | undefined {
+  static getConnection(connectionId: string): ConnectionInfo | undefined
+  {
     return connectionPool.get(connectionId);
   }
 
-  /**
-   * Remove connection
-   */
-  static removeConnection(connectionId: string): boolean {
+  static removeConnection(connectionId: string): boolean
+  {
     return connectionPool.remove(connectionId);
   }
 }
