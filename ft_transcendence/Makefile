@@ -94,7 +94,7 @@ help:
 	@printf "  $(GREEN)make shell-nginx$(DEFAULT)  - Enter nginx container\n"
 	@printf "  $(GREEN)make shell-redis$(DEFAULT)  - Enter redis container\n"
 	@printf "$(CYAN)🌐 Access Points:$(DEFAULT)\n"
-	@printf "  Redis:        $(YELLOW)localhost:6379$(DEFAULT)\n"
+	@printf "  Redis:        $(YELLOW)localhost:23111$(DEFAULT)\n"
 	@printf "  Health:       $(YELLOW)http://localhost/health$(DEFAULT)\n\n"
 
 ################################################################################

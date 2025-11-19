@@ -166,7 +166,7 @@ services:
       context: ./infrastructure/redis
       dockerfile: Dockerfile
     ports:
-      - "6379:6379"
+      - "23111:6379"
     volumes:
       - redis_data:/data
     networks:
