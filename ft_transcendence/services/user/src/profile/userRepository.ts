@@ -232,11 +232,12 @@ export async function deleteUserProfile(userId: string) {
       data: { winnerId: null },
     });
 
-    await tx.userGameStatus.delete({
+    // Use deleteMany to avoid throwing if the related rows do not exist
+    await tx.userGameStatus.deleteMany({
       where: { userStatusId: userId },
     });
 
-    await tx.userSettings.delete({
+    await tx.userSettings.deleteMany({
       where: { userSettingsId: userId },
     });
 

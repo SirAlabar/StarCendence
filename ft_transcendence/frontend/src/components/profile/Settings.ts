@@ -835,8 +835,9 @@ export class Settings extends BaseComponent
                 {
                     'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                     'Content-Type': 'application/json',
-                    body: JSON.stringify({})
-                }
+                },
+                body: JSON.stringify({})
+
             });
             
             if (!response.ok) 
