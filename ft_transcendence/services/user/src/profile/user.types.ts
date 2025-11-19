@@ -10,7 +10,8 @@ export enum UserStatus {
 export interface CreateUserBody {
   authId: string
   email: string
-  username: string
+  username: string,
+  oauthEnabled?: boolean
 }
 
 export interface UserProfile {
@@ -19,14 +20,6 @@ export interface UserProfile {
   username: string;
   bio?: string | null;
   avatarUrl?: string | null;
-  totalWins?: number;
-  totalLosses?: number;
-  points?: number;
   createdAt: Date;
   updatedAt: Date;
 }
-
-export interface UpdateUserBody {
-  bio?: string | null;
-}
-

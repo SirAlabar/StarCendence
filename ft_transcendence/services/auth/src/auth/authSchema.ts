@@ -27,16 +27,6 @@ export const registerSchema = {
 
 // 2FA verification schema
 export const twoFAVerifySchema = {
-  headers: {
-    type: 'object',
-    required: ['authorization'],
-    properties: {
-      'authorization': {
-        type: 'string',
-        pattern: '^Bearer\\s.+$'
-      }
-    }
-  },
   body: {
     type: 'object',
     required: ['twoFACode'],
@@ -128,6 +118,27 @@ export const verifySchema = {
       properties: {
         error: { type: 'string' },
         message: { type: 'string' }
+      }
+    }
+  }
+};
+
+// Update password schema
+export const updatePasswordSchema = {
+  body: {
+    type: 'object',
+    required: ['currentPassword', 'newPassword'],
+    properties: {
+      currentPassword: {
+        type: 'string',
+        minLength: 8,
+        maxLength: 100
+      },
+      newPassword: {
+        type: 'string',
+        minLength: 8,
+        maxLength: 72,
+        pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&.])[A-Za-z\\d@$!%*?&.]{8,}$',
       }
     }
   }

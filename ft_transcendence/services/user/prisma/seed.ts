@@ -5,6 +5,42 @@ import path from 'path';
 
 const prisma = new PrismaClient();
 
+interface SeedUser {
+  id: string;
+  username: string;
+  email: string;
+  bio: string;
+  status: string;
+  avatar: string;
+
+  // optional settings
+  twoFactorEnabled?: boolean;
+  oauthEnabled?: boolean;
+  showOnlineStatus?: boolean;
+  allowFriendRequests?: boolean;
+  showGameActivity?: boolean;
+  notifyFriendRequests?: boolean;
+  notifyGameInvites?: boolean;
+  notifyMessages?: boolean;
+
+  // game stats
+  totalGames: number;
+  totalWins: number;
+  totalLosses: number;
+  totalDraws: number;
+  totalWinPercent: number;
+  points: number;
+  rank: number;
+
+  totalPongWins: number;
+  totalPongLoss: number;
+  totalRacerWins: number;
+  totalRacerLoss: number;
+
+  tournamentWins: number;
+  tournamentParticipations: number;
+}
+
 function copyImageToAvatars(filename: string, userId: string): string 
 {
   const AVATARS_DIR = '/app/data/avatars';
@@ -53,7 +89,7 @@ async function main()
 
   console.log('🌱 Starting database seed...');
 
-  const users = [
+  const users: SeedUser[] = [
     { 
       id: '550e8400-e29b-41d4-a716-446655440001', 
       username: 'Anakin_Skywalker', 
@@ -61,6 +97,7 @@ async function main()
       bio: 'The Chosen One. Podracer champion turned Jedi.', 
       status: 'OFFLINE', 
       avatar: 'anakin.gif',
+      twoFactorEnabled: true,
       // Overall stats
       totalGames: 177,
       totalWins: 145,
@@ -68,6 +105,7 @@ async function main()
       totalDraws: 0,
       totalWinPercent: 81.9,
       points: 2450,
+      rank: 1,
       // Game modes
       totalPongWins: 78,
       totalPongLoss: 15,
@@ -90,6 +128,7 @@ async function main()
       totalDraws: 0,
       totalWinPercent: 74.6,
       points: 2180,
+      rank: 2,
       totalPongWins: 71,
       totalPongLoss: 22,
       totalRacerWins: 61,
@@ -110,6 +149,7 @@ async function main()
       totalDraws: 0,
       totalWinPercent: 69.8,
       points: 1920,
+      rank: 3,
       totalPongWins: 65,
       totalPongLoss: 28,
       totalRacerWins: 53,
@@ -130,6 +170,7 @@ async function main()
       totalDraws: 0,
       totalWinPercent: 63.6,
       points: 1800,
+      rank: 4,
       totalPongWins: 52,
       totalPongLoss: 31,
       totalRacerWins: 53,
@@ -150,6 +191,7 @@ async function main()
       totalDraws: 0,
       totalWinPercent: 60.1,
       points: 1700,
+      rank: 5,
       totalPongWins: 48,
       totalPongLoss: 33,
       totalRacerWins: 50,
@@ -170,6 +212,7 @@ async function main()
       totalDraws: 0,
       totalWinPercent: 57.5,
       points: 1600,
+      rank: 6,
       totalPongWins: 45,
       totalPongLoss: 35,
       totalRacerWins: 47,
@@ -190,6 +233,7 @@ async function main()
       totalDraws: 0,
       totalWinPercent: 54.4,
       points: 1500,
+      rank: 7,
       totalPongWins: 42,
       totalPongLoss: 38,
       totalRacerWins: 45,
@@ -210,6 +254,7 @@ async function main()
       totalDraws: 0,
       totalWinPercent: 50.9,
       points: 1400,
+      rank: 8,
       totalPongWins: 40,
       totalPongLoss: 40,
       totalRacerWins: 41,
@@ -230,6 +275,7 @@ async function main()
       totalDraws: 0,
       totalWinPercent: 48.1,
       points: 1300,
+      rank: 9,
       totalPongWins: 37,
       totalPongLoss: 42,
       totalRacerWins: 39,
@@ -250,6 +296,7 @@ async function main()
       totalDraws: 0,
       totalWinPercent: 45.3,
       points: 1200,
+      rank: 10,
       totalPongWins: 35,
       totalPongLoss: 45,
       totalRacerWins: 37,
@@ -265,36 +312,56 @@ async function main()
   {
     const avatarUrl = copyImageToAvatars(userData.avatar, userData.id);
     
-    const user = await prisma.userProfile.create(
-    {
-      data: 
-      {
+    const user = await prisma.userProfile.create({
+      data: {
         id: userData.id,
         username: userData.username,
         email: userData.email,
         bio: userData.bio,
         status: userData.status,
         avatarUrl: avatarUrl || '/avatars/default.jpeg',
-        // Overall stats
-        totalGames: userData.totalGames,
-        totalWins: userData.totalWins,
-        totalLosses: userData.totalLosses,
-        totalDraws: userData.totalDraws,
-        totalWinPercent: userData.totalWinPercent,
-        points: userData.points,
-        // Game modes
-        totalPongWins: userData.totalPongWins,
-        totalPongLoss: userData.totalPongLoss,
-        totalRacerWins: userData.totalRacerWins,
-        totalRacerLoss: userData.totalRacerLoss,
-        // Tournaments
-        tournamentWins: userData.tournamentWins,
-        tournamentParticipations: userData.tournamentParticipations
+        settings: {
+          create: {
+            twoFactorEnabled:     userData.twoFactorEnabled     ?? false,
+            oauthEnabled:         userData.oauthEnabled         ?? false,
+            showOnlineStatus:     userData.showOnlineStatus     ?? true,
+            allowFriendRequests:  userData.allowFriendRequests  ?? true,
+            showGameActivity:     userData.showGameActivity     ?? true,
+            notifyFriendRequests: userData.notifyFriendRequests ?? true,
+            notifyGameInvites:    userData.notifyGameInvites    ?? true,
+            notifyMessages:       userData.notifyMessages       ?? true,
+          }
+        },
+        gameStatus: {
+          create: {
+            totalGames: userData.totalGames,
+            totalWins: userData.totalWins,
+            totalLosses: userData.totalLosses,
+            totalDraws: userData.totalDraws,
+            totalWinPercent: userData.totalWinPercent,
+            points: userData.points,
+            rank: userData.rank,
+            totalPongWins: userData.totalPongWins,
+            totalPongLoss: userData.totalPongLoss,
+            totalRacerWins: userData.totalRacerWins,
+            totalRacerLoss: userData.totalRacerLoss,
+            tournamentWins: userData.tournamentWins,
+            tournamentParticipations: userData.tournamentParticipations,
+          }
+        }
       },
+      include: { gameStatus: true, settings: true }
     });
+
     
     createdUsers.push(user);
-    console.log(`✅ Created user: ${user.username} (${user.totalWins}W/${user.totalLosses}L, ${user.points} pts, ${user.totalWinPercent?.toFixed(1)}% WR)`);
+    console.log(
+      `✅ Created user: ${user.username} (` +
+      `${user.gameStatus?.totalWins}W/${user.gameStatus?.totalLosses}L, ` +
+      `${user.gameStatus?.points} pts, ` +
+      `${user.gameStatus?.totalWinPercent?.toFixed(1)}% WR, ` +
+      `Rank #${user.gameStatus?.rank})`
+    );
   }
 
   console.log('\n👥 Creating friendships...\n');
@@ -312,6 +379,7 @@ async function main()
   await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440007', recipientId: '550e8400-e29b-41d4-a716-446655440010', status: 'ACCEPTED' } });
   await prisma.friendship.create({ data: { senderId: '550e8400-e29b-41d4-a716-446655440007', recipientId: '550e8400-e29b-41d4-a716-446655440008', status: 'ACCEPTED' } });
 
+  console.log('\n✅ Seed completed successfully!\n');
 }
 
 main()

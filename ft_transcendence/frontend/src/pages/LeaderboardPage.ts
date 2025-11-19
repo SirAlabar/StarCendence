@@ -2,22 +2,40 @@ import { BaseComponent } from '../components/BaseComponent';
 import { getUserApiUrl, getBaseUrl } from '../types/api.types';
 import { showLoading, hideLoading } from '../router/LayoutManager';
 
-interface UserStats 
+// Leaderboard entry (flat structure from backend)
+export interface LeaderboardEntry 
 {
     id: string;
     username: string;
     avatarUrl: string | null;
     status: string;
-    wins: number;
-    losses: number;
-    points: number;
-    rank: number;
+    wins: number;      // FLAT from backend transformation
+    losses: number;    // FLAT from backend transformation
+    points: number;    // FLAT from backend transformation
+    rank: number;      // FLAT from backend transformation
+}
+
+// User rank response (nested structure from backend)
+export interface UserRankResponse 
+{
+    id: string;
+    username: string;
+    avatarUrl: string | null;
+    status: string;
+    gameStatus: 
+    {
+        totalGames: number;
+        totalWins: number;
+        totalLosses: number;
+        points: number;
+        rank: number;
+    };
 }
 
 export default class LeaderboardPage extends BaseComponent 
 {
-    private leaderboard: UserStats[] = [];
-    private userRank: UserStats | null = null;
+    private leaderboard: LeaderboardEntry[] = [];
+    private userRank: UserRankResponse | null = null;
     private error: string | null = null;
 
     async mount(selector: string): Promise<void> 
@@ -43,7 +61,7 @@ export default class LeaderboardPage extends BaseComponent
         }
     }
 
-    private getPlaceholderLeaderboard(): UserStats[] 
+    private getPlaceholderLeaderboard(): LeaderboardEntry[] 
     {
         const placeholderData = [
             { username: 'Player1', wins: 145, losses: 32, points: 2450 },
@@ -74,7 +92,7 @@ export default class LeaderboardPage extends BaseComponent
     {
         try 
         {
-            const response = await fetch(getUserApiUrl('/leaderboard?limit=20'), 
+            const response = await fetch(getUserApiUrl('/leaderboard'), 
             {
                 method: 'GET',
                 headers: 
@@ -211,57 +229,49 @@ export default class LeaderboardPage extends BaseComponent
             return avatarUrl;
         }
         
-        if (avatarUrl.startsWith('/assets/')) 
-        {
-            return avatarUrl;
-        }
-        
         return `${getBaseUrl()}${avatarUrl}`;
     }
 
     render(): string 
     {
-        const top3 = this.leaderboard.slice(0, 3);
-        const rest = this.leaderboard.slice(3);
+        const topThree = this.leaderboard.slice(0, 3);
+        const restOfLeaderboard = this.leaderboard.slice(3);
 
         return `
-            <div class="container mx-auto px-4 py-8 max-w-6xl">
-                <!-- Header -->
-                <div class="text-center mb-12">
-                    <h1 class="text-5xl font-bold font-game text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 mb-4 drop-shadow-lg">
-                        🏆 LEADERBOARD
-                    </h1>
-                    <p class="text-gray-400 text-lg">Compete with the best players worldwide</p>
-                </div>
-
+            <div class="container mx-auto px-4 py-8 max-w-7xl">
                 ${this.error ? `
-                    <div class="mb-6 bg-yellow-900/40 border border-yellow-500/50 rounded-lg p-4 backdrop-blur-sm">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">⚠️</span>
-                            <div>
-                                <p class="text-yellow-400 font-semibold">${this.escapeHtml(this.error)}</p>
-                                <p class="text-gray-400 text-sm">Showing placeholder data. Please refresh to try again.</p>
-                            </div>
-                        </div>
-                    </div>
+                <div class="mb-6 bg-yellow-900/30 border-2 border-yellow-500/50 rounded-lg p-4 backdrop-blur-sm">
+                    <p class="text-yellow-400 text-center font-bold">
+                        ⚠️ ${this.escapeHtml(this.error)} - Showing placeholder data
+                    </p>
+                </div>
                 ` : ''}
 
+                <!-- Header -->
+                <div class="text-center mb-12">
+                    <h1 class="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 mb-4">
+                        🏆 LEADERBOARD
+                    </h1>
+                    <p class="text-gray-400 text-lg">Top Players of the Galaxy</p>
+                </div>
+
+                <!-- User Rank Card -->
                 ${this.renderUserRank()}
 
                 <!-- Top 3 Podium -->
-                <div class="mb-12">
-                    <h2 class="text-2xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">
-                        TOP CHAMPIONS
-                    </h2>
-                    <div class="flex justify-center items-end gap-8 md:gap-12 flex-wrap md:flex-nowrap">
-                        ${top3.map((player) => this.renderTopPlayer(player)).join('')}
-                    </div>
+                ${topThree.length >= 3 ? `
+                <div class="grid grid-cols-3 gap-4 mb-12 max-w-4xl mx-auto">
+                    ${this.renderTopPlayer(topThree[1])}
+                    ${this.renderTopPlayer(topThree[0])}
+                    ${this.renderTopPlayer(topThree[2])}
                 </div>
+                ` : ''}
 
-                ${this.renderRestOfLeaderboard(rest)}
+                <!-- Rest of Leaderboard -->
+                ${this.renderRestOfLeaderboard(restOfLeaderboard)}
 
                 <!-- Action Buttons -->
-                <div class="text-center mt-8 space-x-4">
+                <div class="flex justify-center gap-4 mt-12">
                     <button 
                         onclick="navigateTo('/games')" 
                         class="bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-8 py-3 rounded-lg font-bold hover:from-yellow-700 hover:to-orange-700 transition-all transform hover:scale-105 shadow-lg"
@@ -315,24 +325,24 @@ export default class LeaderboardPage extends BaseComponent
             <div class="mb-8 bg-gradient-to-r from-cyan-900/40 to-blue-900/40 rounded-xl border-2 border-cyan-500/50 p-6 backdrop-blur-sm">
                 <div class="flex items-center justify-between flex-wrap gap-4">
                     <div class="flex items-center gap-4">
-                        <div class="text-4xl">${this.getRankIcon(this.userRank.rank || 0)}</div>
+                        <div class="text-4xl">${this.getRankIcon(this.userRank.gameStatus.rank || 0)}</div>
                         <div>
                             <p class="text-gray-400 text-sm">Your Rank</p>
-                            <p class="text-3xl font-bold text-cyan-400">#${this.userRank.rank}</p>
+                            <p class="text-3xl font-bold text-cyan-400">#${this.userRank.gameStatus.rank}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-6">
                         <div class="text-center">
                             <p class="text-gray-400 text-sm">Wins</p>
-                            <p class="text-2xl font-bold text-green-400">${this.userRank.wins}</p>
+                            <p class="text-2xl font-bold text-green-400">${this.userRank.gameStatus.totalWins}</p>
                         </div>
                         <div class="text-center">
                             <p class="text-gray-400 text-sm">Losses</p>
-                            <p class="text-2xl font-bold text-red-400">${this.userRank.losses}</p>
+                            <p class="text-2xl font-bold text-red-400">${this.userRank.gameStatus.totalLosses}</p>
                         </div>
                         <div class="text-center">
                             <p class="text-gray-400 text-sm">Points</p>
-                            <p class="text-2xl font-bold text-yellow-400">${this.userRank.points}</p>
+                            <p class="text-2xl font-bold text-yellow-400">${this.userRank.gameStatus.points}</p>
                         </div>
                     </div>
                 </div>
@@ -340,7 +350,7 @@ export default class LeaderboardPage extends BaseComponent
         `;
     }
 
-    private renderTopPlayer(player: UserStats): string 
+    private renderTopPlayer(player: LeaderboardEntry): string 
     {
         const avatarUrl = this.getAvatarUrl(player.avatarUrl);
 
@@ -415,7 +425,7 @@ export default class LeaderboardPage extends BaseComponent
         `;
     }
 
-    private renderRestOfLeaderboard(players: UserStats[]): string 
+    private renderRestOfLeaderboard(players: LeaderboardEntry[]): string 
     {
         if (players.length === 0) 
         {
@@ -434,7 +444,7 @@ export default class LeaderboardPage extends BaseComponent
         `;
     }
 
-    private renderPlayerRow(player: UserStats): string 
+    private renderPlayerRow(player: LeaderboardEntry): string 
     {
         const avatarUrl = this.getAvatarUrl(player.avatarUrl);
 

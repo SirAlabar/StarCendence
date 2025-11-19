@@ -5,12 +5,12 @@ import path from "path";
 import fs from 'fs/promises';
 
 // Create a new user profile (internal)
-export async function createUserProfile(authId: string, email: string, username: string) {
-  if (!authId || !email || !username) {
-    throw new HttpError('Auth ID, email, and username are required', 400);
+export async function createUserProfile(authId: string, email: string, username: string, oauthEnabled: boolean) {
+  if (!authId || !email || !username || oauthEnabled === undefined) {
+    throw new HttpError('Auth ID, email, username, and OAuth enabled status are required', 400);
   }
 
-  await userRepository.createUserProfile(authId, email, username);
+  await userRepository.createUserProfile(authId, email, username, oauthEnabled);
 }
 
 // Update user status (internal)
@@ -41,7 +41,7 @@ export async function findUserProfileByUsername(username: string) {
 }
 
 // Update user profile
-export async function updateUserProfile(id: string, updatedData: Partial<UserProfile>) {
+export async function updateUserProfile(id: string, updatedData: any) {
   const user = await userRepository.updateUserProfile(id, updatedData);
   if (!user) {
     throw new HttpError('User not found', 404);
@@ -92,10 +92,8 @@ export async function uploadProfileImage(id: string, image: any): Promise<string
 }
 
 // Search users by username
-export async function searchUsers(query: string)
-{
-  if (!query || query.trim().length < 2)
-  {
+export async function searchUsers(query: string) {
+  if (!query || query.trim().length < 2) {
     throw new HttpError('Search query must be at least 2 characters', 400);
   }
 
@@ -103,60 +101,68 @@ export async function searchUsers(query: string)
   return users;
 }
 
-// Get leaderboard
-export async function getLeaderboard(limit: number = 10)
-{
-  if (limit < 1 || limit > 100) 
-  {
-    throw new HttpError('Limit must be between 1 and 100', 400);
-  }
-
-  const users = await userRepository.getLeaderboard(limit);
-  
-  return users.map((user, index) => (
-  {
-    id: user.id,
-    username: user.username,
-    avatarUrl: user.avatarUrl,
-    status: user.status,
-    wins: user.totalWins || 0,
-    losses: user.totalLosses || 0,
-    points: user.points || 0,
-    rank: index + 1
-  }));
-}
-
 // Get user rank
-export async function getUserRank(userId: string)
-{
+export async function getUserRank(userId: string) {
   const userWithRank = await userRepository.getUserRank(userId);
   
-  if (!userWithRank) 
-  {
+  if (!userWithRank) {
     throw new HttpError('User not found', 404);
   }
 
-  return {
-    id: userWithRank.id,
-    username: userWithRank.username,
-    avatarUrl: userWithRank.avatarUrl,
-    status: userWithRank.status,
-    wins: userWithRank.totalWins || 0,
-    losses: userWithRank.totalLosses || 0,
-    points: userWithRank.points || 0,
-    rank: userWithRank.rank
-  };
+  return userWithRank;
 }
 
 // Update user stats (internal - called after game)
-export async function updateUserStats(userId: string, won: boolean, pointsEarned: number)
-{
+export async function updateUserStats(userId: string, won: boolean, pointsEarned: number) {
   const user = await userRepository.updateUserStats(userId, won, pointsEarned);
-  
-  if (!user) 
-  {
+
+  if (!user) {
     throw new HttpError('User not found', 404);
   }
 
   return user;
+}
+
+// Update two-factor authentication state (internal)
+export async function updateTwoFactorState(userId: string, twoFactorEnabled: boolean) {
+  const user = await userRepository.updateTwoFactorState(userId, twoFactorEnabled);
+  
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+
+  return user;
+}
+
+// Get personal user profile by ID
+export async function getPersonalUserProfileById(id: string) {
+  const user = await userRepository.getPersonalUserProfileById(id);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+  return user;
+}
+
+// Update user settings
+export async function updateUserSettings(id: string, settings: any) {
+  const user  = await userRepository.findUserProfileById(id);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+
+  const updatedUser = await userRepository.updateUserSettings(id, settings);
+  if (!updatedUser) {
+    throw new HttpError('Failed to update user settings', 500);
+  }
+  return updatedUser;
+}
+
+// Delete user profile
+export async function deleteUserProfile(id: string) {
+  const user = await userRepository.findUserProfileById(id);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+
+  await userRepository.deleteUserProfile(id);
 }
