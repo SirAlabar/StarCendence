@@ -24,6 +24,7 @@ export class LocalPongEngine
     private paused: boolean = false;
     private ended: boolean = false;
     private keys: {[key:string]: boolean} = {};
+    private waitingForSpace: boolean = false;
 
     //Configs
     private config: GameConfig;
@@ -366,12 +367,8 @@ export class LocalPongEngine
         this.resetBall(direction, Math.random() > 0.5 ? 1 : -1);
         this.resetPaddles();
         
-        // Resume after delay
-        setTimeout(() => {
-            if (!this.ended) {
-                this.start();
-            }
-        }, 1000);
+        this.waitingForSpace = true;
+        
     }
     
     private handleGameEnd(): void 
@@ -438,9 +435,21 @@ export class LocalPongEngine
     
   
     
-    private keydownHandler = (e: KeyboardEvent) => {
-        this.keys[e.key.toLowerCase()] = true;
+    private keydownHandler = (e: KeyboardEvent) => 
+    {
+        const key = e.key.toLowerCase();
+        this.keys[key] = true;
+
+        if (key === ' ' || key === 'space') 
+        {
+            if (this.waitingForSpace && !this.ended) 
+                {
+                    this.waitingForSpace = false;
+                    this.start();
+                }
+        }
     };
+
     
     private keyupHandler = (e: KeyboardEvent) => {
         this.keys[e.key.toLowerCase()] = false;

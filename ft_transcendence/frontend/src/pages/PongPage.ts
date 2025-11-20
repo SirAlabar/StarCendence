@@ -53,7 +53,7 @@ export default class PongPage extends BaseComponent
                     <div class="max-w-7xl mx-auto text-center">
                         <p class="text-xs sm:text-sm text-yellow-300/80 font-mono">
                             <span class="text-yellow-400 font-bold">CONTROLS:</span> 
-                            <span id="controlsText">Player 1  Move Up (W) Move Down (S) | Player 2 Move Up (↑) Move Down(↓) | Pause (ESC) </span>
+                            <span id="controlsText">Player 1  Move Up (W) Move Down (S) | Player 2 Move Up (↑) Move Down(↓) | Pause (ESC) Start Ball (SPACEBAR) </span>
                         </p>
                     </div>
                 </div>
@@ -705,15 +705,7 @@ export default class PongPage extends BaseComponent
             winnerName = this.selectedMode === 'ai' ? 'AI' : 'Player 2';
         }
         
-    
         this.showWinnerOverlay(winnerName);
-        
-        // Return to games page after showing winner
-        setTimeout(() => 
-        {
-            this.hideWinnerOverlay();
-            this.goBack();
-        }, 3000);
     }
 
     private handleGameGoal(_event: Event): void 
@@ -765,12 +757,37 @@ export default class PongPage extends BaseComponent
         }
         
         overlay.innerHTML = `
-            <div class="text-center animate-pulse">
-                <h2 class="text-6xl font-bold text-white mb-4">🏆</h2>
-                <h3 class="text-4xl font-bold text-cyan-400">${this.escapeHtml(winner)} Wins!</h3>
+            <div class="flex flex-col items-center justify-center gap-8 p-8 text-center">
+                <div class="animate-pulse">
+                    <h2 class="text-6xl font-bold text-white mb-4">🏆</h2>
+                    <h3 class="text-4xl font-bold text-cyan-400 mb-2">${this.escapeHtml(winner)} Wins!</h3>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-4 mt-8">
+                    <button id="playAgainBtn" class="px-8 py-4 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-lg transition-all shadow-lg shadow-green-500/50">
+                        🔄 PLAY AGAIN
+                    </button>
+                    <button id="goBackBtn" class="px-8 py-4 rounded-lg bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold text-lg transition-all shadow-lg shadow-red-500/50">
+                        🚪 GO BACK
+                    </button>
+                </div>
             </div>
         `;
         overlay.style.display = 'flex';
+        
+        // Attach event listeners
+        const playAgainBtn = overlay.querySelector('#playAgainBtn');
+        const goBackBtn = overlay.querySelector('#goBackBtn');
+        
+        if (playAgainBtn) 
+        {
+            playAgainBtn.addEventListener('click', () => this.playAgain());
+        }
+        
+        if (goBackBtn) 
+        {
+            goBackBtn.addEventListener('click', () => this.goBack());
+        }
     }
 
     private hideWinnerOverlay(): void 
@@ -779,7 +796,21 @@ export default class PongPage extends BaseComponent
         if (overlay) 
         {
             overlay.style.display = 'none';
+            overlay.innerHTML = '';
         }
+    }
+
+    private playAgain(): void 
+    {
+        this.hideWinnerOverlay();
+        // Reset scores
+        const score1El = document.getElementById('score1');
+        const score2El = document.getElementById('score2');
+        if (score1El) score1El.textContent = '0';
+        if (score2El) score2El.textContent = '0';
+        
+        // Restart game with same settings
+        this.startGame();
     }
 
     private resetSelection(): void 
