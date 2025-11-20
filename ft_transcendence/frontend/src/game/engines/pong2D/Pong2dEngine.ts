@@ -257,11 +257,11 @@ export class LocalPongEngine
         // Player 2 / AI (right paddle)
         if (this.config.mode === 'local-multiplayer') 
         {
-            if (this.keys['8'] && this.paddleright.y > 0) 
+            if (this.keys['arrowup'] && this.paddleright.y > 0) 
             {
                 this.paddleright.y -= speed;
             }
-            if (this.keys['2'] && this.paddleright.y + this.paddleright.height < this.canvas.height) 
+            if (this.keys['arrowdown'] && this.paddleright.y + this.paddleright.height < this.canvas.height) 
             {
                 this.paddleright.y += speed;
             }
@@ -350,6 +350,14 @@ export class LocalPongEngine
             }
         }
         
+        // Emit score update event
+        const player2Score = this.player2?.score || this.enemy?.score || 0;
+        this.emitEvent({ 
+            type: 'score-updated', 
+            player1Score: this.player1.score,
+            player2Score: player2Score
+        });
+        
         this.emitEvent({ type: 'goal-scored', scorer });
         
         
@@ -399,9 +407,6 @@ export class LocalPongEngine
     
     private render(): void 
     {
-        // Draw score
-        this.drawScore();
-        
         // Draw game objects
         this.ball.draw(this.ctx);
         this.paddleleft.draw(this.ctx);
@@ -415,18 +420,6 @@ export class LocalPongEngine
             this.enemy.draw(this.ctx);
         }
         
-    }
-    
-    private drawScore(): void 
-    {
-        this.ctx.fillStyle = "white";
-        this.ctx.font = "48px 'Press Start To Play', monospace";
-        this.ctx.textAlign = "center";
-        
-        this.ctx.fillText(`${this.player1.score}`, this.canvas.width / 4, 50);
-        
-        const score2 = this.player2?.score || this.enemy?.score || 0;
-        this.ctx.fillText(`${score2}`, (this.canvas.width / 4) * 3, 50);
     }
     
     private drawPauseOverlay(): void 

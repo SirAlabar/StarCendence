@@ -19,9 +19,44 @@ export default class PongPage extends BaseComponent
     render(): string 
     {
         return `
-            <div class="w-full h-screen flex flex-col">
+            <div class="w-full h-screen flex flex-col bg-gray-950">
                 <!-- Message Container -->
                 <div id="pongMessage" class="w-full px-4 pt-4"></div>
+                
+                <!-- Game HUD (Score, Back Button, Controls) -->
+                <div id="pongHUD" class="w-full px-4 py-4 bg-gray-900/80 border-b border-cyan-500/50 hidden">
+                    <div class="max-w-7xl mx-auto flex items-center justify-between">
+                        <!-- Score Display -->
+                        <div class="flex-1 flex justify-around items-center">
+                            <div class="text-center">
+                                <p class="text-xs sm:text-sm text-gray-400 mb-1">PLAYER 1</p>
+                                <p id="score1" class="text-3xl sm:text-4xl md:text-5xl font-bold text-cyan-400 font-mono">0</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-500">-</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-xs sm:text-sm text-gray-400 mb-1"><span id="player2Label">PLAYER 2</span></p>
+                                <p id="score2" class="text-3xl sm:text-4xl md:text-5xl font-bold text-purple-400 font-mono">0</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Back Button -->
+                        <button id="gameBackBtn" class="ml-4 sm:ml-8 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm md:text-base transition-all">
+                            ← BACK
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Controls Info -->
+                <div id="controlsInfo" class="w-full px-4 py-2 bg-gray-900/60 border-b border-yellow-500/30 hidden">
+                    <div class="max-w-7xl mx-auto text-center">
+                        <p class="text-xs sm:text-sm text-yellow-300/80 font-mono">
+                            <span class="text-yellow-400 font-bold">CONTROLS:</span> 
+                            <span id="controlsText">Player 1  Move Up (W) Move Down (S) | Player 2 Move Up (↑) Move Down(↓) | Pause (ESC) </span>
+                        </p>
+                    </div>
+                </div>
                 
                 <!-- Main Content Area -->
                 <div class="flex-1 flex items-center justify-center p-4 overflow-auto">
@@ -256,6 +291,7 @@ export default class PongPage extends BaseComponent
         gameManager.on('game:ended', this.gameEndHandler);
         gameManager.on('game:goal', this.gameGoalHandler);
         gameManager.on('game:paddle-hit', this.gamePaddleHitHandler);
+        gameManager.on('game:score-update', this.handleScoreUpdate.bind(this));
         
         
     }
@@ -306,6 +342,12 @@ export default class PongPage extends BaseComponent
         if (backBtn) 
         {
             backBtn.addEventListener('click', () => this.goBack());
+        }
+        
+        const gameBackBtn = document.getElementById('gameBackBtn');
+        if (gameBackBtn) 
+        {
+            gameBackBtn.addEventListener('click', () => this.handleGameBack());
         }
     }
 
@@ -525,6 +567,9 @@ export default class PongPage extends BaseComponent
     {
         const menu = document.getElementById('pongMenuContainer');
         const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
+        const hud = document.getElementById('pongHUD');
+        const controlsInfo = document.getElementById('controlsInfo');
+        const player2Label = document.getElementById('player2Label');
         
         if (!canvas) 
         {
@@ -535,6 +580,22 @@ export default class PongPage extends BaseComponent
         if (menu) 
         {
             menu.style.display = 'none';
+        }
+        
+        if (hud) 
+        {
+            hud.classList.remove('hidden');
+        }
+        
+        if (controlsInfo) 
+        {
+            controlsInfo.classList.remove('hidden');
+        }
+        
+        // Update player 2 label based on mode
+        if (player2Label) 
+        {
+            player2Label.textContent = this.selectedMode === 'ai' ? 'AI' : 'PLAYER 2';
         }
         
         if (canvas) 
@@ -667,6 +728,34 @@ export default class PongPage extends BaseComponent
         // TODO: Add paddle hit sound effect
     }
 
+    private handleScoreUpdate(event: Event): void 
+    {
+        const customEvent = event as CustomEvent;
+        const { player1Score, player2Score } = customEvent.detail;
+        
+        const score1El = document.getElementById('score1');
+        const score2El = document.getElementById('score2');
+        
+        if (score1El) 
+        {
+            score1El.textContent = String(player1Score);
+        }
+        
+        if (score2El) 
+        {
+            score2El.textContent = String(player2Score);
+        }
+    }
+
+    private handleGameBack(): void 
+    {
+        const result = confirm('Are you sure you want to leave the game?');
+        if (result) 
+        {
+            this.goBack();
+        }
+    }
+
     private showWinnerOverlay(winner: string): void 
     {
         const overlay = document.getElementById('winnerOverlay');
@@ -710,6 +799,18 @@ export default class PongPage extends BaseComponent
         if (canvas) 
         {
             canvas.style.display = 'none';
+        }
+        
+        const hud = document.getElementById('pongHUD');
+        if (hud) 
+        {
+            hud.classList.add('hidden');
+        }
+        
+        const controlsInfo = document.getElementById('controlsInfo');
+        if (controlsInfo) 
+        {
+            controlsInfo.classList.add('hidden');
         }
     }
 

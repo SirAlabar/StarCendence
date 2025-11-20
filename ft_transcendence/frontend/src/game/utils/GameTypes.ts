@@ -79,7 +79,8 @@ export type GameEvent =
     | {type: 'game-started'}
     | {type: 'game-ended'; winner: 'player1' | 'player2'}
     | {type: 'game-paused'}
-    | {type: 'game-resumed'};
+    | {type: 'game-resumed'}
+    | {type: 'score-updated'; player1Score: number; player2Score: number};
 
 //interface for inputs
 export interface IInputHandler

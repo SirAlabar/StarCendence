@@ -358,6 +358,13 @@ export class ImprovedGameManager
                 this.emitEvent('game:wall-hit', event);
                 // TODO: Play sound effect
                 break;
+                
+            case 'score-updated':
+                this.emitEvent('game:score-update', { 
+                    player1Score: event.player1Score, 
+                    player2Score: event.player2Score 
+                });
+                break;
         }
     }
     
