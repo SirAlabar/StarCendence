@@ -106,18 +106,34 @@ export default class LeaderboardPage extends BaseComponent
                 throw new Error('Failed to load leaderboard');
             }
 
-            this.leaderboard = await response.json();
-            this.error = null;
+            const data: LeaderboardEntry[] = await response.json();
+
+            if (data && data.length > 0)
+            {
+                const placeholders = this.getPlaceholderLeaderboard()
+                    .slice(data.length, 10);
+
+                this.leaderboard = [...data, ...placeholders];
+                this.error = null;
+            }
+            else
+            {
+                this.error = 'No leaderboard data';
+                this.leaderboard = this.getPlaceholderLeaderboard();
+            }
+
             this.update();
         } 
         catch (error) 
         {
             console.error('Failed to load leaderboard:', error);
+
             this.error = 'Unable to load live data';
             this.leaderboard = this.getPlaceholderLeaderboard();
             this.update();
         }
     }
+
 
     private async loadUserRank(): Promise<void> 
     {
@@ -259,13 +275,17 @@ export default class LeaderboardPage extends BaseComponent
                 ${this.renderUserRank()}
 
                 <!-- Top 3 Podium -->
-                ${topThree.length >= 3 ? `
-                <div class="grid grid-cols-3 gap-4 mb-12 max-w-4xl mx-auto">
-                    ${this.renderTopPlayer(topThree[1])}
-                    ${this.renderTopPlayer(topThree[0])}
-                    ${this.renderTopPlayer(topThree[2])}
-                </div>
-                ` : ''}
+                ${topThree.length > 0 ? `
+                    <div class="grid grid-cols-${Math.min(topThree.length, 3)} gap-4 mb-12 max-w-4xl mx-auto">
+                        ${topThree.length >= 1 ? this.renderTopPlayer(topThree[0]) : ''}
+                        ${topThree.length >= 2 ? this.renderTopPlayer(topThree[1]) : ''}
+                        ${topThree.length >= 3 ? this.renderTopPlayer(topThree[2]) : ''}
+                    </div>
+                ` : `
+                    <div class="text-center text-gray-400 text-lg mb-12">
+                        No players ranked yet.
+                    </div>
+                `}
 
                 <!-- Rest of Leaderboard -->
                 ${this.renderRestOfLeaderboard(restOfLeaderboard)}
