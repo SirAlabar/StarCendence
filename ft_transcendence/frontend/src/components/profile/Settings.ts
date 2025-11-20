@@ -855,7 +855,19 @@ export class Settings extends BaseComponent
             // Redirect to home after 2 seconds
             setTimeout(() => 
             {
-                (window as any).navigateTo('/');
+                    const modal = document.getElementById('settings-modal');
+                    if (modal)
+                    {
+                        modal.remove();
+                    }
+
+                    const container = document.getElementById('settings-container');
+                    if (container)
+                    {
+                        container.remove();
+                    }
+
+                    (window as any).navigateTo('/');
             }, 2000);
         } 
         catch (error) 
