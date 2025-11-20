@@ -46,7 +46,7 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=https://starcendence.dev/auth/google/callback
 
 # Redis
-REDIS_URL=redis://localhost:6379
+REDIS_URL=redis://localhost:23111
 
 # Development
 NODE_ENV=development

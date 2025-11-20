@@ -105,7 +105,7 @@ services:
   #     - redis_password
   #   environment:
   #     - REDIS_HOST=redis
-  #     - REDIS_PORT=6379
+  #     - REDIS_PORT=23111
   #   depends_on:
   #     - redis
   #   restart: always
@@ -166,7 +166,7 @@ services:
       context: ./infrastructure/redis
       dockerfile: Dockerfile
     ports:
-      - "6379:6379"
+      - "23111:23111"
     volumes:
       - redis_data:/data
     networks:
