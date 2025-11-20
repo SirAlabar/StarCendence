@@ -848,7 +848,7 @@ export default class PongPage extends BaseComponent
     private goBack(): void 
     {
         this.dispose();
-        navigateTo('/games');
+        this.resetSelection();
     }
 
     public dispose(): void 
