@@ -27,7 +27,7 @@ COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Expose Redis port
-EXPOSE 6379
+EXPOSE 23111
 
 # Health check with secret support
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

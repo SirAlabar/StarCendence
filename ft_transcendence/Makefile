@@ -126,7 +126,7 @@ setup:
 	@printf "$(GREEN)🎉 ft_transcendence is ready!$(DEFAULT)\n"
 	@printf "$(YELLOW)🌐 Access: http://localhost:8080$(DEFAULT)\n"
 	@printf "$(YELLOW)🚀 Start tunnel: make tunnel$(DEFAULT)\n"
-	@printf "$(YELLOW)📊 Redis: localhost:6379$(DEFAULT)\n\n"
+	@printf "$(YELLOW)📊 Redis: localhost:23111$(DEFAULT)\n\n"
 
 monitoring:
 	@printf "$(CYAN)Setting up monitoring services...$(DEFAULT)\n"
@@ -246,7 +246,7 @@ rebuild:
 re: clean setup
 	@printf "$(GREEN)♻️  Complete rebuild finished!$(DEFAULT)\n"
 	@printf "$(YELLOW)🌐 Access: http://localhost:8080$(DEFAULT)\n"
-	@printf "$(YELLOW)📊 Redis: localhost:6379$(DEFAULT)\n"
+	@printf "$(YELLOW)📊 Redis: localhost:23111$(DEFAULT)\n"
 
 ################################################################################
 #                             MONITORING RULES                                 #
@@ -266,7 +266,7 @@ health:
 		printf "$(RED)❌ Offline$(DEFAULT)\n"; \
 	fi
 	@printf "$(YELLOW)Redis Cache:$(DEFAULT) "
-	@if $(DOCKER_COMPOSE) exec -T redis redis-cli ping > /dev/null 2>&1; then \
+	@if $(DOCKER_COMPOSE) exec -T redis redis-cli -p 23111 ping > /dev/null 2>&1; then \
 		printf "$(GREEN)✅ Online$(DEFAULT)\n"; \
 	else \
 		printf "$(RED)❌ Offline$(DEFAULT)\n"; \
@@ -275,7 +275,7 @@ health:
 .PHONY: health-quiet
 health-quiet:
 	@curl -s -f http://localhost:8080/health > /dev/null 2>&1 || exit 1
-	@$(DOCKER_COMPOSE) exec -T redis redis-cli ping > /dev/null 2>&1 || exit 1
+	@$(DOCKER_COMPOSE) exec -T redis redis-cli -p 23111 ping > /dev/null 2>&1 || exit 1
 
 .PHONY: status
 status:
