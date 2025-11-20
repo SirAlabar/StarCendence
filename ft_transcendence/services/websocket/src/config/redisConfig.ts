@@ -44,7 +44,7 @@ export function getRedisConfig(): RedisConfig
 {
   return {
     host: process.env.REDIS_HOST || 'redis',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    port: parseInt(process.env.REDIS_PORT || '23111', 10),
     password: getRedisPassword(),
   };
 }

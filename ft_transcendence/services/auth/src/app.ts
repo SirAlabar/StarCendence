@@ -7,6 +7,8 @@ import { twoFactorRoutes } from './twoFactor/twoFactorRoutes'
 import { tokenRoutes } from './token/tokenRoutes'
 import { internalEndpointProtection } from './middleware/securityMiddleware'
 import { oauthRoutes } from './oauth/oauthRoutes'
+import * as client from 'prom-client'
+import fastifyMetrics from 'fastify-metrics';
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
@@ -17,7 +19,8 @@ export async function buildApp() {
       'https://starcendence.dev',
       'http://localhost:5173',
       'http://localhost:8080',
-      'https://localhost:8443'
+      'https://localhost:8443',
+      'http://localhost:9090',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -28,9 +31,11 @@ export async function buildApp() {
   // Global error handler
   fastify.setErrorHandler(fastifyErrorHandler);
   fastify.addHook('preHandler', internalEndpointProtection);
+
+  fastify.register(fastifyMetrics, { endpoint: '/metrics' });
   
   fastify.get('/health', async () => ({ status: 'Health is Ok!' }))
-  
+
   fastify.register(authRoutes);
   fastify.register(oauthRoutes);
   fastify.register(twoFactorRoutes, { prefix: '/2fa' });

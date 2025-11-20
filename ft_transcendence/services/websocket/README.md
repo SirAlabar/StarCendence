@@ -134,7 +134,7 @@ JWT_SECRET=your-jwt-secret-key
 
 # Redis Configuration
 REDIS_HOST=localhost
-REDIS_PORT=6379
+REDIS_PORT=23111
 REDIS_PASSWORD=your-redis-password
 REDIS_DB=0
 
@@ -693,7 +693,7 @@ PORT=3005
 NODE_ENV=production
 JWT_SECRET=<secret-from-secrets>
 REDIS_HOST=redis
-REDIS_PORT=6379
+REDIS_PORT=23111
 REDIS_PASSWORD=<password>
 LOG_LEVEL=info
 ```

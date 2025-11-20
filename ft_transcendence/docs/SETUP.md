@@ -46,7 +46,7 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=https://starcendence.dev/auth/google/callback
 
 # Redis
-REDIS_URL=redis://localhost:6379
+REDIS_URL=redis://localhost:23111
 
 # Development
 NODE_ENV=development
@@ -106,7 +106,7 @@ curl http://localhost:3002/games/health
 **Port conflicts:**
 ```bash
 # Check what's using ports
-lsof -i :80 -i :3000 -i :3001 -i :6379
+lsof -i :80 -i :3000 -i :3001 -i :23111
 # Kill processes or change ports in docker-compose.yml
 ```
 

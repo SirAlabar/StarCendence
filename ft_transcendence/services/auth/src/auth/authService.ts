@@ -5,7 +5,8 @@ import { HttpError } from '../utils/HttpError';
 import * as tokenService from '../token/tokenService';
 import * as userRepository from './userRepository';
 import * as refreshTokenRepository from '../token/refreshTokenRepository';
-import { TokenPair, TokenType } from '../token/token.types';
+import { TokenType } from '../token/token.types';
+
 
 // Register a new user
 export async function registerUser(email: string, password: string, username: string) {
@@ -18,7 +19,7 @@ export async function registerUser(email: string, password: string, username: st
 
   const authUser = await userRepository.createUser(email, hashedPassword, username);
 
-  await userServiceClient.createUserProfile(authUser.id, email, username);
+  await userServiceClient.createUserProfile(authUser.id, email, username, false);
 }
 
 // Login user and return tokens
@@ -83,4 +84,36 @@ export async function verifyTwoFA(tempToken: string, twoFACode: string) {
   const tokens = await tokenService.generateTokens(user.id, user.email, user.username);
 
   return tokens;
+}
+
+// Update user password
+export async function updateUserPassword(userId: string, currentPassword: string, newPassword: string) {
+  const user = await userRepository.findUserById(userId);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+
+  if (!user.password) {
+    throw new HttpError('Password update not allowed for OAuth users', 400);
+  }
+
+  const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+  if (!isCurrentPasswordValid) {
+    throw new HttpError('Current password is incorrect', 401);
+  }
+
+  const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+  await userRepository.updateUserPassword(userId, hashedNewPassword);
+}
+
+// Delete user account
+export async function deleteAuthProfile(userId: string) {
+  const user = await userRepository.findUserById(userId);
+  if (!user) {
+    throw new HttpError('User not found', 404);
+  }
+
+  await userServiceClient.deleteUserProfile(userId);
+
+  await userRepository.deleteAuthProfile(userId);
 }

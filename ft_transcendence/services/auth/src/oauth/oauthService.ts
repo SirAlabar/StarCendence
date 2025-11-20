@@ -113,6 +113,6 @@ export async function createNewOauthUser(oauthId: string, email: string, usernam
     throw new HttpError('Failed to create new user', 500);
   }
 
-  await userServiceClient.createUserProfile(newUser.id, email, username);
+  await userServiceClient.createUserProfile(newUser.id, email, username, true);
   return newUser;
 }

@@ -15,7 +15,7 @@ export const GAME_CONFIG = {
   // Redis Configuration
   REDIS: {
     HOST: 'redis',
-    PORT: 6379,
+    PORT: 23111,
     CHANNELS: {
       GAME_UPDATES: 'game:*:updates',
       GAME_EVENTS: 'game:*:events',

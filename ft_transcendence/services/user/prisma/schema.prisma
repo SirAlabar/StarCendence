@@ -16,9 +16,12 @@ model UserProfile {
   bio       String?
   avatarUrl String?
   status    String   @default("OFFLINE")
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  gameStatus UserGameStatus?
+  settings   UserSettings?
 
   friendRequestSent    Friendship[] @relation("FriendRequestsSent")
   friendRequestReceived Friendship[] @relation("FriendRequestsReceived")
@@ -32,18 +35,51 @@ model UserProfile {
   tournamentsWon Tournament[] @relation("TournamentWinner")
   tournamentParticipant TournamentParticipant[]
 
-  tournamentWins Int @default(0)
-  tournamentParticipations Int @default(0)
+  @@map("users")
+}
+
+// User game status model to track statistics
+model UserGameStatus {
+  userStatusId       String  @id
+
+  userProfile UserProfile @relation(fields: [userStatusId], references: [id])
 
   totalGames Int @default(0)
   totalWins Int @default(0)
   totalLosses Int @default(0)
   totalDraws Int @default(0)
+  totalPongWins Int @default(0)
+  totalPongLoss Int @default(0)
+  totalRacerWins Int @default(0)
+  totalRacerLoss Int @default(0)
+  totalWinPercent Float? 
+  tournamentWins Int @default(0)
+  tournamentParticipations Int @default(0)
 
-  // rank Int @default(1000)
-  // points Int @default(0)
+  rank Int @default(1000)
+  points Int @default(0)
 
-  @@map("users")
+  @@index([points(sort: Desc)])
+
+  @@map("user_game_status")
+}
+
+// User settings model to store preferences
+model UserSettings {
+  userSettingsId     String  @id
+
+  userProfile UserProfile @relation(fields: [userSettingsId], references: [id])
+
+  twoFactorEnabled Boolean @default(false)
+  oauthEnabled Boolean  @default(false)
+  showOnlineStatus Boolean @default(true)
+  allowFriendRequests Boolean @default(true)
+  showGameActivity Boolean @default(true)
+  notifyFriendRequests Boolean @default(true)
+  notifyGameInvites Boolean @default(true)
+  notifyMessages Boolean @default(true)
+
+  @@map("user_settings")
 }
 
 // Friendship model to represent friend requests and relationships

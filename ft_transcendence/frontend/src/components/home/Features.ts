@@ -40,11 +40,12 @@ export class Features extends BaseComponent
     },
     {
       category: 'gameplay',
-      title: 'Lag Compensation',
-      description: 'Smooth play under unstable networks with fair reconciliations.',
-      bullets: ['Client Hints', 'Replays', 'Bounds Checks'],
-      icon: '⚡',
-      imageUrl: ''
+
+      title: 'Multiplayer Engine',
+      description: 'Full networking stack built for fast, fair and scalable online play.',
+      bullets: ['WebSockets', 'Authoritative Server', 'Anti-Cheat', 'Chat'],
+      icon: '🔌',
+      imageUrl: '/assets/images/multiplayer_feature.png'
     }
   ];
 

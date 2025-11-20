@@ -20,8 +20,10 @@ model AuthUser {
   twoFactorSecret   String?
   twoFactorEnabled  Boolean  @default(false)
 
-  refreshToken RefreshToken?  // updated to singular
+  refreshToken RefreshToken?
+
   oauthId     String?   @unique
+  oauthEnabled Boolean  @default(false)
 
   @@map("users")
 }
