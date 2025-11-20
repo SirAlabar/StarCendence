@@ -26,3 +26,26 @@ export async function verifyUserToken(req: FastifyRequest, reply: FastifyReply) 
 
   req.user = decoded;
 }
+
+// Temporary token verification middleware
+export async function verifyTempToken(req: FastifyRequest, reply: FastifyReply) {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new HttpError('Authorization header missing or malformed', 401);
+  }
+
+  const token = authHeader.substring(7);
+
+  if (!token) {
+    throw new HttpError('Temporary token is required', 401);
+  }
+
+  const decoded = await verifyAccessToken(token) as AccessTokenPayload;
+
+  if (!decoded.sub || decoded.type !== 'temp') {
+    throw new HttpError('Invalid token: missing required fields', 401);
+  }
+
+
+  req.user = decoded;
+}

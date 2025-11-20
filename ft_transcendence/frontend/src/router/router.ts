@@ -96,42 +96,42 @@ const routeConfig: Record<string, any> =
     },
     '/games':
     {
-        component: () => import('../pages/GamesPage'),
+        component: () => import('../pages/games/GamesPage'),
         title: 'Games - Transcendence',
         layout: 'default',
         headerType: 'default'
     },
     '/pod-racer':
     {
-        component: () => import('../pages/PodRacerPage'),
+        component: () => import('../pages/games/PodRacerPage'),
         title: 'Pod Racer - Transcendence',
         layout: 'game',
         headerType: 'game'
     },
     '/pong':
     {
-        component: () => import('../pages/PongPage'),
+        component: () => import('../pages/games/PongPage'),
         title: '3D Pong - Transcendence',
         layout: 'game',
         headerType: 'game'
     },
     '/login':
     {
-        component: () => import('../pages/LoginPage'),
+        component: () => import('../pages/auth/LoginPage'),
         title: 'Login - Transcendence',
         layout: 'auth',
         headerType: 'minimal'
     },
     '/register':
     {
-        component: () => import('../pages/RegisterPage'),
+        component: () => import('../pages/auth/RegisterPage'),
         title: 'Register - Transcendence',
         layout: 'auth',
         headerType: 'minimal'
     },
     '/dashboard':
     {
-        component: () => import('../pages/DashboardPage'),
+        component: () => import('../pages/profile/DashboardPage'),
         title: 'Dashboard - Transcendence',
         layout: 'default',
         headerType: 'default',
@@ -139,7 +139,7 @@ const routeConfig: Record<string, any> =
     },
     '/tournament':
     {
-        component: () => import('../pages/TournamentPage'),
+        component: () => import('../pages/games/TournamentPage'),
         title: 'Tournament - Transcendence',
         layout: 'default',
         headerType: 'default',
@@ -154,7 +154,7 @@ const routeConfig: Record<string, any> =
     },
     '/profile':
     {
-        component: () => import('../pages/ProfilePage'),
+        component: () => import('../pages/profile/ProfilePage'),
         title: 'Profile - Transcendence',
         layout: 'default',
         headerType: 'default',
@@ -162,7 +162,7 @@ const routeConfig: Record<string, any> =
     },
     '/user/:username':
     {
-        component: () => import('../pages/UserPublicPage'),
+        component: () => import('../pages/profile/UserPublicPage'),
         title: 'User Profile - Transcendence',
         layout: 'default',
         headerType: 'default',
@@ -170,7 +170,7 @@ const routeConfig: Record<string, any> =
     },
     '/settings':
     {
-        component: () => import('../pages/SettingsPage'),
+        component: () => import('../pages/profile/SettingsPage'),
         title: 'Settings - Transcendence',
         layout: 'default',
         headerType: 'default',
@@ -178,21 +178,21 @@ const routeConfig: Record<string, any> =
     },
     '/oauth/callback':
     {
-        component: () => import('../pages/OAuthCallbackPage'),
+        component: () => import('../pages/auth/OAuthCallbackPage'),
         title: 'Authenticating - Transcendence',
         layout: 'auth',
         headerType: 'minimal'
     },
     '/pong-lobby':
     {
-        component: () => import('../pages/PongLobbyPage'),
+        component: () => import('../pages/games/PongLobbyPage'),
         title: 'Pong Lobby - Transcendence',
         layout: 'game',
         headerType: 'default'
     },
     '/racer-lobby':
     {
-        component: () => import('../pages/RacerLobbyPage'),
+        component: () => import('../pages/games/RacerLobbyPage'),
         title: 'Racer Lobby - Transcendence',
         layout: 'game',
         headerType: 'default'

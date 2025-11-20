@@ -1,5 +1,6 @@
 import { BaseComponent } from '../BaseComponent';
 import { LoginService } from '../../services/auth/LoginService';
+import { Modal } from '@/components/common/Modal';
 
 interface NavItem 
 {
@@ -61,8 +62,24 @@ export class Header extends BaseComponent
     private renderLogo(): string 
     {
         return `
-            <h1 class="text-2xl md:text-2xl lg:text-3xl font-bold font-game text-cyan-400 hover:text-purple-400 transition-colors duration-300 md:whitespace-nowrap">
-                <a href="/" data-link>42 Transcendence</a>
+            <h1 class="
+                font-game font-bold whitespace-nowrap
+                text-lg sm:text-xl md:text-2xl lg:text-3xl
+                flex items-center gap-2
+            ">
+                <a href="/" data-link class="flex items-center">
+                    <img 
+                        src="/assets/images/42.png" 
+                        alt="42 Transcendence Logo"
+                       class="
+                            h-10 w-auto
+                            scale-125 sm:scale-125 md:scale-150 lg:scale-[1.7]
+                            origin-left
+                            transition-transform duration-300
+                        "
+                            hover:brightness-125 transition-all duration-300"
+                    />
+                </a>
             </h1>
         `;
     }
@@ -86,8 +103,8 @@ export class Header extends BaseComponent
         
         return `
             <a href="${item.href}"${isRouteLink ? ' data-link' : ''} class="
-                px-3 py-2 mx-1 
-                text-white/90 text-sm lg:text-base font-medium
+                px-2 py-1.5 mx-1 
+                text-white/90 text-xs sm:text-sm lg:text-base font-medium
                 bg-gray-500/20 backdrop-blur-sm
                 border border-transparent
                 rounded-lg
@@ -244,7 +261,7 @@ export class Header extends BaseComponent
 
     private async handleLogout(): Promise<void> 
     {
-        if (!confirm('Are you sure you want to logout?')) 
+        if (!await Modal.confirm('LOGOUT', 'Are you sure you want to logout?'))
         {
             return;
         }

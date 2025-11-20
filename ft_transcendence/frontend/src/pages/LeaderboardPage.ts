@@ -1,22 +1,41 @@
 import { BaseComponent } from '../components/BaseComponent';
+import { getUserApiUrl, getBaseUrl } from '../types/api.types';
+import { showLoading, hideLoading } from '../router/LayoutManager';
 
-interface UserStats 
+// Leaderboard entry (flat structure from backend)
+export interface LeaderboardEntry 
 {
     id: string;
     username: string;
     avatarUrl: string | null;
     status: string;
-    wins: number;
-    losses: number;
-    points: number;
-    rank: number;
+    wins: number;      // FLAT from backend transformation
+    losses: number;    // FLAT from backend transformation
+    points: number;    // FLAT from backend transformation
+    rank: number;      // FLAT from backend transformation
+}
+
+// User rank response (nested structure from backend)
+export interface UserRankResponse 
+{
+    id: string;
+    username: string;
+    avatarUrl: string | null;
+    status: string;
+    gameStatus: 
+    {
+        totalGames: number;
+        totalWins: number;
+        totalLosses: number;
+        points: number;
+        rank: number;
+    };
 }
 
 export default class LeaderboardPage extends BaseComponent 
 {
-    private leaderboard: UserStats[] = [];
-    private userRank: UserStats | null = null;
-    private loading: boolean = true;
+    private leaderboard: LeaderboardEntry[] = [];
+    private userRank: UserRankResponse | null = null;
     private error: string | null = null;
 
     async mount(selector: string): Promise<void> 
@@ -27,13 +46,22 @@ export default class LeaderboardPage extends BaseComponent
 
     private async loadData(): Promise<void> 
     {
-        await Promise.all([
-            this.loadLeaderboard(),
-            this.loadUserRank()
-        ]);
+        showLoading();
+        
+        try 
+        {
+            await Promise.all([
+                this.loadLeaderboard(),
+                this.loadUserRank()
+            ]);
+        }
+        finally 
+        {
+            hideLoading();
+        }
     }
 
-    private getPlaceholderLeaderboard(): UserStats[] 
+    private getPlaceholderLeaderboard(): LeaderboardEntry[] 
     {
         const placeholderData = [
             { username: 'Player1', wins: 145, losses: 32, points: 2450 },
@@ -48,8 +76,7 @@ export default class LeaderboardPage extends BaseComponent
             { username: 'Player10', wins: 72, losses: 87, points: 1200 }
         ];
 
-        return placeholderData.map((player, index) => (
-        {
+        return placeholderData.map((player, index) => ({
             id: `placeholder-${index}`,
             username: player.username,
             avatarUrl: '/assets/images/default-avatar.jpeg',
@@ -65,28 +92,48 @@ export default class LeaderboardPage extends BaseComponent
     {
         try 
         {
-            this.loading = true;
-            const response = await fetch('/api/leaderboard?limit=20');
+            const response = await fetch(getUserApiUrl('/leaderboard'), 
+            {
+                method: 'GET',
+                headers: 
+                {
+                    'Content-Type': 'application/json'
+                }
+            });
             
             if (!response.ok) 
             {
                 throw new Error('Failed to load leaderboard');
             }
 
-            this.leaderboard = await response.json();
-            this.error = null;
-            this.loading = false;
+            const data: LeaderboardEntry[] = await response.json();
+
+            if (data && data.length > 0)
+            {
+                const placeholders = this.getPlaceholderLeaderboard()
+                    .slice(data.length, 10);
+
+                this.leaderboard = [...data, ...placeholders];
+                this.error = null;
+            }
+            else
+            {
+                this.error = 'No leaderboard data';
+                this.leaderboard = this.getPlaceholderLeaderboard();
+            }
+
             this.update();
         } 
         catch (error) 
         {
             console.error('Failed to load leaderboard:', error);
+
             this.error = 'Unable to load live data';
             this.leaderboard = this.getPlaceholderLeaderboard();
-            this.loading = false;
             this.update();
         }
     }
+
 
     private async loadUserRank(): Promise<void> 
     {
@@ -98,13 +145,21 @@ export default class LeaderboardPage extends BaseComponent
                 return;
             }
 
-            const response = await fetch('/api/rank', 
+            const response = await fetch(getUserApiUrl('/rank'), 
             {
+                method: 'GET',
                 headers: 
                 {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
+
+            if (response.status === 401) 
+            {
+                localStorage.removeItem('access_token');
+                return;
+            }
 
             if (response.ok) 
             {
@@ -147,17 +202,18 @@ export default class LeaderboardPage extends BaseComponent
     {
         if (rank === 1) 
         {
-            return 'bg-gradient-to-br from-yellow-500/20 to-yellow-600/30 border-yellow-500/50';
+            return 'bg-gradient-to-br from-yellow-300/30 via-yellow-500/20 to-amber-600/30 border-yellow-400/60 shadow-[0_0_15px_rgba(255,215,0,0.2)]';
         }
         if (rank === 2) 
         {
-            return 'bg-gradient-to-br from-gray-400/20 to-gray-500/30 border-gray-400/50';
+            return 'bg-gradient-to-br from-gray-200/20 via-gray-400/30 to-gray-600/30 border-gray-300/60 shadow-[0_0_15px_rgba(200,200,200,0.2)]';
         }
         if (rank === 3) 
         {
-            return 'bg-gradient-to-br from-orange-500/20 to-orange-600/30 border-orange-500/50';
+            return 'bg-gradient-to-br from-orange-400/20 via-amber-600/20 to-amber-800/30 border-orange-400/60 shadow-[0_0_15px_rgba(255,140,0,0.2)]';
         }
-        return 'bg-gray-800/40 border-gray-700/50';
+
+        return 'bg-gradient-to-br from-gray-800/50 via-gray-900/50 to-black/50 border-gray-700/50';
     }
 
     private getStatusColor(status: string): string 
@@ -177,61 +233,65 @@ export default class LeaderboardPage extends BaseComponent
         return 'bg-gray-500';
     }
 
+    private getAvatarUrl(avatarUrl: string | null): string 
+    {
+        if (!avatarUrl) 
+        {
+            return '/avatars/default.jpeg';
+        }
+        
+        if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) 
+        {
+            return avatarUrl;
+        }
+        
+        return `${getBaseUrl()}${avatarUrl}`;
+    }
+
     render(): string 
     {
-        if (this.loading) 
-        {
-            return `
-                <div class="min-h-screen flex items-center justify-center">
-                    <div class="text-center">
-                        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cyan-500 mx-auto mb-4"></div>
-                        <p class="text-gray-400 text-lg">Loading leaderboard...</p>
-                    </div>
-                </div>
-            `;
-        }
-
-        const top3 = this.leaderboard.slice(0, 3);
-        const rest = this.leaderboard.slice(3);
+        const topThree = this.leaderboard.slice(0, 3);
+        const restOfLeaderboard = this.leaderboard.slice(3);
 
         return `
-            <div class="container mx-auto px-4 py-8 max-w-6xl">
-                <!-- Header -->
-                <div class="text-center mb-12">
-                    <h1 class="text-5xl font-bold font-game text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 mb-4 drop-shadow-lg">
-                        🏆 LEADERBOARD
-                    </h1>
-                    <p class="text-gray-400 text-lg">Compete with the best players worldwide</p>
-                </div>
-
+            <div class="container mx-auto px-4 py-8 max-w-7xl">
                 ${this.error ? `
-                    <div class="mb-6 bg-yellow-900/40 border border-yellow-500/50 rounded-lg p-4 backdrop-blur-sm">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">⚠️</span>
-                            <div>
-                                <p class="text-yellow-400 font-semibold">${this.error}</p>
-                                <p class="text-gray-400 text-sm">Showing placeholder data. Please refresh to try again.</p>
-                            </div>
-                        </div>
-                    </div>
+                <div class="mb-6 bg-yellow-900/30 border-2 border-yellow-500/50 rounded-lg p-4 backdrop-blur-sm">
+                    <p class="text-yellow-400 text-center font-bold">
+                        ⚠️ ${this.escapeHtml(this.error)} - Showing placeholder data
+                    </p>
+                </div>
                 ` : ''}
 
+                <!-- Header -->
+                <div class="text-center mb-12">
+                    <h1 class="text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 mb-4">
+                        🏆 LEADERBOARD
+                    </h1>
+                    <p class="text-gray-400 text-lg">Top Players of the Galaxy</p>
+                </div>
+
+                <!-- User Rank Card -->
                 ${this.renderUserRank()}
 
                 <!-- Top 3 Podium -->
-                <div class="mb-12">
-                    <h2 class="text-2xl font-bold text-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">
-                        TOP CHAMPIONS
-                    </h2>
-                    <div class="grid md:grid-cols-3 gap-6">
-                        ${top3.map((player, index) => this.renderTopPlayer(player, index)).join('')}
+                ${topThree.length > 0 ? `
+                    <div class="grid grid-cols-${Math.min(topThree.length, 3)} gap-4 mb-12 max-w-4xl mx-auto">
+                        ${topThree.length >= 1 ? this.renderTopPlayer(topThree[0]) : ''}
+                        ${topThree.length >= 2 ? this.renderTopPlayer(topThree[1]) : ''}
+                        ${topThree.length >= 3 ? this.renderTopPlayer(topThree[2]) : ''}
                     </div>
-                </div>
+                ` : `
+                    <div class="text-center text-gray-400 text-lg mb-12">
+                        No players ranked yet.
+                    </div>
+                `}
 
-                ${this.renderRestOfLeaderboard(rest)}
+                <!-- Rest of Leaderboard -->
+                ${this.renderRestOfLeaderboard(restOfLeaderboard)}
 
                 <!-- Action Buttons -->
-                <div class="text-center mt-8 space-x-4">
+                <div class="flex justify-center gap-4 mt-12">
                     <button 
                         onclick="navigateTo('/games')" 
                         class="bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-8 py-3 rounded-lg font-bold hover:from-yellow-700 hover:to-orange-700 transition-all transform hover:scale-105 shadow-lg"
@@ -251,6 +311,31 @@ export default class LeaderboardPage extends BaseComponent
 
     private renderUserRank(): string 
     {
+        const token = localStorage.getItem('access_token');
+        
+        if (!token) 
+        {
+            return `
+                <div class="mb-8 bg-gradient-to-r from-purple-900/40 to-blue-900/40 rounded-xl border-2 border-purple-500/50 p-6 backdrop-blur-sm">
+                    <div class="flex items-center justify-between flex-wrap gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="text-4xl">🏆</div>
+                            <div>
+                                <p class="text-purple-300 font-bold text-lg">Want to see your rank?</p>
+                                <p class="text-gray-400 text-sm">Login to track your progress and compete!</p>
+                            </div>
+                        </div>
+                        <button 
+                            onclick="navigateTo('/login')" 
+                            class="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:from-purple-700 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
+                        >
+                            🔐 Login Now
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
         if (!this.userRank) 
         {
             return '';
@@ -260,24 +345,24 @@ export default class LeaderboardPage extends BaseComponent
             <div class="mb-8 bg-gradient-to-r from-cyan-900/40 to-blue-900/40 rounded-xl border-2 border-cyan-500/50 p-6 backdrop-blur-sm">
                 <div class="flex items-center justify-between flex-wrap gap-4">
                     <div class="flex items-center gap-4">
-                        <div class="text-4xl">${this.getRankIcon(this.userRank.rank || 0)}</div>
+                        <div class="text-4xl">${this.getRankIcon(this.userRank.gameStatus.rank || 0)}</div>
                         <div>
                             <p class="text-gray-400 text-sm">Your Rank</p>
-                            <p class="text-3xl font-bold text-cyan-400">#${this.userRank.rank}</p>
+                            <p class="text-3xl font-bold text-cyan-400">#${this.userRank.gameStatus.rank}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-6">
                         <div class="text-center">
                             <p class="text-gray-400 text-sm">Wins</p>
-                            <p class="text-2xl font-bold text-green-400">${this.userRank.wins}</p>
+                            <p class="text-2xl font-bold text-green-400">${this.userRank.gameStatus.totalWins}</p>
                         </div>
                         <div class="text-center">
                             <p class="text-gray-400 text-sm">Losses</p>
-                            <p class="text-2xl font-bold text-red-400">${this.userRank.losses}</p>
+                            <p class="text-2xl font-bold text-red-400">${this.userRank.gameStatus.totalLosses}</p>
                         </div>
                         <div class="text-center">
                             <p class="text-gray-400 text-sm">Points</p>
-                            <p class="text-2xl font-bold text-yellow-400">${this.userRank.points}</p>
+                            <p class="text-2xl font-bold text-yellow-400">${this.userRank.gameStatus.points}</p>
                         </div>
                     </div>
                 </div>
@@ -285,32 +370,73 @@ export default class LeaderboardPage extends BaseComponent
         `;
     }
 
-    private renderTopPlayer(player: UserStats, index: number): string 
+    private renderTopPlayer(player: LeaderboardEntry): string 
     {
+        const avatarUrl = this.getAvatarUrl(player.avatarUrl);
+
+        let avatarSizeClass = 'w-24 h-24';
+        if (player.rank === 1) 
+        {
+            avatarSizeClass = 'w-36 h-36';
+        } 
+        else if (player.rank === 2) 
+        {
+            avatarSizeClass = 'w-28 h-28';
+        }
+
+        let podiumOffset = 'translate-y-0';
+        if (player.rank === 1) 
+        {
+            podiumOffset = '-translate-y-12';
+        } 
+        else if (player.rank === 2) 
+        {
+            podiumOffset = '-translate-y-6';
+        }
+        
         return `
-            <div class="transform transition-all duration-300 hover:scale-105 ${index === 0 ? 'md:-translate-y-4' : ''}">
-                <div class="relative ${this.getRankClass(player.rank)} rounded-xl border-2 p-6 backdrop-blur-sm">
+            <div class="flex flex-col justify-end transform transition-all duration-300 hover:scale-105 ${podiumOffset}">
+                <div class="relative ${this.getRankClass(player.rank)} rounded-xl border-2 p-6 backdrop-blur-sm min-h-[360px] flex flex-col justify-between">
                     <div class="absolute -top-4 -right-4 text-5xl drop-shadow-lg">
                         ${this.getRankIcon(player.rank)}
                     </div>
-                    <div class="text-center">
+                    <div class="text-center flex flex-col items-center justify-center flex-1">
                         <div class="relative inline-block mb-4">
                             <img 
-                                src="${player.avatarUrl || '/avatars/default.jpeg'}" 
-                                alt="${player.username}"
-                                class="w-24 h-24 rounded-full border-4 ${player.rank === 1 ? 'border-yellow-500' : player.rank === 2 ? 'border-gray-400' : 'border-orange-500'} object-cover"
+                                src="${avatarUrl}" 
+                                alt="${this.escapeHtml(player.username)}"
+                                class="${avatarSizeClass} rounded-full border-4 ${
+                                    player.rank === 1
+                                        ? 'border-yellow-500'
+                                        : player.rank === 2
+                                            ? 'border-gray-400'
+                                            : 'border-orange-500'
+                                } object-cover"
+                                onerror="this.src='/avatars/default.jpeg'"
                             />
                             <div class="absolute bottom-0 right-0 w-4 h-4 ${this.getStatusColor(player.status)} rounded-full border-2 border-gray-900"></div>
                         </div>
-                        <h3 class="font-bold text-xl mb-2 ${player.rank === 1 ? 'text-yellow-400' : player.rank === 2 ? 'text-gray-300' : 'text-orange-400'}">
-                            ${player.username}
+                        <h3 class="font-bold text-xl mb-2 ${
+                            player.rank === 1
+                                ? 'text-yellow-400'
+                                : player.rank === 2
+                                    ? 'text-gray-300'
+                                    : 'text-orange-400'
+                        }">
+                            ${this.escapeHtml(player.username)}
                         </h3>
                         <div class="flex justify-center gap-4 text-sm mb-3">
                             <span class="text-green-400">${player.wins}W</span>
                             <span class="text-gray-500">|</span>
                             <span class="text-red-400">${player.losses}L</span>
                         </div>
-                        <div class="text-2xl font-bold ${player.rank === 1 ? 'text-yellow-400' : player.rank === 2 ? 'text-gray-300' : 'text-orange-400'}">
+                        <div class="text-2xl font-bold ${
+                            player.rank === 1
+                                ? 'text-yellow-400'
+                                : player.rank === 2
+                                    ? 'text-gray-300'
+                                    : 'text-orange-400'
+                        }">
                             ${player.points.toLocaleString()} pts
                         </div>
                     </div>
@@ -319,7 +445,7 @@ export default class LeaderboardPage extends BaseComponent
         `;
     }
 
-    private renderRestOfLeaderboard(players: UserStats[]): string 
+    private renderRestOfLeaderboard(players: LeaderboardEntry[]): string 
     {
         if (players.length === 0) 
         {
@@ -338,8 +464,10 @@ export default class LeaderboardPage extends BaseComponent
         `;
     }
 
-    private renderPlayerRow(player: UserStats): string 
+    private renderPlayerRow(player: LeaderboardEntry): string 
     {
+        const avatarUrl = this.getAvatarUrl(player.avatarUrl);
+
         return `
             <div class="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors">
                 <div class="flex items-center gap-4 flex-1 min-w-0">
@@ -348,14 +476,15 @@ export default class LeaderboardPage extends BaseComponent
                     </div>
                     <div class="relative flex-shrink-0">
                         <img 
-                            src="${player.avatarUrl || '/avatars/default.jpeg'}" 
-                            alt="${player.username}"
+                            src="${avatarUrl}" 
+                            alt="${this.escapeHtml(player.username)}"
                             class="w-12 h-12 rounded-full border-2 border-gray-600 object-cover"
+                            onerror="this.src='/avatars/default.jpeg'"
                         />
                         <div class="absolute bottom-0 right-0 w-3 h-3 ${this.getStatusColor(player.status)} rounded-full border-2 border-gray-900"></div>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-white font-semibold truncate">${player.username}</p>
+                        <p class="text-white font-semibold truncate">${this.escapeHtml(player.username)}</p>
                         <div class="flex gap-3 text-xs">
                             <span class="text-green-400">${player.wins}W</span>
                             <span class="text-red-400">${player.losses}L</span>
@@ -368,5 +497,12 @@ export default class LeaderboardPage extends BaseComponent
                 </div>
             </div>
         `;
+    }
+
+    private escapeHtml(text: string): string 
+    {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }

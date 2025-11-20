@@ -1,7 +1,7 @@
 import { BaseComponent } from '../BaseComponent';
 import { PodConfig, AVAILABLE_PODS } from '../../game/utils/PodConfig';
-import { PodSelection, PodSelectionEvent } from '../../pages/PodSelectionPage';
-import { POD_THUMBNAILS } from '../../pages/PodSelectionPage';
+import { PodSelection, PodSelectionEvent } from '../../pages/games/PodSelectionPage';
+import { POD_THUMBNAILS } from '../../pages/games/PodSelectionPage';
 import UserService from '../../services/user/UserService';
 import FriendService from '../../services/user/FriendService';
 import OnlineFriendsService, { FriendWithStatus } from '../../services/websocket/OnlineFriendsService';

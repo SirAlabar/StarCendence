@@ -23,6 +23,7 @@ export class Hero extends BaseComponent
     prevMouse: WebGLUniformLocation | null;
     reveal: WebGLUniformLocation | null;
     resolution: WebGLUniformLocation | null;
+    blobScale: WebGLUniformLocation | null;
     texSpace: WebGLUniformLocation | null;
     texNeb1: WebGLUniformLocation | null;
     texNeb2: WebGLUniformLocation | null;
@@ -35,15 +36,15 @@ export class Hero extends BaseComponent
       <section id="hero-section"
         class="relative w-screen min-h-screen overflow-hidden flex items-center justify-center bg-black">
 
-        <!-- Fundo base -->
-        <div class="absolute inset-0 
-                    bg-[url('/assets/images/backgrounds/space_background.jpg')]
-                    bg-cover bg-center bg-no-repeat"></div>
+        <div class="absolute inset-0 overflow-hidden">
+          <div class="w-full h-full 
+                      bg-[url('/assets/images/backgrounds/space_background.jpg')]
+                      bg-cover bg-center bg-no-repeat">
+          </div>
+        </div>
 
-        <!-- Canvas do shader -->
         <canvas id="hero-hover-canvas" class="absolute inset-0 w-full h-full"></canvas>
 
-        <!-- Overlay escuro -->
         <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60"></div>
 
       </section>
@@ -76,6 +77,12 @@ export class Hero extends BaseComponent
       this.canvas.width = rect.width * dpr;
       this.canvas.height = rect.height * dpr;
       this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+      
+      // Redraw text canvas on resize
+      if (this.textCanvas)
+      {
+        this.drawConstellationText();
+      }
     };
     
     resize();
@@ -100,6 +107,7 @@ export class Hero extends BaseComponent
       uniform vec2 prevMouse;
       uniform float reveal;
       uniform vec2 resolution;
+      uniform float blobScale;
 
       uniform sampler2D texSpace;
       uniform sampler2D texNeb1;
@@ -120,23 +128,36 @@ export class Hero extends BaseComponent
         return v;
       }
 
-      float blob(vec2 uv, vec2 center, float t){
-        vec2 p=(uv-center)*8.0;
-        float n=fbm(p*0.6+t*0.3)*0.8 + fbm(p*1.2-t*0.2)*0.5;
-        float r=0.20 + 0.03*sin(t*0.5+n*6.2831);
-        float d=length(uv-center);
-        float edge=smoothstep(r, r-0.15, d+n*0.05);
-        return clamp(edge,0.0,1.0);
+      float blob(vec2 uv, vec2 center, float t, float scale){
+        float aspect = resolution.x / resolution.y;
+        vec2 diff = uv - center;
+        diff.x *= aspect;
+        
+        vec2 p = diff * 8.0 * scale;
+        float n = fbm(p*0.6+t*0.3)*0.8 + fbm(p*1.2-t*0.2)*0.5;
+        float r = (0.20 + 0.03*sin(t*0.5+n*6.2831)) * scale;
+        
+        float d = length(diff);
+        float edge = smoothstep(r, r-0.15*scale, d+n*0.05*scale);
+        return clamp(edge, 0.0, 1.0);
+      }
+
+      vec2 coverUV(vec2 uv, float canvasAspect, float textureAspect) {
+        vec2 ratio = vec2(
+          min(canvasAspect / textureAspect, 1.0),
+          min(textureAspect / canvasAspect, 1.0)
+        );
+        return vec2(
+          uv.x * ratio.x + (1.0 - ratio.x) * 0.5,
+          uv.y * ratio.y + (1.0 - ratio.y) * 0.5
+        );
       }
 
       void main(){
-        vec2 uv = vUV;
-        vec2 centered = (uv - 0.5);
-        float aspect = resolution.x / resolution.y;
-        if (aspect > 1.0) centered.x /= aspect;
-        else centered.y *= aspect;
-        uv = centered + 0.5;
-        uv = clamp(uv, 0.0, 1.0);
+        float canvasAspect = resolution.x / resolution.y;
+        float textureAspect = 1.5; // Approximate aspect ratio of background images
+        
+        vec2 uv = coverUV(vUV, canvasAspect, textureAspect);
 
         vec4 base = texture2D(texSpace, uv);
         vec4 n1 = texture2D(texNeb1, uv + vec2(sin(time*0.02), cos(time*0.015))*0.02);
@@ -144,8 +165,8 @@ export class Hero extends BaseComponent
 
         float blend = smoothstep(0.3, 0.7, abs(fract(sin(time*0.1))*2.0 - 1.0));
 
-        float head = blob(vUV, mouse, time);
-        float tail = blob(vUV, prevMouse, time - 0.6) * 0.5;
+        float head = blob(vUV, mouse, time, blobScale);
+        float tail = blob(vUV, prevMouse, time - 0.6, blobScale) * 0.5;
         float trail = clamp(head + tail, 0.0, 1.0);
         float mask = trail * reveal;
 
@@ -156,7 +177,9 @@ export class Hero extends BaseComponent
         float pulse = 0.8 + 0.2 * sin(time * 2.0);
         col += textTex.rgb * textTex.a * pulse;
 
-        float glow = smoothstep(0.25, 0.0, length(uv - mouse)) * reveal * 0.3;
+        vec2 glowDiff = vUV - mouse;
+        glowDiff.x *= resolution.x / resolution.y;
+        float glow = smoothstep(0.25 * blobScale, 0.0, length(glowDiff)) * reveal * 0.3;
         col += vec3(0.5, 0.7, 1.0) * glow;
 
         gl_FragColor = vec4(col, 1.0);
@@ -212,13 +235,11 @@ export class Hero extends BaseComponent
       try
       {
         await this.video.play();
-        console.log('🎥 Vídeo iniciado com sucesso');
         document.removeEventListener('click', tryPlay);
         document.removeEventListener('mousemove', tryPlay);
       }
       catch
       {
-        console.warn('⏸️ Autoplay bloqueado — mova o mouse ou clique para iniciar o vídeo.');
         document.addEventListener('click', tryPlay);
         document.addEventListener('mousemove', tryPlay);
       }
@@ -244,6 +265,7 @@ export class Hero extends BaseComponent
       prevMouse: this.gl.getUniformLocation(this.program, 'prevMouse'),
       reveal: this.gl.getUniformLocation(this.program, 'reveal'),
       resolution: this.gl.getUniformLocation(this.program, 'resolution'),
+      blobScale: this.gl.getUniformLocation(this.program, 'blobScale'),
       texSpace: this.gl.getUniformLocation(this.program, 'texSpace'),
       texNeb1: this.gl.getUniformLocation(this.program, 'texNeb1'),
       texNeb2: this.gl.getUniformLocation(this.program, 'texNeb2'),
@@ -275,7 +297,28 @@ export class Hero extends BaseComponent
     ctx.scale(1, -1);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `bold ${h * 0.13}px 'Trattorian', 'Orbitron', sans-serif`;
+    
+    // Responsive font size based on viewport width
+    const viewportWidth = window.innerWidth;
+    let fontSize;
+    
+    if (viewportWidth < 640)
+    {
+      // Mobile: smaller font
+      fontSize = Math.min(h * 0.07, viewportWidth * 0.10);
+    }
+    else if (viewportWidth < 1024)
+    {
+      // Tablet: medium font
+      fontSize = Math.min(h * 0.10, viewportWidth * 0.08);
+    }
+    else
+    {
+      // Desktop: larger font
+      fontSize = h * 0.10;
+    }
+    
+    ctx.font = `bold ${fontSize}px 'Trattorian', 'Orbitron', sans-serif`;
 
     const gradient = ctx.createLinearGradient(-w / 3, 0, w / 3, 0);
     gradient.addColorStop(0.0, '#007a8f');
@@ -337,6 +380,28 @@ export class Hero extends BaseComponent
     this.gl.uniform2f(this.uniforms.mouse, this.mouse.x, this.mouse.y);
     this.gl.uniform2f(this.uniforms.prevMouse, prevMouse.x, prevMouse.y);
     this.gl.uniform2f(this.uniforms.resolution, this.canvas.width, this.canvas.height);
+    
+    // Calculate responsive blob scale: 3 sizes
+    const viewportWidth = window.innerWidth;
+    let blobScale;
+    
+    if (viewportWidth < 640)
+    {
+      // Mobile: smallest hover effect
+      blobScale = 0.5;
+    }
+    else if (viewportWidth < 1024)
+    {
+      // Tablet: medium hover effect
+      blobScale = 0.75;
+    }
+    else
+    {
+      // Desktop: full size hover effect
+      blobScale = 1.0;
+    }
+    
+    this.gl.uniform1f(this.uniforms.blobScale, blobScale);
   }
 
   private updatePrevMouse(prevMouse: { x: number; y: number }): void

@@ -1,5 +1,6 @@
 // LoginService.ts
 import { getAuthApiUrl } from '../../types/api.types';
+import { Modal } from '@/components/common/Modal';
 
 // Types for login operations
 export interface LoginRequest 
@@ -10,7 +11,10 @@ export interface LoginRequest
 
 export interface LoginResponse 
 {
-    token: string;
+    accessToken?: string;
+    refreshToken?: string;
+    tempToken?: string;
+    type?: string;
 }
 
 export interface RefreshRequest 
@@ -306,10 +310,45 @@ export class LoginService
     }
 
     // Handle session expiry
-    static handleSessionExpiry(): void 
+    static async handleSessionExpiry(): Promise<void> 
     {
         this.clearTokens();
-        alert('Your session has expired. Please log in again.');
+        await Modal.alert('Session Expired','Your session has expired. Please log in again.');
         window.location.href = '/login';
+    }
+
+    // Verify 2FA code during login
+    static async verify2FALogin(tempToken: string, code: string): Promise<LoginResponse> 
+    {
+        try 
+        {
+            const response = await fetch(getAuthApiUrl('/login/2fa-verify'), 
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json',
+                           'Authorization': `Bearer ${tempToken}` },
+                body: JSON.stringify({ twoFACode: code })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) 
+            {
+                throw new Error(data.message || '2FA verification failed');
+            }
+
+            // Store tokens
+            if (data.accessToken) 
+            {
+                this.setTokens(data.accessToken, data.refreshToken);
+            }
+
+            return data;
+        } 
+        catch (error) 
+        {
+            console.error('2FA verification error:', error);
+            throw error;
+        }
     }
 }
