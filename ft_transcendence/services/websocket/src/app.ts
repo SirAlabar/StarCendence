@@ -27,7 +27,7 @@ export async function createApp(): Promise<FastifyInstance>
   catch (error)
   {
     console.error('Failed to initialize Redis:', error);
-    console.warn('Continuing without Redis (cross-server broadcasting will be disabled)');
+    console.warn('Continuing without Redis NOT RECOMMENDED');
   }
 
   // Register WebSocket plugin

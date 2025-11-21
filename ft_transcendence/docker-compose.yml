@@ -92,24 +92,27 @@ services:
       - redis
     restart: always
 
-  # # Game Microservice  
-  # game-service:
-  #   container_name: transcendence_game
-  #   build:
-  #     context: ./services/game
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - game_data:/app/data
-  #   networks:
-  #     - transcendence_network
-  #   secrets:
-  #     - redis_password
-  #   environment:
-  #     - REDIS_HOST=redis
-  #     - REDIS_PORT=23111
-  #   depends_on:
-  #     - redis
-  #   restart: always
+  # Game Microservice  
+  game-service:
+    container_name: transcendence_game
+    build:
+      context: ./services/game
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    volumes:
+      - game_data:/app/data
+    networks:
+      - transcendence_network
+    secrets:
+      - redis_password
+      - internal_api_key
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    restart: always
 
   # # Chat Microservice
   # chat-service:
@@ -247,12 +250,12 @@ volumes:
       device: ${HOME}/data/auth
       o: bind
 
-  # game_data:
-  #   driver: local
-  #   driver_opts:
-  #     type: none
-  #     device: ${HOME}/data/game
-  #     o: bind
+  game_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOME}/data/game
+      o: bind
 
   # chat_data:
   #   driver: local

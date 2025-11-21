@@ -33,6 +33,7 @@ FRONTEND_VOLUME = $(DOCKER_DATA_DIR)/frontend
 REDIS_VOLUME = $(DOCKER_DATA_DIR)/redis
 USER_VOLUME = $(DOCKER_DATA_DIR)/user
 AUTH_VOLUME = $(DOCKER_DATA_DIR)/auth
+GAME_VOLUME = $(DOCKER_DATA_DIR)/game
 USER_AVATARS_VOLUME = $(DOCKER_DATA_DIR)/user/avatars
 PROMETHEUS_VOLUME = $(DOCKER_DATA_DIR)/prometheus
 GRAFANA_VOLUME = $(DOCKER_DATA_DIR)/grafana
@@ -112,9 +113,9 @@ setup:
 	@printf "$(CYAN)Building frontend...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory front
 	@printf "$(CYAN)Building containers...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) build nginx redis user-service auth-service websocket-service
+	@$(DOCKER_COMPOSE) build nginx redis user-service auth-service websocket-service game-service
 	@printf "$(CYAN)Starting services...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service websocket-service
+	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service websocket-service game-service
 	@printf "$(CYAN)Waiting for services...$(DEFAULT)\n"
 	@sleep 5
 	@printf "$(CYAN)Pushing database schema...$(DEFAULT)\n"
@@ -143,6 +144,7 @@ create-volumes:
 	@mkdir -p $(REDIS_VOLUME)
 	@mkdir -p $(USER_VOLUME)
 	@mkdir -p $(AUTH_VOLUME)
+	@mkdir -p $(GAME_VOLUME)
 	@mkdir -p $(USER_AVATARS_VOLUME)
 	@mkdir -p $(PROMETHEUS_VOLUME)
 	@mkdir -p $(GRAFANA_VOLUME)

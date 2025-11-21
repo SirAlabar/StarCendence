@@ -1,0 +1,59 @@
+{
+  "name": "game-service",
+  "version": "1.0.0",
+  "description": "Game Service - Multiplayer Pong and Pod Racing game logic",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:studio": "prisma studio",
+    "prisma:migrate": "prisma migrate dev",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write 'src/**/*.ts'"
+  },
+  "keywords": [
+    "game",
+    "multiplayer",
+    "pong",
+    "racing",
+    "real-time"
+  ],
+  "author": "ft_transcendence",
+  "license": "MIT",
+  "dependencies": {
+    "fastify": "^4.25.0",
+    "@fastify/cors": "^8.5.0",
+    "@fastify/redis": "^6.1.1",
+    "redis": "^4.6.12",
+    "@prisma/client": "^5.22.0",
+    "axios": "^1.6.5",
+    "dotenv": "^16.3.1",
+    "nanoid": "^5.0.4",
+    "pino": "^8.17.2",
+    "pino-pretty": "^10.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "prisma": "^5.22.0",
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.0",
+    "@types/jest": "^29.5.11",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
