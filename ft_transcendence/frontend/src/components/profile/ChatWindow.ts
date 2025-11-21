@@ -238,11 +238,11 @@ export class ChatModal extends BaseComponent
     private renderInputArea(): string 
     {
         return `
-            <div class="p-4 border-t border-cyan-500/30">
-                <div class="flex gap-3">
+            <div class="p-3 sm:p-4 border-t border-cyan-500/30">
+                <div class="flex gap-2 items-end">
                     <textarea 
                         id="chat-input" 
-                        class="chat-input flex-1" 
+                        class="flex-1 bg-gray-800/50 border-2 border-gray-600 text-white px-3 py-2 sm:px-4 sm:py-3 rounded-xl resize-none transition-all focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 text-sm sm:text-base" 
                         placeholder="Type a message..."
                         rows="2"
                         maxlength="1000"
@@ -250,7 +250,7 @@ export class ChatModal extends BaseComponent
                     ></textarea>
                     <button 
                         id="send-btn" 
-                        class="chat-send-button"
+                        class="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-white font-bold px-4 py-2 sm:px-6 sm:py-3 rounded-xl transition-all shadow-lg shadow-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/70 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
                         ${this.isSending ? 'disabled' : ''}
                     >
                         ${this.isSending ? 'SENDING...' : 'SEND'}
