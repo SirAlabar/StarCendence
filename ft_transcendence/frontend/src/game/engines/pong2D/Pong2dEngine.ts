@@ -25,6 +25,9 @@ export class LocalPongEngine
     private ended: boolean = false;
     private keys: {[key:string]: boolean} = {};
     private waitingForSpace: boolean = false;
+    private startdelay = 2000;
+    private starttime = 0
+    private gameStarted : boolean = false;
 
     //Configs
     private config: GameConfig;
@@ -117,18 +120,15 @@ export class LocalPongEngine
 
     start(): void
     {
-        if(this.paused)
+        if (this.paused)
             this.paused = false;
 
-        if(this.config.mode === 'ai' && this.enemy)
-        {
-            this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
-        }
-        
-        this.emitEvent({type: 'game-started'});
-        
-        this.update();
+        this.starttime = Date.now();    // record countdown start
 
+        if (this.config.mode === 'ai' && this.enemy)
+            this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
+
+        this.update();  // start rendering immediately
     }
 
     stop(): void 
@@ -205,16 +205,30 @@ export class LocalPongEngine
 
     private update = (): void =>
     {
-        if(this.ended || this.paused)
+        if (this.ended || this.paused)
             return;
 
-        //clear and update frame
+        // Check countdown
+        if (!this.gameStarted) {
+            const elapsed = Date.now() - this.starttime;
+            if (elapsed >= this.startdelay) 
+            {
+                this.gameStarted = true;
+                this.emitEvent({ type: 'game-started' });
+            }
+        }
+
         this.clear();
         this.updatePaddles();
-        this.updateBall();
+
+        // Only move the ball if the game actually started
+        if (this.gameStarted) 
+        {
+            this.updateBall();
+        }
+        
         this.checkCollisions();
         this.render();
-
         if (this.player1.score >= 3 || 
             (this.player2 && this.player2.score >= 3) || 
             (this.enemy && this.enemy.score >= 3)) 
@@ -222,8 +236,10 @@ export class LocalPongEngine
                 this.handleGameEnd();
                 return;
             }
+
         this.animationFrameId = requestAnimationFrame(this.update);
     };
+
     
     private updateBall(): void 
     {
@@ -407,7 +423,7 @@ export class LocalPongEngine
         // Draw game objects
         this.ball.draw(this.ctx);
         this.paddleleft.draw(this.ctx);
-        
+    
         if (this.config.mode === 'local-multiplayer') 
         {
             this.paddleright.draw(this.ctx);
