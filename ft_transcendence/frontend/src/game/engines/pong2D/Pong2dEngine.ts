@@ -152,6 +152,7 @@ export class LocalPongEngine
     {
         this.paused = false;
         this.emitEvent({type: 'game-resumed'});
+    
         this.update();
     }
 
@@ -208,8 +209,13 @@ export class LocalPongEngine
         if (this.ended || this.paused)
             return;
 
+        if(this.waitingForSpace == true)
+        {
+            this.stop()
+        }
         // Check countdown
-        if (!this.gameStarted) {
+        if (!this.gameStarted) 
+        {
             const elapsed = Date.now() - this.starttime;
             if (elapsed >= this.startdelay) 
             {
@@ -217,6 +223,7 @@ export class LocalPongEngine
                 this.emitEvent({ type: 'game-started' });
             }
         }
+
 
         this.clear();
         this.updatePaddles();
@@ -445,7 +452,17 @@ export class LocalPongEngine
         this.ctx.fillStyle = "white";
         this.ctx.font = "48px 'Press Start To Play', monospace";
         this.ctx.textAlign = "center";
-        this.ctx.fillText("PAUSED", this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.fillText("PAUSED", this.canvas.width / 2, this.canvas.height / 3.50);
+        this.ctx.font = "25px 'Press Start To Play', monospace";
+        this.ctx.fillStyle = "red";
+        this.ctx.fillText("Player 1 - UP (W) Down (S)", this.canvas.width / 2, this.canvas.height / 1.80);
+        this.ctx.fillStyle = "green";
+        this.ctx.fillText("Player 2 - UP (↑) Down(↓) ", this.canvas.width / 2, this.canvas.height / 1.70);
+        this.ctx.fillStyle = "green";
+        this.ctx.fillText("Start Ball (SPACEBAR) ", this.canvas.width / 2, this.canvas.height / 1.60);
+        this.ctx.fillStyle = "red";
+        this.ctx.fillText("Pause (ESC)", this.canvas.width / 2, this.canvas.height / 1.50);
+        
         this.ctx.restore();
     }
     

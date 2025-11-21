@@ -375,6 +375,8 @@ export class Pong3D implements IGameEngine
         });
     }
     
+    
+
     private updateBall(): void 
     {
         // Apply gravity

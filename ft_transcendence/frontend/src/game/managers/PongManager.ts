@@ -143,7 +143,7 @@ export class ImprovedGameManager
             console.error('No game initialized');
             return;
         }
-        
+
         this.currentState = 'playing';
         this.currentEngine.start();
         this.emitEvent('game:started', {});
@@ -175,7 +175,7 @@ export class ImprovedGameManager
     
     public togglePause(): void 
     {
-        if (this.currentState === 'playing') 
+        if (this.currentState === 'playing')
             this.pauseGame();
         else if (this.currentState === 'paused') 
             this.resumeGame();

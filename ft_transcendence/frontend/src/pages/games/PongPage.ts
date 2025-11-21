@@ -48,15 +48,7 @@ export default class PongPage extends BaseComponent
                     </div>
                 </div>
                 
-                <!-- Controls Info -->
-                <div id="controlsInfo" class="w-full px-4 py-2 bg-gray-900/60 border-b border-yellow-500/30 hidden">
-                    <div class="max-w-7xl mx-auto text-center">
-                        <p class="text-xs sm:text-sm text-yellow-300/80 font-mono">
-                            <span class="text-yellow-400 font-bold">CONTROLS:</span> 
-                            <span id="controlsText">Player 1  Move Up (W) Move Down (S) | Player 2 Move Up (↑) Move Down(↓) | Pause (ESC) Start Ball (SPACEBAR) </span>
-                        </p>
-                    </div>
-                </div>
+               
                 
                 <!-- Main Content Area -->
                 <div class="flex-1 flex items-center justify-center p-4 overflow-auto">
