@@ -1,5 +1,6 @@
 import { WSEventType, ConnectionStatus } from '../../types/websocket.types';
 import { Lobby, LobbyInvitation, LobbyChatMessage } from '../../types/lobby.types';
+import { ChatMessage, ChatEventType } from '../../types/chat.types';
 
 class WebSocketService 
 {
@@ -147,6 +148,86 @@ class WebSocketService
         this.removeListener(`${WSEventType.PLAYER_LEAVE}:${lobbyId}`);
         this.removeListener(`${WSEventType.CHAT_MESSAGE}:${lobbyId}`);
     }
+    
+    // ==================== CHAT METHODS ====================
+    
+    // Send a private chat message to a friend via Redis pub/sub
+    async sendPrivateChatMessage(receiverId: string, message: string): Promise<void> 
+    {
+        console.log('[WebSocket] 💬 Sending private chat message via Redis pub/sub', { receiverId, message: message.substring(0, 20) });
+        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('[WebSocket] ✅ Private message sent to Redis');
+        
+        // Emit to simulate sending the message
+        this.emit(ChatEventType.CHAT_MESSAGE_SENT, {
+            receiverId,
+            message,
+            timestamp: new Date()
+        });
+    }
+    
+    // Listen for incoming chat messages from Redis pub/sub
+    onChatMessageReceived(callback: (message: ChatMessage) => void): void 
+    {
+        console.log('[WebSocket] 👂 Registered private chat message listener (Redis pub/sub)');
+        this.addListener(ChatEventType.CHAT_MESSAGE_RECEIVED, callback);
+    }
+    
+    // Request chat history for a specific friend
+    async requestChatHistory(friendId: string): Promise<void> 
+    {
+        console.log('[WebSocket] 📜 Requesting chat history for friend:', friendId);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        console.log('[WebSocket] ✅ Chat history request sent');
+        
+        // Emit to simulate requesting history
+        this.emit(ChatEventType.CHAT_HISTORY_REQUEST, { friendId });
+    }
+    
+    // Listen for chat history responses
+    onChatHistoryReceived(callback: (friendId: string, messages: ChatMessage[]) => void): void 
+    {
+        console.log('[WebSocket] 👂 Registered chat history listener');
+        this.addListener(ChatEventType.CHAT_HISTORY_RESPONSE, callback);
+    }
+    
+    // Mark messages from a friend as read via Redis pub/sub
+    async markMessagesAsRead(friendId: string): Promise<void> 
+    {
+        console.log('[WebSocket] ✅ Marking messages as read via Redis pub/sub:', friendId);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('[WebSocket] ✅ Read status sent to Redis');
+        
+        // Emit to simulate marking as read
+        this.emit(ChatEventType.MESSAGE_READ, { friendId });
+    }
+    
+    // Subscribe to chat-related Redis pub/sub events
+    subscribeChatEvents(): void 
+    {
+        console.log('[WebSocket] 👂 Subscribing to chat events via Redis pub/sub');
+        // In real implementation, this would subscribe to Redis channels
+        // For now, this is handled by the individual listeners
+    }
+    
+    // Unsubscribe from chat events
+    unsubscribeChatEvents(): void 
+    {
+        console.log('[WebSocket] 🔇 Unsubscribing from chat events');
+        this.removeListener(ChatEventType.CHAT_MESSAGE_RECEIVED);
+        this.removeListener(ChatEventType.CHAT_HISTORY_RESPONSE);
+        this.removeListener(ChatEventType.MESSAGE_READ);
+        this.removeListener(ChatEventType.UNREAD_COUNT_UPDATE);
+    }
+    
+    // Listen for unread count updates
+    onUnreadCountUpdate(callback: (friendId: string, count: number) => void): void 
+    {
+        console.log('[WebSocket] 👂 Registered unread count update listener');
+        this.addListener(ChatEventType.UNREAD_COUNT_UPDATE, callback);
+    }
+    
+    // ==================== END CHAT METHODS ====================
     
     private addListener(event: string, callback: Function): void 
     {

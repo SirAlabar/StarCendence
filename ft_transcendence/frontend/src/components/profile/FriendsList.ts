@@ -3,6 +3,8 @@ import { BaseComponent } from '../BaseComponent';
 import FriendService from '../../services/user/FriendService';
 import { getBaseUrl } from '@/types/api.types';
 import { Modal } from '@/components/common/Modal';
+import ChatNotificationService from '../../services/chat/ChatNotificationService';
+import { ChatModal } from './ChatWindow';
 
 interface Friend 
 {
@@ -30,6 +32,7 @@ interface FriendsListProps
 export class FriendsList extends BaseComponent 
 {
     private props: FriendsListProps;
+    private friendUnreadCounts: Map<string, number> = new Map();
 
     constructor(props: FriendsListProps) 
     {
@@ -129,6 +132,25 @@ export class FriendsList extends BaseComponent
                         0 0 20px rgba(255, 0, 68, 0.4),
                         inset 0 0 10px rgba(255, 0, 68, 0.2);
                 }
+                
+                .chat-button-badge {
+                    position: absolute;
+                    top: -6px;
+                    right: -6px;
+                    min-width: 18px;
+                    height: 18px;
+                    padding: 0 5px;
+                    background: #ff0044;
+                    color: white;
+                    border-radius: 9px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 10px;
+                    font-weight: bold;
+                    box-shadow: 0 0 8px rgba(255, 0, 68, 0.8);
+                    z-index: 10;
+                }
             </style>
         `;
     }
@@ -185,6 +207,9 @@ export class FriendsList extends BaseComponent
     {
         const statusInfo = this.getStatusInfo(friend.status);
         const avatarUrl = friend.avatarUrl ? `${getBaseUrl()}${friend.avatarUrl}` : null;
+        
+        // Get unread count for this friend
+        const unreadCount = this.friendUnreadCounts.get(friend.id.toString()) || 0;
 
         const avatarContent = avatarUrl
             ? `<img src="${avatarUrl}" alt="${friend.username}" class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full object-cover">`
@@ -204,8 +229,9 @@ export class FriendsList extends BaseComponent
                         <p class="text-xs sm:text-sm text-gray-400">${statusInfo.text}</p>
                     </div>
                 </div>
-                <button class="neon-border-small px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-lg font-bold text-cyan-400 text-xs sm:text-sm flex-shrink-0" data-friend-id="${friend.id}">
+                <button class="neon-border-small px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-lg font-bold text-cyan-400 text-xs sm:text-sm flex-shrink-0 relative" data-friend-id="${friend.id}" data-friend-username="${this.escapeHtml(friend.username)}" data-friend-avatar="${friend.avatarUrl || ''}">
                     CHAT
+                    ${unreadCount > 0 ? `<span class="chat-button-badge" data-badge-friend-id="${friend.id}">${unreadCount}</span>` : ''}
                 </button>
             </div>
         `;
@@ -228,6 +254,56 @@ export class FriendsList extends BaseComponent
     protected afterMount(): void 
     {
         this.setupEventListeners();
+        this.subscribeToNotifications();
+    }
+    
+    private subscribeToNotifications(): void 
+    {
+        console.log('[FriendsList] 👂 Subscribing to friend unread notifications');
+        
+        ChatNotificationService.onFriendUnreadChange((friendId: string, count: number) => 
+        {
+            console.log('[FriendsList] 🔔 Friend unread count changed:', friendId, count);
+            this.friendUnreadCounts.set(friendId, count);
+            this.updateFriendBadge(friendId, count);
+        });
+    }
+    
+    private updateFriendBadge(friendId: string, count: number): void 
+    {
+        const chatButton = document.querySelector(`button[data-friend-id="${friendId}"]`);
+        if (!chatButton) 
+        {
+            return;
+        }
+        
+        const existingBadge = chatButton.querySelector(`[data-badge-friend-id="${friendId}"]`);
+        
+        if (count > 0) 
+        {
+            if (existingBadge) 
+            {
+                // Update existing badge
+                existingBadge.textContent = count.toString();
+            }
+            else 
+            {
+                // Create new badge
+                const badge = document.createElement('span');
+                badge.className = 'chat-button-badge';
+                badge.setAttribute('data-badge-friend-id', friendId);
+                badge.textContent = count.toString();
+                chatButton.appendChild(badge);
+            }
+        }
+        else 
+        {
+            // Remove badge if count is 0
+            if (existingBadge) 
+            {
+                existingBadge.remove();
+            }
+        }
     }
 
     private setupEventListeners(): void 
@@ -274,10 +350,14 @@ export class FriendsList extends BaseComponent
         {
             button.addEventListener('click', (e) => 
             {
-                const friendId = (e.target as HTMLElement).getAttribute('data-friend-id');
-                if (friendId) 
+                const target = e.currentTarget as HTMLElement;
+                const friendId = target.getAttribute('data-friend-id');
+                const friendUsername = target.getAttribute('data-friend-username');
+                const friendAvatar = target.getAttribute('data-friend-avatar');
+                
+                if (friendId && friendUsername) 
                 {
-                    this.handleChatClick(parseInt(friendId));
+                    this.handleChatClick(friendId, friendUsername, friendAvatar);
                 }
             });
         });
@@ -286,14 +366,18 @@ export class FriendsList extends BaseComponent
         const friendItems = document.querySelectorAll('[data-friend-username]');
         friendItems.forEach(item => 
         {
-            item.addEventListener('click', (e) => 
+            // Only add to the div, not the button
+            if (item.tagName !== 'BUTTON') 
             {
-                const username = (e.currentTarget as HTMLElement).getAttribute('data-friend-username');
-                if (username) 
+                item.addEventListener('click', (e) => 
                 {
-                    this.handleViewProfile(username);
-                }
-            });
+                    const username = (e.currentTarget as HTMLElement).getAttribute('data-friend-username');
+                    if (username) 
+                    {
+                        this.handleViewProfile(username);
+                    }
+                });
+            }
         });
     }
 
@@ -332,9 +416,44 @@ export class FriendsList extends BaseComponent
         }
     }
 
-    private async handleChatClick(friendId: number): Promise<void> 
+    private handleChatClick(friendId: string, friendUsername: string, friendAvatar: string | null): void 
     {
-        await Modal.alert('Error', `Chat feature coming soon for friend ID: ${friendId}`);
+        console.log('[FriendsList] 💬 Opening chat with:', friendUsername);
+        this.openChatModal(friendId, friendUsername, friendAvatar);
+    }
+    
+    private openChatModal(friendId: string, friendUsername: string, friendAvatar: string | null): void 
+    {
+        // Check if modal already exists
+        const existingModal = document.getElementById('chat-modal-container');
+        if (existingModal) 
+        {
+            console.log('[FriendsList] ⚠️ Chat modal already open');
+            return;
+        }
+        
+        const chatModal = new ChatModal({
+            friendId,
+            friendUsername,
+            friendAvatar,
+            onClose: () => 
+            {
+                console.log('[FriendsList] 🚪 Closing chat modal');
+                const container = document.getElementById('chat-modal-container');
+                if (container) 
+                {
+                    container.remove();
+                }
+            }
+        });
+        
+        const chatContainer = document.createElement('div');
+        chatContainer.id = 'chat-modal-container';
+        document.body.appendChild(chatContainer);
+        chatModal.mount('#chat-modal-container');
+        
+        // Clear unread count for this friend
+        ChatNotificationService.clearUnread(friendId);
     }
 
     private handleViewProfile(username: string): void 

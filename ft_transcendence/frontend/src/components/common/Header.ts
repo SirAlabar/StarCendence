@@ -1,7 +1,7 @@
 import { BaseComponent } from '../BaseComponent';
 import { LoginService } from '../../services/auth/LoginService';
 import { Modal } from '@/components/common/Modal';
-
+import ChatNotificationService from '../../services/chat/ChatNotificationService';
 interface NavItem 
 {
     label: string;
@@ -13,7 +13,7 @@ export class Header extends BaseComponent
 {
     private navItems: NavItem[] = [];
     private eventsSetup = false;
-
+    private totalUnreadCount: number = 0;
     private updateNavItems(): void 
     {
         const isLoggedIn = localStorage.getItem('access_token') !== null;
@@ -56,6 +56,37 @@ export class Header extends BaseComponent
                 </nav>
                 ${this.renderMobileMenu()}
             </header>
+            
+            <style>
+                .notification-badge {
+                    position: absolute;
+                    top: -8px;
+                    right: -8px;
+                    min-width: 20px;
+                    height: 20px;
+                    padding: 0 6px;
+                    background: #ff0044;
+                    color: white;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 11px;
+                    font-weight: bold;
+                    box-shadow: 0 0 10px rgba(255, 0, 68, 0.8);
+                    z-index: 10;
+                    animation: pulse-badge 2s infinite;
+                }
+                
+                @keyframes pulse-badge {
+                    0%, 100% {
+                        box-shadow: 0 0 10px rgba(255, 0, 68, 0.8);
+                    }
+                    50% {
+                        box-shadow: 0 0 20px rgba(255, 0, 68, 1);
+                    }
+                }
+            </style>
         `;
     }
 
@@ -101,6 +132,11 @@ export class Header extends BaseComponent
     {
         const isRouteLink = item.href.startsWith('/');
         
+        const isProfileButton = item.label === 'Profile';
+        const badgeHtml = isProfileButton && this.totalUnreadCount > 0
+            ? `<span class="notification-badge" id="profile-badge">${this.totalUnreadCount}</span>`
+            : '';
+        
         return `
             <a href="${item.href}"${isRouteLink ? ' data-link' : ''} class="
                 px-2 py-1.5 mx-1 
@@ -116,8 +152,10 @@ export class Header extends BaseComponent
                 hover:text-white
                 no-underline
                 whitespace-nowrap
+                ${isProfileButton ? 'relative' : ''}
             ">
                 ${item.label}
+                ${badgeHtml}
             </a>
         `;
     }
@@ -152,6 +190,12 @@ export class Header extends BaseComponent
                     ${this.navItems.map(item => 
                     {
                         const isRouteLink = item.href.startsWith('/');
+                        
+                        const isProfileButton = item.label === 'Profile';
+                        const badgeHtml = isProfileButton && this.totalUnreadCount > 0
+                            ? `<span class="notification-badge" style="position: static; margin-left: 8px;">${this.totalUnreadCount}</span>`
+                            : '';
+                        
                         return `
                             <a href="${item.href}"${isRouteLink ? ' data-link' : ''} class="
                                 block py-3 px-4 
@@ -160,8 +204,10 @@ export class Header extends BaseComponent
                                 rounded-lg
                                 transition-colors
                                 border-b border-white/10 last:border-b-0
+                                ${isProfileButton ? 'flex items-center' : ''}
                             ">
                                 ${item.label}
+                                ${badgeHtml}
                             </a>
                         `;
                     }).join('')}
@@ -177,9 +223,109 @@ export class Header extends BaseComponent
             setTimeout(() => 
             {
                 this.setupHamburgerMenu();
+                this.subscribeToNotifications();
                 this.eventsSetup = true;
             }, 50);
         }
+    }
+    
+    private subscribeToNotifications(): void 
+    {
+        console.log('[Header] 👂 Subscribing to chat notifications');
+        
+        ChatNotificationService.onTotalUnreadChange((total: number) => 
+        {
+            console.log('[Header] 🔔 Total unread count changed:', total);
+            this.totalUnreadCount = total;
+            this.updateBadge();
+        });
+    }
+    
+    private updateBadge(): void 
+    {
+        // Update desktop badge
+        const badge = document.getElementById('profile-badge');
+        const profileLink = document.querySelector('a[href="/profile"]');
+        
+        if (this.totalUnreadCount > 0) 
+        {
+            if (badge) 
+            {
+                badge.textContent = this.totalUnreadCount.toString();
+            }
+            else if (profileLink) 
+            {
+                // Create badge if it doesn't exist
+                const newBadge = document.createElement('span');
+                newBadge.id = 'profile-badge';
+                newBadge.className = 'notification-badge';
+                newBadge.textContent = this.totalUnreadCount.toString();
+                profileLink.appendChild(newBadge);
+            }
+        }
+        else 
+        {
+            // Remove badge if count is 0
+            if (badge) 
+            {
+                badge.remove();
+            }
+        }
+        
+        // Update mobile menu - just refresh it
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (mobileMenu && !mobileMenu.classList.contains('hidden')) 
+        {
+            // Refresh mobile menu content
+            this.refreshMobileMenu();
+        }
+    }
+    
+    private refreshMobileMenu(): void 
+    {
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (!mobileMenu) 
+        {
+            return;
+        }
+        
+        const nav = mobileMenu.querySelector('nav');
+        if (!nav) 
+        {
+            return;
+        }
+        
+        // Re-render mobile menu items
+        nav.innerHTML = this.navItems.map(item => 
+        {
+            const isRouteLink = item.href.startsWith('/');
+            const isProfileButton = item.label === 'Profile';
+            const badgeHtml = isProfileButton && this.totalUnreadCount > 0
+                ? `<span class="notification-badge" style="position: static; margin-left: 8px;">${this.totalUnreadCount}</span>`
+                : '';
+            
+            return `
+                <a href="${item.href}"${isRouteLink ? ' data-link' : ''} class="
+                    block py-3 px-4 
+                    text-white/90 hover:text-white 
+                    hover:bg-white/10 
+                    rounded-lg
+                    transition-colors
+                    border-b border-white/10 last:border-b-0
+                    ${isProfileButton ? 'flex items-center' : ''}
+                ">
+                    ${item.label}
+                    ${badgeHtml}
+                </a>
+            `;
+        }).join('');
+        
+        // Re-attach click handlers for mobile links
+        const mobileLinks = nav.querySelectorAll('a');
+        mobileLinks.forEach(link => 
+        {
+            link.addEventListener('click', this.handleMobileMenuClick.bind(this));
+        });
     }
 
     private setupHamburgerMenu(): void 
@@ -221,6 +367,11 @@ export class Header extends BaseComponent
         if (mobileMenu) 
         {
             mobileMenu.classList.toggle('hidden');
+            
+            if (!mobileMenu.classList.contains('hidden')) 
+            {
+                this.refreshMobileMenu();
+            }
         }
     }
 
