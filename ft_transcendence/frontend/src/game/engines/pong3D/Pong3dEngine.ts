@@ -22,6 +22,10 @@ export class Pong3D implements IGameEngine
     private platform: AbstractMesh[] = [];
     private pauseUi: GUI.AdvancedDynamicTexture | null = null;
     private pausePanel: GUI.StackPanel | null = null;
+    private startdelay = 10;
+    private starttime = 0
+    private gameStarted : boolean = false;
+    private waitingSpace: boolean = false;
     
     // Configuration
     private config: GameConfig;
@@ -92,6 +96,7 @@ export class Pong3D implements IGameEngine
     {
         this.paused = false;
         this.ended = false;
+        this.starttime = Date.now();
         
         // Start render loop
         this.engine.runRenderLoop(() => {
@@ -115,7 +120,6 @@ export class Pong3D implements IGameEngine
         if(this.pausePanel)
         {
             this.pausePanel.isVisible = true;
-            console.log("hello", this.pausePanel);
         }
         
     }
@@ -352,27 +356,37 @@ export class Pong3D implements IGameEngine
             const currentTime = performance.now();
             const deltaTime = (currentTime - this.lastTime) / 1000;
             this.lastTime = currentTime;
-            
-            // Ball physics
-            this.updateBall();
-            
-            // Paddle collisions
-            this.checkPaddleCollision();
-            
-            // Speed limit
-            this.limitBallSpeed();
-            
-            // Goal detection
-            this.checkGoals();
-            
-            // Update AI
-            if (this.config.mode === 'ai' && this.enemy3D && this.ballVelocity.x > 0) 
-            {
-                this.enemy3D.update(deltaTime);
-            }
-            
-            // Handle player input
             this.handleKeys();
+            // Ball physics
+            if(this.gameStarted && this.waitingSpace == false)
+            {
+                this.updateBall();
+                
+                // Paddle collisions
+                this.checkPaddleCollision();
+                
+                // Speed limit
+                this.limitBallSpeed();
+                
+                // Goal detection
+                this.checkGoals();
+        
+                // Update AI
+                if (this.config.mode === 'ai' && this.enemy3D && this.ballVelocity.x > 0) 
+                {
+                    this.enemy3D.update(deltaTime);
+                }
+                
+                // Handle player input
+                this.handleKeys();
+
+            }
+            else
+            {
+                setTimeout(() => {
+                    this.gameStarted = true;
+                }, 3000);
+            }
         });
     }
     
@@ -495,6 +509,8 @@ export class Pong3D implements IGameEngine
             console.log(`Player 1 scored! Score: ${this.player1Score} - ${this.player2Score}`);
             this.emitEvent({type: 'score-updated', player1Score: this.player1Score, player2Score : this.player2Score})
             this.resetBall(-1);
+            this.waitingSpace = true;
+            
             this.checkWinCondition();
         }
         
@@ -507,6 +523,8 @@ export class Pong3D implements IGameEngine
             console.log(`${opponent} scored! Score: ${this.player1Score} - ${this.player2Score}`);
             this.emitEvent({type: 'score-updated', player1Score: this.player1Score, player2Score : this.player2Score})
             this.resetBall(1);
+            this.waitingSpace = true;
+            
             this.checkWinCondition();
         }
     }
@@ -564,6 +582,7 @@ export class Pong3D implements IGameEngine
         if (this.keys["d"] && this.paddle_left.position.z > -moveBoundary) 
             moveVector1.z -= paddleSpeed;
         this.paddle_left.moveWithCollisions(moveVector1);
+            
         
         // Player 2 (right paddle) - only in multiplayer mode
         if (this.config.mode === 'local-multiplayer') 
@@ -584,6 +603,10 @@ export class Pong3D implements IGameEngine
             this.changeCamera();
             this.canChangeCamera = false;
             setTimeout(() => this.canChangeCamera = true, 500);
+        }
+        if(this.keys[" "])
+        {
+            this.waitingSpace = false;
         }
     }
     
