@@ -22,8 +22,6 @@ export class Pong3D implements IGameEngine
     private platform: AbstractMesh[] = [];
     private pauseUi: GUI.AdvancedDynamicTexture | null = null;
     private pausePanel: GUI.StackPanel | null = null;
-    private startdelay = 10;
-    private starttime = 0
     private gameStarted : boolean = false;
     private waitingSpace: boolean = false;
     
@@ -96,7 +94,6 @@ export class Pong3D implements IGameEngine
     {
         this.paused = false;
         this.ended = false;
-        this.starttime = Date.now();
         
         // Start render loop
         this.engine.runRenderLoop(() => {
