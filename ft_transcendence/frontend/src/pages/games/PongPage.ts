@@ -284,6 +284,7 @@ export default class PongPage extends BaseComponent
         gameManager.on('game:goal', this.gameGoalHandler);
         gameManager.on('game:paddle-hit', this.gamePaddleHitHandler);
         gameManager.on('game:score-update', this.handleScoreUpdate.bind(this));
+        gameManager.on('game:score-update_3d', this.handleScoreUpdate.bind(this));
         
         
     }

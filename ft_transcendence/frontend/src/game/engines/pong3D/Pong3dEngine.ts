@@ -492,7 +492,7 @@ export class Pong3D implements IGameEngine
             this.goalScored = true;
             this.player1Score++;
             console.log(`Player 1 scored! Score: ${this.player1Score} - ${this.player2Score}`);
-            this.emitEvent({ type: 'goal-scored', scorer: 'player1' });
+            this.emitEvent({type: 'score-updated', player1Score: this.player1Score, player2Score : this.player2Score})
             this.resetBall(-1);
             this.checkWinCondition();
         }
@@ -504,7 +504,7 @@ export class Pong3D implements IGameEngine
             this.player2Score++;
             const opponent = this.config.mode === 'ai' ? 'AI' : 'Player 2';
             console.log(`${opponent} scored! Score: ${this.player1Score} - ${this.player2Score}`);
-            this.emitEvent({ type: 'goal-scored', scorer: 'player2' });
+            this.emitEvent({type: 'score-updated', player1Score: this.player1Score, player2Score : this.player2Score})
             this.resetBall(1);
             this.checkWinCondition();
         }
