@@ -1,4 +1,5 @@
 import {Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes, AbstractMesh} from "@babylonjs/core";
+import * as GUI from "@babylonjs/gui";
 import { GameConfig, GameState, GameEvent, IGameEngine } from "../../utils/GameTypes";
 import { Skybox } from "./entities/Skybox";
 import { loadModel } from "./entities/ModelLoader";
@@ -19,6 +20,8 @@ export class Pong3D implements IGameEngine
     private gravity = -0.02;
     private canChangeCamera: boolean = true;
     private platform: AbstractMesh[] = [];
+    private pauseUi: GUI.AdvancedDynamicTexture | null = null;
+    private pausePanel: GUI.StackPanel | null = null;
     
     // Configuration
     private config: GameConfig;
@@ -62,6 +65,7 @@ export class Pong3D implements IGameEngine
         this.createEnvironment();
         this.createGameObjects();
         this.enableCollisions();
+        this.initUi();
         
         // Initialize AI if in AI mode
         if (this.config.mode === 'ai') 
@@ -79,6 +83,7 @@ export class Pong3D implements IGameEngine
         
         // Handle window resize
         window.addEventListener("resize", () => this.engine.resize());
+
         
         
     }
@@ -90,9 +95,7 @@ export class Pong3D implements IGameEngine
         
         // Start render loop
         this.engine.runRenderLoop(() => {
-            if (!this.paused && !this.ended) {
                 this.scene.render();
-            }
         });
         
         this.emitEvent({ type: 'game-started' });
@@ -109,25 +112,23 @@ export class Pong3D implements IGameEngine
     {
         this.paused = true;
         this.emitEvent({ type: 'game-paused' });
+        if(this.pausePanel)
+        {
+            this.pausePanel.isVisible = true;
+            console.log("hello", this.pausePanel);
+        }
         
     }
     
+
     resume(): void 
     {
         this.paused = false;
-        
-        // Restart render loop if stopped
-        if (!this.engine.activeRenderLoops || this.engine.activeRenderLoops.length === 0) 
-        {
-            this.engine.runRenderLoop(() => {
-                if (!this.paused && !this.ended) {
-                    this.scene.render();
-                }
-            });
-        }
-        
+
         this.emitEvent({ type: 'game-resumed' });
-        
+
+        if (this.pausePanel)
+            this.pausePanel.isVisible = false;
     }
     
     getState(): GameState 
@@ -630,6 +631,57 @@ export class Pong3D implements IGameEngine
         }, 30);
     }
  
+    initUi() 
+    {
+        this.pauseUi = GUI.AdvancedDynamicTexture.CreateFullscreenUI("pause-ui", true, this.scene); //start pauseui 
+        const panel = new GUI.StackPanel;
+        panel.isVisible = false;
+        panel.width = "800px";     // <-- required!
+        panel.height = "400px";
+        panel.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        panel.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        this.pauseUi.addControl(panel);                         //create the menu panel and pass it to this.pauseUi
+
+        
+        const title = new GUI.TextBlock();
+        title.text = "Paused";
+        title.fontSize = 42;
+        title.color = 'white';
+        title.height = "90px";  
+        title.outlineWidth = 4;
+        title.outlineColor = 'black';
+        panel.addControl(title);
+        
+        const controlsplayer1 = new GUI.TextBlock();
+        controlsplayer1.text = "Player 1 - UP (W) Down (S)";
+        controlsplayer1.fontSize = 22;
+        controlsplayer1.color = 'white';
+        controlsplayer1.height = "80px";  
+        controlsplayer1.outlineWidth = 4;
+        controlsplayer1.outlineColor = 'black';
+        panel.addControl(controlsplayer1);
+        this.pausePanel = panel;
+
+        const controlsplayer2 = new GUI.TextBlock();
+        controlsplayer2.text = "Player 2 - UP (↑) Down(↓)";
+        controlsplayer2.fontSize = 22;
+        controlsplayer2.color = 'white';
+        controlsplayer2.height = "70px";  
+        controlsplayer2.outlineWidth = 4;
+        controlsplayer2.outlineColor = 'black';
+        panel.addControl(controlsplayer2);
+        this.pausePanel = panel;
+
+        const extra = new GUI.TextBlock();
+        extra.text = "Start Ball (SPACEBAR) | Pause (ESC) | Change Camera (C)";
+        extra.fontSize = 22;
+        extra.color = 'white';
+        extra.height = "60px";  
+        extra.outlineWidth = 4;
+        extra.outlineColor = 'black';
+        panel.addControl(extra);
+        this.pausePanel = panel;
+    }
     
     private emitEvent(event: GameEvent): void 
     {
