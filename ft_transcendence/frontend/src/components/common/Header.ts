@@ -1,6 +1,9 @@
 import { BaseComponent } from '../BaseComponent';
 import { LoginService } from '../../services/auth/LoginService';
 import { Modal } from '@/components/common/Modal';
+import { NotificationPanel } from '../notifications/NotificationPanel';
+import { QuickToast } from '../notifications/QuickToast';
+import { notificationManager } from '../../services/notifications/NotificationManager';
 
 interface NavItem 
 {
@@ -13,6 +16,9 @@ export class Header extends BaseComponent
 {
     private navItems: NavItem[] = [];
     private eventsSetup = false;
+    private notificationPanel: NotificationPanel | null = null;
+    private quickToast: QuickToast | null = null;
+    private unreadCount = 0;
 
     private updateNavItems(): void 
     {
@@ -87,7 +93,8 @@ export class Header extends BaseComponent
     private renderNavigation(): string 
     {
         return `
-            <div class="flex items-center">
+            <div class="flex items-center gap-3">
+                ${this.renderNotificationBell()}
                 ${this.renderHamburgerButton()}
 
                 <nav class="flex max-md:hidden items-center space-x-2" aria-label="main">
@@ -144,6 +151,37 @@ export class Header extends BaseComponent
         `;
     }
 
+    private renderNotificationBell(): string 
+    {
+        const isLoggedIn = localStorage.getItem('access_token') !== null;
+        if (!isLoggedIn) return '';
+
+        const badgeHtml = this.unreadCount > 0 
+            ? `<span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                ${this.unreadCount > 9 ? '9+' : this.unreadCount}
+            </span>`
+            : '';
+
+        return `
+            <button id="notification-bell-btn" type="button" class="
+                relative p-2 rounded-lg
+                bg-white/10 backdrop-blur-sm
+                border border-white/20
+                text-white
+                hover:bg-white/20
+                active:bg-white/30
+                transition-all duration-300
+                cursor-pointer
+            " aria-label="Notifications">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+                ${badgeHtml}
+            </button>
+        `;
+    }
+
     private renderMobileMenu(): string 
     {
         return `
@@ -177,6 +215,7 @@ export class Header extends BaseComponent
             setTimeout(() => 
             {
                 this.setupHamburgerMenu();
+                this.setupNotifications();
                 this.eventsSetup = true;
             }, 50);
         }
@@ -297,6 +336,63 @@ export class Header extends BaseComponent
         if (mobileMenu) 
         {
             mobileMenu.classList.add('hidden');
+        }
+    }
+
+    private setupNotifications(): void 
+    {
+        const isLoggedIn = localStorage.getItem('access_token') !== null;
+        if (!isLoggedIn) return;
+
+        // Initialize NotificationPanel
+        this.notificationPanel = new NotificationPanel();
+        const panelContainer = document.createElement('div');
+        panelContainer.id = 'notification-panel-container';
+        document.body.appendChild(panelContainer);
+        this.notificationPanel.mount('#notification-panel-container');
+
+        // Initialize QuickToast
+        this.quickToast = new QuickToast();
+        const toastContainer = document.createElement('div');
+        toastContainer.id = 'quick-toast-container';
+        document.body.appendChild(toastContainer);
+        this.quickToast.mount('#quick-toast-container');
+
+        // Subscribe to unread count updates
+        notificationManager.subscribeToUnreadCount(count => {
+            this.unreadCount = count;
+            this.updateNotificationBadge();
+        });
+
+        // Setup bell button click handler
+        const bellButton = document.getElementById('notification-bell-btn');
+        bellButton?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.notificationPanel?.toggle();
+        });
+    }
+
+    private updateNotificationBadge(): void 
+    {
+        const bellButton = document.getElementById('notification-bell-btn');
+        if (!bellButton) return;
+
+        let badge = bellButton.querySelector('#notification-badge') as HTMLElement;
+
+        if (this.unreadCount > 0) 
+        {
+            if (!badge) 
+            {
+                badge = document.createElement('span');
+                badge.id = 'notification-badge';
+                badge.className = 'absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center';
+                bellButton.appendChild(badge);
+            }
+            badge.textContent = this.unreadCount > 9 ? '9+' : this.unreadCount.toString();
+        } 
+        else 
+        {
+            badge?.remove();
         }
     }
 

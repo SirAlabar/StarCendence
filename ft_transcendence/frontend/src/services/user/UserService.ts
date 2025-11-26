@@ -41,6 +41,29 @@ class UserService extends BaseService
         return this.handleResponse<UserProfile>(response);
     }
 
+    // GET /users/:userId - Get user profile by ID
+    async getUserById(userId: string): Promise<UserProfile> 
+    {
+        this.requireAuth();
+
+        if (!userId) 
+        {
+            throw new Error('Invalid user ID');
+        }
+
+        const response = await this.fetchRequest(getUserApiUrl(`/users/${userId}`), {
+            method: 'GET',
+            headers: this.getHeaders()
+        });
+
+        if (response.status === 404) 
+        {
+            throw new Error('User not found');
+        }
+
+        return this.handleResponse<UserProfile>(response);
+    }
+
     // PUT /profile - Update user's bio
     async updateProfile(bio: string): Promise<UserProfile> 
     {

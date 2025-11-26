@@ -25,6 +25,7 @@ class WebSocketService {
     
     if (envUrl) {
       this.wsUrl = envUrl;
+      console.log('[WebSocketService] Using environment WebSocket URL:', this.wsUrl);
     } else {
       // Auto-detect based on current location
       // Use same hostname and port as the frontend, with /ws path (nginx proxy)
@@ -40,6 +41,7 @@ class WebSocketService {
         const defaultPort = protocol === 'wss:' ? '8443' : '8080';
         this.wsUrl = `${protocol}//${hostname}:${defaultPort}/ws`;
       }
+      console.log('[WebSocketService] Auto-detected WebSocket URL:', this.wsUrl);
     }
   }
 
@@ -49,10 +51,13 @@ class WebSocketService {
   async connect(): Promise<void> {
     const token = LoginService.getAccessToken();
     if (!token) {
-      throw new Error('No access token available for WebSocket connection');
+      const error = new Error('No access token available for WebSocket connection');
+      console.error('[WebSocketService]', error.message);
+      throw error;
     }
 
     if (this.status === ConnectionStatus.CONNECTED || this.status === ConnectionStatus.CONNECTING) {
+      console.log('[WebSocketService] Already connected or connecting, skipping...');
       return;
     }
 
@@ -60,9 +65,11 @@ class WebSocketService {
       try {
         this.status = ConnectionStatus.CONNECTING;
         const url = `${this.wsUrl}?token=${encodeURIComponent(token)}`;
+        console.log('[WebSocketService] Connecting to:', this.wsUrl);
         this.socket = new WebSocket(url);
 
         this.socket.onopen = () => {
+          console.log('[WebSocketService] ✅ Connected successfully');
           this.status = ConnectionStatus.CONNECTED;
           this.reconnectAttempts = 0;
           this.startHeartbeat();
@@ -70,12 +77,16 @@ class WebSocketService {
         };
 
         this.socket.onerror = (error) => {
+          console.error('[WebSocketService] ❌ Connection error:', error);
+          console.info('[WebSocketService] This is expected if the backend WebSocket server is not running.');
+          console.info('[WebSocketService] To fix: Start the backend services with `make up` or `docker-compose up`');
           this.status = ConnectionStatus.ERROR;
-          reject(error);
+          reject(new Error(`WebSocket connection failed to ${this.wsUrl}`));
         };
 
         this.setupSocketEventHandlers();
       } catch (error) {
+        console.error('[WebSocketService] Failed to create WebSocket:', error);
         this.status = ConnectionStatus.DISCONNECTED;
         reject(error);
         this.handleReconnect();
@@ -156,16 +167,22 @@ class WebSocketService {
    */
   private handleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.warn('[WebSocketService] Max reconnection attempts reached. Stopping reconnection attempts.');
+      console.info('[WebSocketService] The app will continue to work without real-time features.');
+      console.info('[WebSocketService] Start the backend WebSocket server to enable real-time features.');
       this.reconnectAttempts = 0;
       return;
     }
 
     this.status = ConnectionStatus.RECONNECTING;
     this.reconnectAttempts++;
+    
+    const delay = this.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1); // Exponential backoff
+    console.log(`[WebSocketService] Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms...`);
 
     this.reconnectTimer = setTimeout(() => {
       this.connect().catch(() => {});
-    }, this.reconnectInterval);
+    }, delay);
   }
 
   /**
@@ -301,17 +318,17 @@ class WebSocketService {
    * Unsubscribe from friend status updates
    */
   unsubscribeFriendsStatus(): void {
-    this.removeListener('user:status');
+    this.removeListener('user:status', undefined);
   }
 
   /**
    * Unsubscribe from lobby events
    */
   unsubscribeLobby(lobbyId: string): void {
-    this.removeListener(`lobby:update:${lobbyId}`);
-    this.removeListener(`lobby:player:join:${lobbyId}`);
-    this.removeListener(`lobby:player:leave:${lobbyId}`);
-    this.removeListener(`lobby:chat:${lobbyId}`);
+    this.removeListener(`lobby:update:${lobbyId}`, undefined);
+    this.removeListener(`lobby:player:join:${lobbyId}`, undefined);
+    this.removeListener(`lobby:player:leave:${lobbyId}`, undefined);
+    this.removeListener(`lobby:chat:${lobbyId}`, undefined);
   }
 
   // ===== Lobby Methods (Stubs - To be implemented later) =====
@@ -423,8 +440,23 @@ class WebSocketService {
     this.listeners.get(event)!.push(callback);
   }
 
-  private removeListener(event: string): void {
-    this.listeners.delete(event);
+  private removeListener(event: string, callback?: Function): void {
+    if (callback) {
+      // Remove specific callback
+      const callbacks = this.listeners.get(event);
+      if (callbacks) {
+        const index = callbacks.indexOf(callback);
+        if (index > -1) {
+          callbacks.splice(index, 1);
+        }
+        if (callbacks.length === 0) {
+          this.listeners.delete(event);
+        }
+      }
+    } else {
+      // Remove all callbacks for event
+      this.listeners.delete(event);
+    }
   }
 
   /**
@@ -437,6 +469,13 @@ class WebSocketService {
     } else {
       this.addListener(event, callback);
     }
+  }
+
+  /**
+   * Remove a listener for an event
+   */
+  off(event: '*' | string, callback: Function): void {
+    this.removeListener(event, callback);
   }
 
   private emit(event: string, data: any): void {

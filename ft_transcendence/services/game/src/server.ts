@@ -21,7 +21,7 @@ async function startServer(): Promise<void>
       host: '0.0.0.0',
     });
     
-    console.log(`🚀 Game Service running on http://0.0.0.0:${GAME_CONFIG.PORT}`);
+    console.log(` Game Service running on http://0.0.0.0:${GAME_CONFIG.PORT}`);
   }
   catch (error)
   {

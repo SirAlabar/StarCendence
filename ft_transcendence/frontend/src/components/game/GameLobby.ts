@@ -40,6 +40,7 @@ export class GameLobby extends BaseComponent
     private chatMessages: Array<{player: string, message: string, time: string}> = [];
     private currentUser: UserProfile | null = null;
     private friends: FriendWithStatus[] = [];
+    private allFriends: any[] = []; // Store all friends (online + offline)
     private mountSelector: string | null = null;
     
     constructor(config: LobbyConfig) 
@@ -73,9 +74,9 @@ export class GameLobby extends BaseComponent
             });
             
             const friendsData = await FriendService.getFriends();
-            const allFriends = friendsData.friends || [];
+            this.allFriends = friendsData.friends || [];
             
-            allFriends.forEach((friend: any) => 
+            this.allFriends.forEach((friend: any) => 
             {
                 if (friend.status === 'online') 
                 {
@@ -89,11 +90,17 @@ export class GameLobby extends BaseComponent
             });
             
             this.friends = OnlineFriendsService.getOnlineFriends();
+            
+            console.log('[GameLobby] Loaded friends:', {
+                total: this.allFriends.length,
+                online: this.friends.length
+            });
         }
         catch (err) 
         {
             console.error('Failed to load friends:', err);
             this.friends = [];
+            this.allFriends = [];
         }
         
         if (this.currentUser) 
@@ -410,29 +417,43 @@ export class GameLobby extends BaseComponent
     
     private renderFriendsList(): string 
     {
-        if (this.friends.length === 0) 
+        if (this.allFriends.length === 0) 
         {
             return `
                 <div class="text-center text-gray-500 py-8">
-                    <p>No friends online</p>
-                    <p class="text-sm mt-2">Your friends need to be online to invite them</p>
+                    <p class="text-lg font-bold mb-2">No Friends Yet</p>
+                    <p class="text-sm">Add friends to invite them to games!</p>
                 </div>
             `;
         }
         
-        return this.friends.map(friend => `
-            <button class="invite-friend-btn w-full p-4 rounded-lg border-2 border-cyan-500/30 bg-gray-800/50 hover:border-cyan-500 hover:bg-gray-700/50 transition-all flex items-center gap-4" data-username="${friend.username}" data-userid="${friend.userId}">
-                <div class="relative">
-                    <img src="${friend.avatarUrl}" alt="${friend.username}" class="w-12 h-12 rounded-full border-2 border-green-400">
-                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-800"></div>
-                </div>
-                <div class="flex-1 text-left">
-                    <p class="text-cyan-300 font-bold">${friend.username}</p>
-                    <p class="text-green-400 text-sm">● Online</p>
-                </div>
-                <div class="text-cyan-300 font-bold">INVITE</div>
-            </button>
-        `).join('');
+        return this.allFriends.map(friend => {
+            const isOnline = this.friends.some(f => f.userId === friend.userId);
+            const statusColor = isOnline ? 'border-green-400' : 'border-gray-500';
+            const statusDot = isOnline ? 'bg-green-400' : 'bg-gray-500';
+            const statusText = isOnline ? 'text-green-400' : 'text-gray-500';
+            const statusLabel = isOnline ? '● Online' : '● Offline';
+            const buttonClass = isOnline 
+                ? 'hover:border-cyan-500 hover:bg-gray-700/50 cursor-pointer' 
+                : 'opacity-60 cursor-not-allowed';
+            
+            return `
+                <button class="invite-friend-btn w-full p-4 rounded-lg border-2 border-cyan-500/30 bg-gray-800/50 transition-all flex items-center gap-4 ${buttonClass}" 
+                    data-username="${friend.username}" 
+                    data-userid="${friend.userId}"
+                    ${!isOnline ? 'disabled' : ''}>
+                    <div class="relative">
+                        <img src="${friend.avatarUrl || '/assets/images/default-avatar.jpeg'}" alt="${friend.username}" class="w-12 h-12 rounded-full border-2 ${statusColor}">
+                        <div class="absolute bottom-0 right-0 w-3 h-3 ${statusDot} rounded-full border-2 border-gray-800"></div>
+                    </div>
+                    <div class="flex-1 text-left">
+                        <p class="text-cyan-300 font-bold">${friend.username}</p>
+                        <p class="${statusText} text-sm">${statusLabel}</p>
+                    </div>
+                    <div class="text-cyan-300 font-bold">${isOnline ? 'INVITE' : 'OFFLINE'}</div>
+                </button>
+            `;
+        }).join('');
     }
     
     private updateFriendsList(): void 
@@ -965,6 +986,81 @@ export class GameLobby extends BaseComponent
 
         container.innerHTML = this.render();
         this.attachEventListeners();
+    }
+    
+    /**
+     * Add a player to the lobby (called from WebSocket events)
+     */
+    public addPlayer(player: any): void {
+        // Find empty slot
+        const emptySlot = this.playerSlots.find(slot => !slot.playerName);
+        if (!emptySlot) {
+            console.warn('[GameLobby] No empty slots available');
+            return;
+        }
+
+        // Populate slot with player data
+        emptySlot.playerName = player.username;
+        emptySlot.userId = player.userId;
+        emptySlot.isOnline = player.isOnline ?? true;
+        emptySlot.isAI = player.isAI ?? false;
+        emptySlot.isReady = player.isReady ?? false;
+        emptySlot.avatarUrl = player.avatarUrl || '/assets/images/default-avatar.jpeg';
+        emptySlot.customization = player.customization || null;
+
+        // Refresh UI
+        this.refresh();
+    }
+
+    /**
+     * Remove a player from the lobby (called from WebSocket events)
+     */
+    public removePlayer(userId: string): void {
+        const slot = this.playerSlots.find(s => s.userId === userId);
+        if (!slot || slot.id === 0) { // Don't remove host (slot 0)
+            return;
+        }
+
+        // Clear slot
+        slot.playerName = null;
+        slot.userId = null;
+        slot.isOnline = false;
+        slot.isAI = false;
+        slot.isReady = false;
+        slot.avatarUrl = '/assets/images/default-avatar.jpeg';
+        slot.customization = null;
+
+        // Refresh UI
+        this.refresh();
+    }
+
+    /**
+     * Update lobby state (called from WebSocket events)
+     */
+    public updateLobbyState(lobbyData: any): void {
+        console.log('[GameLobby] Updating lobby state:', lobbyData);
+        // Implement full lobby state sync if needed
+        // For now, this is a placeholder for future enhancements
+    }
+
+    /**
+     * Add chat message (called from WebSocket events)
+     */
+    public addChatMessage(messageData: any): void {
+        const now = new Date();
+        const time = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        this.chatMessages.push({
+            player: messageData.username || messageData.player || 'PLAYER',
+            message: (messageData.message || messageData.text || '').toUpperCase(),
+            time: messageData.time || time
+        });
+        
+        const chatContainer = document.getElementById('chatMessages');
+        if (chatContainer) {
+            chatContainer.innerHTML = this.renderChatMessages();
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
     }
     
     public dispose(): void 

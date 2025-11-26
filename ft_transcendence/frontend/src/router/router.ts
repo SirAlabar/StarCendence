@@ -190,6 +190,13 @@ const routeConfig: Record<string, any> =
         layout: 'game',
         headerType: 'default'
     },
+    '/pong-game':
+    {
+        component: () => import('../pages/games/PongGamePage'),
+        title: 'Pong Game - Transcendence',
+        layout: 'game',
+        headerType: 'game'
+    },
     '/racer-lobby':
     {
         component: () => import('../pages/games/RacerLobbyPage'),
@@ -208,6 +215,14 @@ const routeConfig: Record<string, any> =
     {
         component: () => import('../pages/WebSocketTestPage'),
         title: 'WebSocket Test - Transcendence',
+        layout: 'default',
+        headerType: 'default',
+        requiresAuth: true
+    },
+    '/testnotifications':
+    {
+        component: () => import('../pages/NotificationTestPage'),
+        title: 'Notification Test - Transcendence',
         layout: 'default',
         headerType: 'default',
         requiresAuth: true
