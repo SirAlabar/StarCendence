@@ -387,18 +387,27 @@ export class RedisBroadcast
     try
     {
       const message = JSON.parse(rawMessage);
-      const messageType = message.type;
-
-      if (!messageType)
-      {
-        console.warn(`Message from channel ${channel} has no type field`);
-        return;
-      }
 
       const channelHandlerMap = this.channelHandlers.get(channel);
       if (!channelHandlerMap)
       {
         console.warn(`No handlers registered for channel: ${channel}`);
+        return;
+      }
+
+      // Check for wildcard handler first ('*')
+      const wildcardHandler = channelHandlerMap.get('*');
+      if (wildcardHandler)
+      {
+        await wildcardHandler(message, channel);
+        return;
+      }
+
+      // Otherwise check for specific message type handler
+      const messageType = message.type;
+      if (!messageType)
+      {
+        console.warn(`Message from channel ${channel} has no type field`);
         return;
       }
 

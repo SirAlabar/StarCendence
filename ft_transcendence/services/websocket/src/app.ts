@@ -5,9 +5,10 @@ import { getWSConfig } from './config/wsConfig';
 import { ConnectionManager } from './connections/ConnectionManager';
 import { redisBroadcast } from './broadcasting/RedisBroadcast';
 import { createRedisClient, closeRedisClient } from './config/redisConfig';
+import { registerPingHandler } from './events/PingHandler';
+import { initializeRedisHandlers } from './events/RedisEvents';
 // Import event handlers to register them
 import './events/GameEvents';
-import './events/RedisEvents';
 
 export async function createApp(): Promise<FastifyInstance>
 {
@@ -22,7 +23,15 @@ export async function createApp(): Promise<FastifyInstance>
   {
     await createRedisClient();
     await redisBroadcast.initialize();
+    
+    // Initialize all Redis handlers (game forwarder, broadcast handler, etc.)
+    await initializeRedisHandlers();
+    
+    // Register ping/pong handler
+    registerPingHandler();
+    
     console.log('Redis pub/sub initialized');
+    console.log('All event handlers initialized');
   }
   catch (error)
   {

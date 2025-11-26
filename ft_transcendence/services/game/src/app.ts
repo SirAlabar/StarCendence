@@ -4,7 +4,9 @@ import cors from '@fastify/cors';
 import { GAME_CONFIG } from './utils/constants';
 import { registerGameRoutes } from './controllers/gameController';
 import { registerInputRoutes } from './controllers/inputController';
-import { initializeRedis, closeRedis } from './communication/RedisPublisher';
+import { initializeRedis, closeRedis, getRedisClient } from './communication/RedisPublisher';
+import { GameEventSubscriber } from './communication/GameEventSubscriber';
+import { LobbyManager } from './managers/LobbyManager';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -66,7 +68,7 @@ export async function createApp(): Promise<FastifyInstance>
 }
 
 /**
- * Initialize services (Redis, Prisma)
+ * Initialize services (Redis, Prisma, Game Event Subscriber)
  */
 export async function initializeServices(): Promise<void>
 {
@@ -76,6 +78,29 @@ export async function initializeServices(): Promise<void>
   console.log('🔄 Connecting to database...');
   await prisma.$connect();
   console.log('✅ Database connected');
+
+  // Initialize game event subscriber (listens to game:events from WebSocket)
+  console.log('🔄 Initializing Game Event Subscriber...');
+  const redisClient = getRedisClient();
+  if (redisClient) {
+    // Create separate Redis clients for subscriber and publisher
+    const subscriber = redisClient.duplicate();
+    await subscriber.connect();
+    
+    const publisher = redisClient.duplicate();
+    await publisher.connect();
+    
+    // Create lobby manager
+    const lobbyManager = new LobbyManager(redisClient);
+    
+    // Initialize game event subscriber
+    const gameEventSubscriber = new GameEventSubscriber(subscriber, publisher, lobbyManager);
+    await gameEventSubscriber.initialize();
+    
+    console.log('✅ Game Event Subscriber initialized');
+  } else {
+    console.error('❌ Failed to initialize Game Event Subscriber: Redis client not available');
+  }
 }
 
 /**

@@ -51,8 +51,9 @@ class WebSocketService {
   async connect(): Promise<void> {
     const token = LoginService.getAccessToken();
     if (!token) {
-      const error = new Error('No access token available for WebSocket connection');
+      const error = new Error('No access token available for WebSocket connection. Please login first.');
       console.error('[WebSocketService]', error.message);
+      console.error('[WebSocketService] localStorage keys:', Object.keys(localStorage));
       throw error;
     }
 
