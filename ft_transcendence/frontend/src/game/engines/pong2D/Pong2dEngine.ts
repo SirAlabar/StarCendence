@@ -336,7 +336,6 @@ export class LocalPongEngine
         {
             const speedIncrease = 1.10;
             this.ball.dx = -this.ball.dx * speedIncrease;
-            
             const relativeIntersectY = (this.ball.y - (paddle.y + paddle.height / 2)) / (paddle.height / 2);
             this.ball.dy += relativeIntersectY * 4;
             
@@ -533,5 +532,6 @@ export class LocalPongEngine
         this.ball.dy *= heightRatio;
     }
     
+
 
 }

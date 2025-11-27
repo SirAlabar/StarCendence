@@ -704,13 +704,13 @@ export default class PongPage extends BaseComponent
     private handleGameGoal(_event: Event): void 
     {
         console.log('⚽ GOAL!');
-        // TODO: Add goal sound effect
+        
     }
 
     private handlePaddleHit(_event: Event): void 
     {
         console.log('🏓 Paddle hit!');
-        // TODO: Add paddle hit sound effect
+        
     }
 
     private handleScoreUpdate(event: Event): void 

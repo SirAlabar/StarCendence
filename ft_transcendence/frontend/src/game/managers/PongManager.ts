@@ -341,7 +341,6 @@ export class ImprovedGameManager
         {
             case 'goal-scored':
                 this.emitEvent('game:goal', event);
-                // TODO: Play sound effect
                 break;
                 
             case 'game-ended':
@@ -351,12 +350,12 @@ export class ImprovedGameManager
                 
             case 'paddle-hit':
                 this.emitEvent('game:paddle-hit', event);
-                // TODO: Play sound effect
+                this.play_sound();
                 break;
                 
             case 'wall-hit':
                 this.emitEvent('game:wall-hit', event);
-                // TODO: Play sound effect
+                this.play_sound();
                 break;
                 
             case 'score-updated':
@@ -364,6 +363,7 @@ export class ImprovedGameManager
                     player1Score: event.player1Score, 
                     player2Score: event.player2Score 
                 });
+                this.play_sound_goal();
                 break;
         }
     }
@@ -404,6 +404,21 @@ export class ImprovedGameManager
         this.eventListeners.clear();
        
     }
+
+    private play_sound() 
+    {
+        const audio = new Audio('../../../../public/assets/sounds/sfx/paddlehit.mp3');
+        audio.volume = 0.6;
+        audio.play();
+    }
+
+    private play_sound_goal() 
+    {
+        const audio = new Audio('../../../../public/assets/sounds/sfx/goal.mp3');
+        audio.volume = 0.6;
+        audio.play();
+    }
+
 }
 
 // Export singleton instance
