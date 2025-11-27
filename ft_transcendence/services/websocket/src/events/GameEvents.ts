@@ -1,19 +1,22 @@
-// Game-related events
 import { EventManager } from './EventManager';
 import { ConnectionInfo, WebSocketMessage } from '../types/connection.types';
 import { redisBroadcast } from '../broadcasting/RedisBroadcast';
 
-EventManager.registerHandler('game', async (message: WebSocketMessage, connection: ConnectionInfo): Promise<void> =>
-{
-  console.log(`Game event received from user ${connection.userId}:`, {
-    connectionId: connection.connectionId,
-    userId: connection.userId,
-    messageType: message.type,
-    payload: message.payload,
-  });
+const gameEvents = ['game:move', 'game:action', 'game:start', 'game:pause', 'game:resume', 'game:end'];
 
-  // Publish to Redis channel 'game'
-  await redisBroadcast.publishToChannel('game', message);
-  console.log("Game event published");
-}); 
+for (const eventType of gameEvents)
+{
+  EventManager.registerHandler(eventType, async (message: WebSocketMessage, connection: ConnectionInfo): Promise<void> =>
+  {
+    await redisBroadcast.publishToChannel('game:events',
+    {
+      type: message.type,
+      payload: message.payload,
+      userId: connection.userId,
+      username: connection.username,
+      connectionId: connection.connectionId,
+      timestamp: message.timestamp || Date.now(),
+    });
+  });
+} 
 

@@ -188,6 +188,22 @@ export class LobbyManager {
   }
 
   /**
+   * Update player ready status
+   */
+  async updatePlayerReady(lobbyId: string, userId: string, isReady: boolean): Promise<void> {
+    // Check if player is in lobby
+    const isMember = await this.redis.sIsMember(`lobby:${lobbyId}:players`, userId);
+    if (!isMember) {
+      throw new Error('Player not in lobby');
+    }
+
+    // Update ready status
+    await this.redis.hSet(`lobby:${lobbyId}:player:${userId}`, 'isReady', isReady.toString());
+    
+    console.log(`[LobbyManager] Player ${userId} ready status updated to ${isReady} in lobby ${lobbyId}`);
+  }
+
+  /**
    * Get all players in a lobby
    */
   async getLobbyPlayers(lobbyId: string): Promise<LobbyPlayer[]> {

@@ -51,7 +51,7 @@ class UserService extends BaseService
             throw new Error('Invalid user ID');
         }
 
-        const response = await this.fetchRequest(getUserApiUrl(`/users/${userId}`), {
+        const response = await this.fetchRequest(getUserApiUrl(`/${userId}`), {
             method: 'GET',
             headers: this.getHeaders()
         });

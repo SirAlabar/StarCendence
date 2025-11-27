@@ -126,7 +126,11 @@ export class ConnectionPool
 
   getConnectedUsersSummary(): { totalConnections: number; users: Array<{ userId: string; username?: string; connectionCount: number }> }
   {
-    const usersMap = new Map<string, { username?: string; connectionCount: number }>();
+    const usersMap = new Map<string,
+    {
+      username?: string;
+      connectionCount: number
+    }>();
 
     for (const connection of this.connectionsBySocketId.values())
     {
@@ -137,14 +141,16 @@ export class ConnectionPool
       }
       else
       {
-        usersMap.set(connection.userId, {
+        usersMap.set(connection.userId,
+        {
           username: connection.username,
           connectionCount: 1,
         });
       }
     }
 
-    const users = Array.from(usersMap.entries()).map(([userId, data]) => ({
+    const users = Array.from(usersMap.entries()).map(([userId, data]) => (
+    {
       userId,
       username: data.username,
       connectionCount: data.connectionCount,

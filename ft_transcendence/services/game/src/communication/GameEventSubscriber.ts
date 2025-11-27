@@ -115,6 +115,18 @@ export class GameEventSubscriber {
       // Get creator's data
       const players = await this.lobbyManager.getLobbyPlayers(lobbyId);
 
+      // 🔍 LOG: Verificar isHost do criador
+      console.log(`[GameEventSubscriber] 🔍 LOBBY CREATE DEBUG:`, {
+        creatorUserId: userId,
+        creatorUsername: username,
+        creatorIsHost: players.find(p => p.userId === userId)?.isHost,
+        allPlayers: players.map(p => ({ 
+          userId: p.userId, 
+          username: p.username, 
+          isHost: p.isHost 
+        }))
+      });
+
       // Send success ACK to creator with their own player data
       await this.broadcastToUser(userId, {
         type: 'lobby:create:ack',
@@ -137,7 +149,7 @@ export class GameEventSubscriber {
         gameType,
         maxPlayers,
         creator: username,
-        players: stats.players.map(p => p.username),
+        players: stats.players.map(p => ({ username: p.username, isHost: p.isHost })),
       });
     } catch (error) {
       console.error(`[GameEventSubscriber] ❌ Failed to create lobby ${lobbyId}:`, error);
@@ -182,6 +194,18 @@ export class GameEventSubscriber {
       const players = await this.lobbyManager.getLobbyPlayers(lobbyId);
       const userIds = players.map(p => p.userId);
       
+      // 🔍 LOG: Verificar isHost de cada jogador
+      console.log(`[GameEventSubscriber] 🔍 LOBBY JOIN DEBUG:`, {
+        joiningUserId: userId,
+        joiningUsername: username,
+        joinerIsHost: players.find(p => p.userId === userId)?.isHost,
+        allPlayers: players.map(p => ({ 
+          userId: p.userId, 
+          username: p.username, 
+          isHost: p.isHost 
+        }))
+      });
+      
       console.log(`[GameEventSubscriber] Sending ACK to ${username} with ${players.length} players:`, 
         players.map(p => ({ userId: p.userId, username: p.username, isHost: p.isHost })));
       
@@ -203,17 +227,28 @@ export class GameEventSubscriber {
 
       // Only broadcast join event if user wasn't already in lobby
       if (result.reason !== 'already_joined') {
-        // Broadcast to ALL lobby members that someone joined
-        await this.broadcastToUsers(userIds, {
-          type: 'lobby:player:join',
-          payload: {
-            lobbyId,
-            userId,
-            username,
-            isHost: players.find(p => p.userId === userId)?.isHost || false,
-            isReady: false,
-          },
-        });
+        const joinerIsHost = players.find(p => p.userId === userId)?.isHost || false;
+        
+        // Broadcast to OTHER lobby members (exclude the joiner themselves)
+        const otherUserIds = userIds.filter(id => id !== userId);
+        
+        if (otherUserIds.length > 0) {
+          // 🔍 LOG: Verificar isHost sendo enviado no broadcast
+          console.log(`[GameEventSubscriber] 🔍 Broadcasting lobby:player:join to ${otherUserIds.length} other players (excluding ${username})`);
+          
+          await this.broadcastToUsers(otherUserIds, {
+            type: 'lobby:player:join',
+            payload: {
+              lobbyId,
+              userId,
+              username,
+              isHost: joinerIsHost,
+              isReady: false,
+            },
+          });
+        } else {
+          console.log(`[GameEventSubscriber] No other players to notify about join`);
+        }
       }
 
       // Log lobby state
@@ -326,17 +361,94 @@ export class GameEventSubscriber {
   /**
    * Handle lobby:ready
    */
-  private async handleLobbyReady(_event: GameEventMessage): Promise<void> {
-    // TODO: Implement ready state management
-    console.log(`[GameEventSubscriber] 🎯 Lobby ready event (not implemented yet)`);
+  private async handleLobbyReady(event: GameEventMessage): Promise<void> {
+    const { lobbyId, isReady } = event.payload;
+    const { userId, username } = event;
+
+    try {
+      console.log(`[GameEventSubscriber] 🎯 ${username} ready status: ${isReady} in lobby ${lobbyId}`);
+
+      // Update ready state in Redis
+      await this.lobbyManager.updatePlayerReady(lobbyId, userId, isReady);
+
+      // Get all players to broadcast
+      const userIds = await this.lobbyManager.getLobbyUserIds(lobbyId);
+
+      // Broadcast ready status to all players in lobby
+      await this.broadcastToUsers(userIds, {
+        type: 'lobby:player:ready',
+        payload: {
+          lobbyId,
+          userId,
+          username,
+          isReady,
+        },
+      });
+
+      console.log(`[GameEventSubscriber] ✅ Ready status updated and broadcasted for ${username}`);
+    } catch (error) {
+      console.error(`[GameEventSubscriber] ❌ Failed to update ready status:`, error);
+    }
   }
 
   /**
    * Handle lobby:start
    */
-  private async handleLobbyStart(_event: GameEventMessage): Promise<void> {
-    // TODO: Implement game start logic
-    console.log(`[GameEventSubscriber] 🚀 Lobby start event (not implemented yet)`);
+  private async handleLobbyStart(event: GameEventMessage): Promise<void> {
+    const { lobbyId } = event.payload;
+    const { userId } = event;
+
+    console.log(`[GameEventSubscriber] 🚀 Starting game for lobby ${lobbyId} requested by user ${userId}`);
+
+    try {
+      // Get all players in lobby
+      const players = await this.lobbyManager.getLobbyPlayers(lobbyId);
+      
+      if (players.length === 0) {
+        console.log(`[GameEventSubscriber] ❌ Cannot start game: lobby ${lobbyId} has no players`);
+        return;
+      }
+
+      // Get lobby data to verify host
+      const lobbyData = await this.lobbyManager.getLobbyData(lobbyId);
+      if (!lobbyData) {
+        console.log(`[GameEventSubscriber] ❌ Cannot start game: lobby ${lobbyId} not found`);
+        return;
+      }
+
+      // Verify that the user requesting start is the host
+      const hostPlayer = players.find(p => p.isHost);
+      if (!hostPlayer || hostPlayer.userId !== userId) {
+        console.log(`[GameEventSubscriber] ❌ Cannot start game: user ${userId} is not the host`);
+        return;
+      }
+
+      // Verify all players (except host) are ready
+      const nonHostPlayers = players.filter(p => !p.isHost);
+      const allReady = nonHostPlayers.every(p => p.isReady);
+      if (!allReady) {
+        console.log(`[GameEventSubscriber] ❌ Cannot start game: not all players are ready`);
+        return;
+      }
+
+      // Verify at least 2 players
+      if (players.length < 2) {
+        console.log(`[GameEventSubscriber] ❌ Cannot start game: need at least 2 players (current: ${players.length})`);
+        return;
+      }
+
+      console.log(`[GameEventSubscriber] ✅ Starting game for lobby ${lobbyId} with ${players.length} players`);
+
+      // Broadcast game starting event to ALL players in lobby
+      const userIds = players.map(p => p.userId);
+      await this.broadcastToUsers(userIds, {
+        type: 'lobby:game:starting',
+        payload: { lobbyId }
+      });
+
+    } catch (error) {
+      console.error(`[GameEventSubscriber] ❌ Error starting game for lobby ${lobbyId}:`, error);
+    }
   }
 
   /**

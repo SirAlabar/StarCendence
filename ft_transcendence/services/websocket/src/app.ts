@@ -7,13 +7,17 @@ import { redisBroadcast } from './broadcasting/RedisBroadcast';
 import { createRedisClient, closeRedisClient } from './config/redisConfig';
 import { registerPingHandler } from './events/PingHandler';
 import { initializeRedisHandlers } from './events/RedisEvents';
-// Import event handlers to register them
 import './events/GameEvents';
+import './events/LobbyEvents';
+import './events/ChatEvents';
+import './events/TournamentEvents';
 
 export async function createApp(): Promise<FastifyInstance>
 {
-  const app = Fastify({
-    logger: {
+  const app = Fastify(
+  {
+    logger:
+    {
       level: process.env.LOG_LEVEL || 'info',
     },
   });
@@ -47,13 +51,20 @@ export async function createApp(): Promise<FastifyInstance>
   // Health check endpoint
   app.get(config.healthPath, async (request: FastifyRequest, reply: FastifyReply) =>
   {
-    return reply.send({ status: 'ok' });
+    return reply.send(
+    {
+      status: 'ok'
+    });
   });
 
   // WebSocket route
   app.register(async function (fastify)
   {
-    fastify.get(config.path, { websocket: true }, (connection: any, req: FastifyRequest) =>
+    fastify.get(config.path,
+    {
+      websocket: true
+    },
+    (connection: any, req: FastifyRequest) =>
     {
       // Get the socket from the connection
       const socket = connection.socket || connection;

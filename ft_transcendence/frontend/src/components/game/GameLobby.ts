@@ -381,6 +381,7 @@ export class GameLobby extends BaseComponent
                 </div>
                 
                 ${this.isCurrentUserSlot(slot) ? `
+                <!-- Current user's slot - show CHANGE and READY buttons -->
                 <div class="grid grid-cols-2 gap-2">
                     <button class="change-btn py-2 px-3 rounded-lg border border-cyan-500/50 text-cyan-300 hover:bg-cyan-600 hover:text-white text-sm font-bold transition-all" data-slot="${slot.id}">
                         CHANGE
@@ -389,22 +390,20 @@ export class GameLobby extends BaseComponent
                         ${slot.isReady ? 'READY ✓' : 'READY'}
                     </button>
                 </div>
+                ` : this.shouldShowKickButton(slot) ? `
+                <!-- Host view for other players - show ready status and KICK button -->
+                <div class="mb-2 py-2 px-3 rounded-lg border ${slot.isReady ? 'border-green-500 bg-green-900/30' : 'border-gray-700 bg-gray-800/50'} ${slot.isReady ? 'text-green-400' : 'text-gray-400'} text-sm font-bold text-center">
+                    ${slot.isReady ? '✓ READY' : 'NOT READY'}
+                </div>
+                <button class="remove-btn w-full py-2 px-3 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition-all" data-slot="${slot.id}">
+                    ${slot.isAI ? 'REMOVE BOT' : 'KICK PLAYER'}
+                </button>
                 ` : `
-                <div class="grid grid-cols-2 gap-2">
-                    <div class="py-2 px-3 rounded-lg border border-gray-700 bg-gray-800/50 text-gray-600 text-sm font-bold text-center">
-                        ${slot.isReady ? 'READY ✓' : 'NOT READY'}
-                    </div>
-                    <div class="py-2 px-3 rounded-lg border border-gray-700 bg-gray-800/50 text-gray-600 text-sm font-bold text-center">
-                        WAITING...
-                    </div>
+                <!-- Guest view for other players - show ready status only -->
+                <div class="py-2 px-3 rounded-lg border ${slot.isReady ? 'border-green-500 bg-green-900/30' : 'border-gray-700 bg-gray-800/50'} ${slot.isReady ? 'text-green-400' : 'text-gray-400'} text-sm font-bold text-center">
+                    ${slot.isReady ? '✓ READY' : 'NOT READY'}
                 </div>
                 `}
-                
-                ${this.shouldShowKickButton(slot) ? `
-                    <button class="remove-btn w-full mt-2 py-2 px-3 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition-all" data-slot="${slot.id}">
-                        ${slot.isAI ? 'REMOVE BOT' : 'KICK PLAYER'}
-                    </button>
-                ` : ''}
             </div>
         `;
     }
@@ -597,6 +596,24 @@ export class GameLobby extends BaseComponent
             
             // Re-attach event listeners for the new card
             this.attachCardEventListeners(newCard as HTMLElement);
+        }
+    }
+
+    /**
+     * Update the start game button state based on ready status
+     */
+    private updateStartButton(): void {
+        const startBtn = document.getElementById('startGameBtn') as HTMLButtonElement;
+        if (!startBtn) return; // Button doesn't exist for non-hosts
+
+        const canStart = this.canStartGame();
+        
+        if (canStart) {
+            startBtn.disabled = false;
+            startBtn.className = 'mb-6 py-3 px-12 rounded-xl text-xl font-bold transition-all self-center flex-shrink-0 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-2xl shadow-cyan-500/50 border-2 border-cyan-500';
+        } else {
+            startBtn.disabled = true;
+            startBtn.className = 'mb-6 py-3 px-12 rounded-xl text-xl font-bold transition-all self-center flex-shrink-0 bg-gray-700 text-gray-500 cursor-not-allowed border-2 border-gray-600';
         }
     }
 
@@ -1044,8 +1061,21 @@ export class GameLobby extends BaseComponent
             return;
         }
         
-        slot.isReady = !slot.isReady;
-        this.refresh();
+        // Toggle ready state
+        const newReadyState = !slot.isReady;
+        
+        // Send to backend (DON'T update locally, wait for broadcast confirmation)
+        const lobbyId = this.getLobbyIdFromUrl();
+        if (lobbyId) {
+            console.log(`[GameLobby] Sending ready state: ${newReadyState}`);
+            webSocketService.send('lobby:ready', {
+                lobbyId,
+                isReady: newReadyState
+            });
+        }
+        
+        // NOTE: Don't update locally! Wait for backend broadcast to confirm
+        // This prevents the infinite loop caused by receiving our own broadcast
     }
     
     private handleChangeCustomization(slotId: number): void 
@@ -1166,13 +1196,26 @@ export class GameLobby extends BaseComponent
     /**
      * Add a player to the lobby (called from WebSocket events)
      */
+    /**
+     * Add a player to the lobby (called from WebSocket events)
+     */
     public addPlayer(player: any): void {
+        console.log('[GameLobby] 🔍 addPlayer START:', player);
+        
+        // Check if player already exists (avoid duplicates)
+        if (this.hasPlayer(player.userId)) {
+            console.warn('[GameLobby] ⚠️ Player already in lobby:', player.userId);
+            return;
+        }
+        
         // Find empty slot
         const emptySlot = this.playerSlots.find(slot => !slot.playerName);
         if (!emptySlot) {
-            console.warn('[GameLobby] No empty slots available');
+            console.warn('[GameLobby] ⚠️ No empty slots available');
             return;
         }
+
+        console.log('[GameLobby] 🔍 Found empty slot:', emptySlot.id);
 
         // Populate slot with player data
         emptySlot.playerName = player.username;
@@ -1184,16 +1227,40 @@ export class GameLobby extends BaseComponent
         emptySlot.avatarUrl = player.avatarUrl || '/assets/images/default-avatar.jpeg';
         emptySlot.customization = player.customization || null;
 
-        console.log('[GameLobby] addPlayer:', {
+        console.log('[GameLobby] 🔍 Slot populated:', {
             slotId: emptySlot.id,
-            username: player.username,
-            userId: player.userId,
-            isHost: player.isHost,
-            slotIsHost: emptySlot.isHost
+            username: emptySlot.playerName,
+            userId: emptySlot.userId,
+            isHost: emptySlot.isHost
         });
 
         // Refresh only the player card instead of whole page
         this.refreshPlayerCard(emptySlot.id);
+        
+        console.log('[GameLobby] 🔍 addPlayer COMPLETE');
+    }
+
+    /**
+     * Check if a player is already in the lobby
+     */
+    public hasPlayer(userId: string): boolean {
+        return this.playerSlots.some(slot => slot.userId === userId);
+    }
+
+    /**
+     * Update a player's ready status (called from WebSocket events)
+     */
+    public updatePlayerReady(userId: string, isReady: boolean): void {
+        const slot = this.playerSlots.find(s => s.userId === userId);
+        if (!slot) {
+            console.warn('[GameLobby] Player not found:', userId);
+            return;
+        }
+
+        console.log(`[GameLobby] Updating ${slot.playerName} ready status to:`, isReady);
+        slot.isReady = isReady;
+        this.refreshPlayerCard(slot.id);
+        this.updateStartButton(); // Update start button state when ready status changes
     }
 
     /**
@@ -1223,19 +1290,20 @@ export class GameLobby extends BaseComponent
      * Clear all players from lobby (useful for reconnect/refresh)
      */
     public clearAllPlayers(): void {
-        console.log('[GameLobby] Clearing all players');
+        console.log('[GameLobby] 🔍 Clearing all players');
         this.playerSlots.forEach(slot => {
-            if (slot.userId) {
-                slot.playerName = null;
-                slot.userId = null;
-                slot.isOnline = false;
-                slot.isAI = false;
-                slot.isReady = false;
-                slot.isHost = false;
-                slot.avatarUrl = '/assets/images/default-avatar.jpeg';
-                slot.customization = null;
-            }
+            // Clear player data but keep slot available
+            slot.playerName = null;
+            slot.userId = null;
+            slot.isOnline = false;
+            slot.isAI = false;
+            slot.isReady = false;
+            slot.isHost = false;
+            slot.avatarUrl = '/assets/images/default-avatar.jpeg';
+            slot.customization = null;
         });
+        console.log('[GameLobby] 🔍 Cleared, empty slots available:', 
+            this.playerSlots.filter(s => !s.playerName).length);
         this.refresh();
     }
 

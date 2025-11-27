@@ -60,8 +60,10 @@ export async function createRedisClient(): Promise<RedisClientType>
   {
     const config = getRedisConfig();
     
-    redisClient = createClient({
-      socket: {
+    redisClient = createClient(
+    {
+      socket:
+      {
         host: config.host,
         port: config.port,
         keepAlive: 30000, // 30 seconds

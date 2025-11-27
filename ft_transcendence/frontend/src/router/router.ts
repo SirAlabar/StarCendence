@@ -218,14 +218,6 @@ const routeConfig: Record<string, any> =
         layout: 'default',
         headerType: 'default',
         requiresAuth: true
-    },
-    '/testnotifications':
-    {
-        component: () => import('../pages/NotificationTestPage'),
-        title: 'Notification Test - Transcendence',
-        layout: 'default',
-        headerType: 'default',
-        requiresAuth: true
     }
 };
 

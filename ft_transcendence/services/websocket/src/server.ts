@@ -10,7 +10,8 @@ async function start()
     const app = await createApp();
     const config = getWSConfig();
 
-    const address = await app.listen({
+    const address = await app.listen(
+    {
       port: config.port,
       host: '0.0.0.0',
     });

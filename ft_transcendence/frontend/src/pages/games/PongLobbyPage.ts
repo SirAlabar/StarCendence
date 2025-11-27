@@ -3,8 +3,6 @@ import { GameLobby, LobbyConfig } from '../../components/game/GameLobby';
 import { navigateTo } from '../../router/router';
 import { Modal } from '@/components/common/Modal';
 import { webSocketService } from '@/services/websocket/WebSocketService';
-import UserService from '@/services/user/UserService';
-import { globalChatNotifications } from '@/components/chat/GlobalChatNotifications';
 
 export default class PongLobbyPage extends BaseComponent 
 {
@@ -29,6 +27,35 @@ export default class PongLobbyPage extends BaseComponent
         let n = Math.floor(Math.random() * 100_000_000);
         if (n === 0) n = Math.floor(Math.random() * 9) + 1;
         return String(n);
+    }
+
+    /**
+     * Wait for gameLobby to be fully mounted in DOM (with retry mechanism)
+     */
+    private async waitForLobbyReady(maxAttempts: number = 20, delay: number = 50): Promise<boolean> {
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            // Check if gameLobby exists
+            if (!this.gameLobby) {
+                console.log(`[PongLobby] ⏳ Waiting for gameLobby initialization... attempt ${attempt + 1}/${maxAttempts}`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            
+            // Check if DOM elements are ready (lobby container exists with player slots)
+            const lobbyContainer = document.getElementById('lobbyContainer');
+            const playerCards = lobbyContainer?.querySelectorAll('.player-card, [class*="player"]');
+            
+            if (lobbyContainer && playerCards && playerCards.length > 0) {
+                console.log(`[PongLobby] ✅ gameLobby fully mounted after ${attempt} attempts (found ${playerCards.length} player slots)`);
+                return true;
+            }
+            
+            console.log(`[PongLobby] ⏳ Waiting for gameLobby DOM... attempt ${attempt + 1}/${maxAttempts}`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
+        console.error(`[PongLobby] ❌ gameLobby not fully ready after ${maxAttempts} attempts`);
+        return false;
     }
 
     render(): string 
@@ -64,9 +91,6 @@ export default class PongLobbyPage extends BaseComponent
         // Subscribe to all WebSocket messages
         webSocketService.on('*', this.wsMessageHandler);
 
-        // Tell global chat notifications to filter messages from this lobby
-        // (will be set after lobby ID is determined)
-
         const config: LobbyConfig = 
         {
             gameType: 'pong',
@@ -95,9 +119,6 @@ export default class PongLobbyPage extends BaseComponent
             this.lobbyId = urlLobbyId;
             console.log('[PongLobby] Joining existing lobby:', this.lobbyId);
 
-            // Filter global chat notifications for this lobby
-            globalChatNotifications.setCurrentLobby(this.lobbyId);
-
             // Send join lobby message to server
             webSocketService.send('lobby:join', {
                 lobbyId: this.lobbyId,
@@ -107,9 +128,6 @@ export default class PongLobbyPage extends BaseComponent
             // Creating new lobby
             this.lobbyId = this.generateRoomId();
             console.log('[PongLobby] Creating new lobby with ID:', this.lobbyId);
-
-            // Filter global chat notifications for this lobby
-            globalChatNotifications.setCurrentLobby(this.lobbyId);
 
             // Update URL without reloading page
             const newUrl = `/pong-lobby?id=${this.lobbyId}`;
@@ -143,6 +161,14 @@ export default class PongLobbyPage extends BaseComponent
                     await Modal.alert('Error', 'Failed to create lobby');
                     navigateTo('/pong');
                 } else {
+                    // Wait for gameLobby to be fully mounted
+                    const isReady = await this.waitForLobbyReady();
+                    
+                    if (!isReady || !this.gameLobby) {
+                        console.error('[PongLobby] ❌ gameLobby not ready after waiting!');
+                        return;
+                    }
+                    
                     // Successfully created - load creator (self)
                     console.log('[PongLobby] Successfully created lobby, loading players');
                     if (msg.payload.players && Array.isArray(msg.payload.players)) {
@@ -155,7 +181,7 @@ export default class PongLobbyPage extends BaseComponent
 
             case 'lobby:join:ack':
                 // Acknowledgment for lobby join
-                console.log('[PongLobby] Received lobby:join:ack:', msg.payload);
+                console.log('[PongLobby] 🔍 DEBUG lobby:join:ack:', msg.payload);
                 
                 if (!msg.payload?.success) {
                     const reason = msg.payload?.reason;
@@ -171,22 +197,34 @@ export default class PongLobbyPage extends BaseComponent
                     
                     navigateTo('/pong');
                 } else {
+                    // Wait for gameLobby to be fully mounted in DOM
+                    const isReady = await this.waitForLobbyReady();
+                    
+                    if (!isReady || !this.gameLobby) {
+                        console.error('[PongLobby] ❌ gameLobby not ready after waiting!');
+                        return;
+                    }
+                    
                     // Successfully joined - clear any existing players first (in case of refresh)
-                    console.log('[PongLobby] Clearing existing players before loading new ones');
-                    this.gameLobby?.clearAllPlayers?.();
+                    console.log('[PongLobby] 🔍 Step 1: Clearing existing players');
+                    this.gameLobby.clearAllPlayers();
                     
                     // Load all existing players
-                    console.log('[PongLobby] Successfully joined lobby, loading existing players');
-                    console.log('[PongLobby] Players array:', msg.payload.players);
+                    console.log('[PongLobby] 🔍 Step 2: Players array from payload:', msg.payload.players);
                     
                     if (msg.payload.players && Array.isArray(msg.payload.players)) {
-                        console.log('[PongLobby] Loading', msg.payload.players.length, 'players');
-                        for (const playerData of msg.payload.players) {
-                            console.log('[PongLobby] Loading player:', playerData);
+                        console.log(`[PongLobby] 🔍 Step 3: Loading ${msg.payload.players.length} players`);
+                        
+                        for (let i = 0; i < msg.payload.players.length; i++) {
+                            const playerData = msg.payload.players[i];
+                            console.log(`[PongLobby] 🔍 Step 4.${i}: Loading player`, playerData);
                             await this.loadAndAddPlayer(playerData);
+                            console.log(`[PongLobby] 🔍 Step 4.${i}: Player loaded successfully`);
                         }
+                        
+                        console.log('[PongLobby] 🔍 Step 5: All players loaded!');
                     } else {
-                        console.warn('[PongLobby] No players array in payload or not an array');
+                        console.warn('[PongLobby] ⚠️ No players array in payload or not an array');
                     }
                 }
                 break;
@@ -204,6 +242,13 @@ export default class PongLobbyPage extends BaseComponent
                 if (msg.payload?.lobbyId === this.lobbyId) {
                     console.log('[PongLobby] Player joined:', msg.payload);
                     console.log('[PongLobby] Player isHost value:', msg.payload.isHost);
+                    
+                    // Check if player is already in lobby (avoid duplicates)
+                    if (this.gameLobby?.hasPlayer?.(msg.payload.userId)) {
+                        console.log('[PongLobby] ⚠️ Player already in lobby, skipping');
+                        return;
+                    }
+                    
                     await this.loadAndAddPlayer({
                         userId: msg.payload.userId,
                         username: msg.payload.username,
@@ -231,10 +276,10 @@ export default class PongLobbyPage extends BaseComponent
                 break;
 
             case 'lobby:game:starting':
-                // Game is about to start
+                // Game is about to start - navigate all players
                 if (msg.payload?.lobbyId === this.lobbyId) {
-                    console.log('[PongLobby] Game starting!');
-                    this.startPongGame();
+                    console.log('[PongLobby] Game starting! Navigating to game...');
+                    navigateTo(`/pong-game?lobby=${this.lobbyId}`);
                 }
                 break;
 
@@ -243,6 +288,14 @@ export default class PongLobbyPage extends BaseComponent
                 if (msg.payload?.lobbyId === this.lobbyId) {
                     console.log('[PongLobby] Chat message:', msg.payload.message);
                     this.gameLobby?.addChatMessage?.(msg.payload);
+                }
+                break;
+
+            case 'lobby:player:ready':
+                // Player ready status changed
+                if (msg.payload?.lobbyId === this.lobbyId) {
+                    console.log('[PongLobby] Player ready status:', msg.payload);
+                    this.gameLobby?.updatePlayerReady?.(msg.payload.userId, msg.payload.isReady);
                 }
                 break;
         }
@@ -258,59 +311,49 @@ export default class PongLobbyPage extends BaseComponent
         isReady: boolean;
         joinedAt?: number;
     }): Promise<void> {
-        console.log('[PongLobby] loadAndAddPlayer called with:', {
+        console.log('[PongLobby] 🔍 loadAndAddPlayer START:', {
             userId: playerData.userId,
             username: playerData.username,
             isHost: playerData.isHost,
             isHostType: typeof playerData.isHost
         });
         
-        try {
-            // Fetch user profile from user service
-            const userProfile = await UserService.getUserById(playerData.userId);
-
-            // Build full player object
-            const fullPlayerData = {
-                id: playerData.userId,
-                userId: playerData.userId,
-                username: userProfile.username,
-                avatarUrl: userProfile.avatarUrl || '/assets/images/default-avatar.jpeg',
-                isOnline: true,
-                isReady: playerData.isReady || false,
-                isHost: playerData.isHost || false,
-                isAI: false,
-                customization: null,
-                joinedAt: playerData.joinedAt ? new Date(playerData.joinedAt) : new Date()
-            };
-
-            console.log('[PongLobby] Adding player to UI with isHost:', fullPlayerData.isHost);
-            
-            // Add to lobby UI
-            this.gameLobby?.addPlayer?.(fullPlayerData);
-
-        } catch (error) {
-            console.error('[PongLobby] Failed to lookup user profile:', error);
-            // Fallback: add player with minimal data
-            this.gameLobby?.addPlayer?.({
-                id: playerData.userId,
-                userId: playerData.userId,
-                username: playerData.username || 'Player',
-                avatarUrl: '/assets/images/default-avatar.jpeg',
-                isOnline: true,
-                isReady: playerData.isReady || false,
-                isHost: playerData.isHost || false,
-                isAI: false,
-                customization: null,
-                joinedAt: new Date()
-            });
+        if (!this.gameLobby) {
+            console.error('[PongLobby] ❌ gameLobby is null in loadAndAddPlayer!');
+            return;
         }
+        
+        // Build player object directly from received data (no UserService call)
+        const fullPlayerData = {
+            id: playerData.userId,
+            userId: playerData.userId,
+            username: playerData.username,
+            avatarUrl: '/assets/images/default-avatar.jpeg',
+            isOnline: true,
+            isReady: playerData.isReady || false,
+            isHost: playerData.isHost || false,
+            isAI: false,
+            customization: null,
+            joinedAt: playerData.joinedAt ? new Date(playerData.joinedAt) : new Date()
+        };
+
+        console.log('[PongLobby] 🔍 Calling addPlayer with:', {
+            username: fullPlayerData.username,
+            isHost: fullPlayerData.isHost
+        });
+        
+        // Add to lobby UI
+        this.gameLobby.addPlayer(fullPlayerData);
+        
+        console.log('[PongLobby] 🔍 loadAndAddPlayer COMPLETE');
     }
     
     private async startPongGame(): Promise<void> 
     {
-        // Navigate to game with lobby/room ID
+        // Send lobby:start event to backend
         if (this.lobbyId) {
-            navigateTo(`/pong-game?lobby=${this.lobbyId}`);
+            console.log('[PongLobby] Sending lobby:start event');
+            webSocketService.send('lobby:start', { lobbyId: this.lobbyId });
         } else {
             await Modal.alert('Error', 'Invalid lobby ID');
         }
@@ -320,9 +363,6 @@ export default class PongLobbyPage extends BaseComponent
     {
         // Unsubscribe from WebSocket
         webSocketService.off('*', this.wsMessageHandler);
-
-        // Clear lobby filter from global chat notifications
-        globalChatNotifications.setCurrentLobby(null);
 
         // Leave lobby
         if (this.lobbyId) {

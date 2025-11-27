@@ -2,8 +2,6 @@ import { initRouter } from './router/router';
 import { LoginService } from './services/auth/LoginService';
 import { webSocketService } from './services/websocket/WebSocketService';
 import { globalWebSocketHandler } from './services/websocket/GlobalWebSocketHandler';
-import { globalChatNotifications } from './components/chat/GlobalChatNotifications';
-import { notificationManager } from './services/notifications/NotificationManager';
 
 export class App 
 {
@@ -26,18 +24,6 @@ export class App
 
         // Initialize global WebSocket handler
         globalWebSocketHandler.initialize();
-
-        // Initialize notification manager
-        if (LoginService.isAuthenticated()) 
-        {
-            notificationManager.initialize();
-        }
-
-        // Initialize global chat notifications (optional - can be disabled)
-        if (LoginService.isAuthenticated()) 
-        {
-            globalChatNotifications.initialize();
-        }
 
         // Connect WebSocket automatically if user is authenticated
         this.initializeWebSocket();

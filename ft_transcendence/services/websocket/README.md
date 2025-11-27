@@ -1,104 +1,294 @@
 # WebSocket Service
 
-A real-time WebSocket server implementation for the Transcendence project using Fastify, WebSocket, and Redis pub/sub for cross-server broadcasting.
+A real-time WebSocket broadcaster for the Transcendence project. Acts as a message router between clients and backend services (Game, Chat) using Redis pub/sub.
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Architecture](#architecture)
-- [Features](#features)
+- [Event Flow](#event-flow)
+- [Event Handlers](#event-handlers)
+- [Message Structure](#message-structure)
+- [Redis Channels](#redis-channels)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Usage](#usage)
-- [API](#api)
-- [Events](#events)
-- [Rooms](#rooms)
-- [Broadcasting](#broadcasting)
-- [Authentication](#authentication)
-- [Security](#security)
 - [Development](#development)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Troubleshooting](#troubleshooting)
 
 ## Overview
 
-The WebSocket service provides real-time bidirectional communication between the server and clients. It handles:
+The WebSocket service is a **broadcaster and router**:
 
-- **Connection Management**: Authentication, connection pooling, and lifecycle management
-- **Event System**: Structured event handling for different game and application events
-- **Room Management**: Isolated communication channels for lobbies, games, and chat
-- **Redis Pub/Sub**: Cross-server broadcasting for multi-instance deployments
-- **Heartbeat System**: Connection health monitoring and automatic cleanup
-- **Security**: Token-based authentication, rate limiting, and validation
+**What it does:**
+- Authenticates WebSocket connections (JWT)
+- Receives events from clients
+- Forwards events to backend services via Redis
+- Receives broadcast requests from services via Redis
+- Sends messages to specific clients/users/rooms
+
+**What it does NOT do:**
+- Business logic (lobbies, games, chat)
+- Data validation (done by backend services)
+- State management (handled by services)
+
+The WebSocket service is **stateless** - it only routes messages between clients and services.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    WebSocket Service                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │   Fastify    │  │  WebSocket   │  │    Redis     │     │
-│  │   Server     │  │   Handler    │  │   Pub/Sub    │     │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
-│         │                  │                  │              │
-│  ┌──────▼──────────────────▼──────────────────▼──────┐     │
-│  │         Connection Manager                         │     │
-│  │  - Authentication                                  │     │
-│  │  - Connection Pool                                 │     │
-│  │  - Disconnect Handling                             │     │
-│  └──────┬─────────────────────────────────────────────┘     │
-│         │                                                    │
-│  ┌──────▼─────────────────────────────────────────────┐     │
-│  │              Event Manager                          │     │
-│  │  - Event Routing                                    │     │
-│  │  - Event Validation                                 │     │
-│  │  - Event Handlers                                   │     │
-│  └──────┬─────────────────────────────────────────────┘     │
-│         │                                                    │
-│  ┌──────▼─────────────────────────────────────────────┐     │
-│  │              Room Manager                           │     │
-│  │  - Game Rooms                                       │     │
-│  │  - Chat Rooms                                       │     │
-│  │  - Tournament Rooms                                 │     │
-│  │  - Private Rooms                                    │     │
-│  └──────┬─────────────────────────────────────────────┘     │
-│         │                                                    │
-│  ┌──────▼─────────────────────────────────────────────┐     │
-│  │         Broadcast Manager                           │     │
-│  │  - Redis Pub/Sub                                    │     │
-│  │  - Local Broadcasting                               │     │
-│  │  - Cross-Server Broadcasting                        │     │
-│  └─────────────────────────────────────────────────────┘     │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                         CLIENT (Browser)                            │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │ WebSocket
+                             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      WEBSOCKET SERVICE                               │
+│                                                                       │
+│  ┌────────────────────────────────────────────────────────────┐    │
+│  │  ConnectionManager                                          │    │
+│  │  - Authenticates JWT tokens                                │    │
+│  │  - Maintains connection pool (userId → socket)             │    │
+│  │  - Routes incoming messages to MessageHandler              │    │
+│  └────────────────────────────────────────────────────────────┘    │
+│                                                                       │
+│  ┌────────────────────────────────────────────────────────────┐    │
+│  │  MessageHandler                                             │    │
+│  │  - Parses JSON messages                                     │    │
+│  │  - Routes to EventManager                                   │    │
+│  └────────────────────────────────────────────────────────────┘    │
+│                                                                       │
+│  ┌────────────────────────────────────────────────────────────┐    │
+│  │  EventManager                                               │    │
+│  │  - Routes events to specific handlers                       │    │
+│  └────────────┬───────────────────────────────────────────────┘    │
+│               │                                                      │
+│  ┌────────────▼─────────────────────────────────────────────────┐  │
+│  │  Event Handlers (forward to services)                        │  │
+│  │  ┌──────────────────────────────────────────────────────┐   │  │
+│  │  │ GameEvents.ts                                         │   │  │
+│  │  │ - game:* events → game:events channel                │   │  │
+│  │  └──────────────────────────────────────────────────────┘   │  │
+│  │  ┌──────────────────────────────────────────────────────┐   │  │
+│  │  │ LobbyEvents.ts                                        │   │  │
+│  │  │ - lobby:* events → game:events channel               │   │  │
+│  │  └──────────────────────────────────────────────────────┘   │  │
+│  │  ┌──────────────────────────────────────────────────────┐   │  │
+│  │  │ TournamentEvents.ts                                   │   │  │
+│  │  │ - tournament:* events → game:events channel          │   │  │
+│  │  └──────────────────────────────────────────────────────┘   │  │
+│  │  ┌──────────────────────────────────────────────────────┐   │  │
+│  │  │ ChatEvents.ts                                         │   │  │
+│  │  │ - chat events → chat:events channel                  │   │  │
+│  │  └──────────────────────────────────────────────────────┘   │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+│                                                                       │
+│  ┌────────────────────────────────────────────────────────────┐    │
+│  │  RedisEvents.ts (reverse direction - FROM services)        │    │
+│  │  - Subscribes to websocket:broadcast                       │    │
+│  │  - Receives broadcast requests from services               │    │
+│  │  - Sends to clients via targetUserId/userIds/connectionIds│    │
+│  └────────────────────────────────────────────────────────────┘    │
+└───────────────┬──────────────────────────────┬──────────────────────┘
+                │                              │
+                │ Publishes                    │ Subscribes
+                ▼                              ▼
+┌───────────────────────────┐   ┌─────────────────────────────────────┐
+│  Redis: game:events       │   │  Redis: websocket:broadcast         │
+│  Redis: chat:events       │   │  (services send here to reach       │
+│                           │   │   specific clients)                 │
+└───────────┬───────────────┘   └─────────────────────────────────────┘
+            │ Subscribes
+            ▼
+┌───────────────────────────────────────────────────────────────────┐
+│                    BACKEND SERVICES                                │
+│  ┌─────────────────────────┐  ┌─────────────────────────────────┐ │
+│  │  Game Service            │  │  Chat Service                   │ │
+│  │  - Subscribes:           │  │  - Subscribes:                  │ │
+│  │    game:events           │  │    chat:events                  │ │
+│  │  - Publishes:            │  │  - Publishes:                   │ │
+│  │    websocket:broadcast   │  │    websocket:broadcast          │ │
+│  │  - Handles:              │  │  - Handles:                     │ │
+│  │    lobby logic           │  │    1-1 messaging                │ │
+│  │    game logic            │  │    message storage              │ │
+│  │    tournaments           │  │    history                      │ │
+│  └─────────────────────────┘  └─────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
-## Features
+## Event Flow
 
-### Core Features
+### Client → Service (Forward)
 
-- ✅ **JWT Authentication**: Token-based authentication for secure connections
-- ✅ **Connection Pooling**: Efficient connection management and tracking
-- ✅ **Heartbeat System**: Automatic connection health monitoring
-- ✅ **Redis Pub/Sub**: Cross-server message broadcasting
-- ✅ **Room System**: Isolated communication channels
-- ✅ **Event System**: Structured event handling and routing
-- ✅ **Rate Limiting**: Protection against abuse
-- ✅ **Error Handling**: Comprehensive error handling and logging
-- ✅ **Validation**: Message validation and sanitization
-- ✅ **Compression**: Message compression utilities
+1. Client sends event (e.g., `lobby:create`)
+2. WebSocket receives via socket
+3. MessageHandler parses JSON
+4. EventManager routes to handler
+5. Handler (LobbyEvents.ts) forwards to Redis channel (`game:events`)
+6. Game Service subscribes to `game:events` and processes
+7. Game Service publishes result to `websocket:broadcast`
+8. WebSocket receives from `websocket:broadcast`
+9. WebSocket sends to target clients
 
-### Event Types Supported
+**Example: Create Lobby**
+```
+Client → WS: { type: 'lobby:create', payload: { gameType: 'pong' } }
+WS → Redis (game:events): { type: 'lobby:create', payload: {...}, userId, username, connectionId }
+Game Service processes...
+Game Service → Redis (websocket:broadcast): { targetUserId: '123', message: { type: 'lobby:created', payload: {...} } }
+WS → Client: { type: 'lobby:created', payload: { lobbyId: '456', ... } }
+```
 
-- **Lobby Events**: Create, join, leave, update
-- **Player Events**: Join, leave, ready status, customization
-- **Chat Events**: Messages, history
-- **Game Events**: Start, update, end
-- **Tournament Events**: Tournament-specific events
-- **User Events**: Status updates, friend events
-- **System Events**: Heartbeat, errors, notifications
+### Service → Client (Broadcast)
+
+1. Service publishes to `websocket:broadcast` with target
+2. RedisEvents.ts receives broadcast request
+3. Looks up connections by targetUserId/userIds/connectionIds
+4. Sends message to matching clients
+
+**Targeting Options:**
+- `targetUserId`: Send to specific user (all their connections)
+- `userIds`: Send to multiple users
+- `connectionIds`: Send to specific connections
+- `roomId`: Send to all users in a room (not implemented yet)
+
+## Event Handlers
+
+Event handlers are located in `src/events/`:
+
+### GameEvents.ts
+Handles: `game:move`, `game:action`, `game:start`, `game:pause`, `game:resume`, `game:end`
+
+Forwards to: `game:events` Redis channel
+
+Example:
+
+const gameEvents = ['game:move', 'game:action', 'game:start', ...];
+for (const eventType of gameEvents)
+{
+  EventManager.registerHandler(eventType, async (message, connection) => 
+  {
+    await redisBroadcast.publishToChannel('game:events', {
+      type: message.type,
+      payload: message.payload,
+      userId: connection.userId,
+      username: connection.username,
+      connectionId: connection.connectionId,
+      timestamp: message.timestamp || Date.now(),
+    });
+  });
+}
+
+### LobbyEvents.ts
+Handles: `lobby:create`, `lobby:join`, `lobby:leave`, `lobby:kick`, `lobby:ready`, `lobby:start`, `lobby:chat`
+
+Forwards to: `game:events` Redis channel
+
+Purpose: Lobby management events forwarded to game service
+
+### TournamentEvents.ts
+Handles: `tournament:create`, `tournament:join`, `tournament:leave`, `tournament:start`
+
+Forwards to: `game:events` Redis channel
+
+Purpose: Tournament events forwarded to game service
+
+### ChatEvents.ts
+Handles: `chat` (1-1 messaging)
+
+Forwards to: `chat:events` Redis channel
+
+Purpose: Direct messages forwarded to chat service
+
+### RedisEvents.ts
+**Special handler - reverse direction**
+
+Subscribes to: `websocket:broadcast`
+
+Purpose: Receives broadcast requests FROM services, sends to clients
+
+Structure:
+
+{
+  targetUserId?: string,    // Send to all connections of this user
+  userIds?: string[],       // Send to multiple users
+  connectionIds?: string[], // Send to specific connections
+  message: {
+    type: string,
+    payload: any
+  }
+}
+
+## Message Structure
+
+### Client → WebSocket
+
+{
+  type: string,      // Event type (e.g., "lobby:create")
+  payload: any,      // Event data
+  timestamp?: number // Optional
+}
+
+### WebSocket → Redis (to services)
+
+{
+  type: string,           // Event type
+  payload: any,           // Event data
+  userId: string,         // From connection
+  username: string,       // From connection
+  connectionId: string,   // From connection
+  timestamp: number       // Added by handler
+}
+
+### Redis → WebSocket (from services)
+
+{
+  targetUserId?: string,    // Target specific user
+  userIds?: string[],       // Target multiple users
+  connectionIds?: string[], // Target specific connections
+  message: {
+    type: string,
+    payload: any
+  }
+}
+
+### WebSocket → Client
+
+{
+  type: string,
+  payload: any
+}
+
+## Redis Channels
+
+### game:events
+**Direction:** WebSocket → Game Service
+
+**Publishers:** GameEvents.ts, LobbyEvents.ts, TournamentEvents.ts
+
+**Subscriber:** Game Service
+
+**Events:**
+- `game:*` - Game state events
+- `lobby:*` - Lobby management events
+- `tournament:*` - Tournament events
+
+### chat:events
+**Direction:** WebSocket → Chat Service
+
+**Publisher:** ChatEvents.ts
+
+**Subscriber:** Chat Service
+
+**Events:**
+- `chat` - Direct messages
+
+### websocket:broadcast
+**Direction:** Services → WebSocket
+
+**Publishers:** Game Service, Chat Service, etc.
+
+**Subscriber:** RedisEvents.ts
+
+**Purpose:** Services send broadcast requests to reach specific clients
 
 ## Installation
 
@@ -106,752 +296,204 @@ The WebSocket service provides real-time bidirectional communication between the
 
 - Node.js >= 18.0.0
 - npm >= 9.0.0
-- Redis (for pub/sub functionality)
+- Redis (for pub/sub)
 
 ### Setup
 
-1. **Install Dependencies**
-
 ```bash
 npm install
+npm run build
+npm start
 ```
 
-2. **Environment Variables**
-
-Create a `.env` file in the service root:
+### Environment Variables
 
 ```env
-# Server Configuration
 PORT=3005
 NODE_ENV=development
-
-# WebSocket Configuration
-WS_PATH=/ws
-HEALTH_PATH=/health
-
-# JWT Configuration
-JWT_SECRET=your-jwt-secret-key
-
-# Redis Configuration
+JWT_SECRET=your-jwt-secret
 REDIS_HOST=localhost
 REDIS_PORT=23111
 REDIS_PASSWORD=your-redis-password
-REDIS_DB=0
-
-# Logging
-LOG_LEVEL=info
-```
-
-3. **Build**
-
-```bash
-npm run build
-```
-
-4. **Start**
-
-```bash
-# Development
-npm run dev
-
-# Production
-npm start
 ```
 
 ## Configuration
 
-### Server Configuration
+WebSocket endpoint: `ws://localhost:3005/ws?token=JWT_TOKEN`
 
-The server configuration is loaded from `src/config/wsConfig.ts`:
+Health check: `GET http://localhost:3005/health`
 
-```typescript
-interface WSConfig {
-  port: number;           // Server port (default: 3005)
-  path: string;           // WebSocket path (default: /ws)
-  healthPath: string;     // Health check path (default: /health)
-  jwtSecret: string;      // JWT secret for token verification
-  nodeEnv: string;        // Environment (development/production)
-}
-```
-
-### Redis Configuration
-
-Redis configuration is in `src/config/redisConfig.ts`:
-
-```typescript
-interface RedisConfig {
-  host: string;
-  port: number;
-  password?: string;
-  db?: number;
-}
-```
-
-### Security Configuration
-
-Security settings in `src/config/securityConfig.ts`:
-
-- Rate limiting thresholds
-- Message size limits
-- Connection timeouts
-- Validation rules
-
-## Usage
-
-### Basic Connection
-
-Clients connect to the WebSocket server with authentication:
-
-```javascript
-const token = 'your-jwt-token';
-const ws = new WebSocket(`ws://localhost:3005/ws?token=${token}`);
-```
-
-### Connection Flow
-
-1. **Client connects** with token in query parameter
-2. **Server verifies** JWT token and extracts user info
-3. **Connection added** to connection pool
-4. **Acknowledgment sent** to client with connection ID
-5. **Event handlers** set up for the connection
-
-### Message Format
-
-All messages follow this structure:
-
-```typescript
-interface WebSocketMessage {
-  type: string;      // Event type (e.g., "lobby:create")
-  payload: any;      // Event data
-  timestamp?: number; // Optional timestamp
-}
-```
-
-### Sending Messages
-
-**Client to Server:**
-
-```json
-{
-  "type": "lobby:create",
-  "payload": {
-    "gameType": "pong",
-    "maxPlayers": 4
-  },
-  "timestamp": 1234567890
-}
-```
-
-**Server to Client:**
-
-```json
-{
-  "type": "lobby:update",
-  "payload": {
-    "lobbyId": "lobby-123",
-    "gameType": "pong",
-    "players": [...],
-    "status": "waiting"
-  },
-  "timestamp": 1234567890
-}
-```
-
-## API
-
-### Connection Endpoints
-
-- **WebSocket**: `ws://host:port/ws?token=JWT_TOKEN`
-- **Health Check**: `GET /health`
-
-### Connection Methods
-
-#### `ConnectionManager.handleConnection(socket, req)`
-
-Handles new WebSocket connections:
-
-```typescript
-static async handleConnection(
-  socket: WebSocket,
-  req: FastifyRequest
-): Promise<ConnectionInfo | null>
-```
-
-**Process:**
-1. Extract token from query parameters
-2. Verify JWT token
-3. Create connection info
-4. Add to connection pool
-5. Set up event handlers
-6. Send acknowledgment
-
-### Event Handling
-
-#### `EventManager.handleEvent(connectionId, message)`
-
-Routes incoming messages to appropriate handlers:
-
-```typescript
-static async handleEvent(
-  connectionId: string,
-  message: WebSocketMessage
-): Promise<void>
-```
-
-### Room Management
-
-#### `RoomManager.joinRoom(connectionId, roomId, roomType)`
-
-Adds a connection to a room:
-
-```typescript
-static async joinRoom(
-  connectionId: string,
-  roomId: string,
-  roomType: RoomType
-): Promise<void>
-```
-
-#### `RoomManager.leaveRoom(connectionId, roomId)`
-
-Removes a connection from a room:
-
-```typescript
-static async leaveRoom(
-  connectionId: string,
-  roomId: string
-): Promise<void>
-```
-
-#### `RoomManager.broadcastToRoom(roomId, message, excludeConnectionId?)`
-
-Broadcasts a message to all connections in a room:
-
-```typescript
-static async broadcastToRoom(
-  roomId: string,
-  message: WebSocketMessage,
-  excludeConnectionId?: string
-): Promise<void>
-```
-
-## Events
-
-### Event System Structure
-
-```
-src/events/
-├── EventManager.ts        # Main event router
-├── ChatEvents.ts          # Chat-related events
-├── GameEvents.ts          # Game-related events
-├── NotificationEvents.ts  # Notification events
-├── SystemEvents.ts        # System events (heartbeat, etc.)
-├── TournamentEvents.ts    # Tournament events
-└── UserEvents.ts          # User status events
-```
-
-### Event Types
-
-#### Lobby Events
-
-- `lobby:create` - Create a new lobby
-- `lobby:join` - Join a lobby
-- `lobby:leave` - Leave a lobby
-- `lobby:update` - Lobby state updated
-- `lobby:start` - Game started
-
-#### Player Events
-
-- `lobby:player:join` - Player joined lobby
-- `lobby:player:leave` - Player left lobby
-- `lobby:ready` - Player ready status changed
-- `lobby:customization` - Player customization updated
-
-#### Chat Events
-
-- `lobby:chat` - Chat message sent
-- `lobby:chat:history` - Request chat history
-
-#### Invitation Events
-
-- `lobby:invite` - Send invitation
-- `lobby:invitation` - Receive invitation
-- `lobby:accept` - Accept invitation
-- `lobby:decline` - Decline invitation
-
-#### User Events
-
-- `user:status` - User status update
-- `friend:online` - Friend came online
-- `friend:offline` - Friend went offline
-
-#### System Events
-
-- `connection.ack` - Connection acknowledged
-- `connection.error` - Connection error
-- `system.heartbeat` - Heartbeat ping
-- `system.heartbeat.ack` - Heartbeat pong
-- `system.error` - System error message
-
-### Adding Custom Events
-
-1. **Define Event Type** in `src/types/event.types.ts`
-2. **Create Handler** in appropriate event file (e.g., `GameEvents.ts`)
-3. **Register Handler** in `EventManager.ts`
-4. **Add Validation** if needed in `src/middleware/validationMiddleware.ts`
-
-Example:
-
-```typescript
-// In GameEvents.ts
-export async function handleGameUpdate(
-  connectionId: string,
-  payload: any
-): Promise<void> {
-  const { gameId, update } = payload;
-  
-  // Validate
-  if (!gameId || !update) {
-    throw new Error('Invalid game update payload');
-  }
-  
-  // Broadcast to game room
-  await RoomManager.broadcastToRoom(
-    `game:${gameId}`,
-    {
-      type: 'game:update',
-      payload: update,
-      timestamp: Date.now()
-    }
-  );
-}
-
-// In EventManager.ts
-eventHandlers.set('game:update', handleGameUpdate);
-```
-
-## Rooms
-
-### Room Types
-
-- **GameRoom**: For active game sessions
-- **ChatRoom**: For chat channels
-- **TournamentRoom**: For tournament matches
-- **PrivateRoom**: For private conversations
-- **SpectatorRoom**: For spectator viewing
-
-### Room Naming Convention
-
-- Game rooms: `game:{gameId}`
-- Lobby rooms: `lobby:{lobbyId}`
-- Chat rooms: `chat:{channelId}`
-- Tournament rooms: `tournament:{tournamentId}`
-- Private rooms: `private:{userId1}:{userId2}` (sorted)
-
-### Room Management
-
-```typescript
-// Join a room
-await RoomManager.joinRoom(connectionId, 'lobby-123', RoomType.LOBBY);
-
-// Leave a room
-await RoomManager.leaveRoom(connectionId, 'lobby-123');
-
-// Broadcast to room
-await RoomManager.broadcastToRoom('lobby-123', message);
-
-// Get room connections
-const connections = RoomManager.getRoomConnections('lobby-123');
-```
-
-## Broadcasting
-
-### Local Broadcasting
-
-Messages are broadcast locally to connections in the same server instance:
-
-```typescript
-await RoomManager.broadcastToRoom(roomId, message);
-```
-
-### Cross-Server Broadcasting
-
-For multi-instance deployments, Redis pub/sub is used:
-
-```typescript
-// Publish to Redis channel
-await redisBroadcast.publish(channel, message);
-
-// Subscribe to Redis channel
-await redisBroadcast.subscribe(channel, (message) => {
-  // Handle received message
-});
-```
-
-### Broadcast Channels
-
-- `websocket:broadcast` - Global broadcast channel
-- `room:{roomId}` - Room-specific channel
-- `user:{userId}` - User-specific channel
-
-## Authentication
-
-### JWT Token Verification
-
-The service uses JWT tokens for authentication:
-
-1. **Client sends token** in query parameter: `ws://host:port/ws?token=JWT_TOKEN`
-2. **Server extracts token** from request URL
-3. **Token verified** using JWT secret
-4. **User info extracted** from token payload
-5. **Connection authenticated** and added to pool
-
-### Token Structure
-
-```typescript
-interface JWTPayload {
-  sub: string;        // User ID
-  email: string;      // User email
-  username: string;   // Username
-  type: string;       // Token type
-  iat: number;        // Issued at
-  exp: number;        // Expiration
-}
-```
-
-### Authentication Flow
-
-```
-Client                    Server
-  │                         │
-  │─── Connect + Token ────>│
-  │                         │
-  │                    [Verify Token]
-  │                         │
-  │                    [Extract User]
-  │                         │
-  │                    [Create Connection]
-  │                         │
-  │<── Connection ACK ──────│
-  │                         │
-```
-
-## Security
-
-### Security Features
-
-1. **JWT Authentication**: All connections require valid JWT token
-2. **Rate Limiting**: Protection against message flooding
-3. **Message Validation**: All messages are validated before processing
-4. **Connection Timeout**: Automatic cleanup of idle connections
-5. **Input Sanitization**: Protection against injection attacks
-6. **Room Security**: Access control for private rooms
-
-### Rate Limiting
-
-Rate limiting is implemented per connection:
-
-- **Message Rate**: Max messages per second per connection
-- **Connection Rate**: Max connection attempts per IP
-- **Room Join Rate**: Max room joins per minute
-
-### Security Middleware
-
-Located in `src/middleware/`:
-
-- `authMiddleware.ts` - Authentication verification
-- `rateLimitMiddleware.ts` - Rate limiting
-- `validationMiddleware.ts` - Message validation
-- `securityConfig.ts` - Security configuration
+Connection authentication uses JWT tokens from the auth service.
 
 ## Development
 
 ### Project Structure
 
 ```
-services/websocket/
-├── src/
-│   ├── app.ts                    # Fastify app setup
-│   ├── server.ts                 # Server entry point
-│   ├── broadcasting/             # Redis pub/sub
-│   ├── config/                   # Configuration files
-│   ├── connections/              # Connection management
-│   ├── events/                   # Event handlers
-│   ├── middleware/               # Middleware functions
-│   ├── rooms/                    # Room management
-│   ├── types/                    # TypeScript types
-│   └── utils/                    # Utility functions
-├── package.json
-├── tsconfig.json
-├── jest.config.js
-└── Dockerfile
+services/websocket/src/
+├── app.ts                      # Fastify app setup
+├── server.ts                   # Entry point
+├── connections/
+│   ├── ConnectionManager.ts    # Connection lifecycle
+│   ├── MessageHandler.ts       # Message parsing/sending
+│   └── ConnectionAuth.ts       # JWT verification
+├── events/
+│   ├── EventManager.ts         # Event routing
+│   ├── GameEvents.ts           # game:* → game:events
+│   ├── LobbyEvents.ts          # lobby:* → game:events
+│   ├── TournamentEvents.ts     # tournament:* → game:events
+│   ├── ChatEvents.ts           # chat → chat:events
+│   └── RedisEvents.ts          # websocket:broadcast → clients
+├── broadcasting/
+│   └── RedisBroadcast.ts       # Redis pub/sub wrapper
+└── config/
+    ├── wsConfig.ts             # WebSocket config
+    └── redisConfig.ts          # Redis config
 ```
 
-### Development Commands
+### Commands
 
 ```bash
-# Development mode with hot reload
-npm run dev
-
-# Build TypeScript
-npm run build
-
-# Run production build
-npm start
-
-# Run tests
-npm test
-
-# Run tests with watch
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
-
-# Lint code
-npm run lint
-
-# Fix linting issues
-npm run lint:fix
-
-# Format code
-npm run format
+npm run dev    # Development with hot reload
+npm run build  # Build TypeScript
+npm start      # Run production
 ```
 
-### Adding New Features
+### Adding Events
 
-1. **Create types** in `src/types/`
-2. **Implement handlers** in appropriate directory
-3. **Register in manager** (EventManager, RoomManager, etc.)
-4. **Add tests** in `src/__tests__/`
-5. **Update documentation**
+1. Add event type to appropriate handler file
+2. Include in event array
+3. Forward to correct Redis channel with connection info
 
-## Testing
+Example:
 
-### Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Run specific test file
-npm test -- connection.test.ts
-
-# Watch mode
-npm run test:watch
-
-# Coverage report
-npm run test:coverage
-```
-
-### Test Structure
-
-Tests are located in `src/__tests__/`:
-
-- `connection.test.ts` - Connection management tests
-- Additional tests can be added as needed
-
-### Writing Tests
-
-```typescript
-import { ConnectionManager } from '../connections/ConnectionManager';
-
-describe('ConnectionManager', () => {
-  it('should handle valid connection', async () => {
-    // Test implementation
+const events = ['new:event:type'];
+for (const eventType of events)
+{
+  EventManager.registerHandler(eventType, async (message, connection) => 
+  {
+    await redisBroadcast.publishToChannel('game:events', {
+      type: message.type,
+      payload: message.payload,
+      userId: connection.userId,
+      username: connection.username,
+      connectionId: connection.connectionId,
+      timestamp: message.timestamp || Date.now(),
+    });
   });
-  
-  it('should reject invalid token', async () => {
-    // Test implementation
-  });
-});
-```
-
-## Deployment
-
-### Docker
-
-The service includes a `Dockerfile` for containerized deployment:
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 3005
-CMD ["npm", "start"]
-```
-
-### Environment Variables
-
-Set these environment variables in production:
-
-```bash
-PORT=3005
-NODE_ENV=production
-JWT_SECRET=<secret-from-secrets>
-REDIS_HOST=redis
-REDIS_PORT=23111
-REDIS_PASSWORD=<password>
-LOG_LEVEL=info
-```
-
-### Health Check
-
-The service exposes a health check endpoint:
-
-```bash
-curl http://localhost:3005/health
-# Response: {"status":"ok"}
-```
-
-### Monitoring
-
-The service logs:
-- Connection establishment
-- Connection closure
-- Connected users summary (every 2 minutes)
-- Errors and warnings
-
-### Scaling
-
-For multi-instance deployments:
-
-1. **Use Redis Pub/Sub** for cross-server broadcasting
-2. **Configure load balancer** with WebSocket support
-3. **Sticky sessions** not required (stateless connections)
-4. **Monitor connection pool** per instance
-
-## Troubleshooting
-
-### Common Issues
-
-#### Connection Fails
-
-**Problem**: Client cannot connect to WebSocket server
-
-**Solutions**:
-1. Check if server is running: `curl http://localhost:3005/health`
-2. Verify JWT token is valid
-3. Check firewall/network settings
-4. Verify WebSocket path matches configuration
-
-#### Authentication Errors
-
-**Problem**: Connection rejected with authentication error
-
-**Solutions**:
-1. Verify JWT token is included in query: `?token=JWT_TOKEN`
-2. Check JWT_SECRET matches auth service
-3. Ensure token is not expired
-4. Verify token payload structure
-
-#### Messages Not Received
-
-**Problem**: Client not receiving messages
-
-**Solutions**:
-1. Check if client is in correct room
-2. Verify message type matches expected format
-3. Check server logs for errors
-4. Verify Redis pub/sub if using multi-instance
-
-#### Redis Connection Issues
-
-**Problem**: Redis connection errors
-
-**Solutions**:
-1. Verify Redis is running
-2. Check REDIS_HOST and REDIS_PORT
-3. Verify REDIS_PASSWORD if required
-4. Check network connectivity to Redis
-
-#### Memory Leaks
-
-**Problem**: Server memory usage increases over time
-
-**Solutions**:
-1. Check connection pool cleanup
-2. Verify disconnect handlers are firing
-3. Check for event listener leaks
-4. Monitor room cleanup
-
-### Debug Mode
-
-Enable debug logging:
-
-```bash
-LOG_LEVEL=debug npm run dev
-```
-
-### Logs
-
-The service logs important events:
-
-- `[PRODUCTION] WebSocket connection established` - New connection
-- `[PRODUCTION] WebSocket connection closed` - Connection closed
-- `📊 Connected Users: X connection(s)` - User summary
-- Error logs for failures
-
-## API Reference
-
-### ConnectionInfo
-
-```typescript
-interface ConnectionInfo {
-  connectionId: string;
-  userId: string;
-  username: string;
-  socket: WebSocket;
-  connectedAt: Date;
-  ip?: string;
-  userAgent?: string;
 }
+
+## Key Points
+
+- **Stateless**: No business logic, only routing
+- **Connection info required**: Always include userId, username, connectionId when forwarding to services
+- **Two directions**: Client → Service (via event handlers), Service → Client (via RedisEvents)
+- **Redis channels**: game:events, chat:events (incoming), websocket:broadcast (outgoing)
+- **Allman style**: Opening braces on new lines
+
+
+# Chat Service
+
+## Overview
+Handles 1-1 direct messaging between users. Receives chat events from Redis, stores messages in database, and broadcasts to recipients via WebSocket.
+
+## Architecture
+
+```
+Frontend → WebSocket Service → Redis (chat:events) → Chat Service → Database
+                                                          ↓
+                                      Redis (websocket:broadcast) → WebSocket Service → Frontend
 ```
 
-### WebSocketMessage
+## Redis Integration
 
-```typescript
-interface WebSocketMessage {
-  type: string;
-  payload: any;
-  timestamp?: number;
+### Subscribe to: `chat:events`
+
+Messages you'll receive from WebSocket service:
+
+{
+  type: 'chat:send',
+  payload: {
+    recipientId: string,      // User ID of recipient
+    messageContent: string,   // Message text
+    // optional future fields:
+    // attachments?: string[]
+    // replyToMessageId?: string
+  },
+  userId: string,             // Sender user ID
+  username: string,           // Sender username
+  connectionId: string,       // WebSocket connection ID
+  timestamp: number          // Unix timestamp
 }
-```
 
-### Room Types
+### Publish to: `websocket:broadcast`
 
-```typescript
-enum RoomType {
-  GAME = 'game',
-  CHAT = 'chat',
-  TOURNAMENT = 'tournament',
-  PRIVATE = 'private',
-  SPECTATOR = 'spectator'
+To send message to recipient:
+
+{
+  targetUserId: string,       // Recipient user ID
+  message: {
+    type: 'chat:message',
+    payload: {
+      messageId: string,      // Your generated message ID
+      senderId: string,       // Sender user ID
+      senderUsername: string, // Sender username
+      messageContent: string, // Message text
+      timestamp: number,      // Unix timestamp
+      // optional:
+      // isRead: boolean
+      // attachments?: string[]
+    }
+  }
 }
-```
 
-## Contributing
+## Implementation Steps
 
-When contributing to this service:
+1. **Subscribe to Redis channel**
+   
+   redisClient.subscribe('chat:events', (message) => {
+     handleChatEvent(JSON.parse(message));
+   });
 
-1. Follow TypeScript best practices
-2. Write tests for new features
-3. Update documentation
-4. Follow existing code style
-5. Add proper error handling
-6. Use appropriate logging levels
+2. **Handle incoming messages**
+   - Parse event
+   - Validate sender has permission to message recipient
+   - Store in database
+   - Generate message ID
+   - Broadcast to recipient
+   
 
-## License
+4. **Broadcast to recipient**
+   
+   await redisClient.publish('websocket:broadcast', JSON.stringify({
+     targetUserId: recipientId,
+     message: {
+       type: 'chat:message',
+       payload: { /* message data */ }
+     }
+   }));
 
-MIT License - See project root LICENSE file
+## Example Flow
 
-## Support
+1. User A sends message to User B via WebSocket
+2. WebSocket service publishes to `chat:events`
+3. Chat service receives event
+4. Chat service saves to database
+5. Chat service publishes to `websocket:broadcast` with `targetUserId: User B`
+6. WebSocket service sends to User B's connection
+7. User B receives message in real-time
 
-For issues or questions:
-- Check this README
-- Review code comments
-- Check server logs
-- Refer to frontend integration guide: `WEBSOCKET_FRONTEND_INTEGRATION.md`
+## Future Features
+- Message history/pagination
+- Read receipts
+- Typing indicators
+- Message search
+- Blocked users
+- Message attachments
+
+
+## Notes
+- All WebSocket events use prefix `chat:`
+- Store messages even if recipient is offline
+- Recipient receives message when they connect
+- Consider rate limiting per user

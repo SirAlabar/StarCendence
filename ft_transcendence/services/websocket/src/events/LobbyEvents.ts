@@ -2,9 +2,9 @@ import { EventManager } from './EventManager';
 import { ConnectionInfo, WebSocketMessage } from '../types/connection.types';
 import { redisBroadcast } from '../broadcasting/RedisBroadcast';
 
-const tournamentEvents = ['tournament:create', 'tournament:join', 'tournament:leave', 'tournament:start'];
+const lobbyEvents = ['lobby:create', 'lobby:join', 'lobby:leave', 'lobby:kick', 'lobby:ready', 'lobby:start', 'lobby:chat'];
 
-for (const eventType of tournamentEvents)
+for (const eventType of lobbyEvents)
 {
   EventManager.registerHandler(eventType, async (message: WebSocketMessage, connection: ConnectionInfo): Promise<void> =>
   {
@@ -18,4 +18,4 @@ for (const eventType of tournamentEvents)
       timestamp: message.timestamp || Date.now(),
     });
   });
-}
+} 
