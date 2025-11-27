@@ -612,7 +612,7 @@ export class Pong3D implements IGameEngine
         if (this.scene.activeCamera === this.camera) 
         {
             this.scene.activeCamera = this.topCamera;
-            this.topCamera.attachControl(this.scene.getEngine().getRenderingCanvas()!, true);
+            //this.topCamera.attachControl(this.scene.getEngine().getRenderingCanvas()!, true); //for free camera if needed
         } 
         else 
         {
