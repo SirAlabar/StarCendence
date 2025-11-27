@@ -19,7 +19,7 @@ class TournamentService
         action: "create_tournament"
     }))
     {
-        console.log("sent websocket message!")
+        console.log("sent websocket message!");
     }
         try 
         {
