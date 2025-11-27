@@ -61,8 +61,6 @@ class GlobalWebSocketHandler {
             return;
         }
 
-        console.log('[GlobalWebSocketHandler] Initializing global message handlers');
-
         // Register wildcard listener to catch all messages
         webSocketService.on('*', this.handleMessage);
 
@@ -76,8 +74,6 @@ class GlobalWebSocketHandler {
         if (!this.isInitialized) {
             return;
         }
-
-        console.log('[GlobalWebSocketHandler] Cleaning up global handlers');
 
         webSocketService.off('*', this.handleMessage);
 

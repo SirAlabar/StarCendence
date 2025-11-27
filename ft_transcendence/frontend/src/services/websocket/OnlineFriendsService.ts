@@ -16,7 +16,6 @@ class OnlineFriendsService
     
     constructor() 
     {
-        console.log('[OnlineFriendsService] 🔧 Initialized');
     }
     
     async initialize(): Promise<void> 
@@ -25,8 +24,6 @@ class OnlineFriendsService
         {
             return;
         }
-        
-        console.log('[OnlineFriendsService] 🚀 Initializing...');
         
         if (!webSocketService.isConnected()) 
         {
@@ -39,12 +36,10 @@ class OnlineFriendsService
         });
         
         this.isSubscribed = true;
-        console.log('[OnlineFriendsService] ✅ Subscribed to friend status updates via Redis');
     }
     
     private handleFriendStatusChange(userId: string, status: string): void 
     {
-        console.log('[OnlineFriendsService] 📡 Friend status changed:', { userId, status });
         
         const friend = this.onlineFriends.get(userId);
         
@@ -109,7 +104,6 @@ class OnlineFriendsService
     
     dispose(): void 
     {
-        console.log('[OnlineFriendsService] 🧹 Disposing');
         webSocketService.unsubscribeFriendsStatus();
         this.onlineFriends.clear();
         this.statusChangeCallbacks = [];

@@ -92,11 +92,6 @@ export class GameLobby extends BaseComponent
             });
             
             this.friends = OnlineFriendsService.getOnlineFriends();
-            
-            console.log('[GameLobby] Loaded friends:', {
-                total: this.allFriends.length,
-                online: this.friends.length
-            });
         }
         catch (err) 
         {
@@ -530,17 +525,10 @@ export class GameLobby extends BaseComponent
 
     private isCurrentUserHost(): boolean {
         if (!this.currentUser) {
-            console.log('[GameLobby] isCurrentUserHost: no currentUser');
             return false;
         }
         const hostSlot = this.playerSlots.find(s => s.isHost);
         const result = hostSlot?.userId === this.currentUser.id;
-        console.log('[GameLobby] isCurrentUserHost:', {
-            currentUserId: this.currentUser.id,
-            hostSlotUserId: hostSlot?.userId,
-            hostSlotIsHost: hostSlot?.isHost,
-            result
-        });
         return result;
     }
 
@@ -551,18 +539,14 @@ export class GameLobby extends BaseComponent
 
     private shouldShowKickButton(slot: PlayerSlot): boolean {
         if (!slot.playerName) {
-            console.log('[GameLobby] shouldShowKickButton: empty slot');
             return false;
         }
         if (!this.isCurrentUserHost()) {
-            console.log('[GameLobby] shouldShowKickButton: user is not host');
             return false;
         }
         if (slot.isHost) {
-            console.log('[GameLobby] shouldShowKickButton: cannot kick host');
             return false;
         }
-        console.log('[GameLobby] shouldShowKickButton: true for slot', slot.id);
         return true;
     }
 
@@ -987,7 +971,6 @@ export class GameLobby extends BaseComponent
 
         // Only host can kick
         if (!this.isCurrentUserHost()) {
-            console.warn('[GameLobby] Only host can kick players');
             return;
         }
 
@@ -1007,7 +990,6 @@ export class GameLobby extends BaseComponent
                     lobbyId: this.getLobbyIdFromUrl(),
                     targetUserId: slot.userId,
                 });
-                console.log(`[GameLobby] Sent kick request for user ${slot.userId}`);
             }
         });
     }
@@ -1023,7 +1005,6 @@ export class GameLobby extends BaseComponent
         if (!slot || !slot.playerName) return;
         
         if (!this.currentUser || slot.userId !== this.currentUser.id) {
-            console.warn('[GameLobby] Can only toggle ready for your own slot');
             return;
         }
         
@@ -1032,7 +1013,6 @@ export class GameLobby extends BaseComponent
         // Send to backend (DON'T update locally, wait for broadcast confirmation)
         const lobbyId = this.getLobbyIdFromUrl();
         if (lobbyId) {
-            console.log(`[GameLobby] Sending ready state: ${newReadyState}`);
             webSocketService.send('lobby:ready', {
                 lobbyId,
                 isReady: newReadyState
@@ -1050,7 +1030,6 @@ export class GameLobby extends BaseComponent
         
         // Only allow current user to change their own customization
         if (!this.currentUser || slot.userId !== this.currentUser.id) {
-            console.warn('[GameLobby] Can only change your own customization');
             return;
         }
         
@@ -1085,9 +1064,8 @@ export class GameLobby extends BaseComponent
         this.currentCustomizingSlot = null;
     }
     
-    private selectPaddle(paddleIndex: number): void 
+    private selectPaddle(_paddleIndex: number): void 
     {
-        console.log(`Selected paddle: ${paddleIndex}`);
         this.closePaddleModal();
     }
     
@@ -1165,22 +1143,16 @@ export class GameLobby extends BaseComponent
      * Add a player to the lobby (called from WebSocket events)
      */
     public addPlayer(player: any): void {
-        console.log('[GameLobby] 🔍 addPlayer START:', player);
-        
         // Check if player already exists (avoid duplicates)
         if (this.hasPlayer(player.userId)) {
-            console.warn('[GameLobby] ⚠️ Player already in lobby:', player.userId);
             return;
         }
         
         // Find empty slot
         const emptySlot = this.playerSlots.find(slot => !slot.playerName);
         if (!emptySlot) {
-            console.warn('[GameLobby] ⚠️ No empty slots available');
             return;
         }
-
-        console.log('[GameLobby] 🔍 Found empty slot:', emptySlot.id);
 
         // Populate slot with player data
         emptySlot.playerName = player.username;
@@ -1192,17 +1164,8 @@ export class GameLobby extends BaseComponent
         emptySlot.avatarUrl = player.avatarUrl || '/assets/images/default-avatar.jpeg';
         emptySlot.customization = player.customization || null;
 
-        console.log('[GameLobby] 🔍 Slot populated:', {
-            slotId: emptySlot.id,
-            username: emptySlot.playerName,
-            userId: emptySlot.userId,
-            isHost: emptySlot.isHost
-        });
-
         // Refresh only the player card instead of whole page
         this.refreshPlayerCard(emptySlot.id);
-        
-        console.log('[GameLobby] 🔍 addPlayer COMPLETE');
     }
 
     /**
@@ -1218,11 +1181,9 @@ export class GameLobby extends BaseComponent
     public updatePlayerReady(userId: string, isReady: boolean): void {
         const slot = this.playerSlots.find(s => s.userId === userId);
         if (!slot) {
-            console.warn('[GameLobby] Player not found:', userId);
             return;
         }
 
-        console.log(`[GameLobby] Updating ${slot.playerName} ready status to:`, isReady);
         slot.isReady = isReady;
         this.refreshPlayerCard(slot.id);
         this.updateStartButton(); // Update start button state when ready status changes
@@ -1255,7 +1216,6 @@ export class GameLobby extends BaseComponent
      * Clear all players from lobby (useful for reconnect/refresh)
      */
     public clearAllPlayers(): void {
-        console.log('[GameLobby] 🔍 Clearing all players');
         this.playerSlots.forEach(slot => {
             // Clear player data but keep slot available
             slot.playerName = null;
@@ -1267,16 +1227,13 @@ export class GameLobby extends BaseComponent
             slot.avatarUrl = '/assets/images/default-avatar.jpeg';
             slot.customization = null;
         });
-        console.log('[GameLobby] 🔍 Cleared, empty slots available:', 
-            this.playerSlots.filter(s => !s.playerName).length);
         this.refresh();
     }
 
     /**
      * Update lobby state (called from WebSocket events)
      */
-    public updateLobbyState(lobbyData: any): void {
-        console.log('[GameLobby] Updating lobby state:', lobbyData);
+    public updateLobbyState(_lobbyData: any): void {
         // Implement full lobby state sync if needed
         // For now, this is a placeholder for future enhancements
     }

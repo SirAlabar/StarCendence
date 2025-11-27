@@ -39,16 +39,13 @@ export class App
                 // Check if already connected
                 if (!webSocketService.isConnected()) 
                 {
-                    console.log('[App] Attempting WebSocket connection...');
                     await webSocketService.connect();
-                    console.log('[App] WebSocket connected successfully');
                 }
             } 
             catch (error) 
             {
                 // Log warning but don't block app initialization
                 console.warn('[App] WebSocket connection failed - will retry automatically:', error);
-                console.info('[App] The app will continue to work. WebSocket features (notifications, live updates) will be unavailable until connection is established.');
             }
         }
     }

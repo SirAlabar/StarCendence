@@ -36,7 +36,6 @@ export default class PongLobbyPage extends BaseComponent
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             // Check if gameLobby exists
             if (!this.gameLobby) {
-                console.log(`[PongLobby] ⏳ Waiting for gameLobby initialization... attempt ${attempt + 1}/${maxAttempts}`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 continue;
             }
@@ -46,11 +45,9 @@ export default class PongLobbyPage extends BaseComponent
             const playerCards = lobbyContainer?.querySelectorAll('.player-card, [class*="player"]');
             
             if (lobbyContainer && playerCards && playerCards.length > 0) {
-                console.log(`[PongLobby] ✅ gameLobby fully mounted after ${attempt} attempts (found ${playerCards.length} player slots)`);
                 return true;
             }
             
-            console.log(`[PongLobby] ⏳ Waiting for gameLobby DOM... attempt ${attempt + 1}/${maxAttempts}`);
             await new Promise(resolve => setTimeout(resolve, delay));
         }
         
@@ -69,7 +66,6 @@ export default class PongLobbyPage extends BaseComponent
         if (!webSocketService.isConnected()) {
             try {
                 await webSocketService.connect();
-                console.log('[PongLobby] Connected to WebSocket');
             } catch (error) {
                 console.error('[PongLobby] Failed to connect to WebSocket:', error);
                 
@@ -112,12 +108,9 @@ export default class PongLobbyPage extends BaseComponent
         const params = new URLSearchParams(window.location.search);
         const urlLobbyId = params.get('id');
 
-        console.log('[PongLobby] URL check - search:', window.location.search, 'id param:', urlLobbyId);
-
         if (urlLobbyId) {
             // Joining existing lobby
             this.lobbyId = urlLobbyId;
-            console.log('[PongLobby] Joining existing lobby:', this.lobbyId);
 
             // Send join lobby message to server
             webSocketService.send('lobby:join', {
@@ -127,17 +120,14 @@ export default class PongLobbyPage extends BaseComponent
         } else {
             // Creating new lobby
             this.lobbyId = this.generateRoomId();
-            console.log('[PongLobby] Creating new lobby with ID:', this.lobbyId);
 
             // Update URL without reloading page
             const newUrl = `/pong-lobby?id=${this.lobbyId}`;
-            console.log('[PongLobby] Updating URL to:', newUrl);
             window.history.replaceState(
                 {},
                 '',
                 newUrl
             );
-            console.log('[PongLobby] URL after update:', window.location.href);
 
             // Send create lobby message to server
             webSocketService.send('lobby:create', {
@@ -150,8 +140,6 @@ export default class PongLobbyPage extends BaseComponent
 
     private async onWsMessage(msg: any): Promise<void> {
         if (!msg || !msg.type) return;
-
-        console.log('[PongLobby] Received WS message:', msg);
 
         switch (msg.type) {
             case 'lobby:create:ack':
@@ -170,7 +158,6 @@ export default class PongLobbyPage extends BaseComponent
                     }
                     
                     // Successfully created - load creator (self)
-                    console.log('[PongLobby] Successfully created lobby, loading players');
                     if (msg.payload.players && Array.isArray(msg.payload.players)) {
                         for (const playerData of msg.payload.players) {
                             await this.loadAndAddPlayer(playerData);
@@ -181,8 +168,6 @@ export default class PongLobbyPage extends BaseComponent
 
             case 'lobby:join:ack':
                 // Acknowledgment for lobby join
-                console.log('[PongLobby] 🔍 DEBUG lobby:join:ack:', msg.payload);
-                
                 if (!msg.payload?.success) {
                     const reason = msg.payload?.reason;
                     console.error('[PongLobby] Failed to join lobby:', reason);
@@ -206,25 +191,14 @@ export default class PongLobbyPage extends BaseComponent
                     }
                     
                     // Successfully joined - clear any existing players first (in case of refresh)
-                    console.log('[PongLobby] 🔍 Step 1: Clearing existing players');
                     this.gameLobby.clearAllPlayers();
                     
                     // Load all existing players
-                    console.log('[PongLobby] 🔍 Step 2: Players array from payload:', msg.payload.players);
-                    
                     if (msg.payload.players && Array.isArray(msg.payload.players)) {
-                        console.log(`[PongLobby] 🔍 Step 3: Loading ${msg.payload.players.length} players`);
-                        
                         for (let i = 0; i < msg.payload.players.length; i++) {
                             const playerData = msg.payload.players[i];
-                            console.log(`[PongLobby] 🔍 Step 4.${i}: Loading player`, playerData);
                             await this.loadAndAddPlayer(playerData);
-                            console.log(`[PongLobby] 🔍 Step 4.${i}: Player loaded successfully`);
                         }
-                        
-                        console.log('[PongLobby] 🔍 Step 5: All players loaded!');
-                    } else {
-                        console.warn('[PongLobby] ⚠️ No players array in payload or not an array');
                     }
                 }
                 break;
@@ -232,7 +206,6 @@ export default class PongLobbyPage extends BaseComponent
             case 'lobby:update':
                 // Update lobby state (player list, settings, etc.)
                 if (msg.payload?.lobbyId === this.lobbyId) {
-                    console.log('[PongLobby] Lobby updated:', msg.payload);
                     this.gameLobby?.updateLobbyState?.(msg.payload);
                 }
                 break;
@@ -240,12 +213,8 @@ export default class PongLobbyPage extends BaseComponent
             case 'lobby:player:join':
                 // New player joined
                 if (msg.payload?.lobbyId === this.lobbyId) {
-                    console.log('[PongLobby] Player joined:', msg.payload);
-                    console.log('[PongLobby] Player isHost value:', msg.payload.isHost);
-                    
                     // Check if player is already in lobby (avoid duplicates)
                     if (this.gameLobby?.hasPlayer?.(msg.payload.userId)) {
-                        console.log('[PongLobby] ⚠️ Player already in lobby, skipping');
                         return;
                     }
                     
@@ -261,7 +230,6 @@ export default class PongLobbyPage extends BaseComponent
             case 'lobby:player:leave':
                 // Player left
                 if (msg.payload?.lobbyId === this.lobbyId) {
-                    console.log('[PongLobby] Player left:', msg.payload.playerId);
                     this.gameLobby?.removePlayer?.(msg.payload.playerId);
                 }
                 break;
@@ -269,7 +237,6 @@ export default class PongLobbyPage extends BaseComponent
             case 'lobby:player:kicked':
                 // You were kicked from the lobby
                 if (msg.payload?.lobbyId === this.lobbyId) {
-                    console.log('[PongLobby] You were kicked from the lobby');
                     await Modal.alert('Kicked', 'You have been kicked from the lobby by the host.');
                     navigateTo('/pong');
                 }
@@ -278,7 +245,6 @@ export default class PongLobbyPage extends BaseComponent
             case 'lobby:game:starting':
                 // Game is about to start - navigate all players
                 if (msg.payload?.lobbyId === this.lobbyId) {
-                    console.log('[PongLobby] Game starting! Navigating to game...');
                     navigateTo(`/pong-game?lobby=${this.lobbyId}`);
                 }
                 break;
@@ -286,7 +252,6 @@ export default class PongLobbyPage extends BaseComponent
             case 'lobby:chat':
                 // Chat message
                 if (msg.payload?.lobbyId === this.lobbyId) {
-                    console.log('[PongLobby] Chat message:', msg.payload.message);
                     this.gameLobby?.addChatMessage?.(msg.payload);
                 }
                 break;
@@ -294,7 +259,6 @@ export default class PongLobbyPage extends BaseComponent
             case 'lobby:player:ready':
                 // Player ready status changed
                 if (msg.payload?.lobbyId === this.lobbyId) {
-                    console.log('[PongLobby] Player ready status:', msg.payload);
                     this.gameLobby?.updatePlayerReady?.(msg.payload.userId, msg.payload.isReady);
                 }
                 break;
@@ -311,13 +275,6 @@ export default class PongLobbyPage extends BaseComponent
         isReady: boolean;
         joinedAt?: number;
     }): Promise<void> {
-        console.log('[PongLobby] 🔍 loadAndAddPlayer START:', {
-            userId: playerData.userId,
-            username: playerData.username,
-            isHost: playerData.isHost,
-            isHostType: typeof playerData.isHost
-        });
-        
         if (!this.gameLobby) {
             console.error('[PongLobby] ❌ gameLobby is null in loadAndAddPlayer!');
             return;
@@ -336,23 +293,15 @@ export default class PongLobbyPage extends BaseComponent
             customization: null,
             joinedAt: playerData.joinedAt ? new Date(playerData.joinedAt) : new Date()
         };
-
-        console.log('[PongLobby] 🔍 Calling addPlayer with:', {
-            username: fullPlayerData.username,
-            isHost: fullPlayerData.isHost
-        });
         
         // Add to lobby UI
         this.gameLobby.addPlayer(fullPlayerData);
-        
-        console.log('[PongLobby] 🔍 loadAndAddPlayer COMPLETE');
     }
     
     private async startPongGame(): Promise<void> 
     {
         // Send lobby:start event to backend
         if (this.lobbyId) {
-            console.log('[PongLobby] Sending lobby:start event');
             webSocketService.send('lobby:start', { lobbyId: this.lobbyId });
         } else {
             await Modal.alert('Error', 'Invalid lobby ID');
