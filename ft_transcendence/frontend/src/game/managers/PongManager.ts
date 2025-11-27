@@ -346,6 +346,7 @@ export class ImprovedGameManager
             case 'game-ended':
                 this.currentState = 'ended';
                 this.emitEvent('game:ended', event);
+                this.play_sound_end()
                 break;
                 
             case 'paddle-hit':
@@ -419,6 +420,12 @@ export class ImprovedGameManager
         audio.play();
     }
 
+    private play_sound_end() 
+    {
+        const audio = new Audio('../../../../public/assets/sounds/sfx/gameend.mp3');
+        audio.volume = 0.6;
+        audio.play();
+    }
 }
 
 // Export singleton instance
