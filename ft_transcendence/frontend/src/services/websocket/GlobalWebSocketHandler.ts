@@ -1,15 +1,3 @@
-/**
- * Global WebSocket Message Handler
- * 
- * Centralized message handling system for WebSocket events across the application.
- * Provides global listeners for chat, notifications, lobby events, game events, etc.
- * 
- * Usage:
- * - Import and register handlers: `globalWebSocketHandler.registerChatHandler(callback)`
- * - Use for global features like chat notifications, friend status, etc.
- * - Pages can still use webSocketService.on() for local event handling
- */
-
 import { webSocketService } from './WebSocketService';
 
 export interface ChatMessage {

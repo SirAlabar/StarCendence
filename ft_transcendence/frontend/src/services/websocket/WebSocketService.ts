@@ -20,45 +20,31 @@ class WebSocketService {
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
-    // Get WebSocket URL from environment variable or detect automatically
     const envUrl = import.meta.env.VITE_WS_URL;
     
     if (envUrl) {
       this.wsUrl = envUrl;
-      console.log('[WebSocketService] Using environment WebSocket URL:', this.wsUrl);
     } else {
-      // Auto-detect based on current location
-      // Use same hostname and port as the frontend, with /ws path (nginx proxy)
       const hostname = window.location.hostname;
       const port = window.location.port;
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       
-      // Build URL with same hostname and port as frontend
       if (port) {
         this.wsUrl = `${protocol}//${hostname}:${port}/ws`;
       } else {
-        // No port specified, use default based on protocol
         const defaultPort = protocol === 'wss:' ? '8443' : '8080';
         this.wsUrl = `${protocol}//${hostname}:${defaultPort}/ws`;
       }
-      console.log('[WebSocketService] Auto-detected WebSocket URL:', this.wsUrl);
     }
   }
 
-  /**
-   * Connect to WebSocket server with authentication token
-   */
   async connect(): Promise<void> {
     const token = LoginService.getAccessToken();
     if (!token) {
-      const error = new Error('No access token available for WebSocket connection. Please login first.');
-      console.error('[WebSocketService]', error.message);
-      console.error('[WebSocketService] localStorage keys:', Object.keys(localStorage));
-      throw error;
+      throw new Error('No access token available for WebSocket connection. Please login first.');
     }
 
     if (this.status === ConnectionStatus.CONNECTED || this.status === ConnectionStatus.CONNECTING) {
-      console.log('[WebSocketService] Already connected or connecting, skipping...');
       return;
     }
 
@@ -66,11 +52,9 @@ class WebSocketService {
       try {
         this.status = ConnectionStatus.CONNECTING;
         const url = `${this.wsUrl}?token=${encodeURIComponent(token)}`;
-        console.log('[WebSocketService] Connecting to:', this.wsUrl);
         this.socket = new WebSocket(url);
 
         this.socket.onopen = () => {
-          console.log('[WebSocketService] ✅ Connected successfully');
           this.status = ConnectionStatus.CONNECTED;
           this.reconnectAttempts = 0;
           this.startHeartbeat();
@@ -78,9 +62,7 @@ class WebSocketService {
         };
 
         this.socket.onerror = (error) => {
-          console.error('[WebSocketService] ❌ Connection error:', error);
-          console.info('[WebSocketService] This is expected if the backend WebSocket server is not running.');
-          console.info('[WebSocketService] To fix: Start the backend services with `make up` or `docker-compose up`');
+          console.error('[WebSocketService] Connection error:', error);
           this.status = ConnectionStatus.ERROR;
           reject(new Error(`WebSocket connection failed to ${this.wsUrl}`));
         };
@@ -95,9 +77,6 @@ class WebSocketService {
     });
   }
 
-  /**
-   * Setup WebSocket event handlers
-   */
   private setupSocketEventHandlers(): void {
     if (!this.socket) return;
 
@@ -105,20 +84,16 @@ class WebSocketService {
       try {
         const message: WebSocketMessage = JSON.parse(event.data);
         
-        // Handle heartbeat responses
         if (message.type === 'pong' || message.type === 'heartbeat:ack') {
           return;
         }
         
-        // Dispatch message as window event (infrastructure for future events)
         window.dispatchEvent(new CustomEvent(`ws:${message.type}`, { 
           detail: message.payload 
         }));
 
-        // Emit to registered listeners (infrastructure for future events)
         this.emit(message.type, message.payload);
       } catch (error) {
-        // Silently handle parse errors
       }
     };
 
@@ -127,7 +102,6 @@ class WebSocketService {
       this.socket = null;
       this.stopHeartbeat();
 
-      // Try to reconnect if we have a token
       const token = LoginService.getAccessToken();
       if (token) {
         this.handleReconnect();
@@ -168,9 +142,6 @@ class WebSocketService {
    */
   private handleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.warn('[WebSocketService] Max reconnection attempts reached. Stopping reconnection attempts.');
-      console.info('[WebSocketService] The app will continue to work without real-time features.');
-      console.info('[WebSocketService] Start the backend WebSocket server to enable real-time features.');
       this.reconnectAttempts = 0;
       return;
     }
@@ -178,8 +149,7 @@ class WebSocketService {
     this.status = ConnectionStatus.RECONNECTING;
     this.reconnectAttempts++;
     
-    const delay = this.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1); // Exponential backoff
-    console.log(`[WebSocketService] Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms...`);
+    const delay = this.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1);
 
     this.reconnectTimer = setTimeout(() => {
       this.connect().catch(() => {});

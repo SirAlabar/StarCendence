@@ -1,14 +1,3 @@
-/**
- * Lobby Manager for Game Service
- * 
- * Manages game lobbies in Redis. Tracks players, lobby state, and coordinates
- * with WebSocket service for real-time updates.
- * 
- * Redis Structure:
- * - lobby:{lobbyId}:data → Hash with lobby metadata
- * - lobby:{lobbyId}:players → Set of userIds
- */
-
 import { RedisClientType } from 'redis';
 
 export interface LobbyPlayer {
@@ -35,9 +24,6 @@ export class LobbyManager {
     this.redis = redisClient;
   }
 
-  /**
-   * Create a new lobby
-   */
   async createLobby(
     lobbyId: string,
     userId: string,
@@ -54,10 +40,8 @@ export class LobbyManager {
       status: 'waiting',
     });
 
-    // Add creator as first player
     await this.redis.sAdd(`lobby:${lobbyId}:players`, userId);
 
-    // Store player data (flatten object for Redis)
     await this.redis.hSet(`lobby:${lobbyId}:player:${userId}`, {
       userId,
       username,
@@ -66,7 +50,6 @@ export class LobbyManager {
       joinedAt: Date.now().toString(),
     });
 
-    // Set expiry (1 hour)
     await this.redis.expire(`lobby:${lobbyId}:data`, 3600);
     await this.redis.expire(`lobby:${lobbyId}:players`, 3600);
     await this.redis.expire(`lobby:${lobbyId}:player:${userId}`, 3600);
@@ -74,9 +57,6 @@ export class LobbyManager {
     console.log(`[LobbyManager] Created lobby ${lobbyId} by ${username} (${gameType}, max: ${maxPlayers})`);
   }
 
-  /**
-   * Join an existing lobby
-   */
   async joinLobby(lobbyId: string, userId: string, username: string): Promise<{
     success: boolean;
     reason?: string;
@@ -89,28 +69,23 @@ export class LobbyManager {
       return { success: false, reason: 'room_not_found' };
     }
 
-    // Check if already in lobby
     const isAlreadyMember = await this.redis.sIsMember(`lobby:${lobbyId}:players`, userId);
     if (isAlreadyMember) {
       console.log(`[LobbyManager] User ${username} already in lobby ${lobbyId}`);
       return { success: true, reason: 'already_joined' };
     }
 
-    // Get lobby data
     const lobbyDataRaw = await this.redis.hGetAll(`lobby:${lobbyId}:data`);
     const maxPlayers = parseInt(lobbyDataRaw.maxPlayers || '2');
     const currentPlayers = await this.redis.sCard(`lobby:${lobbyId}:players`);
 
-    // Check if lobby is full
     if (currentPlayers >= maxPlayers) {
       console.log(`[LobbyManager] Lobby ${lobbyId} is full (${currentPlayers}/${maxPlayers})`);
       return { success: false, reason: 'room_full', playerCount: currentPlayers };
     }
 
-    // Add player to lobby
     await this.redis.sAdd(`lobby:${lobbyId}:players`, userId);
 
-    // Store player data (flatten object for Redis)
     await this.redis.hSet(`lobby:${lobbyId}:player:${userId}`, {
       userId,
       username,
@@ -125,18 +100,12 @@ export class LobbyManager {
     return { success: true, playerCount: currentPlayers + 1 };
   }
 
-  /**
-   * Leave a lobby
-   */
   async leaveLobby(lobbyId: string, userId: string): Promise<void> {
-    // Remove player from lobby
     await this.redis.sRem(`lobby:${lobbyId}:players`, userId);
     await this.redis.del(`lobby:${lobbyId}:player:${userId}`);
 
-    // Check if lobby is empty
     const playerCount = await this.redis.sCard(`lobby:${lobbyId}:players`);
     if (playerCount === 0) {
-      // Delete empty lobby
       await this.deleteLobby(lobbyId);
       console.log(`[LobbyManager] Deleted empty lobby ${lobbyId}`);
     } else {
@@ -144,9 +113,6 @@ export class LobbyManager {
     }
   }
 
-  /**
-   * Kick a player from lobby (only host can kick)
-   */
   async kickPlayer(
     lobbyId: string,
     kickerUserId: string,
@@ -155,31 +121,26 @@ export class LobbyManager {
     success: boolean;
     reason?: string;
   }> {
-    // Check if lobby exists
     const exists = await this.redis.exists(`lobby:${lobbyId}:data`);
     if (!exists) {
       return { success: false, reason: 'lobby_not_found' };
     }
 
-    // Check if kicker is host
     const kickerData = await this.redis.hGetAll(`lobby:${lobbyId}:player:${kickerUserId}`);
     if (!kickerData || kickerData.isHost !== 'true') {
       console.log(`[LobbyManager] User ${kickerUserId} is not host, cannot kick`);
       return { success: false, reason: 'not_host' };
     }
 
-    // Check if target is in lobby
     const isMember = await this.redis.sIsMember(`lobby:${lobbyId}:players`, targetUserId);
     if (!isMember) {
       return { success: false, reason: 'player_not_found' };
     }
 
-    // Check if trying to kick themselves
     if (kickerUserId === targetUserId) {
       return { success: false, reason: 'cannot_kick_self' };
     }
 
-    // Remove target player
     await this.redis.sRem(`lobby:${lobbyId}:players`, targetUserId);
     await this.redis.del(`lobby:${lobbyId}:player:${targetUserId}`);
 
@@ -187,25 +148,17 @@ export class LobbyManager {
     return { success: true };
   }
 
-  /**
-   * Update player ready status
-   */
   async updatePlayerReady(lobbyId: string, userId: string, isReady: boolean): Promise<void> {
-    // Check if player is in lobby
     const isMember = await this.redis.sIsMember(`lobby:${lobbyId}:players`, userId);
     if (!isMember) {
       throw new Error('Player not in lobby');
     }
 
-    // Update ready status
     await this.redis.hSet(`lobby:${lobbyId}:player:${userId}`, 'isReady', isReady.toString());
     
     console.log(`[LobbyManager] Player ${userId} ready status updated to ${isReady} in lobby ${lobbyId}`);
   }
 
-  /**
-   * Get all players in a lobby
-   */
   async getLobbyPlayers(lobbyId: string): Promise<LobbyPlayer[]> {
     const userIds = await this.redis.sMembers(`lobby:${lobbyId}:players`);
     const players: LobbyPlayer[] = [];
@@ -226,16 +179,10 @@ export class LobbyManager {
     return players;
   }
 
-  /**
-   * Get all userIds in a lobby (for broadcasting)
-   */
   async getLobbyUserIds(lobbyId: string): Promise<string[]> {
     return await this.redis.sMembers(`lobby:${lobbyId}:players`);
   }
 
-  /**
-   * Get lobby data
-   */
   async getLobbyData(lobbyId: string): Promise<LobbyData | null> {
     const data = await this.redis.hGetAll(`lobby:${lobbyId}:data`);
     if (!data || !data.lobbyId) {
@@ -252,11 +199,7 @@ export class LobbyManager {
     };
   }
 
-  /**
-   * Delete a lobby
-   */
   async deleteLobby(lobbyId: string): Promise<void> {
-    // Get all player IDs to delete their data
     const userIds = await this.redis.sMembers(`lobby:${lobbyId}:players`);
     
     const multi = this.redis.multi();
@@ -270,9 +213,6 @@ export class LobbyManager {
     await multi.exec();
   }
 
-  /**
-   * Get lobby stats (for debugging)
-   */
   async getLobbyStats(lobbyId: string): Promise<{
     exists: boolean;
     playerCount: number;

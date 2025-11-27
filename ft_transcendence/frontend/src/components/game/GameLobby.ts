@@ -519,7 +519,6 @@ export class GameLobby extends BaseComponent
     
     private canStartGame(): boolean 
     {
-        // Only host can start the game
         if (!this.isCurrentUserHost()) {
             return false;
         }
@@ -529,9 +528,6 @@ export class GameLobby extends BaseComponent
         return activePlayers.length >= 2 && allReady;
     }
 
-    /**
-     * Check if current user is the host
-     */
     private isCurrentUserHost(): boolean {
         if (!this.currentUser) {
             console.log('[GameLobby] isCurrentUserHost: no currentUser');
@@ -548,63 +544,47 @@ export class GameLobby extends BaseComponent
         return result;
     }
 
-    /**
-     * Check if slot belongs to current user
-     */
     private isCurrentUserSlot(slot: PlayerSlot): boolean {
         if (!this.currentUser || !slot.userId) return false;
         return slot.userId === this.currentUser.id;
     }
 
-    /**
-     * Check if kick button should be shown for a slot
-     * Only host can kick players (except themselves)
-     */
     private shouldShowKickButton(slot: PlayerSlot): boolean {
         if (!slot.playerName) {
             console.log('[GameLobby] shouldShowKickButton: empty slot');
-            return false; // Empty slot
+            return false;
         }
         if (!this.isCurrentUserHost()) {
             console.log('[GameLobby] shouldShowKickButton: user is not host');
-            return false; // Only host can kick
+            return false;
         }
         if (slot.isHost) {
             console.log('[GameLobby] shouldShowKickButton: cannot kick host');
-            return false; // Can't kick the host
+            return false;
         }
         console.log('[GameLobby] shouldShowKickButton: true for slot', slot.id);
-        return true; // Can kick AI or other players
+        return true;
     }
 
-    /**
-     * Refresh a single player card without reloading the whole page
-     */
     private refreshPlayerCard(slotId: number): void {
         const slot = this.playerSlots.find(s => s.id === slotId);
         if (!slot) return;
 
         const cardElement = document.querySelector(`[data-slot="${slotId}"]`)?.closest('.player-card');
         if (cardElement && cardElement.parentElement) {
-            // Create a temporary container
             const temp = document.createElement('div');
             temp.innerHTML = this.renderPlayerSlot(slot);
             
-            // Replace the old card with the new one
             const newCard = temp.firstElementChild!;
             cardElement.parentElement.replaceChild(newCard, cardElement);
             
-            // Re-attach event listeners for the new card
             this.attachCardEventListeners(newCard as HTMLElement);
         }
     }
 
-    /**
-     * Update the start game button state based on ready status
-     */
     private updateStartButton(): void {
         const startBtn = document.getElementById('startGameBtn') as HTMLButtonElement;
-        if (!startBtn) return; // Button doesn't exist for non-hosts
+        if (!startBtn) return;
 
         const canStart = this.canStartGame();
         
@@ -617,11 +597,7 @@ export class GameLobby extends BaseComponent
         }
     }
 
-    /**
-     * Attach event listeners to a specific player card
-     */
     private attachCardEventListeners(card: HTMLElement): void {
-        // Add player button
         const addBtn = card.querySelector('.add-player-btn');
         if (addBtn) {
             addBtn.addEventListener('click', (e) => {
@@ -631,7 +607,6 @@ export class GameLobby extends BaseComponent
             });
         }
 
-        // Change button
         const changeBtn = card.querySelector('.change-btn');
         if (changeBtn) {
             changeBtn.addEventListener('click', (e) => {
@@ -641,7 +616,6 @@ export class GameLobby extends BaseComponent
             });
         }
 
-        // Ready button
         const readyBtn = card.querySelector('.ready-btn');
         if (readyBtn) {
             readyBtn.addEventListener('click', (e) => {
@@ -651,7 +625,6 @@ export class GameLobby extends BaseComponent
             });
         }
 
-        // Remove button
         const removeBtn = card.querySelector('.remove-btn');
         if (removeBtn) {
             removeBtn.addEventListener('click', (e) => {
@@ -1018,10 +991,8 @@ export class GameLobby extends BaseComponent
             return;
         }
 
-        // Import WebSocketService dynamically to send kick message
         import('../../services/websocket/WebSocketService').then(({ webSocketService }) => {
             if (slot.isAI) {
-                // Remove AI locally (no backend needed)
                 slot.playerName = null;
                 slot.userId = null;
                 slot.isOnline = false;
@@ -1032,7 +1003,6 @@ export class GameLobby extends BaseComponent
                 slot.customization = null;
                 this.refreshPlayerCard(slotId);
             } else {
-                // Send kick message to backend
                 webSocketService.send('lobby:kick', {
                     lobbyId: this.getLobbyIdFromUrl(),
                     targetUserId: slot.userId,
@@ -1042,9 +1012,6 @@ export class GameLobby extends BaseComponent
         });
     }
 
-    /**
-     * Get lobby ID from URL
-     */
     private getLobbyIdFromUrl(): string | null {
         const params = new URLSearchParams(window.location.search);
         return params.get('id');
@@ -1055,13 +1022,11 @@ export class GameLobby extends BaseComponent
         const slot = this.playerSlots[slotId];
         if (!slot || !slot.playerName) return;
         
-        // Only allow current user to toggle their own ready state
         if (!this.currentUser || slot.userId !== this.currentUser.id) {
             console.warn('[GameLobby] Can only toggle ready for your own slot');
             return;
         }
         
-        // Toggle ready state
         const newReadyState = !slot.isReady;
         
         // Send to backend (DON'T update locally, wait for broadcast confirmation)

@@ -1,4 +1,3 @@
-//  Event routing and handling
 import { ConnectionInfo, WebSocketMessage } from '../types/connection.types';
 
 export type EventHandler = (message: WebSocketMessage, connection: ConnectionInfo) => Promise<void> | void;

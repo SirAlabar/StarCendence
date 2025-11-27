@@ -1,10 +1,3 @@
-/**
- * RedisEvents.ts
- * 
- * Handles broadcasting FROM services TO WebSocket clients via Redis.
- * Services publish to 'websocket:broadcast' channel, this subscribes and forwards to connected clients.
- */
-
 import { redisBroadcast } from '../broadcasting/RedisBroadcast';
 import { connectionPool } from '../connections/ConnectionPool';
 
