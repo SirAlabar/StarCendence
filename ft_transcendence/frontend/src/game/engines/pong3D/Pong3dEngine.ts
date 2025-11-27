@@ -179,6 +179,10 @@ export class Pong3D implements IGameEngine
         
     }
     
+    private keybinds = {
+        p1: {left: "a",  right: "d"},
+        p2: {left: "arrowleft", right: "arrowright"}
+    };
  
     private setupInput(): void 
     {
@@ -574,9 +578,9 @@ export class Pong3D implements IGameEngine
         
         // Player 1 (left paddle) - A/D keys
         const moveVector1 = new Vector3(0, 0, 0);
-        if (this.keys["a"] && this.paddle_left.position.z < moveBoundary) 
+        if (this.keys[this.keybinds.p1.left] && this.paddle_left.position.z < moveBoundary) 
             moveVector1.z += paddleSpeed;
-        if (this.keys["d"] && this.paddle_left.position.z > -moveBoundary) 
+        if (this.keys[this.keybinds.p1.right] && this.paddle_left.position.z > -moveBoundary) 
             moveVector1.z -= paddleSpeed;
         this.paddle_left.moveWithCollisions(moveVector1);
             
@@ -585,10 +589,10 @@ export class Pong3D implements IGameEngine
         if (this.config.mode === 'local-multiplayer') 
         {
             const moveVector2 = new Vector3(0, 0, 0);
-            if (this.keys["arrowleft"] && this.paddle_right.position.z < moveBoundary) 
+            if (this.keys[this.keybinds.p2.left] && this.paddle_right.position.z < moveBoundary) 
                 moveVector2.z += paddleSpeed;
             
-            if (this.keys["arrowright"] && this.paddle_right.position.z > -moveBoundary) 
+            if (this.keys[this.keybinds.p2.right] && this.paddle_right.position.z > -moveBoundary) 
                 moveVector2.z -= paddleSpeed;
             
             this.paddle_right.moveWithCollisions(moveVector2);
@@ -612,11 +616,15 @@ export class Pong3D implements IGameEngine
         if (this.scene.activeCamera === this.camera) 
         {
             this.scene.activeCamera = this.topCamera;
+            this.keybinds.p1 = { left: "w", right: "s" };
+            this.keybinds.p2 = { left: "arrowup", right: "arrowdown" };
             //this.topCamera.attachControl(this.scene.getEngine().getRenderingCanvas()!, true); //for free camera if needed
         } 
         else 
         {
             this.scene.activeCamera = this.camera;
+            this.keybinds.p1 = { left: "a", right: "d" };
+            this.keybinds.p2 = { left: "arrowleft", right: "arrowright" };
         }
     }
 
