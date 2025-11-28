@@ -1,7 +1,6 @@
 // LoginService.ts
 import { getAuthApiUrl } from '../../types/api.types';
 import { Modal } from '@/components/common/Modal';
-import { webSocketService } from '../websocket/WebSocketService';
 
 // Types for login operations
 export interface LoginRequest 
@@ -179,8 +178,6 @@ export class LoginService
       const refreshToken = this.getRefreshToken();
         if (!refreshToken) 
         {
-            // Disconnect WebSocket before clearing tokens
-            webSocketService.disconnect();
             this.clearTokens();
             return;
         }
@@ -209,8 +206,6 @@ export class LoginService
         } 
         finally 
         {
-            // Disconnect WebSocket before clearing tokens
-            webSocketService.disconnect();
             this.clearTokens();
         }
     }
@@ -233,8 +228,6 @@ export class LoginService
         } 
         finally 
         {
-            // Disconnect WebSocket before clearing tokens
-            webSocketService.disconnect();
             this.clearTokens();
         }
     }

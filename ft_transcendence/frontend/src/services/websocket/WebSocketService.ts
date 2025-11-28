@@ -61,8 +61,7 @@ class WebSocketService {
           resolve();
         };
 
-        this.socket.onerror = (error) => {
-          console.error('[WebSocketService] Connection error:', error);
+        this.socket.onerror = () => {
           this.status = ConnectionStatus.ERROR;
           reject(new Error(`WebSocket connection failed to ${this.wsUrl}`));
         };

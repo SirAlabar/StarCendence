@@ -106,7 +106,7 @@ curl http://localhost:3002/games/health
 **Port conflicts:**
 ```bash
 # Check what's using ports
-lsof -i :80 -i :3000 -i :3001 -i :23111
+lsof -i :80 -i :3000 -i :3001 -i :6379
 # Kill processes or change ports in docker-compose.yml
 ```
 

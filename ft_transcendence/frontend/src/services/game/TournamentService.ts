@@ -1,5 +1,5 @@
 import LobbyService from '../websocket/LobbyService';
-import { webSocketService } from '../websocket/WebSocketService';
+// import { webSocketService } from '../lobby/WebSocketService';
 import { Tournament, TournamentPlayer, TournamentMatch, CreateTournamentData, TournamentBracketData } from '../../types/tournament.types';
 import { Lobby, LobbyPlayer } from '../../types/lobby.types';
 import UserService from '../user/UserService';
@@ -13,14 +13,6 @@ class TournamentService
     {
         console.log('[TournamentService] 🏆 Creating tournament', data);
 
-    if (webSocketService.send(
-    "game",
-    {
-        action: "create_tournament"
-    }))
-    {
-        console.log("sent websocket message!");
-    }
         try 
         {
             const lobby = await LobbyService.createLobby('pong', 4);

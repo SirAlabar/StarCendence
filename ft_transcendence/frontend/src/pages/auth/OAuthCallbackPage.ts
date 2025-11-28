@@ -33,7 +33,7 @@ export default class OAuthCallbackPage extends BaseComponent
 
             if (result.accessToken && result.refreshToken) 
             {
-                // Existing user - connect WebSocket and redirect
+                // Existing user - connect WebSocket and redirect to profile
                 try {
                     await webSocketService.connect();
                 } catch (error) {

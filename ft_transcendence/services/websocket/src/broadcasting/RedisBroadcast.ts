@@ -139,6 +139,23 @@ export class RedisBroadcast
       this.isSubscribed = true;
       console.log(`Redis broadcast subscribed to channel: ${this.channel}`);
       
+      // Subscribe to test response channel
+      await this.subscriber.subscribe('test:response', (message) => {
+        console.log('✅ Redis test passed:', message);
+      });
+      
+      // Test Redis pub/sub connection with delay to allow game service to connect
+      setTimeout(async () => {
+        try {
+          if (this.publisher && this.publisher.isReady) {
+            await this.publisher.publish('test:channel', 'test');
+            console.log('✅ Redis test publish sent');
+          }
+        } catch (error) {
+          console.error('❌ Redis test publish failed:', error);
+        }
+      }, 2000);
+      
       // if handlers were registered before initialize ran subscribe to them now
       for (const preChannel of this.channelHandlers.keys())
       {

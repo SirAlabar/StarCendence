@@ -40,7 +40,6 @@ export class Features extends BaseComponent
     },
     {
       category: 'gameplay',
-
       title: 'Multiplayer Engine',
       description: 'Full networking stack built for fast, fair and scalable online play.',
       bullets: ['WebSockets', 'Authoritative Server', 'Anti-Cheat', 'Chat'],

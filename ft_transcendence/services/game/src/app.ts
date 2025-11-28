@@ -97,6 +97,14 @@ export async function initializeServices(): Promise<void>
     const gameEventSubscriber = new GameEventSubscriber(subscriber, publisher, lobbyManager);
     await gameEventSubscriber.initialize();
     
+    // Test Redis pub/sub: Subscribe to test channel
+    await subscriber.subscribe('test:channel', (message) => {
+      console.log('✅ Redis test received:', message);
+      publisher.publish('test:response', 'test!').catch(err => 
+        console.error('Failed to send test response:', err)
+      );
+    });
+    
     console.log('✅ Game Event Subscriber initialized');
   } else {
     console.error('❌ Failed to initialize Game Event Subscriber: Redis client not available');

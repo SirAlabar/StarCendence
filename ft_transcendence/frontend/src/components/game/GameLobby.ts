@@ -5,7 +5,6 @@ import { POD_THUMBNAILS } from '../../pages/games/PodSelectionPage';
 import UserService from '../../services/user/UserService';
 import FriendService from '../../services/user/FriendService';
 import OnlineFriendsService, { FriendWithStatus } from '../../services/websocket/OnlineFriendsService';
-import { webSocketService } from '../../services/websocket/WebSocketService';
 import { UserProfile } from '../../types/user.types';
 import { AiDifficulty } from '../../game/engines/pong2D/entities/EnemyAi';
 
@@ -20,7 +19,6 @@ export interface PlayerSlot
     isAI: boolean;
     aiDifficulty?: AiDifficulty;
     isReady: boolean;
-    isHost: boolean;
     avatarUrl: string;
     customization: PodConfig | null;
 }
@@ -42,7 +40,6 @@ export class GameLobby extends BaseComponent
     private chatMessages: Array<{player: string, message: string, time: string}> = [];
     private currentUser: UserProfile | null = null;
     private friends: FriendWithStatus[] = [];
-    private allFriends: any[] = []; // Store all friends (online + offline)
     private mountSelector: string | null = null;
     
     constructor(config: LobbyConfig) 
@@ -76,9 +73,9 @@ export class GameLobby extends BaseComponent
             });
             
             const friendsData = await FriendService.getFriends();
-            this.allFriends = friendsData.friends || [];
+            const allFriends = friendsData.friends || [];
             
-            this.allFriends.forEach((friend: any) => 
+            allFriends.forEach((friend: any) => 
             {
                 if (friend.status === 'online') 
                 {
@@ -97,7 +94,6 @@ export class GameLobby extends BaseComponent
         {
             console.error('Failed to load friends:', err);
             this.friends = [];
-            this.allFriends = [];
         }
         
         if (this.currentUser) 
@@ -109,7 +105,6 @@ export class GameLobby extends BaseComponent
                 isOnline: true,
                 isAI: false,
                 isReady: false,
-                isHost: true,
                 avatarUrl: this.currentUser.avatarUrl || '/assets/images/default-avatar.jpeg',
                 customization: this.config.gameType === 'podracer' ? AVAILABLE_PODS[0] : null
             });
@@ -124,7 +119,6 @@ export class GameLobby extends BaseComponent
                 isOnline: false,
                 isAI: false,
                 isReady: false,
-                isHost: false,
                 avatarUrl: '/assets/images/default-avatar.jpeg',
                 customization: null
             });
@@ -149,15 +143,9 @@ export class GameLobby extends BaseComponent
                 </div>
                 
                 <div class="flex-1 flex flex-col px-8 py-6 overflow-y-auto custom-scrollbar">
-                    ${this.isCurrentUserHost() ? `
-                        <button id="startGameBtn" class="mb-6 py-3 px-12 rounded-xl text-xl font-bold transition-all self-center flex-shrink-0 ${this.canStartGame() ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-2xl shadow-cyan-500/50 border-2 border-cyan-500' : 'bg-gray-700 text-gray-500 cursor-not-allowed border-2 border-gray-600'}" ${!this.canStartGame() ? 'disabled' : ''}>
-                            START GAME
-                        </button>
-                    ` : `
-                        <div class="mb-6 py-3 px-12 text-center text-gray-400 text-sm font-bold">
-                            Waiting for host to start the game...
-                        </div>
-                    `}
+                    <button id="startGameBtn" class="mb-6 py-3 px-12 rounded-xl text-xl font-bold transition-all self-center flex-shrink-0 ${this.canStartGame() ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-2xl shadow-cyan-500/50 border-2 border-cyan-500' : 'bg-gray-700 text-gray-500 cursor-not-allowed border-2 border-gray-600'}" ${!this.canStartGame() ? 'disabled' : ''}>
+                        START GAME
+                    </button>
                     
                     <div class="w-full max-w-6xl mx-auto mb-6 flex-shrink-0">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -375,8 +363,6 @@ export class GameLobby extends BaseComponent
                     </div>
                 </div>
                 
-                ${this.isCurrentUserSlot(slot) ? `
-                <!-- Current user's slot - show CHANGE and READY buttons -->
                 <div class="grid grid-cols-2 gap-2">
                     <button class="change-btn py-2 px-3 rounded-lg border border-cyan-500/50 text-cyan-300 hover:bg-cyan-600 hover:text-white text-sm font-bold transition-all" data-slot="${slot.id}">
                         CHANGE
@@ -385,20 +371,12 @@ export class GameLobby extends BaseComponent
                         ${slot.isReady ? 'READY ✓' : 'READY'}
                     </button>
                 </div>
-                ` : this.shouldShowKickButton(slot) ? `
-                <!-- Host view for other players - show ready status and KICK button -->
-                <div class="mb-2 py-2 px-3 rounded-lg border ${slot.isReady ? 'border-green-500 bg-green-900/30' : 'border-gray-700 bg-gray-800/50'} ${slot.isReady ? 'text-green-400' : 'text-gray-400'} text-sm font-bold text-center">
-                    ${slot.isReady ? '✓ READY' : 'NOT READY'}
-                </div>
-                <button class="remove-btn w-full py-2 px-3 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition-all" data-slot="${slot.id}">
-                    ${slot.isAI ? 'REMOVE BOT' : 'KICK PLAYER'}
-                </button>
-                ` : `
-                <!-- Guest view for other players - show ready status only -->
-                <div class="py-2 px-3 rounded-lg border ${slot.isReady ? 'border-green-500 bg-green-900/30' : 'border-gray-700 bg-gray-800/50'} ${slot.isReady ? 'text-green-400' : 'text-gray-400'} text-sm font-bold text-center">
-                    ${slot.isReady ? '✓ READY' : 'NOT READY'}
-                </div>
-                `}
+                
+                ${slot.isAI || (slot.id !== 0) ? `
+                    <button class="remove-btn w-full mt-2 py-2 px-3 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition-all" data-slot="${slot.id}">
+                        ${slot.isAI ? 'REMOVE BOT' : 'KICK PLAYER'}
+                    </button>
+                ` : ''}
             </div>
         `;
     }
@@ -432,43 +410,29 @@ export class GameLobby extends BaseComponent
     
     private renderFriendsList(): string 
     {
-        if (this.allFriends.length === 0) 
+        if (this.friends.length === 0) 
         {
             return `
                 <div class="text-center text-gray-500 py-8">
-                    <p class="text-lg font-bold mb-2">No Friends Yet</p>
-                    <p class="text-sm">Add friends to invite them to games!</p>
+                    <p>No friends online</p>
+                    <p class="text-sm mt-2">Your friends need to be online to invite them</p>
                 </div>
             `;
         }
         
-        return this.allFriends.map(friend => {
-            const isOnline = this.friends.some(f => f.userId === friend.userId);
-            const statusColor = isOnline ? 'border-green-400' : 'border-gray-500';
-            const statusDot = isOnline ? 'bg-green-400' : 'bg-gray-500';
-            const statusText = isOnline ? 'text-green-400' : 'text-gray-500';
-            const statusLabel = isOnline ? '● Online' : '● Offline';
-            const buttonClass = isOnline 
-                ? 'hover:border-cyan-500 hover:bg-gray-700/50 cursor-pointer' 
-                : 'opacity-60 cursor-not-allowed';
-            
-            return `
-                <button class="invite-friend-btn w-full p-4 rounded-lg border-2 border-cyan-500/30 bg-gray-800/50 transition-all flex items-center gap-4 ${buttonClass}" 
-                    data-username="${friend.username}" 
-                    data-userid="${friend.userId}"
-                    ${!isOnline ? 'disabled' : ''}>
-                    <div class="relative">
-                        <img src="${friend.avatarUrl || '/assets/images/default-avatar.jpeg'}" alt="${friend.username}" class="w-12 h-12 rounded-full border-2 ${statusColor}">
-                        <div class="absolute bottom-0 right-0 w-3 h-3 ${statusDot} rounded-full border-2 border-gray-800"></div>
-                    </div>
-                    <div class="flex-1 text-left">
-                        <p class="text-cyan-300 font-bold">${friend.username}</p>
-                        <p class="${statusText} text-sm">${statusLabel}</p>
-                    </div>
-                    <div class="text-cyan-300 font-bold">${isOnline ? 'INVITE' : 'OFFLINE'}</div>
-                </button>
-            `;
-        }).join('');
+        return this.friends.map(friend => `
+            <button class="invite-friend-btn w-full p-4 rounded-lg border-2 border-cyan-500/30 bg-gray-800/50 hover:border-cyan-500 hover:bg-gray-700/50 transition-all flex items-center gap-4" data-username="${friend.username}" data-userid="${friend.userId}">
+                <div class="relative">
+                    <img src="${friend.avatarUrl}" alt="${friend.username}" class="w-12 h-12 rounded-full border-2 border-green-400">
+                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-800"></div>
+                </div>
+                <div class="flex-1 text-left">
+                    <p class="text-cyan-300 font-bold">${friend.username}</p>
+                    <p class="text-green-400 text-sm">● Online</p>
+                </div>
+                <div class="text-cyan-300 font-bold">INVITE</div>
+            </button>
+        `).join('');
     }
     
     private updateFriendsList(): void 
@@ -514,109 +478,9 @@ export class GameLobby extends BaseComponent
     
     private canStartGame(): boolean 
     {
-        if (!this.isCurrentUserHost()) {
-            return false;
-        }
-
         const activePlayers = this.playerSlots.filter(slot => slot.playerName !== null);
         const allReady = activePlayers.every(slot => slot.isReady);
         return activePlayers.length >= 2 && allReady;
-    }
-
-    private isCurrentUserHost(): boolean {
-        if (!this.currentUser) {
-            return false;
-        }
-        const hostSlot = this.playerSlots.find(s => s.isHost);
-        const result = hostSlot?.userId === this.currentUser.id;
-        return result;
-    }
-
-    private isCurrentUserSlot(slot: PlayerSlot): boolean {
-        if (!this.currentUser || !slot.userId) return false;
-        return slot.userId === this.currentUser.id;
-    }
-
-    private shouldShowKickButton(slot: PlayerSlot): boolean {
-        if (!slot.playerName) {
-            return false;
-        }
-        if (!this.isCurrentUserHost()) {
-            return false;
-        }
-        if (slot.isHost) {
-            return false;
-        }
-        return true;
-    }
-
-    private refreshPlayerCard(slotId: number): void {
-        const slot = this.playerSlots.find(s => s.id === slotId);
-        if (!slot) return;
-
-        const cardElement = document.querySelector(`[data-slot="${slotId}"]`)?.closest('.player-card');
-        if (cardElement && cardElement.parentElement) {
-            const temp = document.createElement('div');
-            temp.innerHTML = this.renderPlayerSlot(slot);
-            
-            const newCard = temp.firstElementChild!;
-            cardElement.parentElement.replaceChild(newCard, cardElement);
-            
-            this.attachCardEventListeners(newCard as HTMLElement);
-        }
-    }
-
-    private updateStartButton(): void {
-        const startBtn = document.getElementById('startGameBtn') as HTMLButtonElement;
-        if (!startBtn) return;
-
-        const canStart = this.canStartGame();
-        
-        if (canStart) {
-            startBtn.disabled = false;
-            startBtn.className = 'mb-6 py-3 px-12 rounded-xl text-xl font-bold transition-all self-center flex-shrink-0 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-2xl shadow-cyan-500/50 border-2 border-cyan-500';
-        } else {
-            startBtn.disabled = true;
-            startBtn.className = 'mb-6 py-3 px-12 rounded-xl text-xl font-bold transition-all self-center flex-shrink-0 bg-gray-700 text-gray-500 cursor-not-allowed border-2 border-gray-600';
-        }
-    }
-
-    private attachCardEventListeners(card: HTMLElement): void {
-        const addBtn = card.querySelector('.add-player-btn');
-        if (addBtn) {
-            addBtn.addEventListener('click', (e) => {
-                const target = e.target as HTMLElement;
-                const slotId = parseInt(target.dataset.slot || '0');
-                this.handleAddPlayer(slotId);
-            });
-        }
-
-        const changeBtn = card.querySelector('.change-btn');
-        if (changeBtn) {
-            changeBtn.addEventListener('click', (e) => {
-                const target = e.target as HTMLElement;
-                const slotId = parseInt(target.dataset.slot || '0');
-                this.handleChangeCustomization(slotId);
-            });
-        }
-
-        const readyBtn = card.querySelector('.ready-btn');
-        if (readyBtn) {
-            readyBtn.addEventListener('click', (e) => {
-                const target = e.target as HTMLElement;
-                const slotId = parseInt(target.dataset.slot || '0');
-                this.toggleReady(slotId);
-            });
-        }
-
-        const removeBtn = card.querySelector('.remove-btn');
-        if (removeBtn) {
-            removeBtn.addEventListener('click', (e) => {
-                const target = e.target as HTMLElement;
-                const slotId = parseInt(target.dataset.slot || '0');
-                this.handleRemovePlayer(slotId);
-            });
-        }
     }
     
     async mount(selector?: string): Promise<void> 
@@ -811,16 +675,23 @@ export class GameLobby extends BaseComponent
             return;
         }
         
-        const message = chatInput.value.trim();
-        const lobbyId = this.getLobbyIdFromUrl();
+        const now = new Date();
+        const time = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
         
-        // Send message via WebSocket to backend
-        webSocketService.send('lobby:chat', {
-            lobbyId,
-            message
+        this.chatMessages.push({
+            player: this.currentUser?.username || 'PLAYER 1',
+            message: chatInput.value.trim().toUpperCase(),
+            time: time
         });
         
         chatInput.value = '';
+        
+        const chatContainer = document.getElementById('chatMessages');
+        if (chatContainer) 
+        {
+            chatContainer.innerHTML = this.renderChatMessages();
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
     }
     
     private handleStartGame(): void 
@@ -967,72 +838,31 @@ export class GameLobby extends BaseComponent
     private handleRemovePlayer(slotId: number): void 
     {
         const slot = this.playerSlots[slotId];
-        if (!slot || !slot.userId) return;
-
-        // Only host can kick
-        if (!this.isCurrentUserHost()) {
-            return;
+        if (slot && slotId !== 0) 
+        {
+            slot.playerName = null;
+            slot.userId = null;
+            slot.isOnline = false;
+            slot.isAI = false;
+            slot.aiDifficulty = undefined;
+            slot.isReady = false;
+            slot.customization = null;
+            this.refresh();
         }
-
-        import('../../services/websocket/WebSocketService').then(({ webSocketService }) => {
-            if (slot.isAI) {
-                slot.playerName = null;
-                slot.userId = null;
-                slot.isOnline = false;
-                slot.isAI = false;
-                slot.aiDifficulty = undefined;
-                slot.isReady = false;
-                slot.isHost = false;
-                slot.customization = null;
-                this.refreshPlayerCard(slotId);
-            } else {
-                webSocketService.send('lobby:kick', {
-                    lobbyId: this.getLobbyIdFromUrl(),
-                    targetUserId: slot.userId,
-                });
-            }
-        });
-    }
-
-    private getLobbyIdFromUrl(): string | null {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('id');
     }
     
     private toggleReady(slotId: number): void 
     {
         const slot = this.playerSlots[slotId];
-        if (!slot || !slot.playerName) return;
-        
-        if (!this.currentUser || slot.userId !== this.currentUser.id) {
-            return;
+        if (slot && slot.playerName) 
+        {
+            slot.isReady = !slot.isReady;
+            this.refresh();
         }
-        
-        const newReadyState = !slot.isReady;
-        
-        // Send to backend (DON'T update locally, wait for broadcast confirmation)
-        const lobbyId = this.getLobbyIdFromUrl();
-        if (lobbyId) {
-            webSocketService.send('lobby:ready', {
-                lobbyId,
-                isReady: newReadyState
-            });
-        }
-        
-        // NOTE: Don't update locally! Wait for backend broadcast to confirm
-        // This prevents the infinite loop caused by receiving our own broadcast
     }
     
     private handleChangeCustomization(slotId: number): void 
     {
-        const slot = this.playerSlots[slotId];
-        if (!slot || !slot.playerName) return;
-        
-        // Only allow current user to change their own customization
-        if (!this.currentUser || slot.userId !== this.currentUser.id) {
-            return;
-        }
-        
         this.currentCustomizingSlot = slotId;
         
         if (this.config.gameType === 'podracer') 
@@ -1064,8 +894,9 @@ export class GameLobby extends BaseComponent
         this.currentCustomizingSlot = null;
     }
     
-    private selectPaddle(_paddleIndex: number): void 
+    private selectPaddle(paddleIndex: number): void 
     {
+        console.log(`Selected paddle: ${paddleIndex}`);
         this.closePaddleModal();
     }
     
@@ -1134,128 +965,6 @@ export class GameLobby extends BaseComponent
 
         container.innerHTML = this.render();
         this.attachEventListeners();
-    }
-    
-    /**
-     * Add a player to the lobby (called from WebSocket events)
-     */
-    /**
-     * Add a player to the lobby (called from WebSocket events)
-     */
-    public addPlayer(player: any): void {
-        // Check if player already exists (avoid duplicates)
-        if (this.hasPlayer(player.userId)) {
-            return;
-        }
-        
-        // Find empty slot
-        const emptySlot = this.playerSlots.find(slot => !slot.playerName);
-        if (!emptySlot) {
-            return;
-        }
-
-        // Populate slot with player data
-        emptySlot.playerName = player.username;
-        emptySlot.userId = player.userId;
-        emptySlot.isOnline = player.isOnline ?? true;
-        emptySlot.isAI = player.isAI ?? false;
-        emptySlot.isReady = player.isReady ?? false;
-        emptySlot.isHost = player.isHost ?? false;
-        emptySlot.avatarUrl = player.avatarUrl || '/assets/images/default-avatar.jpeg';
-        emptySlot.customization = player.customization || null;
-
-        // Refresh only the player card instead of whole page
-        this.refreshPlayerCard(emptySlot.id);
-    }
-
-    /**
-     * Check if a player is already in the lobby
-     */
-    public hasPlayer(userId: string): boolean {
-        return this.playerSlots.some(slot => slot.userId === userId);
-    }
-
-    /**
-     * Update a player's ready status (called from WebSocket events)
-     */
-    public updatePlayerReady(userId: string, isReady: boolean): void {
-        const slot = this.playerSlots.find(s => s.userId === userId);
-        if (!slot) {
-            return;
-        }
-
-        slot.isReady = isReady;
-        this.refreshPlayerCard(slot.id);
-        this.updateStartButton(); // Update start button state when ready status changes
-    }
-
-    /**
-     * Remove a player from the lobby (called from WebSocket events)
-     */
-    public removePlayer(userId: string): void {
-        const slot = this.playerSlots.find(s => s.userId === userId);
-        if (!slot) {
-            return;
-        }
-
-        // Clear slot
-        slot.playerName = null;
-        slot.userId = null;
-        slot.isOnline = false;
-        slot.isAI = false;
-        slot.isReady = false;
-        slot.isHost = false;
-        slot.avatarUrl = '/assets/images/default-avatar.jpeg';
-        slot.customization = null;
-
-        // Refresh only the player card, not the whole page
-        this.refreshPlayerCard(slot.id);
-    }
-
-    /**
-     * Clear all players from lobby (useful for reconnect/refresh)
-     */
-    public clearAllPlayers(): void {
-        this.playerSlots.forEach(slot => {
-            // Clear player data but keep slot available
-            slot.playerName = null;
-            slot.userId = null;
-            slot.isOnline = false;
-            slot.isAI = false;
-            slot.isReady = false;
-            slot.isHost = false;
-            slot.avatarUrl = '/assets/images/default-avatar.jpeg';
-            slot.customization = null;
-        });
-        this.refresh();
-    }
-
-    /**
-     * Update lobby state (called from WebSocket events)
-     */
-    public updateLobbyState(_lobbyData: any): void {
-        // Implement full lobby state sync if needed
-        // For now, this is a placeholder for future enhancements
-    }
-
-    /**
-     * Add chat message (called from WebSocket events)
-     */
-    public addChatMessage(messageData: any): void {
-        const now = new Date();
-        const time = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-        
-        this.chatMessages.push({
-            player: messageData.username || messageData.player || 'PLAYER',
-            message: (messageData.message || messageData.text || '').toUpperCase(),
-            time: messageData.time || time
-        });
-        
-        const chatContainer = document.getElementById('chatMessages');
-        if (chatContainer) {
-            chatContainer.innerHTML = this.renderChatMessages();
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
     }
     
     public dispose(): void 

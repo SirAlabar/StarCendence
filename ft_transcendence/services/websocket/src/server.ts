@@ -21,11 +21,11 @@ async function start()
     console.log(`Health check: ${address}${config.healthPath}`);
     console.log(`Environment: ${config.nodeEnv}`);
 
-    // Periodic logging of connected users (every 2 minutes)
+    // Periodic logging of connected users (every minute)
     setInterval(() =>
     {
       connectionPool.logConnectedUsers();
-    }, 60000); // 1 minute 
+    }, 60000);
 
     // Log initial state
     connectionPool.logConnectedUsers();

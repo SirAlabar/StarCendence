@@ -87,7 +87,7 @@ export class Header extends BaseComponent
     private renderNavigation(): string 
     {
         return `
-            <div class="flex items-center gap-3">
+            <div class="flex items-center">
                 ${this.renderHamburgerButton()}
 
                 <nav class="flex max-md:hidden items-center space-x-2" aria-label="main">

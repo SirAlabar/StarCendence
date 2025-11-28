@@ -150,37 +150,6 @@ export class Settings extends BaseComponent
                             </div>
                         </div>
                         
-                        <!-- Two-Factor Authentication -->
-                        <div class="border-b border-gray-700 pb-4 sm:pb-6">
-                            <h3 class="text-lg sm:text-xl font-bold text-cyan-300 mb-3 sm:mb-4">TWO-FACTOR AUTHENTICATION</h3>
-                            
-                            <div class="bg-gray-900/50 border-2 border-gray-700 rounded-lg p-3 sm:p-4 mb-4">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-sm sm:text-base font-bold ${this.is2FAEnabled ? 'text-green-400' : 'text-gray-400'}">
-                                            ${this.is2FAEnabled ? '✓ 2FA ENABLED' : '✗ 2FA DISABLED'}
-                                        </p>
-                                        <p class="text-xs text-gray-500 mt-1">
-                                            ${this.is2FAEnabled ? 'Your account is protected with 2FA' : 'Add an extra layer of security'}
-                                        </p>
-                                    </div>
-                                    ${this.is2FAEnabled 
-                                        ? `<button id="disable-2fa-btn" class="neon-border-red px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-red-400 text-xs sm:text-sm whitespace-nowrap">
-                                            DISABLE
-                                        </button>`
-                                        : `<button id="enable-2fa-btn" class="neon-border-green px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold text-green-400 text-xs sm:text-sm whitespace-nowrap">
-                                            ENABLE
-                                        </button>`
-                                    }
-                                </div>
-                            </div>
-                            
-                            <!-- 2FA Setup Area (shown when enabling) -->
-                            <div id="twofa-setup-area" style="display: ${this.showQRCode ? 'block' : 'none'};">
-                                ${this.render2FASetup()}
-                            </div>
-                        </div>
-                        
                         <!-- Privacy Settings -->
                         <div class="border-b border-gray-700 pb-4 sm:pb-6">
                             <h3 class="text-lg sm:text-xl font-bold text-cyan-300 mb-3 sm:mb-4">PRIVACY</h3>
@@ -632,6 +601,7 @@ export class Settings extends BaseComponent
         try 
         {
             await TwoFactorService.verify2FA(code);
+
             this.is2FAEnabled = true;
             this.showQRCode = false;
             this.qrCodeDataURL = '';
@@ -645,6 +615,7 @@ export class Settings extends BaseComponent
             this.showMessage((error as Error).message || 'Invalid code', 'error');
         }
     }
+
 
     private async handleDisable2FA(): Promise<void> 
     {
