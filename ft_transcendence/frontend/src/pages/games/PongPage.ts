@@ -1,6 +1,7 @@
 import { BaseComponent } from '../../components/BaseComponent';
 import { gameManager } from '../../game/managers/PongManager';
 import { navigateTo, isAuthenticated } from '../../router/router';
+import { Modal } from '@/components/common/Modal';
 
 type GameMode = 'local-multiplayer' | 'online-multiplayer' | 'ai' | 'tournament' | null;
 type ViewType = '2d' | '3d' | null;
@@ -732,9 +733,15 @@ export default class PongPage extends BaseComponent
         }
     }
 
-    private handleGameBack(): void 
+    private async handleGameBack(): Promise<void> 
     {
-        const result = confirm('Are you sure you want to leave the game?');
+        const result = await Modal.confirm(
+            'Exit Game',
+            'Are you sure you want to exit the game?',
+            'EXIT',
+            'CANCEL',
+            true
+        );
         if (result) 
         {
             this.goBack();
