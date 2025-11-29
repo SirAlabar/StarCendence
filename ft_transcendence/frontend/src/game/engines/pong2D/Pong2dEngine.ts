@@ -24,6 +24,10 @@ export class LocalPongEngine
     private paused: boolean = false;
     private ended: boolean = false;
     private keys: {[key:string]: boolean} = {};
+    private waitingForSpace: boolean = false;
+    private startdelay = 2000;
+    private starttime = 0
+    private gameStarted : boolean = false;
 
     //Configs
     private config: GameConfig;
@@ -116,18 +120,15 @@ export class LocalPongEngine
 
     start(): void
     {
-        if(this.paused)
+        if (this.paused)
             this.paused = false;
 
-        if(this.config.mode === 'ai' && this.enemy)
-        {
-            this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
-        }
-        
-        this.emitEvent({type: 'game-started'});
-        
-        this.update();
+        this.starttime = Date.now();    // record countdown start
 
+        if (this.config.mode === 'ai' && this.enemy)
+            this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
+
+        this.update();  // start rendering immediately
     }
 
     stop(): void 
@@ -151,6 +152,7 @@ export class LocalPongEngine
     {
         this.paused = false;
         this.emitEvent({type: 'game-resumed'});
+    
         this.update();
     }
 
@@ -204,16 +206,36 @@ export class LocalPongEngine
 
     private update = (): void =>
     {
-        if(this.ended || this.paused)
+        if (this.ended || this.paused)
             return;
 
-        //clear and update frame
+        if(this.waitingForSpace == true)
+        {
+            this.stop()
+        }
+        // Check countdown
+        if (!this.gameStarted) 
+        {
+            const elapsed = Date.now() - this.starttime;
+            if (elapsed >= this.startdelay) 
+            {
+                this.gameStarted = true;
+                this.emitEvent({ type: 'game-started' });
+            }
+        }
+
+
         this.clear();
         this.updatePaddles();
-        this.updateBall();
+
+        // Only move the ball if the game actually started
+        if (this.gameStarted) 
+        {
+            this.updateBall();
+        }
+        
         this.checkCollisions();
         this.render();
-
         if (this.player1.score >= 3 || 
             (this.player2 && this.player2.score >= 3) || 
             (this.enemy && this.enemy.score >= 3)) 
@@ -221,8 +243,10 @@ export class LocalPongEngine
                 this.handleGameEnd();
                 return;
             }
+
         this.animationFrameId = requestAnimationFrame(this.update);
     };
+
     
     private updateBall(): void 
     {
@@ -257,11 +281,11 @@ export class LocalPongEngine
         // Player 2 / AI (right paddle)
         if (this.config.mode === 'local-multiplayer') 
         {
-            if (this.keys['8'] && this.paddleright.y > 0) 
+            if (this.keys['arrowup'] && this.paddleright.y > 0) 
             {
                 this.paddleright.y -= speed;
             }
-            if (this.keys['2'] && this.paddleright.y + this.paddleright.height < this.canvas.height) 
+            if (this.keys['arrowdown'] && this.paddleright.y + this.paddleright.height < this.canvas.height) 
             {
                 this.paddleright.y += speed;
             }
@@ -312,7 +336,6 @@ export class LocalPongEngine
         {
             const speedIncrease = 1.10;
             this.ball.dx = -this.ball.dx * speedIncrease;
-            
             const relativeIntersectY = (this.ball.y - (paddle.y + paddle.height / 2)) / (paddle.height / 2);
             this.ball.dy += relativeIntersectY * 4;
             
@@ -350,6 +373,14 @@ export class LocalPongEngine
             }
         }
         
+        // Emit score update event
+        const player2Score = this.player2?.score || this.enemy?.score || 0;
+        this.emitEvent({ 
+            type: 'score-updated', 
+            player1Score: this.player1.score,
+            player2Score: player2Score
+        });
+        
         this.emitEvent({ type: 'goal-scored', scorer });
         
         
@@ -358,12 +389,8 @@ export class LocalPongEngine
         this.resetBall(direction, Math.random() > 0.5 ? 1 : -1);
         this.resetPaddles();
         
-        // Resume after delay
-        setTimeout(() => {
-            if (!this.ended) {
-                this.start();
-            }
-        }, 1000);
+        this.waitingForSpace = true;
+        
     }
     
     private handleGameEnd(): void 
@@ -399,13 +426,10 @@ export class LocalPongEngine
     
     private render(): void 
     {
-        // Draw score
-        this.drawScore();
-        
         // Draw game objects
         this.ball.draw(this.ctx);
         this.paddleleft.draw(this.ctx);
-        
+    
         if (this.config.mode === 'local-multiplayer') 
         {
             this.paddleright.draw(this.ctx);
@@ -415,18 +439,6 @@ export class LocalPongEngine
             this.enemy.draw(this.ctx);
         }
         
-    }
-    
-    private drawScore(): void 
-    {
-        this.ctx.fillStyle = "white";
-        this.ctx.font = "48px 'Press Start To Play', monospace";
-        this.ctx.textAlign = "center";
-        
-        this.ctx.fillText(`${this.player1.score}`, this.canvas.width / 4, 50);
-        
-        const score2 = this.player2?.score || this.enemy?.score || 0;
-        this.ctx.fillText(`${score2}`, (this.canvas.width / 4) * 3, 50);
     }
     
     private drawPauseOverlay(): void 
@@ -439,15 +451,37 @@ export class LocalPongEngine
         this.ctx.fillStyle = "white";
         this.ctx.font = "48px 'Press Start To Play', monospace";
         this.ctx.textAlign = "center";
-        this.ctx.fillText("PAUSED", this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.fillText("PAUSED", this.canvas.width / 2, this.canvas.height / 3.50);
+        this.ctx.font = "25px 'Press Start To Play', monospace";
+        this.ctx.fillStyle = "red";
+        this.ctx.fillText("Player 1 - UP (W) Down (S)", this.canvas.width / 2, this.canvas.height / 1.80);
+        this.ctx.fillStyle = "green";
+        this.ctx.fillText("Player 2 - UP (↑) Down(↓) ", this.canvas.width / 2, this.canvas.height / 1.70);
+        this.ctx.fillStyle = "green";
+        this.ctx.fillText("Start Ball (SPACEBAR) ", this.canvas.width / 2, this.canvas.height / 1.60);
+        this.ctx.fillStyle = "red";
+        this.ctx.fillText("Pause (ESC)", this.canvas.width / 2, this.canvas.height / 1.50);
+        
         this.ctx.restore();
     }
     
   
     
-    private keydownHandler = (e: KeyboardEvent) => {
-        this.keys[e.key.toLowerCase()] = true;
+    private keydownHandler = (e: KeyboardEvent) => 
+    {
+        const key = e.key.toLowerCase();
+        this.keys[key] = true;
+
+        if (key === ' ' || key === 'space') 
+        {
+            if (this.waitingForSpace && !this.ended) 
+                {
+                    this.waitingForSpace = false;
+                    this.start();
+                }
+        }
     };
+
     
     private keyupHandler = (e: KeyboardEvent) => {
         this.keys[e.key.toLowerCase()] = false;
@@ -498,5 +532,6 @@ export class LocalPongEngine
         this.ball.dy *= heightRatio;
     }
     
+
 
 }

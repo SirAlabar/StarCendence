@@ -8,6 +8,16 @@ import OnlineFriendsService, { FriendWithStatus } from '../../services/websocket
 import { UserProfile } from '../../types/user.types';
 import { AiDifficulty } from '../../game/engines/pong2D/entities/EnemyAi';
 
+// Paddle style options used in Pong lobby and preview
+const PADDLE_OPTIONS = [
+    { name: 'Default', color: 'from-cyan-500 to-blue-600' },
+    { name: 'Fire', color: 'from-red-500 to-orange-600' },
+    { name: 'Neon', color: 'from-pink-500 to-purple-600' },
+    { name: 'Forest', color: 'from-green-500 to-emerald-600' },
+    { name: 'Gold', color: 'from-yellow-500 to-amber-600' },
+    { name: 'Ice', color: 'from-blue-300 to-cyan-400' }
+];
+
 export type GameType = 'pong' | 'podracer';
 
 export interface PlayerSlot 
@@ -21,6 +31,9 @@ export interface PlayerSlot
     isReady: boolean;
     avatarUrl: string;
     customization: PodConfig | null;
+    // Paddle appearance (pong-specific)
+    paddleName?: string | null;
+    paddleGradient?: string | null;
 }
 
 export interface LobbyConfig 
@@ -106,7 +119,9 @@ export class GameLobby extends BaseComponent
                 isAI: false,
                 isReady: false,
                 avatarUrl: this.currentUser.avatarUrl || '/assets/images/default-avatar.jpeg',
-                customization: this.config.gameType === 'podracer' ? AVAILABLE_PODS[0] : null
+                customization: this.config.gameType === 'podracer' ? AVAILABLE_PODS[0] : null,
+                paddleName: this.config.gameType === 'pong' ? 'Default' : null,
+                paddleGradient: this.config.gameType === 'pong' ? 'from-cyan-500 to-blue-600' : null
             });
         }
         
@@ -120,7 +135,9 @@ export class GameLobby extends BaseComponent
                 isAI: false,
                 isReady: false,
                 avatarUrl: '/assets/images/default-avatar.jpeg',
-                customization: null
+                customization: null,
+                paddleName: this.config.gameType === 'pong' ? 'Default' : null,
+                paddleGradient: this.config.gameType === 'pong' ? 'from-cyan-500 to-blue-600' : null
             });
         }
     }
@@ -399,9 +416,11 @@ export class GameLobby extends BaseComponent
         }
         else if (this.config.gameType === 'pong') 
         {
+            const gradient = slot.paddleGradient || 'from-cyan-500 to-blue-600';
+            const name = slot.paddleName || 'Default Paddle';
             return `
-                <div class="w-10 h-16 bg-gradient-to-b from-cyan-500 to-blue-600 rounded-lg mb-1"></div>
-                <p class="text-cyan-300 font-bold text-xs text-center">Default Paddle</p>
+                <div class="w-10 h-16 bg-gradient-to-b ${gradient} rounded-lg mb-1"></div>
+                <p class="text-cyan-300 font-bold text-xs text-center">${name}</p>
             `;
         }
         
@@ -446,16 +465,7 @@ export class GameLobby extends BaseComponent
     
     private renderPaddleOptions(): string 
     {
-        const paddles = [
-            { name: 'Default', color: 'from-cyan-500 to-blue-600' },
-            { name: 'Fire', color: 'from-red-500 to-orange-600' },
-            { name: 'Neon', color: 'from-pink-500 to-purple-600' },
-            { name: 'Forest', color: 'from-green-500 to-emerald-600' },
-            { name: 'Gold', color: 'from-yellow-500 to-amber-600' },
-            { name: 'Ice', color: 'from-blue-300 to-cyan-400' }
-        ];
-        
-        return paddles.map((paddle, index) => `
+        return PADDLE_OPTIONS.map((paddle, index) => `
             <button class="select-paddle-btn p-6 rounded-xl border-2 border-cyan-500/30 bg-gray-800/50 hover:border-cyan-500 hover:bg-gray-700/50 transition-all" data-paddle="${index}">
                 <div class="w-12 h-20 bg-gradient-to-b ${paddle.color} rounded-lg mb-3 mx-auto"></div>
                 <p class="text-cyan-300 font-bold text-sm">${paddle.name}</p>
@@ -509,6 +519,7 @@ export class GameLobby extends BaseComponent
         const root = document.querySelector(this.mountSelector);
         if (!root) 
         {
+            
             return;
         }
 
@@ -787,6 +798,11 @@ export class GameLobby extends BaseComponent
             slot.isReady = false;
             slot.avatarUrl = friend.avatarUrl;
             slot.customization = this.config.gameType === 'podracer' ? AVAILABLE_PODS[this.currentCustomizingSlot % AVAILABLE_PODS.length] : null;
+            if (this.config.gameType === 'pong') 
+            {
+                slot.paddleName = slot.paddleName || 'Default';
+                slot.paddleGradient = slot.paddleGradient || 'from-cyan-500 to-blue-600';
+            }
         }
         
         this.closeInviteModal();
@@ -829,6 +845,11 @@ export class GameLobby extends BaseComponent
             slot.aiDifficulty = difficulty;
             slot.isReady = true;
             slot.customization = null;
+            if (this.config.gameType === 'pong') 
+            {
+                slot.paddleName = slot.paddleName || 'Default';
+                slot.paddleGradient = slot.paddleGradient || 'from-cyan-500 to-blue-600';
+            }
         }
         
         this.closeAIModal();
@@ -896,8 +917,22 @@ export class GameLobby extends BaseComponent
     
     private selectPaddle(paddleIndex: number): void 
     {
-        console.log(`Selected paddle: ${paddleIndex}`);
+        if (this.currentCustomizingSlot === null) 
+        {
+            return;
+        }
+
+        const option = PADDLE_OPTIONS[paddleIndex];
+        const slot = this.playerSlots[this.currentCustomizingSlot];
+        if (slot) 
+        {
+            slot.paddleName = option.name;
+            slot.paddleGradient = option.color;
+            console.log(slot.paddleName, slot.paddleGradient)
+        }
+
         this.closePaddleModal();
+        this.refresh();
     }
     
     private showPodSelectionModal(): void 
