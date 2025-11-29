@@ -1,6 +1,7 @@
 import { BaseComponent } from '../../components/BaseComponent';
 import { gameManager } from '../../game/managers/PongManager';
 import { navigateTo, isAuthenticated } from '../../router/router';
+import { Modal } from '@/components/common/Modal';
 
 type GameMode = 'local-multiplayer' | 'online-multiplayer' | 'ai' | 'tournament' | null;
 type ViewType = '2d' | '3d' | null;
@@ -19,9 +20,36 @@ export default class PongPage extends BaseComponent
     render(): string 
     {
         return `
-            <div class="w-full h-screen flex flex-col">
+            <div class="w-full h-screen flex flex-col bg-gray-950">
                 <!-- Message Container -->
                 <div id="pongMessage" class="w-full px-4 pt-4"></div>
+                
+                <!-- Game HUD (Score, Back Button, Controls) -->
+                <div id="pongHUD" class="w-full px-4 py-4 bg-gray-900/80 border-b border-cyan-500/50 hidden">
+                    <div class="max-w-7xl mx-auto flex items-center justify-between">
+                        <!-- Score Display -->
+                        <div class="flex-1 flex justify-around items-center">
+                            <div class="text-center">
+                                <p class="text-xs sm:text-sm text-gray-400 mb-1">PLAYER 1</p>
+                                <p id="score1" class="text-3xl sm:text-4xl md:text-5xl font-bold text-cyan-400 font-mono">0</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-500">-</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-xs sm:text-sm text-gray-400 mb-1"><span id="player2Label">PLAYER 2</span></p>
+                                <p id="score2" class="text-3xl sm:text-4xl md:text-5xl font-bold text-purple-400 font-mono">0</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Back Button -->
+                        <button id="gameBackBtn" class="ml-4 sm:ml-8 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm md:text-base transition-all">
+                            ← BACK
+                        </button>
+                    </div>
+                </div>
+                
+               
                 
                 <!-- Main Content Area -->
                 <div class="flex-1 flex items-center justify-center p-4 overflow-auto">
@@ -256,6 +284,8 @@ export default class PongPage extends BaseComponent
         gameManager.on('game:ended', this.gameEndHandler);
         gameManager.on('game:goal', this.gameGoalHandler);
         gameManager.on('game:paddle-hit', this.gamePaddleHitHandler);
+        gameManager.on('game:score-update', this.handleScoreUpdate.bind(this));
+        gameManager.on('game:score-update_3d', this.handleScoreUpdate.bind(this));
         
         
     }
@@ -306,6 +336,12 @@ export default class PongPage extends BaseComponent
         if (backBtn) 
         {
             backBtn.addEventListener('click', () => this.goBack());
+        }
+        
+        const gameBackBtn = document.getElementById('gameBackBtn');
+        if (gameBackBtn) 
+        {
+            gameBackBtn.addEventListener('click', () => this.handleGameBack());
         }
     }
 
@@ -525,6 +561,9 @@ export default class PongPage extends BaseComponent
     {
         const menu = document.getElementById('pongMenuContainer');
         const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
+        const hud = document.getElementById('pongHUD');
+        const controlsInfo = document.getElementById('controlsInfo');
+        const player2Label = document.getElementById('player2Label');
         
         if (!canvas) 
         {
@@ -535,6 +574,22 @@ export default class PongPage extends BaseComponent
         if (menu) 
         {
             menu.style.display = 'none';
+        }
+        
+        if (hud) 
+        {
+            hud.classList.remove('hidden');
+        }
+        
+        if (controlsInfo) 
+        {
+            controlsInfo.classList.remove('hidden');
+        }
+        
+        // Update player 2 label based on mode
+        if (player2Label) 
+        {
+            player2Label.textContent = this.selectedMode === 'ai' ? 'AI' : 'PLAYER 2';
         }
         
         if (canvas) 
@@ -644,27 +699,53 @@ export default class PongPage extends BaseComponent
             winnerName = this.selectedMode === 'ai' ? 'AI' : 'Player 2';
         }
         
-    
         this.showWinnerOverlay(winnerName);
-        
-        // Return to games page after showing winner
-        setTimeout(() => 
-        {
-            this.hideWinnerOverlay();
-            this.goBack();
-        }, 3000);
     }
 
     private handleGameGoal(_event: Event): void 
     {
         console.log('⚽ GOAL!');
-        // TODO: Add goal sound effect
+        
     }
 
     private handlePaddleHit(_event: Event): void 
     {
         console.log('🏓 Paddle hit!');
-        // TODO: Add paddle hit sound effect
+        
+    }
+
+    private handleScoreUpdate(event: Event): void 
+    {
+        const customEvent = event as CustomEvent;
+        const { player1Score, player2Score } = customEvent.detail;
+        
+        const score1El = document.getElementById('score1');
+        const score2El = document.getElementById('score2');
+        
+        if (score1El) 
+        {
+            score1El.textContent = String(player1Score);
+        }
+        
+        if (score2El) 
+        {
+            score2El.textContent = String(player2Score);
+        }
+    }
+
+    private async handleGameBack(): Promise<void> 
+    {
+        const result = await Modal.confirm(
+            'Exit Game',
+            'Are you sure you want to exit the game?',
+            'EXIT',
+            'CANCEL',
+            true
+        );
+        if (result) 
+        {
+            this.goBack();
+        }
     }
 
     private showWinnerOverlay(winner: string): void 
@@ -676,12 +757,37 @@ export default class PongPage extends BaseComponent
         }
         
         overlay.innerHTML = `
-            <div class="text-center animate-pulse">
-                <h2 class="text-6xl font-bold text-white mb-4">🏆</h2>
-                <h3 class="text-4xl font-bold text-cyan-400">${this.escapeHtml(winner)} Wins!</h3>
+            <div class="flex flex-col items-center justify-center gap-8 p-8 text-center">
+                <div class="animate-pulse">
+                    <h2 class="text-6xl font-bold text-white mb-4">🏆</h2>
+                    <h3 class="text-4xl font-bold text-cyan-400 mb-2">${this.escapeHtml(winner)} Wins!</h3>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-4 mt-8">
+                    <button id="playAgainBtn" class="px-8 py-4 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold text-lg transition-all shadow-lg shadow-green-500/50">
+                        🔄 PLAY AGAIN
+                    </button>
+                    <button id="goBackBtn" class="px-8 py-4 rounded-lg bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold text-lg transition-all shadow-lg shadow-red-500/50">
+                        🚪 GO BACK
+                    </button>
+                </div>
             </div>
         `;
         overlay.style.display = 'flex';
+        
+        // Attach event listeners
+        const playAgainBtn = overlay.querySelector('#playAgainBtn');
+        const goBackBtn = overlay.querySelector('#goBackBtn');
+        
+        if (playAgainBtn) 
+        {
+            playAgainBtn.addEventListener('click', () => this.playAgain());
+        }
+        
+        if (goBackBtn) 
+        {
+            goBackBtn.addEventListener('click', () => this.goBack());
+        }
     }
 
     private hideWinnerOverlay(): void 
@@ -690,7 +796,21 @@ export default class PongPage extends BaseComponent
         if (overlay) 
         {
             overlay.style.display = 'none';
+            overlay.innerHTML = '';
         }
+    }
+
+    private playAgain(): void 
+    {
+        this.hideWinnerOverlay();
+        // Reset scores
+        const score1El = document.getElementById('score1');
+        const score2El = document.getElementById('score2');
+        if (score1El) score1El.textContent = '0';
+        if (score2El) score2El.textContent = '0';
+        
+        // Restart game with same settings
+        this.startGame();
     }
 
     private resetSelection(): void 
@@ -711,11 +831,24 @@ export default class PongPage extends BaseComponent
         {
             canvas.style.display = 'none';
         }
+        
+        const hud = document.getElementById('pongHUD');
+        if (hud) 
+        {
+            hud.classList.add('hidden');
+        }
+        
+        const controlsInfo = document.getElementById('controlsInfo');
+        if (controlsInfo) 
+        {
+            controlsInfo.classList.add('hidden');
+        }
     }
 
     private goBack(): void 
     {
         this.dispose();
+        //this.resetSelection();
         navigateTo('/games');
     }
 

@@ -2,6 +2,7 @@ import { BaseComponent } from '../../components/BaseComponent';
 import { LoginService } from '../../services/auth/LoginService';
 import { OAuthService } from '../../services/auth/OAuthService';
 import { FormValidator } from '../../services/user/FormValidator';
+import { webSocketService } from '../../services/websocket/WebSocketService';
 
 export default class LoginPage extends BaseComponent 
 {
@@ -405,6 +406,13 @@ export default class LoginPage extends BaseComponent
             {
                 this.showMessage('Login successful! Redirecting...', 'success');
                 
+                // Connect WebSocket after login
+                try {
+                    await webSocketService.connect();
+                } catch (error) {
+                    // Silently handle connection errors
+                }
+                
                 setTimeout(() => 
                 {
                     if (this.dispose) 
@@ -486,6 +494,13 @@ export default class LoginPage extends BaseComponent
 
             this.showMessage('2FA verification successful! Redirecting...', 'success');
             
+            // Connect WebSocket after 2FA login
+            try {
+                await webSocketService.connect();
+            } catch (error) {
+                // Silently handle connection errors
+            }
+            
             setTimeout(() => 
             {
                 if (this.dispose) 
@@ -559,6 +574,13 @@ export default class LoginPage extends BaseComponent
             sessionStorage.removeItem('oauth_temp_token');
 
             this.showMessage('Account created successfully! Redirecting...', 'success');
+            
+            // Connect WebSocket after OAuth account creation
+            try {
+                await webSocketService.connect();
+            } catch (error) {
+                // Silently handle connection errors
+            }
             
             setTimeout(() => 
             {

@@ -1,185 +1,314 @@
-import { WSEventType, ConnectionStatus } from '../../types/websocket.types';
-import { Lobby, LobbyInvitation, LobbyChatMessage } from '../../types/lobby.types';
+// WebSocket client manager
+import { ConnectionStatus } from '../../types/websocket.types';
+import { LoginService } from '../auth/LoginService';
 
-class WebSocketService 
-{
-    private status: ConnectionStatus = ConnectionStatus.DISCONNECTED;
-    private listeners: Map<string, Function[]> = new Map();
+interface WebSocketMessage {
+  type: string;
+  payload: any;
+  timestamp?: number;
+}
+
+class WebSocketService {
+  private socket: WebSocket | null = null;
+  private status: ConnectionStatus = ConnectionStatus.DISCONNECTED;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectInterval = 2000; // 2 seconds
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private wsUrl: string;
+  private listeners: Map<string, Function[]> = new Map();
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+
+  constructor() {
+    const envUrl = import.meta.env.VITE_WS_URL;
     
-    constructor() 
-    {
-        console.log('[WebSocket] 🔧 Mock service initialized');
+    if (envUrl) {
+      this.wsUrl = envUrl;
+    } else {
+      const hostname = window.location.hostname;
+      const port = window.location.port;
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      
+      if (port) {
+        this.wsUrl = `${protocol}//${hostname}:${port}/ws`;
+      } else {
+        const defaultPort = protocol === 'wss:' ? '8443' : '8080';
+        this.wsUrl = `${protocol}//${hostname}:${defaultPort}/ws`;
+      }
     }
-    
-    async connect(): Promise<void> 
-    {
-        console.log('[WebSocket] 🔌 Connecting...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-        this.status = ConnectionStatus.CONNECTED;
-        console.log('[WebSocket] ✅ Connected');
-        this.emit(WSEventType.CONNECT, { timestamp: Date.now() });
+  }
+
+  async connect(): Promise<void> {
+    const token = LoginService.getAccessToken();
+    if (!token) {
+      throw new Error('No access token available for WebSocket connection. Please login first.');
     }
-    
-    disconnect(): void 
-    {
-        console.log('[WebSocket] 🔌 Disconnecting');
+
+    if (this.status === ConnectionStatus.CONNECTED || this.status === ConnectionStatus.CONNECTING) {
+      return;
+    }
+
+    return new Promise((resolve, reject) => {
+      try {
+        this.status = ConnectionStatus.CONNECTING;
+        const url = `${this.wsUrl}?token=${encodeURIComponent(token)}`;
+        this.socket = new WebSocket(url);
+
+        this.socket.onopen = () => {
+          this.status = ConnectionStatus.CONNECTED;
+          this.reconnectAttempts = 0;
+          this.startHeartbeat();
+          resolve();
+        };
+
+        this.socket.onerror = (error) => {
+          console.error('[WebSocketService] Connection error:', error);
+          this.status = ConnectionStatus.ERROR;
+          reject(new Error(`WebSocket connection failed to ${this.wsUrl}`));
+        };
+
+        this.setupSocketEventHandlers();
+      } catch (error) {
+        console.error('[WebSocketService] Failed to create WebSocket:', error);
         this.status = ConnectionStatus.DISCONNECTED;
-        this.emit(WSEventType.DISCONNECT, { timestamp: Date.now() });
-    }
-    
-    getStatus(): ConnectionStatus 
-    {
-        return this.status;
-    }
-    
-    isConnected(): boolean 
-    {
-        return this.status === ConnectionStatus.CONNECTED;
-    }
-    
-    async createLobby(gameType: 'pong' | 'podracer', maxPlayers: number): Promise<string> 
-    {
-        console.log('[WebSocket] 🎮 Creating lobby', { gameType, maxPlayers });
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const lobbyId = `lobby_${Date.now()}`;
-        console.log('[WebSocket] ✅ Lobby created:', lobbyId);
-        return lobbyId;
-    }
-    
-    async joinLobby(lobbyId: string): Promise<void> 
-    {
-        console.log('[WebSocket] 🚪 Joining lobby:', lobbyId);
-        await new Promise(resolve => setTimeout(resolve, 300));
-        console.log('[WebSocket] ✅ Joined lobby');
-    }
-    
-    async leaveLobby(lobbyId: string): Promise<void> 
-    {
-        console.log('[WebSocket] 🚪 Leaving lobby:', lobbyId);
-        await new Promise(resolve => setTimeout(resolve, 200));
-        console.log('[WebSocket] ✅ Left lobby');
-    }
-    
-    async sendInvitation(lobbyId: string, friendUserId: string): Promise<void> 
-    {
-        console.log('[WebSocket] 📨 Sending invitation via Redis pub/sub', { lobbyId, friendUserId });
-        await new Promise(resolve => setTimeout(resolve, 200));
-        console.log('[WebSocket] ✅ Invitation sent to Redis');
-    }
-    
-    async acceptInvitation(invitationId: string): Promise<void> 
-    {
-        console.log('[WebSocket] ✅ Accepting invitation:', invitationId);
-        await new Promise(resolve => setTimeout(resolve, 200));
-    }
-    
-    async declineInvitation(invitationId: string): Promise<void> 
-    {
-        console.log('[WebSocket] ❌ Declining invitation:', invitationId);
-        await new Promise(resolve => setTimeout(resolve, 200));
-    }
-    
-    async updateReadyStatus(lobbyId: string, isReady: boolean): Promise<void> 
-    {
-        console.log('[WebSocket] 🎯 Updating ready status', { lobbyId, isReady });
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    async updateCustomization(lobbyId: string, _customization: any): Promise<void> 
-    {
-        console.log('[WebSocket] 🎨 Updating customization', { lobbyId });
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    async sendChatMessage(lobbyId: string, message: string): Promise<void> 
-    {
-        console.log('[WebSocket] 💬 Sending chat message', { lobbyId, message });
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    onLobbyUpdate(lobbyId: string, callback: (lobby: Lobby) => void): void 
-    {
-        console.log('[WebSocket] 👂 Registered lobby update listener:', lobbyId);
-        this.addListener(`${WSEventType.LOBBY_UPDATE}:${lobbyId}`, callback);
-    }
-    
-    onPlayerJoin(lobbyId: string, callback: (player: any) => void): void 
-    {
-        console.log('[WebSocket] 👂 Registered player join listener:', lobbyId);
-        this.addListener(`${WSEventType.PLAYER_JOIN}:${lobbyId}`, callback);
-    }
-    
-    onPlayerLeave(lobbyId: string, callback: (playerId: string) => void): void 
-    {
-        console.log('[WebSocket] 👂 Registered player leave listener:', lobbyId);
-        this.addListener(`${WSEventType.PLAYER_LEAVE}:${lobbyId}`, callback);
-    }
-    
-    onInvitationReceived(callback: (invitation: LobbyInvitation) => void): void 
-    {
-        console.log('[WebSocket] 👂 Registered invitation listener');
-        this.addListener(WSEventType.INVITE_RECEIVED, callback);
-    }
-    
-    onChatMessage(lobbyId: string, callback: (message: LobbyChatMessage) => void): void 
-    {
-        console.log('[WebSocket] 👂 Registered chat message listener:', lobbyId);
-        this.addListener(`${WSEventType.CHAT_MESSAGE}:${lobbyId}`, callback);
-    }
-    
-    subscribeFriendsStatus(callback: (userId: string, status: string) => void): void 
-    {
-        console.log('[WebSocket] 👂 Subscribing to friend status updates via Redis pub/sub');
-        this.addListener(WSEventType.STATUS_UPDATE, callback);
-    }
-    
-    unsubscribeFriendsStatus(): void 
-    {
-        console.log('[WebSocket] 🔇 Unsubscribing from friend status updates');
-        this.removeListener(WSEventType.STATUS_UPDATE);
-    }
-    
-    unsubscribeLobby(lobbyId: string): void 
-    {
-        console.log('[WebSocket] 🔇 Unsubscribing from lobby:', lobbyId);
-        this.removeListener(`${WSEventType.LOBBY_UPDATE}:${lobbyId}`);
-        this.removeListener(`${WSEventType.PLAYER_JOIN}:${lobbyId}`);
-        this.removeListener(`${WSEventType.PLAYER_LEAVE}:${lobbyId}`);
-        this.removeListener(`${WSEventType.CHAT_MESSAGE}:${lobbyId}`);
-    }
-    
-    private addListener(event: string, callback: Function): void 
-    {
-        if (!this.listeners.has(event)) 
-        {
-            this.listeners.set(event, []);
+        reject(error);
+        this.handleReconnect();
+      }
+    });
+  }
+
+  private setupSocketEventHandlers(): void {
+    if (!this.socket) return;
+
+    this.socket.onmessage = (event) => {
+      try {
+        const message: WebSocketMessage = JSON.parse(event.data);
+        
+        if (message.type === 'pong' || message.type === 'heartbeat:ack') {
+          return;
         }
-        this.listeners.get(event)!.push(callback);
-    }
+        
+        window.dispatchEvent(new CustomEvent(`ws:${message.type}`, { 
+          detail: message.payload 
+        }));
+
+        this.emit(message.type, message.payload);
+      } catch (error) {
+      }
+    };
+
+    this.socket.onclose = () => {
+      this.status = ConnectionStatus.DISCONNECTED;
+      this.socket = null;
+      this.stopHeartbeat();
+
+      const token = LoginService.getAccessToken();
+      if (token) {
+        this.handleReconnect();
+      }
+    };
+  }
+
+  /**
+   * Start heartbeat to keep connection alive
+   */
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
     
-    private removeListener(event: string): void 
-    {
-        this.listeners.delete(event);
-    }
-    
-    private emit(event: string, data: any): void 
-    {
-        const callbacks = this.listeners.get(event);
-        if (callbacks) 
-        {
-            callbacks.forEach(cb => 
-            {
-                try 
-                {
-                    cb(data);
-                }
-                catch (error) 
-                {
-                    console.error('[WebSocket] Error in listener:', error);
-                }
-            });
+    // Send heartbeat every 30 seconds
+    this.heartbeatInterval = setInterval(() => {
+      if (this.socket && this.status === ConnectionStatus.CONNECTED) {
+        try {
+          this.socket.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+        } catch (error) {
+          // Connection may be closed
         }
+      }
+    }, 30000);
+  }
+
+  /**
+   * Stop heartbeat
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
     }
+  }
+
+  /**
+   * Handle reconnection with exponential backoff
+   */
+  private handleReconnect(): void {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.reconnectAttempts = 0;
+      return;
+    }
+
+    this.status = ConnectionStatus.RECONNECTING;
+    this.reconnectAttempts++;
+    
+    const delay = this.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1);
+
+    this.reconnectTimer = setTimeout(() => {
+      this.connect().catch(() => {});
+    }, delay);
+  }
+
+
+  disconnect(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
+    this.stopHeartbeat();
+
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+
+    this.status = ConnectionStatus.DISCONNECTED;
+    this.reconnectAttempts = 0;
+  }
+
+
+  send(type: string, payload: any): boolean {
+    if (!this.socket || this.status !== ConnectionStatus.CONNECTED) {
+      return false;
+    }
+
+    try {
+      const message: WebSocketMessage = {
+        type,
+        payload,
+        timestamp: Date.now(),
+      };
+      this.socket.send(JSON.stringify(message));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  reconnect(): void {
+    const token = LoginService.getAccessToken();
+    if (!token) {
+      return;
+    }
+
+    this.disconnect();
+    setTimeout(() => {
+      this.connect().catch(() => {});
+    }, 100);
+  }
+
+
+  isConnected(): boolean {
+    return this.status === ConnectionStatus.CONNECTED && 
+           this.socket !== null && 
+           this.socket.readyState === WebSocket.OPEN;
+  }
+
+
+  getStatus(): ConnectionStatus {
+    return this.status;
+  }
+
+  getState(): ConnectionStatus {
+    return this.status;
+  }
+
+
+  
+  private addListener(event: string, callback: Function): void {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, []);
+    }
+    this.listeners.get(event)!.push(callback);
+  }
+
+  private removeListener(event: string, callback?: Function): void {
+    if (callback) {
+      // Remove specific callback
+      const callbacks = this.listeners.get(event);
+      if (callbacks) {
+        const index = callbacks.indexOf(callback);
+        if (index > -1) {
+          callbacks.splice(index, 1);
+        }
+        if (callbacks.length === 0) {
+          this.listeners.delete(event);
+        }
+      }
+    } else {
+      // Remove all callbacks for event
+      this.listeners.delete(event);
+    }
+  }
+
+  /**
+   * Register a listener for all events (wildcard)
+   */
+  on(event: '*' | string, callback: Function): void {
+    if (event === '*') {
+      // For wildcard, add to all events as we emit them
+      this.addListener('*', callback);
+    } else {
+      this.addListener(event, callback);
+    }
+  }
+
+  /**
+   * Remove a listener for an event
+   */
+  off(event: '*' | string, callback: Function): void {
+    this.removeListener(event, callback);
+  }
+
+  private emit(event: string, data: any): void {
+    // Emit to wildcard listeners
+    const wildcardCallbacks = this.listeners.get('*');
+    if (wildcardCallbacks) {
+      wildcardCallbacks.forEach(cb => {
+        try {
+          cb({ type: event, payload: data });
+        } catch (error) {
+          // Silently handle callback errors
+        }
+      });
+    }
+
+    // Emit to specific event listeners
+    const callbacks = this.listeners.get(event);
+    if (callbacks) {
+      callbacks.forEach(cb => {
+        try {
+          cb(data);
+        } catch (error) {
+          // Silently handle listener errors
+        }
+      });
+    }
+  }
+
+  /**
+   * Subscribe to friend status updates
+   */
+  subscribeFriendsStatus(callback: (userId: string, status: string) => void): void {
+    this.on('friend:status', (data: any) => {
+      callback(data.userId, data.status);
+    });
+  }
+
+  /**
+   * Unsubscribe from friend status updates
+   */
+  unsubscribeFriendsStatus(): void {
+    this.removeListener('friend:status');
+  }
 }
 
 export const webSocketService = new WebSocketService();

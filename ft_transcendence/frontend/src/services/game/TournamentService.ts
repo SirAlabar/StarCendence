@@ -1,7 +1,7 @@
-import LobbyService from '../websocket/LobbyService';
+// import LobbyService from '../websocket/LobbyService';
 // import { webSocketService } from '../lobby/WebSocketService';
 import { Tournament, TournamentPlayer, TournamentMatch, CreateTournamentData, TournamentBracketData } from '../../types/tournament.types';
-import { Lobby, LobbyPlayer } from '../../types/lobby.types';
+// import { Lobby, LobbyPlayer } from '../../types/lobby.types';
 import UserService from '../user/UserService';
 
 class TournamentService 
@@ -15,12 +15,12 @@ class TournamentService
 
         try 
         {
-            const lobby = await LobbyService.createLobby('pong', 4);
+            // const lobby = await LobbyService.createLobby('pong', 4);
             const currentUser = await UserService.getProfile();
 
             const tournament: Tournament = {
                 id: `tournament_${Date.now()}`,
-                lobbyId: lobby.id,
+                lobbyId: `lobby_${Date.now()}`, // Temporary ID until websocket is implemented
                 name: data.name,
                 hostId: currentUser.id,
                 hostUsername: currentUser.username,
@@ -296,47 +296,47 @@ class TournamentService
     {
         console.log('[TournamentService] 👂 Subscribing to tournament updates');
 
-        LobbyService.onLobbyUpdate((lobby: Lobby) => 
-        {
-            if (!this.currentTournament) 
-            {
-                return;
-            }
+        // LobbyService.onLobbyUpdate((lobby: Lobby) => 
+        // {
+        //     if (!this.currentTournament) 
+        //     {
+        //         return;
+        //     }
 
-            this.syncPlayersFromLobby(lobby.players);
+        //     this.syncPlayersFromLobby(lobby.players);
 
-            if (this.tournamentUpdateCallback) 
-            {
-                this.tournamentUpdateCallback(this.currentTournament);
-            }
-        });
+        //     if (this.tournamentUpdateCallback) 
+        //     {
+        //         this.tournamentUpdateCallback(this.currentTournament);
+        //     }
+        // });
     }
 
-    private syncPlayersFromLobby(lobbyPlayers: LobbyPlayer[]): void 
-    {
-        if (!this.currentTournament) 
-        {
-            return;
-        }
+    // private syncPlayersFromLobby(lobbyPlayers: LobbyPlayer[]): void 
+    // {
+    //     if (!this.currentTournament) 
+    //     {
+    //         return;
+    //     }
 
-        lobbyPlayers.forEach(lobbyPlayer => 
-        {
-            const exists = this.currentTournament!.players.find(p => p.userId === lobbyPlayer.userId);
-            if (!exists && this.currentTournament!.players.length < 4) 
-            {
-                const newPlayer: TournamentPlayer = {
-                    id: lobbyPlayer.id,
-                    userId: lobbyPlayer.userId,
-                    username: lobbyPlayer.username,
-                    avatarUrl: lobbyPlayer.avatarUrl,
-                    isAI: lobbyPlayer.isAI,
-                    aiDifficulty: lobbyPlayer.aiDifficulty,
-                    seed: this.currentTournament!.players.length + 1
-                };
-                this.currentTournament!.players.push(newPlayer);
-            }
-        });
-    }
+    //     lobbyPlayers.forEach(lobbyPlayer => 
+    //     {
+    //         const exists = this.currentTournament!.players.find(p => p.userId === lobbyPlayer.userId);
+    //         if (!exists && this.currentTournament!.players.length < 4) 
+    //         {
+    //             const newPlayer: TournamentPlayer = {
+    //                 id: lobbyPlayer.id,
+    //                 userId: lobbyPlayer.userId,
+    //                 username: lobbyPlayer.username,
+    //                 avatarUrl: lobbyPlayer.avatarUrl,
+    //                 isAI: lobbyPlayer.isAI,
+    //                 aiDifficulty: lobbyPlayer.aiDifficulty,
+    //                 seed: this.currentTournament!.players.length + 1
+    //             };
+    //             this.currentTournament!.players.push(newPlayer);
+    //         }
+    //     });
+    // }
 
     getBracketData(): TournamentBracketData | null 
     {
@@ -373,7 +373,7 @@ class TournamentService
 
         console.log('[TournamentService] 🚪 Leaving tournament');
 
-        await LobbyService.leaveLobby();
+        // await LobbyService.leaveLobby();
         this.currentTournament = null;
         this.tournamentUpdateCallback = null;
 

@@ -17,7 +17,7 @@ export default class PongLobbyPage extends BaseComponent
         const config: LobbyConfig = 
         {
             gameType: 'pong',
-            maxPlayers: 4,
+            maxPlayers: 2,
             onStartGame: () => this.startPongGame(),
             onBack: () => navigateTo('/pong')
         };

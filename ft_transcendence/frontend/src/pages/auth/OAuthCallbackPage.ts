@@ -1,5 +1,6 @@
 import { BaseComponent } from '../../components/BaseComponent';
 import { OAuthService } from '../../services/auth/OAuthService';
+import { webSocketService } from '../../services/websocket/WebSocketService';
 
 export default class OAuthCallbackPage extends BaseComponent 
 {
@@ -23,7 +24,7 @@ export default class OAuthCallbackPage extends BaseComponent
         this.handleCallback();
     }
 
-    private handleCallback(): void 
+    private async handleCallback(): Promise<void> 
     {
         try 
         {
@@ -32,7 +33,12 @@ export default class OAuthCallbackPage extends BaseComponent
 
             if (result.accessToken && result.refreshToken) 
             {
-                // Existing user - redirect to profile
+                // Existing user - connect WebSocket and redirect to profile
+                try {
+                    await webSocketService.connect();
+                } catch (error) {
+                    // Silently handle connection errors
+                }
                 window.location.replace('/profile');
             } 
             else if (result.token) 
