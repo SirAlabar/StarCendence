@@ -1,6 +1,7 @@
 import { webSocketService } from './WebSocketService';
 
-export interface ChatMessage {
+export interface ChatMessage 
+{
     id?: string;
     lobbyId?: string;
     channelId?: string;
@@ -11,7 +12,8 @@ export interface ChatMessage {
     timestamp: number;
 }
 
-export interface FriendStatusUpdate {
+export interface FriendStatusUpdate 
+{
     userId: string;
     username: string;
     status: 'online' | 'offline' | 'in-game' | 'in-lobby';
@@ -19,7 +21,8 @@ export interface FriendStatusUpdate {
     lobbyId?: string;
 }
 
-export interface Notification {
+export interface Notification 
+{
     id: string;
     type: 'invitation' | 'friend_request' | 'game_started' | 'achievement' | 'system';
     title: string;
@@ -28,7 +31,8 @@ export interface Notification {
     data?: any;
 }
 
-export interface LobbyInvitation {
+export interface LobbyInvitation 
+{
     invitationId: string;
     lobbyId: string;
     gameType: string;
@@ -229,19 +233,14 @@ class GlobalWebSocketHandler {
         });
     }
 
-    // ===== Public API for registering handlers =====
 
-    /**
-     * Register a chat message handler (called for all chat messages)
-     */
     registerChatHandler(handler: ChatHandler): () => void {
         this.chatHandlers.add(handler);
-        // Return unsubscribe function
         return () => this.chatHandlers.delete(handler);
     }
 
     /**
-     * Register a friend status update handler
+     * Register a friend status handler
      */
     registerFriendStatusHandler(handler: FriendStatusHandler): () => void {
         this.friendStatusHandlers.add(handler);

@@ -61,7 +61,8 @@ class WebSocketService {
           resolve();
         };
 
-        this.socket.onerror = () => {
+        this.socket.onerror = (error) => {
+          console.error('[WebSocketService] Connection error:', error);
           this.status = ConnectionStatus.ERROR;
           reject(new Error(`WebSocket connection failed to ${this.wsUrl}`));
         };
@@ -155,9 +156,7 @@ class WebSocketService {
     }, delay);
   }
 
-  /**
-   * Disconnect from WebSocket server
-   */
+
   disconnect(): void {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
@@ -175,9 +174,7 @@ class WebSocketService {
     this.reconnectAttempts = 0;
   }
 
-  /**
-   * Send a message to the WebSocket server (generic method)
-   */
+
   send(type: string, payload: any): boolean {
     if (!this.socket || this.status !== ConnectionStatus.CONNECTED) {
       return false;
@@ -196,9 +193,6 @@ class WebSocketService {
     }
   }
 
-  /**
-   * Reconnect with fresh token
-   */
   reconnect(): void {
     const token = LoginService.getAccessToken();
     if (!token) {
@@ -211,198 +205,24 @@ class WebSocketService {
     }, 100);
   }
 
-  /**
-   * Check if WebSocket is connected
-   */
+
   isConnected(): boolean {
     return this.status === ConnectionStatus.CONNECTED && 
            this.socket !== null && 
            this.socket.readyState === WebSocket.OPEN;
   }
 
-  /**
-   * Get current connection state
-   */
+
   getStatus(): ConnectionStatus {
     return this.status;
   }
 
-  /**
-   * Get current connection state (alias for getStatus)
-   */
   getState(): ConnectionStatus {
     return this.status;
   }
 
-  // ===== Event Listener Infrastructure (Stubs - To be implemented later) =====
 
-  /**
-   * Register listener for lobby updates
-   * TODO: Implement when lobby events are needed
-   */
-  onLobbyUpdate(lobbyId: string, callback: (lobby: any) => void): void {
-    this.addListener(`lobby:update:${lobbyId}`, callback);
-  }
-
-  /**
-   * Register listener for player join
-   * TODO: Implement when player events are needed
-   */
-  onPlayerJoin(lobbyId: string, callback: (player: any) => void): void {
-    this.addListener(`lobby:player:join:${lobbyId}`, callback);
-  }
-
-  /**
-   * Register listener for player leave
-   * TODO: Implement when player events are needed
-   */
-  onPlayerLeave(lobbyId: string, callback: (playerId: string) => void): void {
-    this.addListener(`lobby:player:leave:${lobbyId}`, callback);
-  }
-
-  /**
-   * Register listener for invitations
-   * TODO: Implement when invitation events are needed
-   */
-  onInvitationReceived(callback: (invitation: any) => void): void {
-    this.addListener('lobby:invitation', callback);
-  }
-
-  /**
-   * Register listener for chat messages
-   * TODO: Implement when chat events are needed
-   */
-  onChatMessage(lobbyId: string, callback: (message: any) => void): void {
-    this.addListener(`lobby:chat:${lobbyId}`, callback);
-  }
-
-  /**
-   * Subscribe to friend status updates
-   * TODO: Implement when friend status events are needed
-   */
-  subscribeFriendsStatus(callback: (userId: string, status: string) => void): void {
-    this.addListener('user:status', callback);
-  }
-
-  /**
-   * Unsubscribe from friend status updates
-   */
-  unsubscribeFriendsStatus(): void {
-    this.removeListener('user:status', undefined);
-  }
-
-  /**
-   * Unsubscribe from lobby events
-   */
-  unsubscribeLobby(lobbyId: string): void {
-    this.removeListener(`lobby:update:${lobbyId}`, undefined);
-    this.removeListener(`lobby:player:join:${lobbyId}`, undefined);
-    this.removeListener(`lobby:player:leave:${lobbyId}`, undefined);
-    this.removeListener(`lobby:chat:${lobbyId}`, undefined);
-  }
-
-  // ===== Lobby Methods (Stubs - To be implemented later) =====
-
-  /**
-   * Create a new lobby
-   * TODO: Implement when lobby creation is needed
-   */
-  async createLobby(_gameType: 'pong' | 'podracer', _maxPlayers: number): Promise<string> {
-    if (!this.isConnected()) {
-      await this.connect();
-    }
-
-    // Stub - returns a mock lobby ID
-    // TODO: Implement actual lobby creation when needed
-    return Promise.resolve(`lobby_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-  }
-
-  /**
-   * Join a lobby
-   * TODO: Implement when lobby joining is needed
-   */
-  async joinLobby(lobbyId: string): Promise<void> {
-    if (!this.isConnected()) {
-      await this.connect();
-    }
-
-    // Stub - does nothing for now
-    // TODO: Implement actual lobby joining when needed
-    this.send('lobby:join', { lobbyId });
-  }
-
-  /**
-   * Leave a lobby
-   * TODO: Implement when lobby leaving is needed
-   */
-  async leaveLobby(lobbyId: string): Promise<void> {
-    // Stub - does nothing for now
-    // TODO: Implement actual lobby leaving when needed
-    this.send('lobby:leave', { lobbyId });
-  }
-
-  /**
-   * Send an invitation
-   * TODO: Implement when invitations are needed
-   */
-  async sendInvitation(lobbyId: string, friendUserId: string): Promise<void> {
-    // Stub - does nothing for now
-    // TODO: Implement actual invitation sending when needed
-    this.send('lobby:invite', { lobbyId, friendUserId });
-  }
-
-  /**
-   * Accept an invitation
-   * TODO: Implement when invitations are needed
-   */
-  async acceptInvitation(invitationId: string): Promise<void> {
-    // Stub - does nothing for now
-    // TODO: Implement actual invitation acceptance when needed
-    this.send('lobby:accept', { invitationId });
-  }
-
-  /**
-   * Decline an invitation
-   * TODO: Implement when invitations are needed
-   */
-  async declineInvitation(invitationId: string): Promise<void> {
-    // Stub - does nothing for now
-    // TODO: Implement actual invitation decline when needed
-    this.send('lobby:decline', { invitationId });
-  }
-
-  /**
-   * Update ready status
-   * TODO: Implement when ready status is needed
-   */
-  async updateReadyStatus(lobbyId: string, isReady: boolean): Promise<void> {
-    // Stub - does nothing for now
-    // TODO: Implement actual ready status update when needed
-    this.send('lobby:ready', { lobbyId, isReady });
-  }
-
-  /**
-   * Update customization
-   * TODO: Implement when customization is needed
-   */
-  async updateCustomization(lobbyId: string, customization: any): Promise<void> {
-    // Stub - does nothing for now
-    // TODO: Implement actual customization update when needed
-    this.send('lobby:customization', { lobbyId, customization });
-  }
-
-  /**
-   * Send chat message
-   * TODO: Implement when chat is needed
-   */
-  async sendChatMessage(lobbyId: string, message: string): Promise<void> {
-    // Stub - does nothing for now
-    // TODO: Implement actual chat message sending when needed
-    this.send('lobby:chat', { lobbyId, message });
-  }
-
-  // ===== Private Listener Management =====
-
+  
   private addListener(event: string, callback: Function): void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
@@ -472,6 +292,22 @@ class WebSocketService {
         }
       });
     }
+  }
+
+  /**
+   * Subscribe to friend status updates
+   */
+  subscribeFriendsStatus(callback: (userId: string, status: string) => void): void {
+    this.on('friend:status', (data: any) => {
+      callback(data.userId, data.status);
+    });
+  }
+
+  /**
+   * Unsubscribe from friend status updates
+   */
+  unsubscribeFriendsStatus(): void {
+    this.removeListener('friend:status');
   }
 }
 
