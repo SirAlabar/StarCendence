@@ -114,21 +114,21 @@ services:
       - redis
     restart: always
 
-  # # Chat Microservice
-  # chat-service:
-  #   container_name: transcendence_chat
-  #   build:
-  #     context: ./services/chat
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - chat_data:/app/data
-  #   networks:
-  #     - transcendence_network
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - redis
-  #   restart: always
+  # Chat Microservice
+  chat-service:
+    container_name: transcendence_chat
+    build:
+      context: ./services/chat
+      dockerfile: Dockerfile
+    secrets:
+      - internal_api_key
+    networks:
+      - transcendence_network
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    restart: always
 
   # # User Microservice
   user-service:
@@ -257,12 +257,12 @@ volumes:
       device: ${HOME}/data/game
       o: bind
 
-  # chat_data:
-  #   driver: local
-  #   driver_opts:
-  #     type: none
-  #     device: ${HOME}/data/chat
-  #     o: bind
+  chat_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${HOME}/data/chat
+      o: bind
 
   user_data:
     driver: local

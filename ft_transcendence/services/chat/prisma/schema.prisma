@@ -1,0 +1,51 @@
+// == CHAT SERVICE == //
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:/app/data/chat.db"
+}
+
+model User{
+  id        String      @id // same as AuthUser id
+  username  String   @unique
+
+  conversationsAsUserA ChatConversation[] @relation("UserA")
+  conversationsAsUserB ChatConversation[] @relation("UserB")
+
+  messagesSent Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChatConversation {
+  id        String   @id @default(uuid())
+  roomId    String   @unique
+
+  userAId  String
+  userBId  String
+
+  userA    User   @relation("UserA", fields: [userAId], references: [id])
+  userB    User   @relation("UserB", fields: [userBId], references: [id])
+
+  messages  Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Message {
+  id       String      @id @default(uuid())
+
+  conversationId String
+  conversation ChatConversation @relation(fields: [conversationId], references: [id])
+
+  senderId String
+  sender   User      @relation(fields: [senderId], references: [id])
+
+  content  String
+  createdAt DateTime  @default(now())
+}

@@ -1,6 +1,33 @@
 {
-    "name": "placeholder-service4",
-    "version": "1.0.0",
-    "private": true,
-    "description": "Placeholder service - not implemented yet"
+  "name": "chat-service",
+  "version": "1.0.0",
+  "description": "Chat management microservice",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "nodemon --watch src --ext ts --exec tsx src/server.ts",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "prisma:seed": "ts-node prisma/seed.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^8.3.0",
+    "@fastify/helmet": "^11.1.1",
+    "@fastify/multipart": "^6.0.0",
+    "@prisma/client": "^5.0.0",
+    "dotenv": "^16.3.1",
+    "fastify": "^4.21.0",
+    "form-data": "^4.0.4",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.22",
+    "nodemon": "^3.0.1",
+    "prisma": "^5.22.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^3.12.7",
+    "typescript": "^5.1.6"
+  }
 }
