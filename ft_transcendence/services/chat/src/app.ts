@@ -30,7 +30,6 @@ export async function buildApp() {
   // Global error handler
   fastify.setErrorHandler(fastifyErrorHandler);
   fastify.addHook('preHandler', internalEndpointProtection);
-
   
   fastify.get('/health', async () => ({ status: 'Health is Ok!' }))
   fastify.register(internalRoutes, { prefix: '/internal' });

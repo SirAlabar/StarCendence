@@ -36,3 +36,12 @@ export function getGoogleClientSecret(): string {
   }
   return clientSecret;
 }
+
+// Get redis password from Docker secret
+export function getRedisPassword(): string {
+  const redisPassword: string = readFileSync('/run/secrets/redis_password', 'utf8').trim();
+  if (!redisPassword) {
+    throw new HttpError('Redis password is not configured', 500);
+  }
+  return redisPassword;
+}
