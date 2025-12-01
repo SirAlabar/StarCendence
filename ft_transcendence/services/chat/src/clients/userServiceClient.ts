@@ -3,6 +3,7 @@ import { getInternalApiKey } from "../utils/getSecrets";
 
 // Get friends IDs from User Service
 export async function getFriendsIds(authId: string) {
+  console.log(`Fetching friends for user: ${authId}`);
   const response = await fetch(`http://user-service:3004/internal/friends-list/${authId}`, {
     method: 'GET',
     headers: {

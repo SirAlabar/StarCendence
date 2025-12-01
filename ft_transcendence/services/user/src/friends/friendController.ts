@@ -126,3 +126,15 @@ export async function unfriend(req: FastifyRequest, reply: FastifyReply) {
 
   reply.send({ message: 'Unfriended successfully' });
 }
+
+// GET /friends-list - Get list of friend IDs (for internal use)
+export async function getFriendsIds(req: FastifyRequest, reply: FastifyReply) {
+  const { userId } = req.params as { userId: string };
+  if (!userId) {
+    return reply.status(400).send({ error: 'User ID is required' });
+  }
+
+  const friendIds = await friendService.getFriendsIds(userId);
+
+  return reply.send(friendIds);
+}
