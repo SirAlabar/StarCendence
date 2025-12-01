@@ -122,10 +122,12 @@ services:
       dockerfile: Dockerfile
     secrets:
       - internal_api_key
+      - redis_password
     networks:
       - transcendence_network
-    env_file:
-      - .env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=23111
     depends_on:
       - redis
     restart: always

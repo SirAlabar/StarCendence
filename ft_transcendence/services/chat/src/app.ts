@@ -22,6 +22,7 @@ export async function buildApp() {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
   })
+
   await fastify.register(helmet)
 
   // fastify.register(fastifyMetrics, { endpoint: '/metrics' });
@@ -34,7 +35,6 @@ export async function buildApp() {
   fastify.get('/health', async () => ({ status: 'Health is Ok!' }))
   fastify.register(internalRoutes, { prefix: '/internal' });
   fastify.register(chatRoutes);
-
 
   return fastify; 
 }
