@@ -1,6 +1,8 @@
 import { GameConfig, GameState, GameEvent, GameEngine, Paddlecolor } from '../utils/GameTypes';
 import { LocalPongEngine } from '../engines/pong2D/Pong2dEngine';
 import { Pong3D } from '../engines/pong3D/Pong3dEngine';
+import { IOnlineGameConnection } from '../utils/OnlineInterface';
+//import { OnlinePongEngine } from '../engines/pong2D/Pong2dOnline';
 
 
 type GameStateStatus = 'menu' | 'matchmaking' | 'playing' | 'paused' | 'ended';
@@ -55,7 +57,7 @@ export class GameManager
     }
     
    
-    public async init3DGame(canvas: HTMLCanvasElement, config: GameConfig): Promise<void> 
+    public async init3DGame(canvas: HTMLCanvasElement, config: GameConfig,): Promise<void> 
     {
         return this.initGame(canvas, config, '3d');
     }
@@ -90,6 +92,9 @@ export class GameManager
                         break;
                         
                     case 'online-multiplayer':
+                        //todo start game when websocket connections done
+                        //this.currentEngine = new OnlinePongEngine()
+
                         throw new Error('Online multiplayer not yet implemented');
                         
                     default:
@@ -106,6 +111,7 @@ export class GameManager
                         break;
                         
                     case 'online-multiplayer':
+                        
                         throw new Error('3D Online multiplayer not yet implemented');
                         
                     default:

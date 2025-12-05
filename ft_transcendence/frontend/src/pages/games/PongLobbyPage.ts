@@ -46,8 +46,8 @@ export default class PongLobbyPage extends BaseComponent
             {
                 mode:'online-multiplayer',
                 difficulty: undefined,
-                paddlecolor1: gameManager.getPaddleColor(1),
-                paddlecolor2: gameManager.getPaddleColor(2),
+                paddlecolor1: 'neon',
+                paddlecolor2: 'neon',
                 gamewidth: canvas.width,
                 gameheight: canvas.height
             };
