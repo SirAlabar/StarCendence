@@ -1,11 +1,11 @@
 import {Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes, AbstractMesh} from "@babylonjs/core";
 import * as GUI from "@babylonjs/gui";
-import { GameConfig, GameState, GameEvent, IGameEngine } from "../../utils/GameTypes";
+import { GameConfig, GameState, GameEvent, GameEngine } from "../../utils/GameTypes";
 import { Skybox } from "./entities/Skybox";
 import { loadModel } from "./entities/ModelLoader";
 import { AiDifficulty3D, Enemy3D } from "./entities/EnemyAi3D";
 
-export class Pong3D implements IGameEngine 
+export class Pong3D implements GameEngine 
 {
     private engine: Engine;
     private scene: Scene;

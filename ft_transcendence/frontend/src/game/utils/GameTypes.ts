@@ -100,7 +100,7 @@ export interface IGameRender
 }
 
 //interface for gameengine (local or sync)
-export interface IGameEngine
+export interface GameEngine
 {
     start(): void;
     stop(): void;
