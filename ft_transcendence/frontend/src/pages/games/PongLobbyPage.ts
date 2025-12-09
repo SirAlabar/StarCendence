@@ -11,25 +11,6 @@ export default class PongLobbyPage extends BaseComponent
     private lobbyId: string | null = null;
     private isGameStarting: boolean = false;
 
-    private generateRoomId(): string 
-    {
-        // produce a numeric id with up to 8 digits
-        try {
-            const arr = new Uint32Array(1);
-            if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
-                crypto.getRandomValues(arr);
-                let n = arr[0] % 100_000_000; // 0 .. 99_999_999
-                if (n === 0) n = (Math.floor(Math.random() * 9) + 1); // avoid "0"
-                return String(n);
-            }
-        } catch {
-            // fallback to Math.random
-        }
-        let n = Math.floor(Math.random() * 100_000_000);
-        if (n === 0) n = Math.floor(Math.random() * 9) + 1;
-        return String(n);
-    }
-
     /**
      * Wait for gameLobby to be fully mounted in DOM (with retry mechanism)
      */
@@ -112,31 +93,22 @@ export default class PongLobbyPage extends BaseComponent
         const params = new URLSearchParams(window.location.search);
         const urlLobbyId = params.get('id');
 
+        console.log('[PongLobby] Mount - URL lobby ID:', urlLobbyId);
+
         if (urlLobbyId) {
             // Joining existing lobby
             this.lobbyId = urlLobbyId;
 
+            console.log('[PongLobby] Sending lobby:join for lobby:', this.lobbyId);
             // Send join lobby message to server
             webSocketService.send('lobby:join', {
                 lobbyId: this.lobbyId,
                 gameType: 'pong'
             });
         } else {
-            // Creating new lobby
-            this.lobbyId = this.generateRoomId();
-
-            // Update URL without reloading page
-            const newUrl = `/pong-lobby?id=${this.lobbyId}`;
-            console.log("navigating to ",this.lobbyId);
-            window.history.replaceState(
-                {},
-                '',
-                newUrl
-            );
-
-            // Send create lobby message to server
+            // Creating new lobby - send create without ID, server will generate and return it
+            console.log('[PongLobby] Sending lobby:create');
             webSocketService.send('lobby:create', {
-                lobbyId: this.lobbyId,
                 gameType: 'pong',
                 maxPlayers: 2
             });
@@ -146,6 +118,8 @@ export default class PongLobbyPage extends BaseComponent
     private async onWsMessage(msg: any): Promise<void> {
         if (!msg || !msg.type) return;
 
+        console.log('[PongLobby] Received WS message:', msg.type, msg.payload);
+
         switch (msg.type) {
             case 'lobby:create:ack':
                 // Acknowledgment for lobby creation
@@ -154,6 +128,21 @@ export default class PongLobbyPage extends BaseComponent
                     await Modal.alert('Error', 'Failed to create lobby');
                     navigateTo('/pong');
                 } else {
+                    // Set lobby ID received from server
+                    this.lobbyId = msg.payload.lobbyId;
+                    
+                    if (!this.lobbyId) {
+                        console.error('[PongLobby] No lobbyId received in ack');
+                        await Modal.alert('Error', 'Failed to receive lobby ID from server');
+                        navigateTo('/pong');
+                        return;
+                    }
+                    
+                    // Update URL without reloading page
+                    const newUrl = `/pong-lobby?id=${this.lobbyId}`;
+                    console.log('[PongLobby] Lobby created with ID:', this.lobbyId);
+                    window.history.replaceState({}, '', newUrl);
+                    
                     // Wait for gameLobby to be fully mounted
                     const isReady = await this.waitForLobbyReady();
                     
@@ -274,17 +263,22 @@ export default class PongLobbyPage extends BaseComponent
     /**
      * Load player profile from UserService and add to lobby UI
      */
-    private async loadAndAddPlayer(playerData: {
-        userId: string;
-        username: string;
-        isHost: boolean;
-        isReady: boolean;
-        joinedAt?: number;
-    }): Promise<void> {
-        if (!this.gameLobby) {
-            console.error('[PongLobby] ❌ gameLobby is null in loadAndAddPlayer!');
-            return;
-        }
+    private async loadAndAddPlayer(
+        playerData: 
+        {
+            userId: string;
+            username: string;
+            isHost: boolean;
+            isReady: boolean;
+            joinedAt?: number;
+            }): Promise<void> {
+            
+            if (!this.gameLobby) 
+            {
+
+                console.error('[PongLobby] ❌ gameLobby is null in loadAndAddPlayer!');
+                return;
+            }
         
         // Build player object directly from received data (no UserService call)
         const fullPlayerData = {

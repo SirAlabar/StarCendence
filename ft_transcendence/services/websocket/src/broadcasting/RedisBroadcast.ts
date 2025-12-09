@@ -279,6 +279,7 @@ export class RedisBroadcast
 
       const messageStr = JSON.stringify(message);
       await this.publisher.publish(channel, messageStr);
+      console.log("received: ", message); //REMOVED THIS
     }
     catch (error)
     {
