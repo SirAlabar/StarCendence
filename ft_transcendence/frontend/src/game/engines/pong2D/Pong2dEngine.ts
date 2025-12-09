@@ -169,19 +169,12 @@ export class LocalPongEngine
             },
             paddle1: 
             {
-                x: this.paddleleft.x,
                 y: this.paddleleft.y,
         
             },
             paddle2: 
             {
-                x: this.paddleright.x,
                 y: this.paddleright.y,
-            },
-            scores: 
-            {
-                player1: this.player1.score,
-                player2: this.player2?.score || this.enemy?.score || 0
             },
             timestamp: Date.now()
         };

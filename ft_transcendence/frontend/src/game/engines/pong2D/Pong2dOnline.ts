@@ -93,22 +93,12 @@ export class OnlinePongEngine implements GameEngine
         this.ball.y = state.ball.y;
         this.ball.dx = state.ball.dx;
         this.ball.dy = state.ball.dy;
-        this.ball.radius = state.ball.radius;
         
         // Update paddles
-        this.paddleLeft.x = state.paddle1.x;
         this.paddleLeft.y = state.paddle1.y;
-        this.paddleLeft.width = state.paddle1.width;
-        this.paddleLeft.height = state.paddle1.height;
-        
-        this.paddleRight.x = state.paddle2.x;
         this.paddleRight.y = state.paddle2.y;
-        this.paddleRight.width = state.paddle2.width;
-        this.paddleRight.height = state.paddle2.height;
-        
-        // Update scores
-        this.player1Score = state.scores.player1;
-        this.player2Score = state.scores.player2;
+
+    
     }
     
     private handleServerEvent(event: OGameEvent['payload']['event']): void 
@@ -292,21 +282,15 @@ export class OnlinePongEngine implements GameEngine
             },
             paddle1: 
             {
-                x: this.paddleLeft.x,
                 y: this.paddleLeft.y,
                
             },
             paddle2: 
             {
-                x: this.paddleRight.x,
                 y: this.paddleRight.y,
                 
             },
-            scores: 
-            {
-                player1: this.player1Score,
-                player2: this.player2Score
-            },
+    
             timestamp: Date.now()
         };
     }

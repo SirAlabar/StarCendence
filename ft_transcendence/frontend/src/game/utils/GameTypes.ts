@@ -15,22 +15,15 @@ export interface GameState
 
     paddle1:
     {
-        x:number;
         y:number;
     
     };
 
     paddle2:
     {
-        x:number;
         y:number;
     };
     
-    scores:
-    {
-        player1:number;
-        player2:number;
-    };
     timestamp: number;  //for lag compensation
 
 }

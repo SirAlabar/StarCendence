@@ -144,18 +144,12 @@ export class Pong3D implements GameEngine
                 
             },
             paddle1: {
-                x: this.paddle_left.position.x,
                 y: this.paddle_left.position.z,
                
             },
             paddle2: {
-                x: this.paddle_right.position.x,
                 y: this.paddle_right.position.z,
              
-            },
-            scores: {
-                player1: this.player1Score,
-                player2: this.player2Score
             },
             timestamp: Date.now()
         };
