@@ -165,23 +165,18 @@ export class LocalPongEngine
                 y: this.ball.y,
                 dx: this.ball.dx,
                 dy: this.ball.dy,
-                radius: this.ball.radius
+               
             },
             paddle1: 
             {
                 x: this.paddleleft.x,
                 y: this.paddleleft.y,
-                width: this.paddleleft.width,
-                height: this.paddleleft.height,
-                color: this.config.paddlecolor1 || 'default'
+        
             },
             paddle2: 
             {
                 x: this.paddleright.x,
                 y: this.paddleright.y,
-                width: this.paddleright.width,
-                height: this.paddleright.height,
-                color: this.config.paddlecolor2 || 'default'
             },
             scores: 
             {

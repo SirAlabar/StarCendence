@@ -288,23 +288,19 @@ export class OnlinePongEngine implements GameEngine
                 y: this.ball.y,
                 dx: this.ball.dx,
                 dy: this.ball.dy,
-                radius: this.ball.radius
+              
             },
             paddle1: 
             {
                 x: this.paddleLeft.x,
                 y: this.paddleLeft.y,
-                width: this.paddleLeft.width,
-                height: this.paddleLeft.height,
-                color: 'default'
+               
             },
             paddle2: 
             {
                 x: this.paddleRight.x,
                 y: this.paddleRight.y,
-                width: this.paddleRight.width,
-                height: this.paddleRight.height,
-                color: 'default'
+                
             },
             scores: 
             {

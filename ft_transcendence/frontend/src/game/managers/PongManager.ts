@@ -1,7 +1,7 @@
 import { GameConfig, GameState, GameEvent, GameEngine, Paddlecolor } from '../utils/GameTypes';
 import { LocalPongEngine } from '../engines/pong2D/Pong2dEngine';
 import { Pong3D } from '../engines/pong3D/Pong3dEngine';
-import { IOnlineGameConnection } from '../utils/OnlineInterface';
+
 //import { OnlinePongEngine } from '../engines/pong2D/Pong2dOnline';
 
 

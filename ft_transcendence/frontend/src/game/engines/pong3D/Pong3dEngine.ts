@@ -141,21 +141,17 @@ export class Pong3D implements GameEngine
                 y: this.ball.position.z, 
                 dx: this.ballVelocity.x,
                 dy: this.ballVelocity.z,
-                radius: 1
+                
             },
             paddle1: {
                 x: this.paddle_left.position.x,
                 y: this.paddle_left.position.z,
-                width: 1.5,
-                height: 10,
-                color: this.config.paddlecolor1 || 'default'
+               
             },
             paddle2: {
                 x: this.paddle_right.position.x,
                 y: this.paddle_right.position.z,
-                width: 1.5,
-                height: 10,
-                color: this.config.paddlecolor2 || 'default'
+             
             },
             scores: {
                 player1: this.player1Score,

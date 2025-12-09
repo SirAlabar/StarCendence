@@ -11,25 +11,19 @@ export interface GameState
         y:number;
         dx:number;
         dy:number;
-        radius: number;
     };
 
     paddle1:
     {
         x:number;
         y:number;
-        width:number;
-        height:number;
-        color: Paddlecolor;
+    
     };
 
     paddle2:
     {
         x:number;
         y:number;
-        width:number;
-        height:number;
-        color: Paddlecolor;
     };
     
     scores:
