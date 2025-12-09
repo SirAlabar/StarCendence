@@ -1,19 +1,21 @@
-import { GameConfig, GameState, GameEvent, IGameEngine, Paddlecolor } from '../utils/GameTypes';
+import { GameConfig, GameState, GameEvent, GameEngine, Paddlecolor } from '../utils/GameTypes';
 import { LocalPongEngine } from '../engines/pong2D/Pong2dEngine';
 import { Pong3D } from '../engines/pong3D/Pong3dEngine';
+
+//import { OnlinePongEngine } from '../engines/pong2D/Pong2dOnline';
 
 
 type GameStateStatus = 'menu' | 'matchmaking' | 'playing' | 'paused' | 'ended';
 type GameDimension = '2d' | '3d';
 
-export class ImprovedGameManager 
+export class GameManager 
 {
-    private static instance: ImprovedGameManager;
+    private static instance: GameManager;
     
     // Current game
-    private currentEngine: IGameEngine | null = null;
-    private currentState: GameStateStatus = 'menu';
-    private currentConfig: GameConfig | null = null;
+    private currentEngine: GameEngine | null = null;      //start,stop,pause,resume,destoy,getstate,onevent
+    private currentState: GameStateStatus = 'menu';       
+    private currentConfig: GameConfig | null = null;      
     private currentDimension: GameDimension | null = null;
     
     // Canvas reference
@@ -40,12 +42,12 @@ export class ImprovedGameManager
     }
     
     // Singleton
-    public static getInstance(): ImprovedGameManager 
+    public static getInstance(): GameManager 
     {
-        if (!ImprovedGameManager.instance) {
-            ImprovedGameManager.instance = new ImprovedGameManager();
+        if (!GameManager.instance) {
+            GameManager.instance = new GameManager();
         }
-        return ImprovedGameManager.instance;
+        return GameManager.instance;
     }
     
     
@@ -55,7 +57,7 @@ export class ImprovedGameManager
     }
     
    
-    public async init3DGame(canvas: HTMLCanvasElement, config: GameConfig): Promise<void> 
+    public async init3DGame(canvas: HTMLCanvasElement, config: GameConfig,): Promise<void> 
     {
         return this.initGame(canvas, config, '3d');
     }
@@ -90,6 +92,9 @@ export class ImprovedGameManager
                         break;
                         
                     case 'online-multiplayer':
+                        //todo start game when websocket connections done
+                        //this.currentEngine = new OnlinePongEngine()
+
                         throw new Error('Online multiplayer not yet implemented');
                         
                     default:
@@ -106,6 +111,7 @@ export class ImprovedGameManager
                         break;
                         
                     case 'online-multiplayer':
+                        
                         throw new Error('3D Online multiplayer not yet implemented');
                         
                     default:
@@ -429,4 +435,4 @@ export class ImprovedGameManager
 }
 
 // Export singleton instance
-export const gameManager = ImprovedGameManager.getInstance();
+export const gameManager = GameManager.getInstance();

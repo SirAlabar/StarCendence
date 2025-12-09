@@ -1,11 +1,11 @@
 import {Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes, AbstractMesh} from "@babylonjs/core";
 import * as GUI from "@babylonjs/gui";
-import { GameConfig, GameState, GameEvent, IGameEngine } from "../../utils/GameTypes";
+import { GameConfig, GameState, GameEvent, GameEngine } from "../../utils/GameTypes";
 import { Skybox } from "./entities/Skybox";
 import { loadModel } from "./entities/ModelLoader";
 import { AiDifficulty3D, Enemy3D } from "./entities/EnemyAi3D";
 
-export class Pong3D implements IGameEngine 
+export class Pong3D implements GameEngine 
 {
     private engine: Engine;
     private scene: Scene;
@@ -141,25 +141,15 @@ export class Pong3D implements IGameEngine
                 y: this.ball.position.z, 
                 dx: this.ballVelocity.x,
                 dy: this.ballVelocity.z,
-                radius: 1
+                
             },
             paddle1: {
-                x: this.paddle_left.position.x,
                 y: this.paddle_left.position.z,
-                width: 1.5,
-                height: 10,
-                color: this.config.paddlecolor1 || 'default'
+               
             },
             paddle2: {
-                x: this.paddle_right.position.x,
                 y: this.paddle_right.position.z,
-                width: 1.5,
-                height: 10,
-                color: this.config.paddlecolor2 || 'default'
-            },
-            scores: {
-                player1: this.player1Score,
-                player2: this.player2Score
+             
             },
             timestamp: Date.now()
         };
