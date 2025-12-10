@@ -1,4 +1,5 @@
 import { RedisClientType } from 'redis';
+import { randomBytes } from 'crypto';
 
 export interface LobbyPlayer {
   userId: string;
@@ -22,6 +23,36 @@ export class LobbyManager {
 
   constructor(redisClient: RedisClientType) {
     this.redis = redisClient;
+  }
+
+  /**
+   * Generate a random 8-digit lobby ID
+   */
+  private generateLobbyId(): string {
+    // Generate random bytes and convert to 8-digit number
+    const randomNum = randomBytes(4).readUInt32BE(0) % 100000000;
+    return randomNum.toString().padStart(8, '0');
+  }
+
+  /**
+   * Generate a unique lobby ID that doesn't exist in Redis
+   */
+  async generateUniqueLobbyId(): Promise<string> {
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (attempts < maxAttempts) {
+      const lobbyId = this.generateLobbyId();
+      const exists = await this.redis.exists(`lobby:${lobbyId}:data`);
+      
+      if (!exists) {
+        return lobbyId;
+      }
+      
+      attempts++;
+    }
+
+    throw new Error('Failed to generate unique lobby ID after multiple attempts');
   }
 
   async createLobby(

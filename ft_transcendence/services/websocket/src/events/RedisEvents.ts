@@ -22,7 +22,8 @@ async function handleBroadcastRequest(data: any): Promise<void>
   try
   {
     const request = data as BroadcastRequest;
-    
+   
+    console.log("sent: ", request.message, " to ", request.userIds);
     if (!request.message || !request.message.type)
     {
       return;

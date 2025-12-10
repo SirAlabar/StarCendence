@@ -138,9 +138,10 @@ export default class PongLobbyPage extends BaseComponent
                         return;
                     }
                     
+                    console.log(`[PongLobby] ✅ Lobby created successfully! ID: ${this.lobbyId}`);
+                    
                     // Update URL without reloading page
                     const newUrl = `/pong-lobby?id=${this.lobbyId}`;
-                    console.log('[PongLobby] Lobby created with ID:', this.lobbyId);
                     window.history.replaceState({}, '', newUrl);
                     
                     // Wait for gameLobby to be fully mounted
@@ -324,4 +325,4 @@ export default class PongLobbyPage extends BaseComponent
             this.gameLobby = null;
         }
     }
-} 
+}
