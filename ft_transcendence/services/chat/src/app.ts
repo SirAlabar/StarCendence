@@ -7,7 +7,7 @@ import { initializeRedis, closeRedis, getRedisClient } from './communication/Red
 import { ChatEventSubscriber } from './communication/ChatEventSubscriber';
 import { internalRoutes } from './internal/internalRoutes'
 import { chatRoutes } from './chat/chatRoutes'
-import { ChatManager } from './managers/chatManager'  
+//import { ChatManager } from './managers/chatManager'  
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
@@ -40,10 +40,10 @@ export async function buildApp() {
     const publisher = redisClient.duplicate();
     await publisher.connect();
 
-    const chatManager = new ChatManager();
-    const chatEventSubscriber = new ChatEventSubscriber(subscriber, publisher, chatManager);
+    //const chatManager = new ChatManager();
+    const chatEventSubscriber = new ChatEventSubscriber(subscriber, publisher/*, chatManager*/);
     await chatEventSubscriber.initialize();
-    console.log("Created chat subscriber");
+    console.log("Created redis chat subscriber");
   }
   else
   {

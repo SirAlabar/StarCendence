@@ -36,13 +36,12 @@ export class ChatEventSubscriber
 {
         private subscriber: RedisClientType;
         private publisher: RedisClientType;
-        private chatManager: ChatManager;
 
-        constructor(subscriber: RedisClientType, publisher: RedisClientType , chatManager: ChatManager) 
+        constructor(subscriber: RedisClientType, publisher: RedisClientType/*, chatManager : ChatManager*/) 
         {
             this.subscriber = subscriber;
             this.publisher = publisher;
-            this.chatManager = chatManager;
+            //this.chatManager = chatManager;
         }
 
         async initialize(): Promise<void> 
@@ -88,7 +87,7 @@ export class ChatEventSubscriber
             console.error("could not get conversation: ", err);
         }
     
-        //publish to database before sending!!!!!1
+        //publish to database before sending!!!!!
         
 
         this.broadcastToUser(event.payload.targetUserId, (
@@ -109,7 +108,7 @@ export class ChatEventSubscriber
         {   
             ...message,
             timestamp: message.timestamp || Date.now(),
-        },s
+        },
         };
 
         await this.publisher.publish('websocket:broadcast', JSON.stringify(request));
