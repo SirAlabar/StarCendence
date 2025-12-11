@@ -225,6 +225,9 @@ export class OnlinePongEngine implements GameEngine
         }
         
         // Optimization: Don't send 'none' if we just sent 'none' (optional)
+        if (direction === 'none') {
+        return;
+    }
         
         // 3. FIXED SEND: Split into Type and Payload
         const sent = this.connection.send('game:input', {
