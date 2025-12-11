@@ -1,11 +1,13 @@
 import { RedisClientType } from 'redis';
 import { ChatManager } from '../managers/chatManager';
+import { getConversationBetweenUsers } from '../chat/chatService';
+import { saveMessage } from '../internal/internalRepository';
 
 
 export interface payloadData
 {
-    targetUserId?: string;
-    message?: string;
+    targetUserId: string;
+    message: string;
 }
 
 export interface ChatEventMessage 
@@ -77,7 +79,24 @@ export class ChatEventSubscriber
 
     private async handleChatMessage(event: ChatEventMessage): Promise<void> 
     {
+        try
+        {
+            const conversation = getConversationBetweenUsers(event.userId, event.payload.targetUserId);
+        }
+        catch(err)
+        {
+            console.error("could not get conversation: ", err);
+        }
+    
+        //publish to database before sending!!!!!1
         
+
+        this.broadcastToUser(event.payload.targetUserId, (
+        { 
+                type: "chat:message",
+                message: event.payload.message
+        } ) )
+
     }
 
     //to send a message to a user you can send using this with the userID from the JWT, and the message is the payload with .stringify 
@@ -90,7 +109,7 @@ export class ChatEventSubscriber
         {   
             ...message,
             timestamp: message.timestamp || Date.now(),
-        },
+        },s
         };
 
         await this.publisher.publish('websocket:broadcast', JSON.stringify(request));
