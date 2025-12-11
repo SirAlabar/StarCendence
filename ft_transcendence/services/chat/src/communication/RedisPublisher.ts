@@ -1,31 +1,10 @@
 // Redis Publisher - Broadcast game state and events to Redis
 import { createClient, RedisClientType } from 'redis';
 import { readFileSync } from 'fs';
+import { getRedisPassword } from '../utils/getSecrets';
 
 let redisClient: RedisClientType | null = null;
 
-/**
- * Get Redis password from Docker secret
- */
-function getRedisPassword(): string
-{
-  try
-  {
-    const password = readFileSync('/run/secrets/redis_password', 'utf-8').trim();
-    
-    if (!password)
-    {
-      throw new Error('Redis password is empty!');
-    }
-    
-    return password;
-  }
-  catch (error)
-  {
-    console.error('❌ Failed to read Redis password from /run/secrets/redis_password');
-    throw error;
-  }
-}
 
 /**
  * Initialize Redis client

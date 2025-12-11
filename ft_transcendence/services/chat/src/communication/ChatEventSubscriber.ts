@@ -77,8 +77,7 @@ export class ChatEventSubscriber
 
     private async handleChatMessage(event: ChatEventMessage): Promise<void> 
     {
-        // handle with chat manager
-        if ()
+        
     }
 
     //to send a message to a user you can send using this with the userID from the JWT, and the message is the payload with .stringify 
