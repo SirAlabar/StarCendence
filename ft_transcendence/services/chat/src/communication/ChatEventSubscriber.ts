@@ -87,9 +87,9 @@ export class ChatEventSubscriber
             console.error("could not get conversation: ", err);
         }*/
 
-        //publish t9o database before sending!!!!!
-        const roomId =  await getRoomId(event.userId, event.payload.targetUserId);
-        saveMessage(event.userId, roomId, event.payload.message );        
+        //publish to database before sending!!!!!
+        const roomId = await getRoomId(event.userId, event.payload.targetUserId);
+        saveMessage(event.userId, roomId, event.payload.message);        
 
         this.broadcastToUser(event.payload.targetUserId, (
         { 
