@@ -1,10 +1,17 @@
 import { RedisClientType } from 'redis';
 import { ChatManager } from '../managers/chatManager';
 
+
+export interface payloadData
+{
+    targetUserId?: string;
+    message?: string;
+}
+
 export interface ChatEventMessage 
 {
     type: string;
-    payload: any;
+    payload: payloadData;
     userId: string;
     username?: string;
     connectionId: string;
@@ -71,9 +78,10 @@ export class ChatEventSubscriber
     private async handleChatMessage(event: ChatEventMessage): Promise<void> 
     {
         // handle with chat manager
+        if ()
     }
 
-    //to send a message to a user you can send using the userID from the JWT, and the message is the payload with .stringfy 
+    //to send a message to a user you can send using this with the userID from the JWT, and the message is the payload with .stringify 
     private async broadcastToUser(userId: string, message: any): Promise<void>
     {
         const request: WebSocketBroadcastRequest = 
