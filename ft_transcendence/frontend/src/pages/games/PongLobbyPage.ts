@@ -2,7 +2,8 @@ import { BaseComponent } from '../../components/BaseComponent';
 import { GameLobby, LobbyConfig } from '../../components/game/GameLobby';
 import { navigateTo } from '../../router/router';
 import { Modal } from '@/components/common/Modal';
-import { webSocketService } from '@/services/websocket/WebSocketService';
+import { webSocketService } from '@/services/websocket/WebSocketService'
+
 
 export default class PongLobbyPage extends BaseComponent 
 {
@@ -304,6 +305,7 @@ export default class PongLobbyPage extends BaseComponent
         // Send lobby:start event to backend
         if (this.lobbyId) {
             webSocketService.send('lobby:start', { lobbyId: this.lobbyId });
+
         } else {
             await Modal.alert('Error', 'Invalid lobby ID');
         }

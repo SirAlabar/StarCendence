@@ -197,6 +197,13 @@ const routeConfig: Record<string, any> =
         layout: 'game',
         headerType: 'default'
     },
+    '/pong-game':
+    {
+        component: () => import('../pages/games/PongGamePage'),
+        title: 'Pong Online Game',
+        layout: 'game',
+        headerType: 'default'
+    },
     '/404':
     {
         component: () => import('../pages/NotFoundPage'),

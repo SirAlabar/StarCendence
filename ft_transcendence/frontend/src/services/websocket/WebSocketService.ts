@@ -187,7 +187,10 @@ class WebSocketService {
         timestamp: Date.now(),
       };
       this.socket.send(JSON.stringify(message));
+      console.log(message);
+      
       return true;
+
     } catch (error) {
       return false;
     }
