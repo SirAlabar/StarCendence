@@ -1,6 +1,6 @@
 import { RedisClientType } from 'redis';
 import { ChatManager } from '../managers/chatManager';
-import { getConversationBetweenUsers } from '../chat/chatService';
+import { getConversationBetweenUsers, getRoomId } from '../chat/chatService';
 import { saveMessage } from '../internal/internalRepository';
 
 
@@ -78,17 +78,18 @@ export class ChatEventSubscriber
 
     private async handleChatMessage(event: ChatEventMessage): Promise<void> 
     {
-        try
+        /*try
         {
             const conversation = getConversationBetweenUsers(event.userId, event.payload.targetUserId);
         }
         catch(err)
         {
             console.error("could not get conversation: ", err);
-        }
-    
-        //publish to database before sending!!!!!
-        
+        }*/
+
+        //publish t9o database before sending!!!!!
+        const roomId =  await getRoomId(event.userId, event.payload.targetUserId);
+        saveMessage(event.userId, roomId, event.payload.message );        
 
         this.broadcastToUser(event.payload.targetUserId, (
         { 
