@@ -1,7 +1,16 @@
 import { GameConfig, GameState, GameEvent, GameEngine } from "../../utils/GameTypes";
-import { IOnlineGameConnection, OutgoingGameMessage, OGameStateUpdate, OGameEvent } from "@/game/utils/OnlineInterface";
+import {  OGameEvent } from "@/game/utils/OnlineInterface";
 import { Ball } from "./entities/Ball";
 import { paddle } from "./entities/Paddle";
+
+// Define what we expect the connection to look like based on your WebSocketService
+interface WebSocketLikeConnection 
+{
+    on(event: string, callback: Function): void;
+    off(event: string, callback: Function): void;
+    send(type: string, payload: any): boolean; 
+    isConnected(): boolean;
+}
 
 export class OnlinePongEngine implements GameEngine 
 {
@@ -14,11 +23,15 @@ export class OnlinePongEngine implements GameEngine
     private paddleRight: paddle;
     
     // Network
-    private connection: IOnlineGameConnection;   
+    private connection: WebSocketLikeConnection; 
     private matchId: string;
     private playerId: string;
     private playerSide: 'left' | 'right';
     
+    // SCALING: The dimensions the SERVER uses for calculations.
+    // Most backends use 800x600. If yours is different, change these values!
+  
+
     // State
     private animationFrameId: number | null = null;
     private paused: boolean = false;
@@ -27,7 +40,7 @@ export class OnlinePongEngine implements GameEngine
     
     // Input throttling
     private lastInputSent: number = 0;
-    private inputThrottle: number = 50; // ms
+    private inputThrottle: number = 30; // Reduced slightly for smoother movement
     
     // Scores
     private player1Score: number = 0;
@@ -36,7 +49,14 @@ export class OnlinePongEngine implements GameEngine
     // Events
     private eventCallbacks: Array<(event: GameEvent) => void> = [];
     
-    constructor(canvas: HTMLCanvasElement, config: GameConfig, connection: IOnlineGameConnection, matchId: string, playerId: string, playerSide: 'left' | 'right') 
+    constructor(
+        canvas: HTMLCanvasElement, 
+        config: GameConfig, 
+        connection: any, 
+        matchId: string, 
+        playerId: string, 
+        playerSide: 'left' | 'right'
+    ) 
     {
         this.canvas = canvas;
         this.connection = connection;
@@ -55,55 +75,80 @@ export class OnlinePongEngine implements GameEngine
         this.paddleRight = new paddle("right", canvas, config.paddlecolor2 || 'default');
         
         // Setup
-        this.setupNetworkListeners();       //listens for state and game event payloads
-        this.setupInputHandlers();          //key detection
+        this.setupNetworkListeners();       
+        this.setupInputHandlers();          
         
-        console.log(matchId,playerId,playerSide);
+        console.log(`[OnlineEngine] Init: ${matchId}, ${playerId}, ${playerSide}`);
     }
     
-   
     // NETWORK SETUP
-    
-    
     private setupNetworkListeners(): void {
         // Listen for state updates from server
-        this.connection.on('game:state', (data: OGameStateUpdate['payload']) => 
+        this.connection.on('game:state', (data: any) => 
         {
-            if (data.matchId !== this.matchId) 
-                return;
-            
-            console.log('Received state update', data);
-            this.applyServerState(data.state);
+            // Safety check: make sure this update is for our match
+            if (data && data.matchId === this.matchId) {
+                //console.log('Recv State:', data); // Debug log
+                this.applyServerState(data.state);
+            }
         });
         
         // Listen for game events
         this.connection.on('game:event', (data: OGameEvent['payload']) => 
         {
-            if (data.matchId !== this.matchId) return;
-            
-            console.log('Received game event', data.event);
-            this.handleServerEvent(data.event);
+            if (data && data.matchId === this.matchId) {
+                //console.log('Received game event', data.event);
+                this.handleServerEvent(data.event);
+            }
         });
     }
     
-    private applyServerState(state: OGameStateUpdate['payload']['state']): void 
+    private applyServerState(state: any): void 
     {
-        // Update ball
+        if (!state) return;
+
+        // --- SCALING LOGIC ---
+        // Calculate ratio between local canvas size and server world size
+        //const scaleX = this.canvas.width / this.SERVER_WIDTH;
+        //const scaleY = this.canvas.height / this.SERVER_HEIGHT;
+
+        // Update ball with scaling
         this.ball.x = state.ball.x;
         this.ball.y = state.ball.y;
+        
+        // Update velocities (for smooth interpolation if you add it later)
         this.ball.dx = state.ball.dx;
         this.ball.dy = state.ball.dy;
         
-        // Update paddles
-        this.paddleLeft.y = state.paddle1.y;
-        this.paddleRight.y = state.paddle2.y;
-
-    
+        // Update paddles with scaling (only Y usually matters for Pong paddles)
+        if (state.paddle1) {
+            this.paddleLeft.y = state.paddle1.y;
+        }
+        if (state.paddle2) {
+            this.paddleRight.y = state.paddle2.y;
+        }
+        
+        // Update Scores
+        if (state.score) {
+             const newP1 = state.score.player1;
+             const newP2 = state.score.player2;
+             
+             // Only emit if changed to avoid spam
+             if (newP1 !== this.player1Score || newP2 !== this.player2Score) {
+                 this.player1Score = newP1;
+                 this.player2Score = newP2;
+                 
+                 this.emitEvent({
+                    type: 'score-updated',
+                    player1Score: this.player1Score,
+                    player2Score: this.player2Score
+                });
+             }
+        }
     }
     
     private handleServerEvent(event: OGameEvent['payload']['event']): void 
     {
-        
         switch (event.type) 
         {
             case 'goal':
@@ -133,18 +178,9 @@ export class OnlinePongEngine implements GameEngine
                 break;
         }
         
-        // Also emit score updates
-        this.emitEvent
-        ({
-            type: 'score-updated',
-            player1Score: this.player1Score,
-            player2Score: this.player2Score
-        });
     }
     
     // SEND INPUT TO SERVER
-    
-    
     private sendInput(): void {
         const now = Date.now();
         
@@ -158,61 +194,66 @@ export class OnlinePongEngine implements GameEngine
         
         if (this.playerSide === 'left') 
         {
-            if (this.keys['w']) 
+            if (this.keys['w'])
+            {
                 direction = 'up';
-            else if (this.keys['s']) 
+                console.log(direction);
+                this.paddleLeft.y += 10;
+            }     
+            else if (this.keys['s'])
+            {
+
                 direction = 'down';
-        } else {
-            if (this.keys['arrowup']) 
+                console.log(direction);
+                this.paddleLeft.y -= 10;
+            } 
+        } 
+        else     
+        {
+            if (this.keys['arrowup'])
+            {
                 direction = 'up';
+                console.log(direction);
+                this.paddleRight.y += 10;
+            } 
             else if (this.keys['arrowdown']) 
+            {
                 direction = 'down';
-        }
-        
-        // Create message
-        const message: OutgoingGameMessage = 
-        {
-            type: 'game:input',
-            payload: {
-                matchId: this.matchId,
-                playerId: this.playerId,
-                input: {
-                    direction,
-                }
+                console.log(direction);
+                this.paddleRight.y -= 10;
             }
-        };
-        
-        // Send via connection
-        const sent = this.connection.send(message);
-        
-        if (sent) 
-        {
-            this.lastInputSent = now;
-            console.log('Sent input:', direction);
         }
-        else 
-        {
-            console.warn('Failed to send input');
+        
+        // Optimization: Don't send 'none' if we just sent 'none' (optional)
+        
+        // 3. FIXED SEND: Split into Type and Payload
+        const sent = this.connection.send('game:input', {
+            matchId: this.matchId,
+            playerId: this.playerId,
+            input: {
+                direction,
+            }
+        });
+        
+        if (sent) {
+            this.lastInputSent = now;
         }
     }
     
     // GAME LOOP 
-    
     start(): void 
     {
         if (this.paused) 
             this.paused = false;
         
-        // Tell websocket we're ready
-        const readyMessage: OutgoingGameMessage = 
-        {
-            type: 'game:ready',
-            payload: {
-                matchId: this.matchId,
-                playerId: this.playerId
-            }
-        };
-        this.connection.send(readyMessage);   ///send message
+        console.log('[OnlineEngine] Sending Ready Signal');
+
+        // 4. FIXED SEND: Split into Type and Payload
+        this.connection.send('game:ready', {
+            matchId: this.matchId,
+            playerId: this.playerId
+        });
+        
         this.update();
     }
     
@@ -228,6 +269,8 @@ export class OnlinePongEngine implements GameEngine
     
     pause(): void 
     {
+        // Online games usually can't be paused by one client, 
+        // but we can stop rendering locally or show a menu.
         this.paused = true;
         this.emitEvent({ type: 'game-paused' });
     }
@@ -265,32 +308,22 @@ export class OnlinePongEngine implements GameEngine
         this.paddleRight.draw(this.ctx);
     }
     
-   
     // INTERFACE IMPLEMENTATION
-    
-    
     getState(): GameState 
     {
         return {
-            ball: 
-            {
+            ball: {
                 x: this.ball.x,
                 y: this.ball.y,
                 dx: this.ball.dx,
                 dy: this.ball.dy,
-              
             },
-            paddle1: 
-            {
+            paddle1: {
                 y: this.paddleLeft.y,
-               
             },
-            paddle2: 
-            {
+            paddle2: {
                 y: this.paddleRight.y,
-                
             },
-    
             timestamp: Date.now()
         };
     }
@@ -305,25 +338,18 @@ export class OnlinePongEngine implements GameEngine
         this.stop();
         this.removeInputHandlers();
         
-        const leaveMessage: OutgoingGameMessage = 
-        {
-            type: 'game:leave',
-            payload: 
-            {
-                matchId: this.matchId,
-                playerId: this.playerId
-            }
-        };
-        this.connection.send(leaveMessage);
-        this.connection.off('game:state', () => {});
-        this.connection.off('game:event', () => {});
+        // 5. FIXED SEND: Split into Type and Payload
+        this.connection.send('game:leave', {
+            matchId: this.matchId,
+            playerId: this.playerId
+        });
+
+       
         
         this.eventCallbacks = [];
     }
     
-  
     // INPUT HANDLING
-   
     private keydownHandler = (e: KeyboardEvent): void => 
     {
         const key = e.key.toLowerCase();

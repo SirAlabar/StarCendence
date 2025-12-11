@@ -1,6 +1,8 @@
 import { GameConfig, GameState, GameEvent, GameEngine, Paddlecolor } from '../utils/GameTypes';
 import { LocalPongEngine } from '../engines/pong2D/Pong2dEngine';
 import { Pong3D } from '../engines/pong3D/Pong3dEngine';
+import { webSocketService } from '@/services/websocket/WebSocketService';
+import { OnlinePongEngine } from '../engines/pong2D/Pong2dOnline';
 
 //import { OnlinePongEngine } from '../engines/pong2D/Pong2dOnline';
 
@@ -51,19 +53,19 @@ export class GameManager
     }
     
     
-    public async init2DGame(canvas: HTMLCanvasElement, config: GameConfig): Promise<void> 
+    public async init2DGame(canvas: HTMLCanvasElement, config: GameConfig, onlineData?:{matchId: string; side: 'left' | 'right'; userId: string}): Promise<void> 
     {
-        return this.initGame(canvas, config, '2d');
+        return this.initGame(canvas, config, '2d', onlineData);
     }
     
    
-    public async init3DGame(canvas: HTMLCanvasElement, config: GameConfig,): Promise<void> 
+    public async init3DGame(canvas: HTMLCanvasElement, config: GameConfig, onlineData?:{matchId: string; side: 'left' | 'right'; userId: string}): Promise<void> 
     {
-        return this.initGame(canvas, config, '3d');
+        return this.initGame(canvas, config, '3d', onlineData);
     }
     
     
-    private async initGame(canvas: HTMLCanvasElement, config: GameConfig, dimension: GameDimension): Promise<void> 
+    private async initGame(canvas: HTMLCanvasElement, config: GameConfig, dimension: GameDimension, onlineData?:{matchId: string; side: 'left' | 'right'; userId: string}): Promise<void> 
     {
         if (this.currentState === 'playing') 
         {
@@ -92,10 +94,17 @@ export class GameManager
                         break;
                         
                     case 'online-multiplayer':
-                        //todo start game when websocket connections done
-                        //this.currentEngine = new OnlinePongEngine()
-
-                        throw new Error('Online multiplayer not yet implemented');
+                    if (!onlineData) throw new Error('Missing online game data');
+                    
+                    this.currentEngine = new OnlinePongEngine(
+                        canvas, 
+                        config, 
+                        webSocketService, 
+                        onlineData.matchId, 
+                        onlineData.userId, 
+                        onlineData.side
+                    );
+                    break;
                         
                     default:
                         throw new Error(`Unknown game mode: ${config.mode}`);
@@ -341,7 +350,7 @@ export class GameManager
     
     private handleGameEvent(event: GameEvent): void 
     {
-        console.log('🎮 Game event:', event);
+        
         
         switch (event.type) 
         {
