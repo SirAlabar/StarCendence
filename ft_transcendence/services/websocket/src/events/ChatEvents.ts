@@ -2,15 +2,20 @@ import { EventManager } from './EventManager';
 import { ConnectionInfo, WebSocketMessage } from '../types/connection.types';
 import { redisBroadcast } from '../broadcasting/RedisBroadcast';
 
-EventManager.registerHandler('chat', async (message: WebSocketMessage, connection: ConnectionInfo): Promise<void> =>
+const chatEvents = ['chat:message, chat:send, chat:update']; // adiciona oq quiser
+
+for (const eventType of chatEvents)
 {
-  await redisBroadcast.publishToChannel('chat:events',
+  EventManager.registerHandler(eventType, async (message: WebSocketMessage, connection: ConnectionInfo): Promise<void> =>
   {
-    type: message.type,
-    payload: message.payload,
-    userId: connection.userId,
-    username: connection.username,
-    connectionId: connection.connectionId,
-    timestamp: message.timestamp || Date.now(),
+    await redisBroadcast.publishToChannel('chat:events',
+    {
+      type: message.type,
+      payload: message.payload,
+      userId: connection.userId,
+      username: connection.username,
+      connectionId: connection.connectionId,
+      timestamp: message.timestamp || Date.now(),
+    });
   });
-});
+} 

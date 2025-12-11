@@ -3,8 +3,11 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import { fastifyErrorHandler } from './handlers/errorHandler'
 import { internalEndpointProtection } from './middleware/securityMiddleware'
+import { initializeRedis, closeRedis, getRedisClient } from './communication/RedisPublisher';
+import { ChatEventSubscriber } from './communication/ChatEventSubscriber';
 import { internalRoutes } from './internal/internalRoutes'
 import { chatRoutes } from './chat/chatRoutes'
+import { ChatManager } from './managers/chatManager'  
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
@@ -24,6 +27,30 @@ export async function buildApp() {
   })
 
   await fastify.register(helmet)
+
+  // Initialize Redis connection
+  await initializeRedis();
+  
+  const redisClient = getRedisClient();
+  if (redisClient) {
+    // Create separate Redis clients for subscriber and publisher
+    const subscriber = redisClient.duplicate();
+    await subscriber.connect();
+    
+    const publisher = redisClient.duplicate();
+    await publisher.connect();
+
+    const chatManager = new ChatManager();
+    const chatEventSubscriber = new ChatEventSubscriber(subscriber, publisher, chatManager);
+    await chatEventSubscriber.initialize();
+    console.log("Created chat subscriber");
+  }
+  else
+  {
+    console.log("could not initialize redis");
+  }
+
+    
 
   // fastify.register(fastifyMetrics, { endpoint: '/metrics' });
 

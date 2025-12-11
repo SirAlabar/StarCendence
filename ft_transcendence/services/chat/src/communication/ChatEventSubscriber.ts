@@ -1,0 +1,107 @@
+import { RedisClientType } from 'redis';
+import { ChatManager } from '../managers/chatManager';
+
+export interface ChatEventMessage 
+{
+    type: string;
+    payload: any;
+    userId: string;
+    username?: string;
+    connectionId: string;
+    timestamp: number;
+}
+
+export interface WebSocketBroadcastRequest 
+{
+    userIds?: string[];
+    targetUserId?: string;
+    message: 
+    {
+        type: string;
+        payload: any;
+        timestamp?: number;
+    };
+}
+
+export class ChatEventSubscriber 
+{
+        private subscriber: RedisClientType;
+        private publisher: RedisClientType;
+        private chatManager: ChatManager;
+
+        constructor(subscriber: RedisClientType, publisher: RedisClientType , chatManager: ChatManager) 
+        {
+            this.subscriber = subscriber;
+            this.publisher = publisher;
+            this.chatManager = chatManager;
+        }
+
+        async initialize(): Promise<void> 
+        {
+            await this.subscriber.subscribe('chat:events', async (message : string) => 
+            {
+                await this.handleChatEvent(message);
+            });
+        }
+
+    private async handleChatEvent(rawMessage: string): Promise<void>
+    {
+        try 
+        {
+            const event = JSON.parse(rawMessage) as ChatEventMessage;
+
+            switch (event.type)
+            {
+                case 'chat:message':
+                    await this.handleChatMessage(event);
+                    break;
+
+
+                default:
+                    console.log("No handler for: ", event.type);
+                    break;
+            }
+        } 
+        catch (error) 
+        {
+        console.error('[ChatEventSubscriber] Error handling chat event:', error);
+        }
+    }
+
+    private async handleChatMessage(event: ChatEventMessage): Promise<void> 
+    {
+        // handle with chat manager
+    }
+
+    //to send a message to a user you can send using the userID from the JWT, and the message is the payload with .stringfy 
+    private async broadcastToUser(userId: string, message: any): Promise<void>
+    {
+        const request: WebSocketBroadcastRequest = 
+        {
+        targetUserId: userId,
+        message: 
+        {   
+            ...message,
+            timestamp: message.timestamp || Date.now(),
+        },
+        };
+
+        await this.publisher.publish('websocket:broadcast', JSON.stringify(request));
+    }
+
+    private async broadcastToUsers(userIds: string[], message: any): Promise<void>
+    {
+        const request: WebSocketBroadcastRequest = 
+        {
+            userIds,
+            message: 
+            {
+                ...message,
+                timestamp: message.timestamp || Date.now(),
+            },
+        };
+
+        await this.publisher.publish('websocket:broadcast', JSON.stringify(request));
+        console.log(`[ChatEventSubscriber] 📤 Broadcasted ${message.type} to ${userIds.length} user(s)`);
+    }
+}
