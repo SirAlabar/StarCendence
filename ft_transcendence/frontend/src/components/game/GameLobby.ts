@@ -525,7 +525,7 @@ export class GameLobby extends BaseComponent
         return activePlayers.length >= 2 && allReady;
     }
 
-    private isCurrentUserHost(): boolean {
+    public isCurrentUserHost(): boolean {
         if (!this.currentUser) {
             console.log('[GameLobby] isCurrentUserHost: No currentUser');
             return false;

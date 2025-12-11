@@ -5,6 +5,8 @@ import { Modal } from '@/components/common/Modal';
 import { webSocketService } from '@/services/websocket/WebSocketService'
 
 
+
+
 export default class PongLobbyPage extends BaseComponent 
 {
     private gameLobby: GameLobby | null = null;
@@ -242,7 +244,9 @@ export default class PongLobbyPage extends BaseComponent
                 // Game is about to start - navigate all players
                 if (msg.payload?.lobbyId === this.lobbyId) {
                     this.isGameStarting = true;
-                    navigateTo(`/pong-game?lobby=${this.lobbyId}`);
+                    const isHost = this.gameLobby?.isCurrentUserHost() ?? false;  //check to  see who is host 
+                    const side = isHost ? 'left' : 'right';
+                    navigateTo(`/pong-game?lobby=${this.lobbyId}&side=${side}`);
                 }
                 break;
 
