@@ -483,13 +483,13 @@ Total: ~702 files
     <td align="center">
       <a href="https://github.com/SirAlabar">
         <img src="https://github.com/SirAlabar.png" width="80" height="80" style="border-radius: 50%;" alt="hluiz"><br>
-        <sub><b>hluiz</b></sub><br>
+        <sub><b>hluiz-ma</b></sub><br>
       </a>
     </td>
     <td align="center">
       <a href="https://github.com/joaorema">
         <img src="https://github.com/joaorema.png" width="80" height="80" style="border-radius: 50%;" alt="jpedro-c"><br>
-        <sub><b>meferraz</b></sub><br>
+        <sub><b>jpedro-c</b></sub><br>
       </a>
     </td>
     <td align="center">
