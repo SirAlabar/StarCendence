@@ -260,4 +260,17 @@ export class LobbyManager {
       data,
     };
   }
+
+  /**
+   * Update lobby status
+   */
+  async updateLobbyStatus(lobbyId: string, status: LobbyData['status']): Promise<void> {
+    const exists = await this.redis.exists(`lobby:${lobbyId}:data`);
+    if (!exists) {
+      throw new Error('Lobby not found');
+    }
+
+    await this.redis.hSet(`lobby:${lobbyId}:data`, 'status', status);
+    console.log(`[LobbyManager] Updated lobby ${lobbyId} status to ${status}`);
+  }
 }

@@ -2,7 +2,7 @@ import { EventManager } from './EventManager';
 import { ConnectionInfo, WebSocketMessage } from '../types/connection.types';
 import { redisBroadcast } from '../broadcasting/RedisBroadcast';
 
-const gameEvents = ['game:move', 'game:action', 'game:start', 'game:pause', 'game:resume', 'game:end'];
+const gameEvents = ['game:move', 'game:action', 'game:ready', 'game:start', 'game:pause', 'game:resume', 'game:end', 'game:input'];
 
 for (const eventType of gameEvents)
 {

@@ -112,9 +112,7 @@ export enum GameType {
 
 // Game Mode Enum
 export enum GameMode {
-  MULTIPLAYER_2P = 'MULTIPLAYER_2P',
-  MULTIPLAYER_3P = 'MULTIPLAYER_3P',
-  MULTIPLAYER_4P = 'MULTIPLAYER_4P',
+  MATCH = 'MATCH',
   TOURNAMENT = 'TOURNAMENT',
 }
 
