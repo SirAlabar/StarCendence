@@ -1,6 +1,6 @@
 import { RedisClientType } from 'redis';
 import { ChatManager } from '../managers/chatManager';
-import { getConversationBetweenUsers, getRoomId } from '../chat/chatService';
+import { getRoomId } from '../chat/chatService';
 import { saveMessage } from '../internal/internalRepository';
 
 
@@ -78,25 +78,29 @@ export class ChatEventSubscriber
 
     private async handleChatMessage(event: ChatEventMessage): Promise<void> 
     {
-        /*try
+        try 
         {
-            const conversation = getConversationBetweenUsers(event.userId, event.payload.targetUserId);
-        }
-        catch(err)
-        {
-            console.error("could not get conversation: ", err);
-        }*/
-
-        //publish to database before sending!!!!!
-        const roomId = await getRoomId(event.userId, event.payload.targetUserId);
-        saveMessage(event.userId, roomId, event.payload.message);        
-
-        this.broadcastToUser(event.payload.targetUserId, (
-        { 
+            // Save to database first
+            const roomId = await getRoomId(event.userId, event.payload.targetUserId);
+            const savedMessage = await saveMessage(event.userId, roomId, event.payload.message);
+            
+            // Broadcast with complete message info
+            this.broadcastToUser(event.payload.targetUserId, {
                 type: "chat:message",
-                message: event.payload.message
-        } ) )
-
+                payload: {
+                    messageId: savedMessage.id,
+                    senderId: event.userId,
+                    senderUsername: event.username || savedMessage.sender.username,
+                    message: event.payload.message,
+                    timestamp: savedMessage.createdAt.getTime(),
+                    conversationId: savedMessage.conversationId,
+                },
+            });
+        }
+        catch (error) 
+        {
+            console.error('[ChatEventSubscriber] Error handling chat message:', error);
+        }
     }
 
     //to send a message to a user you can send using this with the userID from the JWT, and the message is the payload with .stringify 

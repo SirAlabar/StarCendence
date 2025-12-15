@@ -22,6 +22,7 @@ export class ChatModal extends BaseComponent
     private isLoading: boolean = true;
     private isSending: boolean = false;
     private currentUserId: string = '';
+    private wsMessageHandler: ((data: any) => void) | null = null;
     
     constructor(props: ChatModalProps) 
     {
@@ -228,8 +229,8 @@ export class ChatModal extends BaseComponent
         return `
             <div class="${alignClass}">
                 <div class="${messageClass}">
-                    <p class="text-white text-sm break-words">${this.escapeHtml(message.message)}</p>
-                    <p class="chat-timestamp text-right">${timeString}</p>
+                    <p class="text-white break-words">${this.escapeHtml(message.content)}</p>
+                    <div class="chat-timestamp">${timeString}</div>
                 </div>
             </div>
         `;
@@ -238,22 +239,21 @@ export class ChatModal extends BaseComponent
     private renderInputArea(): string 
     {
         return `
-            <div class="p-3 sm:p-4 border-t border-cyan-500/30">
-                <div class="flex gap-2 items-end">
-                    <textarea 
-                        id="chat-input" 
-                        class="flex-1 bg-gray-800/50 border-2 border-gray-600 text-white px-3 py-2 sm:px-4 sm:py-3 rounded-xl resize-none transition-all focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 text-sm sm:text-base" 
-                        placeholder="Type a message..."
+            <div class="border-t border-cyan-500/30 p-4">
+                <div class="flex gap-3">
+                    <textarea
+                        id="chat-input"
+                        class="chat-input flex-1"
+                        placeholder="Type your message..."
                         rows="2"
-                        maxlength="1000"
                         ${this.isSending ? 'disabled' : ''}
                     ></textarea>
-                    <button 
-                        id="send-btn" 
-                        class="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-white font-bold px-4 py-2 sm:px-6 sm:py-3 rounded-xl transition-all shadow-lg shadow-cyan-500/50 hover:shadow-xl hover:shadow-cyan-500/70 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
+                    <button
+                        id="send-btn"
+                        class="chat-send-button"
                         ${this.isSending ? 'disabled' : ''}
                     >
-                        ${this.isSending ? 'SENDING...' : 'SEND'}
+                        ${this.isSending ? 'Sending...' : 'Send'}
                     </button>
                 </div>
                 <p class="text-xs text-gray-500 mt-2">Press Enter to send, Shift+Enter for new line</p>
@@ -261,32 +261,46 @@ export class ChatModal extends BaseComponent
         `;
     }
     
-    protected async afterMount(): Promise<void> 
+    async afterMount(): Promise<void> 
     {
-        console.log('[ChatModal] 🎬 Mounting chat modal');
+        console.log('[ChatModal] 🎬 Component mounted');
         
-        await this.loadChatHistory();
+        // Setup UI event listeners
         this.setupEventListeners();
+        
+        // Load message history
+        await this.loadMessages();
+        
+        // Subscribe to WebSocket messages
         this.subscribeToNewMessages();
-        this.markAsRead();
+        
+        // Mark messages as read
+        await this.markAsRead();
+        
+        // Scroll to bottom
+        this.scrollToBottom();
     }
     
-    private async loadChatHistory(): Promise<void> 
+    private async loadMessages(): Promise<void> 
     {
         try 
         {
-            console.log('[ChatModal] 📜 Loading chat history...');
-            this.messages = await ChatService.getChatHistory(this.props.friendId);
-            console.log('[ChatModal] ✅ Loaded', this.messages.length, 'messages');
+            console.log('[ChatModal] 📥 Loading message history...');
+            this.isLoading = true;
+            
+            const messages = await ChatService.getChatHistory(this.props.friendId);
+            this.messages = messages;
+            
+            console.log('[ChatModal] ✅ Loaded', messages.length, 'messages');
             
             this.isLoading = false;
             this.updateMessagesDisplay();
-            this.scrollToBottom();
         } 
         catch (error) 
         {
-            console.error('[ChatModal] ❌ Failed to load chat history:', error);
+            console.error('[ChatModal] ❌ Failed to load messages:', error);
             this.isLoading = false;
+            this.messages = [];
             this.updateMessagesDisplay();
         }
     }
@@ -348,20 +362,51 @@ export class ChatModal extends BaseComponent
     
     private subscribeToNewMessages(): void 
     {
-        console.log('[ChatModal] 👂 Subscribing to new messages');
+        console.log('[ChatModal] 👂 Subscribing to WebSocket messages');
         
-        webSocketService.onChatMessageReceived((message: ChatMessage) => 
+        // Create handler function
+        this.wsMessageHandler = (data: any) => 
         {
-            // Only add messages from this friend
-            if (message.senderId === this.props.friendId) 
+            console.log('[ChatModal] 📨 Received WebSocket message:', data);
+            
+            try 
             {
-                console.log('[ChatModal] 📨 Received new message from friend');
-                this.messages.push(message);
-                this.updateMessagesDisplay();
-                this.scrollToBottom();
-                this.markAsRead();
+                // Extract message data from payload
+                const payload = data.payload || data;
+                const senderId = payload.senderId || data.senderId;
+                const messageText = payload.message || data.message;
+                const messageId = payload.messageId || data.messageId;
+                const timestamp = payload.timestamp || data.timestamp || Date.now();
+                
+                // Only add messages from this friend
+                if (senderId === this.props.friendId) 
+                {
+                    console.log('[ChatModal] ✅ Message is from current friend, adding to chat');
+                    
+                    const newMessage: ChatMessage = {
+                        id: messageId || `ws_${Date.now()}`,
+                        senderId: senderId,
+                        content: messageText,
+                        timestamp: new Date(timestamp),
+                        isRead: true
+                    };
+                    
+                    this.messages.push(newMessage);
+                    this.updateMessagesDisplay();
+                    this.scrollToBottom();
+                    
+                    // Mark as read immediately
+                    this.markAsRead();
+                }
+            } 
+            catch (error) 
+            {
+                console.error('[ChatModal] ❌ Error handling WebSocket message:', error);
             }
-        });
+        };
+        
+        // Register with WebSocketService
+        webSocketService.on('chat:message', this.wsMessageHandler);
     }
     
     private async handleSend(): Promise<void> 
@@ -386,25 +431,35 @@ export class ChatModal extends BaseComponent
             
             console.log('[ChatModal] 📤 Sending message...');
             
-            // Send via WebSocket (for real-time delivery via Redis pub/sub)
-            await webSocketService.sendPrivateChatMessage(this.props.friendId, message);
+            // Try WebSocket first (for real-time delivery)
+            const wsSent = webSocketService.send('chat:message', {
+                targetUserId: this.props.friendId,
+                message: message
+            });
             
-            // Also save to backend
-            await ChatService.sendMessage(this.props.friendId, message);
+            if (wsSent) 
+            {
+                console.log('[ChatModal] ✅ Message sent via WebSocket');
+            }
+            else 
+            {
+                console.log('[ChatModal] ⚠️ WebSocket unavailable, using HTTP fallback');
+                // Fallback to HTTP if WebSocket is not available
+                await ChatService.sendMessage(this.props.friendId, message);
+            }
             
             // Add to local messages (optimistic update)
             const newMessage: ChatMessage = {
                 id: `temp_${Date.now()}`,
                 senderId: this.currentUserId,
-                receiverId: this.props.friendId,
-                message,
+                content: message,
                 timestamp: new Date(),
                 isRead: false
             };
             
             this.messages.push(newMessage);
             
-            console.log('[ChatModal] ✅ Message sent');
+            console.log('[ChatModal] ✅ Message sent successfully');
             
             input.value = '';
             this.isSending = false;
@@ -502,10 +557,25 @@ export class ChatModal extends BaseComponent
         });
     }
     
+    unmount(): void 
+    {
+        console.log('[ChatModal] 🧹 Unmounting ChatModal');
+        
+        // Remove WebSocket listener
+        if (this.wsMessageHandler) 
+        {
+            webSocketService.off('chat:message', this.wsMessageHandler);
+            this.wsMessageHandler = null;
+        }
+        
+        // Remove keyboard listener
+        document.removeEventListener('keydown', this.handleEscapeKey);
+    }
+    
     private handleClose(): void 
     {
         console.log('[ChatModal] 🚪 Closing chat modal');
-        document.removeEventListener('keydown', this.handleEscapeKey);
+        this.unmount();
         this.props.onClose();
     }
     

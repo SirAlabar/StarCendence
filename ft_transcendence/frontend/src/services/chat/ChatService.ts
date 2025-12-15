@@ -1,5 +1,5 @@
 import { BaseService } from '../BaseService';
-import { getUserApiUrl } from '../../types/api.types';
+import { getChatApiUrl } from '../../types/api.types';
 import { ChatMessage } from '../../types/chat.types';
 
 export interface ChatHistoryResponse 
@@ -31,7 +31,8 @@ class ChatService extends BaseService
             throw new Error('Friend ID is required');
         }
 
-        const response = await this.fetchRequest(getUserApiUrl(`/chat/history/${friendId}`), {
+        const response = await this.fetchRequest(getChatApiUrl(`/history/${friendId}`), 
+        {
             method: 'GET',
             headers: this.getHeaders()
         });
@@ -70,7 +71,7 @@ class ChatService extends BaseService
             message: message.trim()
         };
 
-        const response = await this.fetchRequest(getUserApiUrl('/chat/send'), {
+        const response = await this.fetchRequest(getChatApiUrl('/send'), { // ⬅️ CHANGE THIS
             method: 'POST',
             headers: this.getHeaders(),
             body: JSON.stringify(body)
@@ -89,7 +90,7 @@ class ChatService extends BaseService
             throw new Error('Friend ID is required');
         }
 
-        const response = await this.fetchRequest(getUserApiUrl(`/chat/read/${friendId}`), {
+        const response = await this.fetchRequest(getChatApiUrl(`/read/${friendId}`), { // ⬅️ CHANGE THIS
             method: 'PATCH',
             headers: this.getHeaders(),
             body: JSON.stringify({})
@@ -103,7 +104,7 @@ class ChatService extends BaseService
     {
         this.requireAuth();
 
-        const response = await this.fetchRequest(getUserApiUrl('/chat/unread-counts'), {
+        const response = await this.fetchRequest(getChatApiUrl('/unread-counts'), { // ⬅️ CHANGE THIS
             method: 'GET',
             headers: this.getHeaders()
         });

@@ -2,20 +2,32 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function saveMessage(fromUserId: string, roomId: string, message: string) {
+export async function saveMessage(fromUserId: string, roomId: string, message: string) 
+{
   const conversation = await prisma.chatConversation.findFirst({
     where: { roomId },
   });
 
-  if (!conversation) {
+  if (!conversation) 
+  {
     throw new Error('Conversation not found');
   }
 
-  await prisma.message.create({
+  // Return the created message with sender info
+  return await prisma.message.create({
     data: {
       conversationId: conversation.id,
       senderId: fromUserId,
       content: message,
+      isRead: false,
+    },
+    include: {
+      sender: {
+        select: {
+          id: true,
+          username: true,
+        },
+      },
     },
   });
 }

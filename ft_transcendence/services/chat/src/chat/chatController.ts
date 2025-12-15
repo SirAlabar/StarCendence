@@ -2,48 +2,121 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import * as chatService from './chatService';
 import * as userServiceClient from '../clients/userServiceClient';
 
-// POST /conversations - Create a new conversation
-export async function createConversation(req: FastifyRequest, reply: FastifyReply) {
+// Get chat history
+export async function getChatHistory(req: FastifyRequest, reply: FastifyReply) 
+{
   const userId = req.user?.sub;
-  if (!userId) {
+  if (!userId) 
+  {
     return reply.status(400).send({ error: 'Invalid user' });
   }
 
-  const { targetUserId } = req.body as { targetUserId: string };
-  if (!targetUserId) {
-    return reply.status(400).send({ error: 'Target user ID is required' });
+  const { friendId } = req.params as { friendId: string };
+  if (!friendId) 
+  {
+    return reply.status(400).send({ error: 'Friend ID is required' });
   }
 
+  // Verify friendship
   const friends = await userServiceClient.getFriendsIds(userId);
-  if (!friends.includes(targetUserId)) {
-    return reply.status(403).send({ error: 'You can only start conversations with your friends' });
+  if (!friends.includes(friendId)) 
+  {
+    return reply.status(403).send({ error: 'You can only get chat history with your friends' });
   }
 
-  const conversation = await chatService.createConversation(userId, targetUserId);
-  return reply.status(201).send(conversation);
+  const messages = await chatService.getChatHistory(userId, friendId);
+  
+  return reply.status(200).send({
+    friendId,
+    messages,
+  });
 }
 
-// Get /conversations/:targetUserId - Get conversation with a specific user
-export async function getConversation(req: FastifyRequest, reply: FastifyReply) {
+// Send message (HTTP fallback)
+export async function sendMessage(req: FastifyRequest, reply: FastifyReply) 
+{
   const userId = req.user?.sub;
-  if (!userId) {
+  const username = req.user?.username;
+  
+  if (!userId) 
+  {
     return reply.status(400).send({ error: 'Invalid user' });
   }
 
-  const { targetUserId } = req.params as { targetUserId: string };
-  if (!targetUserId) {
-    return reply.status(400).send({ error: 'Target user ID is required' });
+  const { receiverId, message } = req.body as { receiverId: string; message: string };
+  
+  if (!receiverId) 
+  {
+    return reply.status(400).send({ error: 'Receiver ID is required' });
   }
 
+  if (!message || message.trim().length === 0) 
+  {
+    return reply.status(400).send({ error: 'Message cannot be empty' });
+  }
+
+  if (message.length > 1000) 
+  {
+    return reply.status(400).send({ error: 'Message must be 1000 characters or less' });
+  }
+
+  // Verify friendship
   const friends = await userServiceClient.getFriendsIds(userId);
-  if (!friends.includes(targetUserId)) {
-    return reply.status(403).send({ error: 'You can only get conversations with your friends' });
+  if (!friends.includes(receiverId)) 
+  {
+    return reply.status(403).send({ error: 'You can only send messages to your friends' });
   }
 
-  const conversation = await chatService.getConversationBetweenUsers(userId, targetUserId);
-  if (!conversation) {
-    return reply.status(404).send({ error: 'Conversation not found' });
+  await chatService.sendMessage(userId, receiverId, message.trim(), username);
+  
+  return reply.status(200).send({ success: true });
+}
+
+// Mark messages as read
+export async function markAsRead(req: FastifyRequest, reply: FastifyReply) 
+{
+  const userId = req.user?.sub;
+  if (!userId) 
+  {
+    return reply.status(400).send({ error: 'Invalid user' });
   }
 
-  return reply.status(200).send(conversation);
+  const { friendId } = req.params as { friendId: string };
+  if (!friendId) 
+  {
+    return reply.status(400).send({ error: 'Friend ID is required' });
+  }
+
+  // Verify friendship
+  const friends = await userServiceClient.getFriendsIds(userId);
+  if (!friends.includes(friendId)) 
+  {
+    return reply.status(403).send({ error: 'You can only mark messages as read with your friends' });
+  }
+
+  await chatService.markMessagesAsRead(userId, friendId);
+  
+  return reply.status(200).send({ success: true });
+}
+
+// Get unread counts
+export async function getUnreadCounts(req: FastifyRequest, reply: FastifyReply) 
+{
+  const userId = req.user?.sub;
+  if (!userId) 
+  {
+    return reply.status(400).send({ error: 'Invalid user' });
+  }
+
+  const unreadMap = await chatService.getUnreadCounts(userId);
+  
+  // Convert Map to object for JSON response
+  const unreadCounts: { [key: string]: number } = {};
+  
+  unreadMap.forEach((count, friendId) => 
+  {
+    unreadCounts[friendId] = count;
+  });
+
+  return reply.status(200).send({ unreadCounts });
 }

@@ -1,5 +1,6 @@
-// ChatNotificationService.ts - Centralized notification badge management
+// Centralized notification badge management
 import ChatService from './ChatService';
+import { webSocketService } from '../websocket/WebSocketService';
 
 class ChatNotificationService 
 {
@@ -7,6 +8,7 @@ class ChatNotificationService
     private totalUnreadCallbacks: Array<(total: number) => void> = [];
     private friendUnreadCallbacks: Array<(friendId: string, count: number) => void> = [];
     private isInitialized: boolean = false;
+    private wsMessageHandler: ((data: any) => void) | null = null;
     
     constructor() 
     {
@@ -35,6 +37,9 @@ class ChatNotificationService
             
             this.isInitialized = true;
             
+            // Setup WebSocket listener for real-time messages
+            this.setupWebSocketListener();
+            
             // Notify all callbacks with initial data
             this.notifyTotalUnreadCallbacks();
             
@@ -51,6 +56,40 @@ class ChatNotificationService
         {
             console.error('[ChatNotificationService] ❌ Failed to load unread counts:', error);
             this.isInitialized = true; // Mark as initialized even on error
+        }
+    }
+    
+    // Setup WebSocket listener for incoming messages
+    private setupWebSocketListener(): void 
+    {
+        console.log('[ChatNotificationService] 👂 Setting up WebSocket listener');
+        
+        this.wsMessageHandler = (data: any) => 
+        {
+            this.handleIncomingMessage(data);
+        };
+        
+        webSocketService.on('chat:message', this.wsMessageHandler);
+    }
+    
+    // Handle incoming WebSocket message
+    private handleIncomingMessage(data: any): void 
+    {
+        console.log('[ChatNotificationService] 📨 Received WebSocket message:', data);
+        
+        try 
+        {
+            const { senderId } = data.payload || data;
+            
+            if (senderId) 
+            {
+                // Increment unread for this sender
+                this.incrementUnread(senderId);
+            }
+        } 
+        catch (error) 
+        {
+            console.error('[ChatNotificationService] ❌ Error handling incoming message:', error);
         }
     }
     
@@ -176,6 +215,14 @@ class ChatNotificationService
     dispose(): void 
     {
         console.log('[ChatNotificationService] 🧹 Disposing');
+        
+        // Remove WebSocket listener
+        if (this.wsMessageHandler) 
+        {
+            webSocketService.off('chat:message', this.wsMessageHandler);
+            this.wsMessageHandler = null;
+        }
+        
         this.unreadMessages.clear();
         this.totalUnreadCallbacks = [];
         this.friendUnreadCallbacks = [];

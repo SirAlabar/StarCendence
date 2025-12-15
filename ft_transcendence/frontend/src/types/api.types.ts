@@ -4,12 +4,14 @@ const API_CONFIG = {
     production: {
         BASE_URL: 'https://starcendence.dev',
         AUTH_BASE_URL: 'https://starcendence.dev/api/auth',
-        USERS_BASE_URL: 'https://starcendence.dev/api/users'
+        USERS_BASE_URL: 'https://starcendence.dev/api/users',
+        CHAT_BASE_URL: 'https://starcendence.dev/api/chat'
     },
     local: {
         BASE_URL: 'https://localhost:8443',
         AUTH_BASE_URL: 'https://localhost:8443/api/auth',
-        USERS_BASE_URL: 'https://localhost:8443/api/users'
+        USERS_BASE_URL: 'https://localhost:8443/api/users',
+        CHAT_BASE_URL: 'https://localhost:8443/api/chat'
     }
 };
 
@@ -51,4 +53,10 @@ export const getUserApiUrl = (endpoint: string): string =>
 export const getBaseUrl = (): string => 
 {
     return API.BASE_URL;
+};
+
+export const getChatApiUrl = (endpoint: string): string => 
+{
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${API.CHAT_BASE_URL}${normalizedEndpoint}`;
 };

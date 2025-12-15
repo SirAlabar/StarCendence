@@ -4,11 +4,17 @@
 export interface ChatMessage 
 {
     id: string;
+    conversationId?: string;
     senderId: string;
-    receiverId: string;
-    message: string;
+    content: string;
     timestamp: Date;
     isRead: boolean;
+    
+    // Sender information (included in backend responses)
+    sender?: {
+        id: string;
+        username: string;
+    };
 }
 
 // Chat conversation interface
@@ -24,35 +30,40 @@ export interface ChatConversation
 // Unread messages map type
 export type UnreadMessagesMap = Map<string, number>;
 
-// WebSocket chat event types
-export enum ChatEventType 
+// WebSocket chat event payload
+export interface WebSocketChatPayload 
 {
-    CHAT_MESSAGE_SENT = 'chat:message:sent',
-    CHAT_MESSAGE_RECEIVED = 'chat:message:received',
-    CHAT_HISTORY_REQUEST = 'chat:history:request',
-    CHAT_HISTORY_RESPONSE = 'chat:history:response',
-    MESSAGE_READ = 'chat:message:read',
-    UNREAD_COUNT_UPDATE = 'chat:unread:update'
-}
-
-// Chat message payload for WebSocket
-export interface ChatMessagePayload 
-{
-    receiverId: string;
+    messageId: string;
+    senderId: string;
+    senderUsername?: string;
     message: string;
-    timestamp?: Date;
+    timestamp: number;
+    conversationId?: string;
 }
 
-// Chat history response payload
-export interface ChatHistoryPayload 
+// Chat message payload for sending
+export interface SendChatMessagePayload 
+{
+    targetUserId: string;
+    message: string;
+}
+
+// Chat history response from backend
+export interface ChatHistoryResponse 
 {
     friendId: string;
     messages: ChatMessage[];
 }
 
-// Unread count update payload
-export interface UnreadCountPayload 
+// Unread counts response from backend
+export interface UnreadCountsResponse 
 {
-    friendId: string;
-    count: number;
+    unreadCounts: { [friendId: string]: number };
+}
+
+// Send message request for HTTP
+export interface SendMessageRequest 
+{
+    receiverId: string;
+    message: string;
 }
