@@ -6,7 +6,7 @@ import * as chatSchema from './chatSchema';
 export async function chatRoutes(fastify: FastifyInstance) 
 {
   // GET /chat/history/:friendId - Get chat history with a friend
-  fastify.get('/chat/history/:friendId',
+  fastify.get('/history/:friendId',
   {
     preHandler: [verifyUserToken],
     schema: chatSchema.getChatHistorySchema,
@@ -14,7 +14,7 @@ export async function chatRoutes(fastify: FastifyInstance)
   chatController.getChatHistory);
 
   // POST /chat/send - Send a message
-  fastify.post('/chat/send',
+  fastify.post('/send',
   {
     preHandler: [verifyUserToken],
     schema: chatSchema.sendMessageSchema,
@@ -22,7 +22,7 @@ export async function chatRoutes(fastify: FastifyInstance)
   chatController.sendMessage);
 
   // PATCH /chat/read/:friendId - Mark messages as read
-  fastify.patch('/chat/read/:friendId',
+  fastify.patch('/read/:friendId',
   {
     preHandler: [verifyUserToken],
     schema: chatSchema.markAsReadSchema,
@@ -30,7 +30,7 @@ export async function chatRoutes(fastify: FastifyInstance)
   chatController.markAsRead);
 
   // GET /chat/unread-counts - Get unread message counts
-  fastify.get('/chat/unread-counts',
+  fastify.get('/unread-counts',
   {
     preHandler: [verifyUserToken],
   },

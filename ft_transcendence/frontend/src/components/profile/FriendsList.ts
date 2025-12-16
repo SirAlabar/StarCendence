@@ -8,7 +8,7 @@ import { ChatModal } from './ChatWindow';
 
 interface Friend 
 {
-    id: number;
+    id: string;
     username: string;
     status: string;
     avatarUrl?: string;
@@ -209,7 +209,7 @@ export class FriendsList extends BaseComponent
         const avatarUrl = friend.avatarUrl ? `${getBaseUrl()}${friend.avatarUrl}` : null;
         
         // Get unread count for this friend
-        const unreadCount = this.friendUnreadCounts.get(friend.id.toString()) || 0;
+        const unreadCount = this.friendUnreadCounts.get(friend.id) || 0;
 
         const avatarContent = avatarUrl
             ? `<img src="${avatarUrl}" alt="${friend.username}" class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full object-cover">`
@@ -418,7 +418,7 @@ export class FriendsList extends BaseComponent
 
     private handleChatClick(friendId: string, friendUsername: string, friendAvatar: string | null): void 
     {
-        console.log('[FriendsList] 💬 Opening chat with:', friendUsername);
+        console.log('[FriendsList] 💬 Opening chat with:', friendUsername, 'ID: ', friendId);
         this.openChatModal(friendId, friendUsername, friendAvatar);
     }
     

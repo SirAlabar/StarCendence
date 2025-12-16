@@ -492,20 +492,24 @@ export class ChatModal extends BaseComponent
     
     private updateMessagesDisplay(): void 
     {
-        const messagesContainer = document.getElementById('messages-container');
-        if (!messagesContainer) 
+        const modal = document.getElementById('chat-modal-overlay');
+        if (!modal) 
         {
             return;
         }
         
-        const container = messagesContainer.parentElement;
-        if (!container) 
+        const messagesArea = modal.querySelector('.flex-1');
+        if (!messagesArea) 
         {
             return;
         }
         
-        const newContent = this.renderMessagesContainer();
-        container.innerHTML = newContent;
+        messagesArea.outerHTML = this.renderMessagesContainer();
+        
+        if (this.messages.length > 0) 
+        {
+            this.scrollToBottom();
+        }
     }
     
     private updateInputArea(): void 
