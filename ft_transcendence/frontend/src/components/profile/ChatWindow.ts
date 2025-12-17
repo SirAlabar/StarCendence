@@ -29,19 +29,25 @@ export class ChatModal extends BaseComponent
         super();
         this.props = props;
         
-        // Get current user ID from localStorage or token
-        const userData = localStorage.getItem('user_data');
-        console.log('[ChatModal] 🔍 localStorage user_data:', userData);
-        
-        if (userData) 
+        // Get current user ID from JWT token
+        const token = localStorage.getItem('access_token');
+        if (token) 
         {
-            const parsed = JSON.parse(userData);
-            console.log('[ChatModal] 📊 Parsed user data:', parsed);
-            this.currentUserId = parsed.id || parsed.userId || '';
+            try 
+            {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                this.currentUserId = payload.sub || '';
+            } 
+            catch (error) 
+            {
+                this.currentUserId = '';
+            }
         }
-        
-        console.log('[ChatModal] 👤 Current User ID:', this.currentUserId);
-        console.log('[ChatModal] 💬 Initialized for friend:', this.props.friendUsername);
+        else
+        {
+            console.error('[ChatModal] ❌ No access token found');
+            this.currentUserId = '';
+        }
     }
     
     render(): string 
@@ -178,100 +184,49 @@ export class ChatModal extends BaseComponent
             </div>
         `;
     }
-    
-    // private renderMessagesContainer(): string 
-    // {
-    //     if (this.isLoading) 
-    //     {
-    //         return `
-    //             <div class="flex-1 flex items-center justify-center">
-    //                 <div class="text-cyan-400 flex flex-col items-center gap-3">
-    //                     <svg class="animate-spin h-10 w-10" fill="none" viewBox="0 0 24 24">
-    //                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-    //                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-    //                     </svg>
-    //                     <p class="text-sm">Loading messages...</p>
-    //                 </div>
-    //             </div>
-    //         `;
-    //     }
-        
-    //     if (this.messages.length === 0) 
-    //     {
-    //         return `
-    //             <div class="flex-1 flex items-center justify-center">
-    //                 <div class="text-center text-gray-400">
-    //                     <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    //                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-    //                     </svg>
-    //                     <p class="text-lg mb-2">No messages yet</p>
-    //                     <p class="text-sm">Say hi to ${this.escapeHtml(this.props.friendUsername)}! 👋</p>
-    //                 </div>
-    //             </div>
-    //         `;
-    //     }
-        
-    //     return `
-    //         <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4 messages-container">
-    //             ${this.messages.map(msg => this.renderMessage(msg)).join('')}
-    //         </div>
-    //     `;
-    // }
 
     private renderMessagesContainer(): string 
-{
-    console.log('[ChatModal] 🎨 renderMessagesContainer() called');
-    console.log('[ChatModal] 📊 isLoading:', this.isLoading);
-    console.log('[ChatModal] 📊 messages.length:', this.messages.length);
-    
-    if (this.isLoading) 
     {
-        console.log('[ChatModal] ⏳ Rendering loading spinner');
-        return `
-            <div class="flex-1 flex items-center justify-center">
-                <div class="text-cyan-400 flex flex-col items-center gap-3">
-                    <svg class="animate-spin h-10 w-10" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p class="text-sm">Loading messages...</p>
+    
+        if (this.isLoading) 
+        {
+            return `
+                <div class="flex-1 flex items-center justify-center">
+                    <div class="text-cyan-400 flex flex-col items-center gap-3">
+                        <svg class="animate-spin h-10 w-10" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-sm">Loading messages...</p>
+                    </div>
                 </div>
+            `;
+        }
+        
+        if (this.messages.length === 0) 
+        {
+            return `
+                <div class="flex-1 flex items-center justify-center">
+                    <div class="text-center text-gray-400">
+                        <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                        <p class="text-lg mb-2">No messages yet</p>
+                        <p class="text-sm">Say hi to ${this.escapeHtml(this.props.friendUsername)}! 👋</p>
+                    </div>
+                </div>
+            `;
+        }
+        return `
+            <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4 messages-container">
+                ${this.messages.map(msg => this.renderMessage(msg)).join('')}
             </div>
         `;
     }
-    
-    if (this.messages.length === 0) 
-    {
-        console.log('[ChatModal] 📭 Rendering empty state');
-        return `
-            <div class="flex-1 flex items-center justify-center">
-                <div class="text-center text-gray-400">
-                    <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                    </svg>
-                    <p class="text-lg mb-2">No messages yet</p>
-                    <p class="text-sm">Say hi to ${this.escapeHtml(this.props.friendUsername)}! 👋</p>
-                </div>
-            </div>
-        `;
-    }
-    
-    console.log('[ChatModal] 💬 Rendering', this.messages.length, 'messages');
-    return `
-        <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4 messages-container">
-            ${this.messages.map(msg => this.renderMessage(msg)).join('')}
-        </div>
-    `;
-}
     
     private renderMessage(message: ChatMessage): string 
     {
         const isOwn = message.senderId === this.currentUserId;
-
-        console.log('[ChatModal] 🎨 Rendering message:');
-        console.log('  senderId:', message.senderId);
-        console.log('  currentUserId:', this.currentUserId);
-        console.log('  isOwn:', isOwn);
 
         const messageClass = isOwn ? 'chat-message-own' : 'chat-message-friend';
         const alignClass = isOwn ? 'flex justify-end' : 'flex justify-start';
@@ -319,8 +274,6 @@ export class ChatModal extends BaseComponent
     
     async afterMount(): Promise<void> 
     {
-        console.log('[ChatModal] 🎬 Component mounted');
-        
         // Setup UI event listeners
         this.setupEventListeners();
         
@@ -336,64 +289,29 @@ export class ChatModal extends BaseComponent
         // Scroll to bottom
         this.scrollToBottom();
     }
-    
-    // private async loadMessages(): Promise<void> 
-    // {
-    //     try 
-    //     {
-    //         console.log('[ChatModal] 📥 Loading message history...');
-    //         this.isLoading = true;
-            
-    //         const messages = await ChatService.getChatHistory(this.props.friendId);
-    //         this.messages = messages;
-            
-    //         console.log('[ChatModal] ✅ Loaded', messages.length, 'messages');
-            
-    //         this.isLoading = false;
-    //         this.updateMessagesDisplay();
-    //     } 
-    //     catch (error) 
-    //     {
-    //         console.error('[ChatModal] ❌ Failed to load messages:', error);
-    //         this.isLoading = false;
-    //         this.messages = [];
-    //         this.updateMessagesDisplay();
-    //     }
-    // }
 
     private async loadMessages(): Promise<void> 
-{
-    try 
     {
-        console.log('[ChatModal] 📥 Loading message history...');
-        console.log('[ChatModal] 🔍 Friend ID:', this.props.friendId);
-        this.isLoading = true;
-        
-        const messages = await ChatService.getChatHistory(this.props.friendId);
-        this.messages = messages;
-        
-        console.log('[ChatModal] ✅ Loaded', messages.length, 'messages');
-        console.log('[ChatModal] 📊 Messages array:', JSON.stringify(messages, null, 2));
-        console.log('[ChatModal] 📊 this.isLoading before:', this.isLoading);
-        
-        this.isLoading = false;
-        
-        console.log('[ChatModal] 📊 this.isLoading after:', this.isLoading);
-        console.log('[ChatModal] 🔄 Calling updateMessagesDisplay()...');
-        
-        this.updateMessagesDisplay();
-        
-        console.log('[ChatModal] ✅ updateMessagesDisplay() completed');
-    } 
-    catch (error) 
-    {
-        console.error('[ChatModal] ❌ Failed to load messages:', error);
-        this.isLoading = false;
-        this.messages = [];
-        this.updateMessagesDisplay();
+        try 
+        {
+            this.isLoading = true;
+            
+            const messages = await ChatService.getChatHistory(this.props.friendId);
+            this.messages = messages;
+
+            this.isLoading = false;
+
+            this.updateMessagesDisplay();
+        } 
+        catch (error) 
+        {
+            console.error('[ChatModal] ❌ Failed to load messages:', error);
+            this.isLoading = false;
+            this.messages = [];
+            this.updateMessagesDisplay();
+        }
     }
-}
-    
+        
     private setupEventListeners(): void 
     {
         // Close button
@@ -451,13 +369,9 @@ export class ChatModal extends BaseComponent
     
     private subscribeToNewMessages(): void 
     {
-        console.log('[ChatModal] 👂 Subscribing to WebSocket messages');
-        
         // Create handler function
         this.wsMessageHandler = (data: any) => 
         {
-            console.log('[ChatModal] 📨 Received WebSocket message:', data);
-            
             try 
             {
                 // Extract message data from payload
@@ -470,8 +384,6 @@ export class ChatModal extends BaseComponent
                 // Only add messages from this friend
                 if (senderId === this.props.friendId) 
                 {
-                    console.log('[ChatModal] ✅ Message is from current friend, adding to chat');
-                    
                     const newMessage: ChatMessage = {
                         id: messageId || `ws_${Date.now()}`,
                         senderId: senderId,
@@ -517,22 +429,15 @@ export class ChatModal extends BaseComponent
         {
             this.isSending = true;
             this.updateInputArea();
-            
-            console.log('[ChatModal] 📤 Sending message...');
-            
+
             // Try WebSocket first (for real-time delivery)
             const wsSent = webSocketService.send('chat:message', {
                 targetUserId: this.props.friendId,
                 message: message
             });
             
-            if (wsSent) 
+            if (!wsSent) 
             {
-                console.log('[ChatModal] ✅ Message sent via WebSocket');
-            }
-            else 
-            {
-                console.log('[ChatModal] ⚠️ WebSocket unavailable, using HTTP fallback');
                 // Fallback to HTTP if WebSocket is not available
                 await ChatService.sendMessage(this.props.friendId, message);
             }
@@ -547,9 +452,7 @@ export class ChatModal extends BaseComponent
             };
             
             this.messages.push(newMessage);
-            
-            console.log('[ChatModal] ✅ Message sent successfully');
-            
+ 
             input.value = '';
             this.isSending = false;
             this.updateInputArea();
@@ -569,7 +472,6 @@ export class ChatModal extends BaseComponent
     {
         try 
         {
-            console.log('[ChatModal] ✅ Marking messages as read');
             await ChatService.markAsRead(this.props.friendId);
             ChatNotificationService.clearUnread(this.props.friendId);
         } 
@@ -579,91 +481,39 @@ export class ChatModal extends BaseComponent
         }
     }
     
-    // private updateMessagesDisplay(): void 
-    // {
-    //     const modal = document.getElementById('chat-modal-overlay');
-    //     if (!modal) 
-    //     {
-    //         return;
-    //     }
-        
-    //     const mainContainer = modal.querySelector('.bg-gray-900\\/95');
-    //     if (!mainContainer) 
-    //     {
-    //         return;
-    //     }
-        
-    //     // Get all children
-    //     const children = Array.from(mainContainer.children);
-        
-    //     if (children.length >= 2) 
-    //     {
-    //         const messagesArea = children[1];
-    //         const newContent = document.createElement('div');
-    //         newContent.className = 'flex-1 overflow-y-auto';
-    //         newContent.innerHTML = this.renderMessagesContainer();
-            
-    //         messagesArea.replaceWith(newContent.firstElementChild || newContent);
-            
-    //         // Scroll to bottom
-    //         requestAnimationFrame(() => 
-    //         {
-    //             this.scrollToBottom();
-    //         });
-    //     }
-    // }
-
     private updateMessagesDisplay(): void 
-{
-    console.log('[ChatModal] 🔄 updateMessagesDisplay() called');
-    console.log('[ChatModal] 📊 isLoading:', this.isLoading);
-    console.log('[ChatModal] 📊 messages.length:', this.messages.length);
-    
-    const modal = document.getElementById('chat-modal-overlay');
-    console.log('[ChatModal] 🔍 Found modal:', !!modal);
-    
-    if (!modal) 
     {
-        console.log('[ChatModal] ❌ Modal not found!');
-        return;
-    }
-    
-    const mainContainer = modal.querySelector('.bg-gray-900\\/95');
-    console.log('[ChatModal] 🔍 Found mainContainer:', !!mainContainer);
-    
-    if (!mainContainer) 
-    {
-        console.log('[ChatModal] ❌ mainContainer not found!');
-        return;
-    }
-    
-    const children = Array.from(mainContainer.children);
-    console.log('[ChatModal] 📊 Children count:', children.length);
-    
-    if (children.length >= 2) 
-    {
-        console.log('[ChatModal] ✅ Replacing messages area...');
-        const messagesArea = children[1];
-        const newContent = document.createElement('div');
-        newContent.className = 'flex-1 overflow-y-auto';
-        newContent.innerHTML = this.renderMessagesContainer();
-        
-        console.log('[ChatModal] 📊 New content HTML length:', newContent.innerHTML.length);
-        
-        messagesArea.replaceWith(newContent.firstElementChild || newContent);
-        
-        console.log('[ChatModal] ✅ Messages area replaced');
-        
-        requestAnimationFrame(() => 
+        const modal = document.getElementById('chat-modal-overlay');
+        if (!modal) 
         {
-            this.scrollToBottom();
-        });
+            return;
+        }
+        
+        const mainContainer = modal.querySelector('.bg-gray-900\\/95');
+        if (!mainContainer) 
+        {
+            return;
+        }
+        
+        // Get all children
+        const children = Array.from(mainContainer.children);
+        
+        if (children.length >= 2) 
+        {
+            const messagesArea = children[1];
+            const newContent = document.createElement('div');
+            newContent.className = 'flex-1 overflow-y-auto';
+            newContent.innerHTML = this.renderMessagesContainer();
+            
+            messagesArea.replaceWith(newContent.firstElementChild || newContent);
+            
+            // Scroll to bottom
+            requestAnimationFrame(() => 
+            {
+                this.scrollToBottom();
+            });
+        }
     }
-    else
-    {
-        console.log('[ChatModal] ❌ Not enough children!');
-    }
-}
     
     private updateInputArea(): void 
     {
@@ -716,8 +566,6 @@ export class ChatModal extends BaseComponent
     
     unmount(): void 
     {
-        console.log('[ChatModal] 🧹 Unmounting ChatModal');
-        
         // Remove WebSocket listener
         if (this.wsMessageHandler) 
         {
@@ -731,7 +579,6 @@ export class ChatModal extends BaseComponent
     
     private handleClose(): void 
     {
-        console.log('[ChatModal] 🚪 Closing chat modal');
         this.unmount();
         this.props.onClose();
     }
