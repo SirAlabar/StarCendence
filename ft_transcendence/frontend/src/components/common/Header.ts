@@ -2,6 +2,8 @@ import { BaseComponent } from '../BaseComponent';
 import { LoginService } from '../../services/auth/LoginService';
 import { Modal } from '@/components/common/Modal';
 import ChatNotificationService from '../../services/chat/ChatNotificationService';
+import { webSocketService } from '../../services/websocket/WebSocketService';
+
 interface NavItem 
 {
     label: string;
@@ -419,23 +421,21 @@ export class Header extends BaseComponent
         
         try 
         {
-            // Call the proper logout service
+            webSocketService.disconnect();
+
             await LoginService.logout();
-            
-            // Dispatch logout event
+
             window.dispatchEvent(new CustomEvent('auth:logout'));
-            
-            // Refresh header to show login button
+
             this.refresh();
-            
-            // Navigate to home
+
             (window as any).navigateTo('/');
         } 
         catch (error) 
         {
-            console.error('Logout error:', error);
+            console.error('[Header] Logout error:', error);
             
-            // Even if logout fails, clear local tokens and redirect
+            webSocketService.disconnect();
             LoginService.clearTokens();
             this.refresh();
             (window as any).navigateTo('/');
