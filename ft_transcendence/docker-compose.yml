@@ -160,6 +160,7 @@ services:
     networks:
       - transcendence_network
     secrets:
+      - internal_api_key
       - redis_password
       - jwt_secret
     env_file:
