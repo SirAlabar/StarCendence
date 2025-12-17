@@ -33,8 +33,6 @@ class Notifications extends BaseComponent
      */
     initialize(): void 
     {
-        console.log('[Notifications] 🚀 Initializing...');
-        
         // Create container
         this.createContainer();
 
@@ -55,8 +53,6 @@ class Notifications extends BaseComponent
         {
             this.handleGameInvitation(data);
         });
-
-        console.log('[Notifications] ✅ Initialized');
     }
 
     /**
@@ -247,8 +243,6 @@ class Notifications extends BaseComponent
      */
     private handleClick(notification: NotificationData): void 
     {
-        console.log('[Notifications] 👆 Clicked:', notification);
-        
         // Navigate based on type
         if (notification.type === 'chat' && notification.userId) 
         {
@@ -340,8 +334,6 @@ class Notifications extends BaseComponent
 
         this.notifications = [];
         this.shownIds.clear();
-        
-        console.log('[Notifications] 🧹 Disposed');
     }
 
     render(): string 

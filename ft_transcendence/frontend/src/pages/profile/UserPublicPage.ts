@@ -447,12 +447,6 @@ export default class UserPublicPage extends BaseComponent
         {
             this.loading = true;
             this.userProfile = await UserService.getPublicProfile(this.username);
-            
-            // 🔍 DEBUG: Log what we actually received
-            console.log('🔍 UserPublicPage - Loaded profile:', this.userProfile);
-            console.log('🔍 UserPublicPage - gameStatus:', this.userProfile?.gameStatus);
-            console.log('🔍 UserPublicPage - totalGames:', this.userProfile?.gameStatus?.totalGames);
-            
             this.error = null;
         } 
         catch (err) 

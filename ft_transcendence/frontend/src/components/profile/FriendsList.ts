@@ -260,11 +260,8 @@ export class FriendsList extends BaseComponent
     
     private subscribeToNotifications(): void 
     {
-        console.log('[FriendsList] 👂 Subscribing to friend unread notifications');
-        
         ChatNotificationService.onFriendUnreadChange((friendId: string, count: number) => 
         {
-            console.log('[FriendsList] 🔔 Friend unread count changed:', friendId, count);
             this.friendUnreadCounts.set(friendId, count);
             this.updateFriendBadge(friendId, count);
         });
@@ -272,13 +269,9 @@ export class FriendsList extends BaseComponent
 
     private loadInitialUnreadCounts(): void 
     {
-        console.log('[FriendsList] 📊 Loading initial unread counts');
-        
         this.props.friends.forEach(friend => 
         {
             const count = ChatNotificationService.getUnreadCount(friend.id);
-            console.log('[FriendsList] Friend:', friend.username, 'Unread:', count);
-            
             if (count > 0) 
             {
                 this.friendUnreadCounts.set(friend.id, count);
@@ -442,7 +435,6 @@ export class FriendsList extends BaseComponent
 
     private handleChatClick(friendId: string, friendUsername: string, friendAvatar: string | null): void 
     {
-        console.log('[FriendsList] 💬 Opening chat with:', friendUsername, 'ID: ', friendId);
         this.openChatModal(friendId, friendUsername, friendAvatar);
     }
     
@@ -452,7 +444,6 @@ export class FriendsList extends BaseComponent
         const existingModal = document.getElementById('chat-modal-container');
         if (existingModal) 
         {
-            console.log('[FriendsList] ⚠️ Chat modal already open');
             return;
         }
         
@@ -462,7 +453,6 @@ export class FriendsList extends BaseComponent
             friendAvatar,
             onClose: () => 
             {
-                console.log('[FriendsList] 🚪 Closing chat modal');
                 const container = document.getElementById('chat-modal-container');
                 if (container) 
                 {

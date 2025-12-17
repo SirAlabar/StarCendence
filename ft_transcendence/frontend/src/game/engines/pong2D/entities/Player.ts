@@ -41,9 +41,6 @@ export class player
     {
         try 
         {
-            console.log('[Player] 🔄 Loading user profile...');
-            
-            
             const profile = await UserService.getProfile();
             
             // Store profile data
@@ -52,16 +49,6 @@ export class player
             this.avatarUrl = profile.avatarUrl || '/assets/images/default-avatar.jpeg';
             
             this.isAuthenticated = true;
-            
-           
-            
-            console.log('[Player] ✅ Profile loaded:', 
-            {
-                userId: this.userId,
-                username: this.username,
-                wins: this.totalWins,
-                losses: this.totalLosses
-            });
             
             return true;
             

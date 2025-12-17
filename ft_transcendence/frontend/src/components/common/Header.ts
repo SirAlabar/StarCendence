@@ -233,11 +233,8 @@ export class Header extends BaseComponent
     
     private subscribeToNotifications(): void 
     {
-        console.log('[Header] 👂 Subscribing to chat notifications');
-        
         ChatNotificationService.onTotalUnreadChange((total: number) => 
         {
-            console.log('[Header] 🔔 Total unread count changed:', total);
             this.totalUnreadCount = total;
             this.updateBadge();
         });
