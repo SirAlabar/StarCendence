@@ -90,7 +90,7 @@ export class ChatEventSubscriber
                 payload: {
                     messageId: savedMessage.id,
                     senderId: event.userId,
-                    senderUsername: event.username || savedMessage.sender.username,
+                    senderUsername: event.username || event.userId,
                     message: event.payload.message,
                     timestamp: savedMessage.createdAt.getTime(),
                     conversationId: savedMessage.conversationId,

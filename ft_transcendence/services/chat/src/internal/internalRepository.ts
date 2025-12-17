@@ -13,21 +13,13 @@ export async function saveMessage(fromUserId: string, roomId: string, message: s
     throw new Error('Conversation not found');
   }
 
-  // Return the created message with sender info
+  // Return the created message
   return await prisma.message.create({
     data: {
       conversationId: conversation.id,
       senderId: fromUserId,
       content: message,
       isRead: false,
-    },
-    include: {
-      sender: {
-        select: {
-          id: true,
-          username: true,
-        },
-      },
     },
   });
 }

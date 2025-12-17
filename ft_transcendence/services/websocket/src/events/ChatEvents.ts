@@ -2,7 +2,7 @@ import { EventManager } from './EventManager';
 import { ConnectionInfo, WebSocketMessage } from '../types/connection.types';
 import { redisBroadcast } from '../broadcasting/RedisBroadcast';
 
-const chatEvents = ['chat:message, chat:send, chat:update']; // adiciona oq quiser
+const chatEvents = ['chat:message', 'chat:send', 'chat:update'];
 
 for (const eventType of chatEvents)
 {

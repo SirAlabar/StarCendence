@@ -3,7 +3,6 @@ import { getRoomId } from './chatService';
 
 const prisma = new PrismaClient();
 
-// ✅ EXISTING FUNCTIONS
 export async function getConversationByRoomId(roomId: string) 
 {
   return prisma.chatConversation.findFirst({
@@ -33,14 +32,6 @@ export async function getMessagesByRoomId(roomId: string)
     where: { roomId },
     include: {
       messages: {
-        include: {
-          sender: {
-            select: {
-              id: true,
-              username: true,
-            },
-          },
-        },
         orderBy: {
           createdAt: 'asc',
         },
@@ -117,14 +108,6 @@ export async function saveMessageDirect(conversationId: string, senderId: string
       senderId,
       content,
       isRead: false,
-    },
-    include: {
-      sender: {
-        select: {
-          id: true,
-          username: true,
-        },
-      },
     },
   });
 }
