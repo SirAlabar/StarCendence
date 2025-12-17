@@ -136,7 +136,7 @@ export class FriendsList extends BaseComponent
                 .chat-button-badge {
                     position: absolute;
                     top: -6px;
-                    right: -6px;
+                    left: -6px;
                     min-width: 18px;
                     height: 18px;
                     padding: 0 5px;
@@ -255,6 +255,7 @@ export class FriendsList extends BaseComponent
     {
         this.setupEventListeners();
         this.subscribeToNotifications();
+        this.loadInitialUnreadCounts();
     }
     
     private subscribeToNotifications(): void 
@@ -266,6 +267,29 @@ export class FriendsList extends BaseComponent
             console.log('[FriendsList] 🔔 Friend unread count changed:', friendId, count);
             this.friendUnreadCounts.set(friendId, count);
             this.updateFriendBadge(friendId, count);
+        });
+    }
+
+    private loadInitialUnreadCounts(): void 
+    {
+        console.log('[FriendsList] 📊 Loading initial unread counts');
+        
+        this.props.friends.forEach(friend => 
+        {
+            const count = ChatNotificationService.getUnreadCount(friend.id);
+            console.log('[FriendsList] Friend:', friend.username, 'Unread:', count);
+            
+            if (count > 0) 
+            {
+                this.friendUnreadCounts.set(friend.id, count);
+            }
+        });
+        
+        // Force update all badges after loading
+        this.props.friends.forEach(friend => 
+        {
+            const count = this.friendUnreadCounts.get(friend.id) || 0;
+            this.updateFriendBadge(friend.id, count);
         });
     }
     
