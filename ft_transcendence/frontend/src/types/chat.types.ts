@@ -8,6 +8,7 @@ export interface ChatMessage
     senderId: string;
     content: string;
     timestamp: Date;
+    createdAt: Date;
     isRead: boolean;
     
     // Sender information (included in backend responses)

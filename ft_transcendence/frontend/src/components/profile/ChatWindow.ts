@@ -231,7 +231,7 @@ export class ChatModal extends BaseComponent
         const messageClass = isOwn ? 'chat-message-own' : 'chat-message-friend';
         const alignClass = isOwn ? 'flex justify-end' : 'flex justify-start';
         
-        const timestamp = new Date(message.timestamp);
+        const timestamp = message.timestamp ? new Date(message.timestamp) : new Date(message.createdAt);
         const timeString = timestamp.toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit' 
@@ -389,6 +389,7 @@ export class ChatModal extends BaseComponent
                         senderId: senderId,
                         content: messageText,
                         timestamp: new Date(timestamp),
+                        createdAt: new Date(timestamp),
                         isRead: true
                     };
                     
@@ -448,6 +449,7 @@ export class ChatModal extends BaseComponent
                 senderId: this.currentUserId,
                 content: message,
                 timestamp: new Date(),
+                createdAt: new Date(),
                 isRead: false
             };
             

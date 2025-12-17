@@ -42,7 +42,8 @@ class ChatService extends BaseService
         // Convert timestamp strings to Date objects
         return data.messages.map(msg => ({
             ...msg,
-            timestamp: new Date(msg.timestamp)
+            timestamp: new Date(msg.createdAt),
+            createdAt: new Date(msg.createdAt)
         }));
     }
 
