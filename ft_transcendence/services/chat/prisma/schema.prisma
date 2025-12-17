@@ -1,0 +1,29 @@
+// == CHAT SERVICE == //
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:/app/data/chat.db"
+}
+
+model ChatConversation {
+  id        String   @id @default(uuid())
+  roomId    String   @unique
+  userAId   String
+  userBId   String
+  messages  Message[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Message {
+  id             String           @id @default(uuid())
+  conversationId String
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id])
+  senderId       String
+  content        String
+  isRead         Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+}

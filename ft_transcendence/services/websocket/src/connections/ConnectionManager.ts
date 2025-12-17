@@ -5,6 +5,7 @@ import { connectionPool } from './ConnectionPool';
 import { ConnectionInfo } from '../types/connection.types';
 import { MESSAGE_TYPES } from '../utils/constants';
 import { MessageHandler } from './MessageHandler';
+import { updateUserStatus } from './userServiceClient';
 
 export class ConnectionManager
 {
@@ -54,6 +55,16 @@ export class ConnectionManager
       connectionPool.add(connectionInfo);
       connectionPool.logConnectedUsers();
 
+      // Set user status to ONLINE when they connect
+      try
+      {
+        await updateUserStatus(authResult.userId, 'ONLINE');
+      }
+      catch (error)
+      {
+        console.error(`Failed to update user status to ONLINE for ${authResult.userId}:`, error);
+      }
+
       MessageHandler.sendMessage(socket,
       {
         type: MESSAGE_TYPES.CONNECTION_ACK,
@@ -65,10 +76,30 @@ export class ConnectionManager
         },
       });
 
-      socket.on('close', (code, reason) =>
+      socket.on('close', async (code, reason) =>
       {
+        const userId = connectionInfo.userId;
+        
+        // Remove this connection from pool
         connectionPool.remove(connectionId);
         connectionPool.logConnectedUsers();
+        
+        // Check if user has any remaining connections
+        const remainingConnections = connectionPool.getByUserId(userId);
+        
+        if (remainingConnections.size === 0)
+        {
+          // User has no more active connections, set status to OFFLINE
+          try
+          {
+            await updateUserStatus(userId, 'OFFLINE');
+            console.log(`✅ User ${userId} status set to OFFLINE (no active connections)`);
+          }
+          catch (error)
+          {
+            console.error(`Failed to update user status to OFFLINE for ${userId}:`, error);
+          }
+        }
       });
 
       socket.on('error', (error) =>

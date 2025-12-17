@@ -928,7 +928,6 @@ export class GameLobby extends BaseComponent
         {
             slot.paddleName = option.name;
             slot.paddleGradient = option.color;
-            console.log(slot.paddleName, slot.paddleGradient)
         }
 
         this.closePaddleModal();

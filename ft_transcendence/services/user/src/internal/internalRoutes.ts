@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import * as userController from '../profile/userController';
 import * as userSchema from '../profile/userSchema';
+import * as friendController from '../friends/friendController';
 
 
 export async function internalRoutes(fastify: FastifyInstance) {
@@ -27,4 +28,10 @@ export async function internalRoutes(fastify: FastifyInstance) {
     schema: userSchema.deleteUserProfileSchema
   },
   userController.deleteUserProfile);
+
+  fastify.get('/friends-list/:userId',
+  {
+    schema: userSchema.getFriendsIdsSchema
+  },
+  friendController.getFriendsIds);
 }

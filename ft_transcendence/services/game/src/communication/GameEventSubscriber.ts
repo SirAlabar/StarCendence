@@ -79,15 +79,19 @@ export class GameEventSubscriber {
   }
 
   private async handleLobbyCreate(event: GameEventMessage): Promise<void> {
-    const { lobbyId, gameType, maxPlayers } = event.payload;
+    const { gameType, maxPlayers } = event.payload;
     const { userId, username } = event;
 
     try {
+      // Generate unique lobby ID
+      const lobbyId = await this.lobbyManager.generateUniqueLobbyId();
+      
+      // Create lobby with generated ID
       await this.lobbyManager.createLobby(
         lobbyId,
         userId,
         username || 'Player',
-        gameType,
+        gameType || 'pong',
         maxPlayers || 2
       );
 
@@ -127,7 +131,7 @@ export class GameEventSubscriber {
         players: stats.players.map(p => ({ username: p.username, isHost: p.isHost })),
       });
     } catch (error) {
-      console.error(`[GameEventSubscriber] ❌ Failed to create lobby ${lobbyId}:`, error);
+      console.error(`[GameEventSubscriber] ❌ Failed to create lobby `, error);
       
       await this.broadcastToUser(userId, {
         type: 'lobby:create:ack',

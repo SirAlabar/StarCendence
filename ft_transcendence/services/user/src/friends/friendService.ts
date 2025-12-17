@@ -175,3 +175,15 @@ export async function unfriend(friendId: string, userId: string) {
   await friendRepository.deleteFriendship(friendship.id);
   return;
 }
+
+
+// Get IDs of all friends for a user
+export async function getFriendsIds(userId: string): Promise<string[]> {
+  const friendships = await friendRepository.findFriendsByUserId(userId);
+  if (!friendships || friendships.length === 0) {
+    return [];
+  }
+
+  const friendIds = friendships.map((f: any) => (f.senderId === userId ? f.recipientId : f.senderId));
+  return friendIds;
+}

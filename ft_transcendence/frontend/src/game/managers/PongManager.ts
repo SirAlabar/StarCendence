@@ -335,8 +335,6 @@ export class ImprovedGameManager
     
     private handleGameEvent(event: GameEvent): void 
     {
-        console.log('🎮 Game event:', event);
-        
         switch (event.type) 
         {
             case 'goal-scored':

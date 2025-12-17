@@ -598,7 +598,6 @@ export default class TournamentPage extends BaseComponent
     {
         TournamentService.onTournamentUpdate((updatedTournament) => 
         {
-            console.log('[TournamentPage] Tournament updated:', updatedTournament);
             this.tournament = updatedTournament;
             this.updateView();
         });

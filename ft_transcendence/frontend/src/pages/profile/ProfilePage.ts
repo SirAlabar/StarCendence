@@ -122,7 +122,7 @@ export default class ProfilePage extends BaseComponent
             }
 
             this.friends = friendsData.friends.map((friend: any) => ({
-                id: friend.requestId,
+                id: friend.userId,
                 username: friend.username,
                 status: friend.status || 'OFFLINE',
                 avatarUrl: friend.avatarUrl

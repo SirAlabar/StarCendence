@@ -120,8 +120,20 @@ export const updateUserSettingsSchema = {
   }
 };
 
+// Delete user profile schema for internal DELETE /internal/delete-user-profile
 export const deleteUserProfileSchema = {
   body: {
+    type: 'object',
+    required: ['userId'],
+    properties: {
+      userId: { type: 'string', format: 'uuid' }
+    }
+  }
+};
+
+// Get friends IDs schema for internal GET /internal/friends-list/:userId
+export const getFriendsIdsSchema = {
+  params: {
     type: 'object',
     required: ['userId'],
     properties: {

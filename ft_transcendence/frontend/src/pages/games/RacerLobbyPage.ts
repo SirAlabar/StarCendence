@@ -35,7 +35,6 @@ export default class RacerLobbyPage extends BaseComponent
     private startRace(): void 
     {
         // TODO: Start multiplayer race with selected players and pods
-        console.log('Starting Pod Race multiplayer...');
         Modal.showAlert('Alert', 'Starting Race! (Multiplayer implementation pending)');
         // Future: Pass player data and pod selections to race engine
     }
