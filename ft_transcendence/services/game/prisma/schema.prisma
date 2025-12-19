@@ -49,7 +49,6 @@ model GamePlayer {
   game          Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   userId        String
-  playerRole    String        @default("PLAYER1")  // "PLAYER1", "PLAYER2", etc.
 
   // Player state
   isReady       Boolean       @default(false)

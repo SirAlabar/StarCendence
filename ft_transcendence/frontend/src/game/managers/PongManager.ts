@@ -196,6 +196,21 @@ export class GameManager
             this.resumeGame();
     }
     
+    public resizeGame(newWidth: number, newHeight: number): void 
+    {
+        if (!this.currentEngine) 
+        {
+            console.warn('No game engine to resize');
+            return;
+        }
+        
+        // Only LocalPongEngine and Pong3D have resize methods
+        if ('resize' in this.currentEngine && typeof this.currentEngine.resize === 'function') 
+        {
+            this.currentEngine.resize(newWidth, newHeight);
+        }
+    }
+    
     public cleanup(): void 
     {
         if (this.currentEngine) 
@@ -423,23 +438,32 @@ export class GameManager
 
     private play_sound() 
     {
-        const audio = new Audio('../../../../public/assets/sounds/sfx/paddlehit.mp3');
+        const audio = new Audio('/assets/sounds/sfx/paddlehit.mp3');
         audio.volume = 0.6;
-        audio.play();
+        audio.play().catch(err => {
+            // Silently ignore autoplay errors - browser blocked autoplay
+            console.debug('[PongManager] Audio autoplay blocked:', err.message);
+        });
     }
 
     private play_sound_goal() 
     {
-        const audio = new Audio('../../../../public/assets/sounds/sfx/goal.mp3');
+        const audio = new Audio('/assets/sounds/sfx/goal.mp3');
         audio.volume = 0.6;
-        audio.play();
+        audio.play().catch(err => {
+            // Silently ignore autoplay errors - browser blocked autoplay
+            console.debug('[PongManager] Audio autoplay blocked:', err.message);
+        });
     }
 
     private play_sound_end() 
     {
-        const audio = new Audio('../../../../public/assets/sounds/sfx/gameend.mp3');
+        const audio = new Audio('/assets/sounds/sfx/gameend.mp3');
         audio.volume = 0.6;
-        audio.play();
+        audio.play().catch(err => {
+            // Silently ignore autoplay errors - browser blocked autoplay
+            console.debug('[PongManager] Audio autoplay blocked:', err.message);
+        });
     }
 }
 

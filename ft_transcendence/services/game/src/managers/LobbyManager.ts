@@ -86,6 +86,7 @@ export class LobbyManager {
     await this.redis.expire(`lobby:${lobbyId}:player:${userId}`, 3600);
 
     console.log(`[LobbyManager] Created lobby ${lobbyId} by ${username} (${gameType}, max: ${maxPlayers})`);
+
   }
 
   async joinLobby(lobbyId: string, userId: string, username: string): Promise<{
@@ -95,6 +96,8 @@ export class LobbyManager {
   }> {
     // Check if lobby exists
     const exists = await this.redis.exists(`lobby:${lobbyId}:data`);
+
+
     if (!exists) {
       console.log(`[LobbyManager] Lobby ${lobbyId} not found`);
       return { success: false, reason: 'room_not_found' };
@@ -131,7 +134,8 @@ export class LobbyManager {
     return { success: true, playerCount: currentPlayers + 1 };
   }
 
-  async leaveLobby(lobbyId: string, userId: string): Promise<void> {
+  async leaveLobby(lobbyId: string, userId: string): Promise<void> 
+  {
     await this.redis.sRem(`lobby:${lobbyId}:players`, userId);
     await this.redis.del(`lobby:${lobbyId}:player:${userId}`);
 

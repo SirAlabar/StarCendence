@@ -4,9 +4,10 @@ import { gameManager } from '../../game/managers/PongManager';
 import { LoginService } from '../../services/auth/LoginService';
 import { Modal } from '../../components/common/Modal';
 import { GameConfig } from '@/game/utils/GameTypes';
+import { webSocketService } from '../../services/websocket/WebSocketService';
 
 export default class PongGamePage extends BaseComponent {
-    private lobbyId: string | null = null;
+    private gameId: string | null = null;
     private side: 'left' | 'right' = 'left';
     private resizeObserver: ResizeObserver | null = null;
 
@@ -18,7 +19,7 @@ export default class PongGamePage extends BaseComponent {
         return `
             <div class="game-page-container d-flex flex-column align-items-center justify-content-center vh-100 bg-dark w-100">
                 
-                <div class="game-header mb-3 text-white d-flex justify-content-between w-75" style="max-width: 1000px;">
+                <div class="game-header mb-3 text-white d-flex justify-content-between" style="width: 95%; max-width: 1400px;">
                     <div class="player-1">
                         <span class="badge bg-primary fs-5" id="score-p1">0</span>
                         <span id="name-p1" class="ms-2">Player 1</span>
@@ -31,8 +32,8 @@ export default class PongGamePage extends BaseComponent {
                 </div>
 
                 <div id="canvas-wrapper" class="shadow-lg border border-secondary rounded" 
-                     style="width: 90%; height: 70vh; max-width: 1200px; position: relative; background-color: #000;">
-                    <canvas id="pongCanvas" style="display: block; width: 100%; height: 100%;"></canvas>
+                     style="width: 95%; max-width: 1400px; aspect-ratio: 16/9; position: relative; background-color: #1a1a2e; margin: 0 auto;">
+                    <canvas id="pongCanvas" style="display: block; width: 100%; height: 100%; background-color: #0f0f1e;"></canvas>
                 </div>
 
                 <div class="mt-3 text-muted">
@@ -44,30 +45,48 @@ export default class PongGamePage extends BaseComponent {
 
     async mount(): Promise<void> {
         const params = new URLSearchParams(window.location.search);
-        this.lobbyId = params.get('lobby');
+        this.gameId = params.get('gameId');
         this.side = (params.get('side') as 'left' | 'right') || 'left';
         const userobj = LoginService.getCurrentUser();
         const userId = userobj?.sub || userobj?.id;
         
+        console.log('[PongGamePage] 🎮 Mounting with gameId:', this.gameId, 'side:', this.side, 'userId:', userId);
 
-        if (!this.lobbyId || !userId) {
-            await Modal.alert('Error', 'Missing game parameters');
+        if (!this.gameId || !userId) {
+            console.error('[PongGamePage] ❌ Missing game parameters');
+            await Modal.alert('Error', 'Missing game parameters (gameId required)');
             navigateTo('/pong');
             return;
         }
 
+        // Ensure WebSocket is connected
+        if (!webSocketService.isConnected()) {
+            console.warn('[PongGamePage] ⚠️ WebSocket not connected, attempting to connect...');
+            try {
+                await webSocketService.connect();
+                console.log('[PongGamePage] ✅ WebSocket connected successfully');
+            } catch (error) {
+                console.error('[PongGamePage] ❌ Failed to connect WebSocket:', error);
+                await Modal.alert('Connection Error', 'Failed to connect to game server. Please try again.');
+                navigateTo('/pong');
+                return;
+            }
+        } else {
+            console.log('[PongGamePage] ✅ WebSocket already connected');
+        }
+
         const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
         const wrapper = document.getElementById('canvas-wrapper') as HTMLDivElement;
+        
+        if (!canvas || !wrapper) {
+            console.error('[PongGamePage] ❌ Canvas or wrapper not found in DOM');
+            await Modal.alert('Error', 'Game canvas not found');
+            navigateTo('/pong');
+            return;
+        }
 
-        // 1. Initial Sizing
+        // 1. Initial Sizing - set canvas size BEFORE game initialization
         this.fitCanvasToWrapper(canvas, wrapper);
-
-        // 2. Setup Resize Observer (Updates size when window changes)
-        this.resizeObserver = new ResizeObserver(() => {
-            this.fitCanvasToWrapper(canvas, wrapper);
-           
-        });
-        this.resizeObserver.observe(wrapper);
 
         const gameConfig: GameConfig = {
             mode: 'online-multiplayer',
@@ -79,14 +98,35 @@ export default class PongGamePage extends BaseComponent {
         };
 
         try {
+            console.log('[PongGamePage] 🎯 Initializing 2D game with config:', gameConfig);
+            
             await gameManager.init2DGame(canvas, gameConfig, {
-                matchId: this.lobbyId,
+                matchId: this.gameId,
                 side: this.side,
                 userId: userId
             });
 
-            gameManager.startGame();
+            console.log('[PongGamePage] ✅ Game initialized, starting game loop');
             this.setupUIListeners();
+            gameManager.startGame();
+            
+            // Initialize scores to 0
+            const p1 = document.getElementById('score-p1');
+            const p2 = document.getElementById('score-p2');
+            if (p1) p1.innerText = '0';
+            if (p2) p2.innerText = '0';
+
+            // 2. Setup Resize Observer AFTER game initialization
+            this.resizeObserver = new ResizeObserver(() => {
+                const oldWidth = canvas.width;
+                const oldHeight = canvas.height;
+                this.fitCanvasToWrapper(canvas, wrapper);
+                // Only resize game if dimensions actually changed
+                if (oldWidth !== canvas.width || oldHeight !== canvas.height) {
+                    gameManager.resizeGame(canvas.width, canvas.height);
+                }
+            });
+            this.resizeObserver.observe(wrapper);
 
         } catch (error) {
             console.error('Failed to start game:', error);
@@ -101,16 +141,37 @@ export default class PongGamePage extends BaseComponent {
      */
     private fitCanvasToWrapper(canvas: HTMLCanvasElement, wrapper: HTMLElement) {
         // Set internal resolution to match displayed size
-        canvas.width = wrapper.clientWidth;
-        canvas.height = wrapper.clientHeight;
+        const newWidth = wrapper.clientWidth;
+        const newHeight = wrapper.clientHeight;
+        
+        console.log('[PongGamePage] Fitting canvas:', newWidth, 'x', newHeight);
+        
+        // Ensure we have valid dimensions
+        if (newWidth > 0 && newHeight > 0) {
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+        } else {
+            console.warn('[PongGamePage] Invalid wrapper dimensions, using fallback');
+            canvas.width = 800;
+            canvas.height = 600;
+        }
     }
 
     private setupUIListeners() {
+        console.log('[PongGamePage] Setting up UI listeners');
+        
         gameManager.on('game:score-update', (e: any) => {
+            console.log('[PongGamePage] Score update received:', e.detail);
             const p1 = document.getElementById('score-p1');
             const p2 = document.getElementById('score-p2');
-            if(p1) p1.innerText = e.detail.player1Score;
-            if(p2) p2.innerText = e.detail.player2Score;
+            if (p1) {
+                p1.innerText = e.detail.player1Score?.toString() || '0';
+                console.log('[PongGamePage] Updated P1 score to:', p1.innerText);
+            }
+            if (p2) {
+                p2.innerText = e.detail.player2Score?.toString() || '0';
+                console.log('[PongGamePage] Updated P2 score to:', p2.innerText);
+            }
         });
 
         gameManager.on('game:ended', (e: any) => {

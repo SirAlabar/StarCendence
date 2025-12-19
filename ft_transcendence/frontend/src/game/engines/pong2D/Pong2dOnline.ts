@@ -24,12 +24,13 @@ export class OnlinePongEngine implements GameEngine
     
     // Network
     private connection: WebSocketLikeConnection; 
-    private matchId: string;
+    private gameId: string;
     private playerId: string;
     private playerSide: 'left' | 'right';
     
-    // SCALING: The dimensions the SERVER uses for calculations.
-    // Most backends use 800x600. If yours is different, change these values!
+    // SERVER DIMENSIONS - The backend uses these fixed dimensions for physics
+    private readonly SERVER_WIDTH = 958;
+    private readonly SERVER_HEIGHT = 538;
   
 
     // State
@@ -40,7 +41,8 @@ export class OnlinePongEngine implements GameEngine
     
     // Input throttling
     private lastInputSent: number = 0;
-    private inputThrottle: number = 30; // Reduced slightly for smoother movement
+    private inputThrottle: number = 16; // Match 60 FPS game loop (~16ms per frame)
+    private lastDirection: 'up' | 'down' | 'none' = 'none';
     
     // Scores
     private player1Score: number = 0;
@@ -53,14 +55,14 @@ export class OnlinePongEngine implements GameEngine
         canvas: HTMLCanvasElement, 
         config: GameConfig, 
         connection: any, 
-        matchId: string, 
+        gameId: string, 
         playerId: string, 
         playerSide: 'left' | 'right'
     ) 
     {
         this.canvas = canvas;
         this.connection = connection;
-        this.matchId = matchId;
+        this.gameId = gameId;
         this.playerId = playerId;
         this.playerSide = playerSide;
         
@@ -70,15 +72,19 @@ export class OnlinePongEngine implements GameEngine
         this.ctx = ctx;
         
         // Initialize visual objects
-        this.ball = new Ball(canvas.width / 2, canvas.height / 2, 10);
+        this.ball = new Ball(canvas.width / 2, canvas.height / 2, 7);
         this.paddleLeft = new paddle("left", canvas, config.paddlecolor1 || 'default');
         this.paddleRight = new paddle("right", canvas, config.paddlecolor2 || 'default');
         
+        console.log(`[OnlineEngine] Init: gameId=${gameId}, playerId=${playerId}, side=${playerSide}`);
+        console.log(`[OnlineEngine] Canvas dimensions:`, canvas.width, 'x', canvas.height);
+        console.log(`[OnlineEngine] Initial ball:`, this.ball.x, this.ball.y, 'r:', this.ball.radius);
+        console.log(`[OnlineEngine] Initial paddle left:`, this.paddleLeft.x, this.paddleLeft.y);
+        console.log(`[OnlineEngine] Initial paddle right:`, this.paddleRight.x, this.paddleRight.y);
+        
         // Setup
         this.setupNetworkListeners();       
-        this.setupInputHandlers();          
-        
-        console.log(`[OnlineEngine] Init: ${matchId}, ${playerId}, ${playerSide}`);
+        this.setupInputHandlers();
     }
     
     // NETWORK SETUP
@@ -86,8 +92,8 @@ export class OnlinePongEngine implements GameEngine
         // Listen for state updates from server
         this.connection.on('game:state', (data: any) => 
         {
-            // Safety check: make sure this update is for our match
-            if (data && data.matchId === this.matchId) {
+            // Safety check: make sure this update is for our game
+            if (data && data.gameId === this.gameId) {
                 //console.log('Recv State:', data); // Debug log
                 this.applyServerState(data.state);
             }
@@ -96,7 +102,7 @@ export class OnlinePongEngine implements GameEngine
         // Listen for game events
         this.connection.on('game:event', (data: OGameEvent['payload']) => 
         {
-            if (data && data.matchId === this.matchId) {
+            if (data && data.gameId === this.gameId) {
                 //console.log('Received game event', data.event);
                 this.handleServerEvent(data.event);
             }
@@ -107,36 +113,37 @@ export class OnlinePongEngine implements GameEngine
     {
         if (!state) return;
 
-        // --- SCALING LOGIC ---
-        // Calculate ratio between local canvas size and server world size
-        //const scaleX = this.canvas.width / this.SERVER_WIDTH;
-        //const scaleY = this.canvas.height / this.SERVER_HEIGHT;
-
-        // Update ball with scaling
-        this.ball.x = state.ball.x;
-        this.ball.y = state.ball.y;
+        // Calculate scale factors (server coords -> client canvas coords)
+        const scaleX = this.canvas.width / this.SERVER_WIDTH;
+        const scaleY = this.canvas.height / this.SERVER_HEIGHT;
         
-        // Update velocities (for smooth interpolation if you add it later)
-        this.ball.dx = state.ball.dx;
-        this.ball.dy = state.ball.dy;
+        // Scale ball position from server coordinates to canvas coordinates
+        this.ball.x = state.ball.x * scaleX;
+        this.ball.y = state.ball.y * scaleY;
         
-        // Update paddles with scaling (only Y usually matters for Pong paddles)
+        // Scale velocities (not used for rendering, but kept for consistency)
+        this.ball.dx = state.ball.dx * scaleX;
+        this.ball.dy = state.ball.dy * scaleY;
+        
+        // Scale paddle positions - server sends Y coordinate of paddle top
         if (state.paddle1) {
-            this.paddleLeft.y = state.paddle1.y;
+            this.paddleLeft.y = state.paddle1.y * scaleY;
         }
         if (state.paddle2) {
-            this.paddleRight.y = state.paddle2.y;
+            this.paddleRight.y = state.paddle2.y * scaleY;
         }
         
-        // Update Scores
-        if (state.score) {
-             const newP1 = state.score.player1;
-             const newP2 = state.score.player2;
+        // Update Scores (server sends "scores" object with player1/player2 properties)
+        if (state.scores) {
+             const newP1 = state.scores.player1 || 0;
+             const newP2 = state.scores.player2 || 0;
              
              // Only emit if changed to avoid spam
              if (newP1 !== this.player1Score || newP2 !== this.player2Score) {
                  this.player1Score = newP1;
                  this.player2Score = newP2;
+                 
+                 console.log('[OnlineEngine] Score updated:', newP1, '-', newP2);
                  
                  this.emitEvent({
                     type: 'score-updated',
@@ -184,54 +191,50 @@ export class OnlinePongEngine implements GameEngine
     private sendInput(): void {
         const now = Date.now();
         
-        // Throttle input sends
-        if (now - this.lastInputSent < this.inputThrottle) {
-            return;
-        }
-        
         // Determine current input direction
         let direction: 'up' | 'down' | 'none' = 'none';
         
         if (this.playerSide === 'left') 
         {
-            if (this.keys['w'])
+            // If both keys pressed, do nothing (conflicting input)
+            if (this.keys['w'] && this.keys['s']) {
+                direction = 'none';
+            }
+            else if (this.keys['w'])
             {
                 direction = 'up';
-                console.log(direction);
-                this.paddleLeft.y += 10;
             }     
             else if (this.keys['s'])
             {
-
                 direction = 'down';
-                console.log(direction);
-                this.paddleLeft.y -= 10;
             } 
         } 
         else     
         {
-            if (this.keys['arrowup'])
+            // If both keys pressed, do nothing (conflicting input)
+            if (this.keys['arrowup'] && this.keys['arrowdown']) {
+                direction = 'none';
+            }
+            else if (this.keys['arrowup'])
             {
                 direction = 'up';
-                console.log(direction);
-                this.paddleRight.y += 10;
             } 
             else if (this.keys['arrowdown']) 
             {
                 direction = 'down';
-                console.log(direction);
-                this.paddleRight.y -= 10;
             }
         }
         
-        // Optimization: Don't send 'none' if we just sent 'none' (optional)
-        if (direction === 'none') {
-        return;
-    }
+        // Send if direction changed OR enough time passed (for continuous input)
+        const shouldSend = direction !== this.lastDirection || (now - this.lastInputSent >= this.inputThrottle);
+        
+        if (!shouldSend) {
+            return;
+        }
         
         // 3. FIXED SEND: Split into Type and Payload
         const sent = this.connection.send('game:input', {
-            matchId: this.matchId,
+            gameId: this.gameId,
             playerId: this.playerId,
             input: {
                 direction,
@@ -240,6 +243,7 @@ export class OnlinePongEngine implements GameEngine
         
         if (sent) {
             this.lastInputSent = now;
+            this.lastDirection = direction;
         }
     }
     
@@ -253,7 +257,7 @@ export class OnlinePongEngine implements GameEngine
 
         // 4. FIXED SEND: Split into Type and Payload
         this.connection.send('game:ready', {
-            matchId: this.matchId,
+            gameId: this.gameId,
             playerId: this.playerId
         });
         
@@ -301,14 +305,33 @@ export class OnlinePongEngine implements GameEngine
     
     private clear(): void 
     {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        // Fill with dark background instead of just clearing
+        this.ctx.fillStyle = '#0f0f1e';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
     
     private render(): void 
     {
+        // Draw center line
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([10, 10]);
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.canvas.width / 2, 0);
+        this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+        
         this.ball.draw(this.ctx);
         this.paddleLeft.draw(this.ctx);
         this.paddleRight.draw(this.ctx);
+
+        // Debug: Draw scores
+        this.ctx.fillStyle = "white";
+        this.ctx.font = "32px Arial";
+        this.ctx.textAlign = "center";
+        this.ctx.fillText(`${this.player1Score}`, this.canvas.width / 4, 50);
+        this.ctx.fillText(`${this.player2Score}`, (this.canvas.width / 4) * 3, 50);
     }
     
     // INTERFACE IMPLEMENTATION
@@ -343,7 +366,7 @@ export class OnlinePongEngine implements GameEngine
         
         // 5. FIXED SEND: Split into Type and Payload
         this.connection.send('game:leave', {
-            matchId: this.matchId,
+            gameId: this.gameId,
             playerId: this.playerId
         });
 
@@ -355,6 +378,9 @@ export class OnlinePongEngine implements GameEngine
     // INPUT HANDLING
     private keydownHandler = (e: KeyboardEvent): void => 
     {
+        // Ignore keyboard repeat events to prevent spam
+        if (e.repeat) return;
+        
         const key = e.key.toLowerCase();
         this.keys[key] = true;
     };
@@ -364,16 +390,24 @@ export class OnlinePongEngine implements GameEngine
         this.keys[e.key.toLowerCase()] = false;
     };
     
+    private blurHandler = (): void => 
+    {
+        // Clear all keys when window loses focus to prevent stuck keys
+        this.keys = {};
+    };
+    
     private setupInputHandlers(): void 
     {
         window.addEventListener('keydown', this.keydownHandler);
         window.addEventListener('keyup', this.keyupHandler);
+        window.addEventListener('blur', this.blurHandler);
     }
     
     private removeInputHandlers(): void
     {
         window.removeEventListener('keydown', this.keydownHandler);
         window.removeEventListener('keyup', this.keyupHandler);
+        window.removeEventListener('blur', this.blurHandler);
     }
     
     private emitEvent(event: GameEvent): void 

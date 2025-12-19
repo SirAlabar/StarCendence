@@ -1,19 +1,26 @@
-// Game Session Manager - Manages game session lifecycle (relay only, no physics)
-import { GameSession, Game } from '../types/game.types';
+// Game Session Manager - Server-side game physics and state management
+import { GameSession } from '../types/game.types';
 import { GamePlayer } from '../types/player.types';
 import { Game as PrismaGame } from '@prisma/client';
-import { GameType, GameMode, GameStatus, PlayerRole, GAME_CONFIG } from '../utils/constants';
+import { GameType, GameMode, GameStatus, GAME_CONFIG } from '../utils/constants';
 import { sessionStore } from './SessionStore';
-import { subscribeToPlayerInput, publishGameEvent } from '../communication/RedisPublisher';
-import { RedisChannels, GameEventType } from '../types/event.types';
+import { getRedisClient } from '../communication/RedisPublisher';
+import { RedisChannels } from '../types/event.types';
 import * as gameRepository from '../repositories/gameRepository';
-import { notFound, badRequest } from '../utils/HttpError';
-import { getInternalApiKey } from '../utils/secretsUtils';
+import { notFound } from '../utils/HttpError';
+import { PongEngine, PongEvent } from '../engines/PongEngine';
+
+const { GAME_LOOP } = GAME_CONFIG;
+
+// Store game engines and intervals
+const gameEngines = new Map<string, PongEngine>();
+const gameLoops = new Map<string, NodeJS.Timeout>();
 
 /**
  * Create a new game session
  */
-export async function createGameSession(data: {
+export async function createGameSession(data: 
+  {
   type: GameType;
   mode: GameMode;
   maxPlayers: number;
@@ -53,67 +60,38 @@ export async function createGameSession(data: {
   return { game, gameId: game.id };
 }
 
+
+
 /**
- * Join a game session
+ * Add player from lobby to game session
  */
-export async function joinGameSession(gameId: string, userId: string): Promise<{ success: boolean; playerRole: PlayerRole; game: Game }>
+export async function addLobbyPlayerToGame(gameId: string, userId: string, username: string): Promise<void>
 {
-  // Get game from database
-  const game = await gameRepository.getGameById(gameId);
-  if (!game)
-  {
-    throw notFound('Game not found');
-  }
-
-  // Check if game is full
-  if (game.players.length >= game.maxPlayers)
-  {
-    throw badRequest('Game is full');
-  }
-
-  // Check if game already started
-  if (game.status === GameStatus.PLAYING || game.status === GameStatus.FINISHED)
-  {
-    throw badRequest('Game already started or finished');
-  }
-
-  // Check if player already in game
-  const existingPlayer = game.players.find(p => p.userId === userId);
-  if (existingPlayer)
-  {
-    throw badRequest('Player already in game');
-  }
-
-  // Assign player role based on current player count
-  const playerRole = getNextPlayerRole(game.players.length);
-
-  // Add player to database
-  const dbPlayer = await gameRepository.addPlayerToGame({
-    gameId,
-    userId,
-    playerRole,
-  });
-
   // Get session
-  let session = sessionStore.get(gameId);
+  const session = sessionStore.get(gameId);
   if (!session)
   {
     throw notFound('Game session not found');
   }
 
-  // Fetch user data from user service
-  const userData = await fetchUserData(userId);
-  if (!userData)
+  // Check if player already in session
+  if (session.players.has(userId))
   {
-    throw badRequest('User not found');
+    console.log(`[GameSessionManager] Player ${userId} already in game ${gameId}`);
+    return;
   }
+
+  // Add player to database
+  const dbPlayer = await gameRepository.addPlayerToGame({
+    gameId,
+    userId,
+  });
 
   // Add player to session
   const gamePlayer: GamePlayer = {
     id: dbPlayer.id,
     userId: dbPlayer.userId,
-    username: userData.username,
-    role: dbPlayer.playerRole as PlayerRole,
+    username: username,
     isConnected: true,
     isReady: true,
     score: 0,
@@ -123,24 +101,12 @@ export async function joinGameSession(gameId: string, userId: string): Promise<{
 
   session.players.set(userId, gamePlayer);
 
-  // Check if we have enough players to start
-  if (session.players.size >= game.minPlayers)
-  {
-    await startGameSession(gameId);
-  }
-
-  return {
-    success: true,
-    playerRole,
-    game: session.game,
-  };
+  console.log(`[GameSessionManager] ✅ Added ${username} to game ${gameId}`);
 }
-
 /**
- * Start a game session (when enough players joined)
- * Backend doesn't run physics - just marks game as started
+ * Start a game session
  */
-async function startGameSession(gameId: string): Promise<void>
+export async function startGameSession(gameId: string): Promise<void>
 {
   const session = sessionStore.get(gameId);
   if (!session)
@@ -153,120 +119,160 @@ async function startGameSession(gameId: string): Promise<void>
   session.game.status = GameStatus.PLAYING;
   session.isRunning = true;
 
-  // Subscribe to player input (paddle positions and score events)
-  await subscribeToPlayerInput(gameId, (playerId, input) => {
-    handlePlayerInput(gameId, playerId, input);
-  });
+  // Create game engine if it's a Pong game
+  if (session.game.type === GameType.PONG) {
+    const playerIds = Array.from(session.players.keys());
+    if (playerIds.length >= 2) {
+      const maxScore = session.game.maxScore || 5;
+      const engine = new PongEngine(playerIds[0], playerIds[1], maxScore);
+      gameEngines.set(gameId, engine);
+      
+      // Start game loop
+      startGameLoop(gameId);
+    }
+  }
 
-  // Publish game started event
-  await publishGameEvent({
-    gameId,
-    type: GameEventType.GAME_STARTED,
-    timestamp: Date.now(),
-    data: {
-      message: 'Game started',
-      players: Array.from(session.players.keys()),
-    },
-  });
+  // Broadcast game started event to all players via websocket
+  const redis = await getRedisClient();
+  if (redis) {
+    const playerIds = Array.from(session.players.keys());
+    
+    await redis.publish('websocket:broadcast', JSON.stringify({
+      userIds: playerIds,
+      message: {
+        type: 'game:started',
+        payload: {
+          gameId,
+          message: 'Game started',
+          players: playerIds,
+        },
+        timestamp: Date.now(),
+      },
+    }));
+  }
 
   console.log(`✅ Game ${gameId} started with ${session.players.size} players`);
 }
 
 /**
- * Handle player input (paddle positions and score events)
- * Backend just relays to other players and validates scores
+ * Start game loop (60 FPS)
  */
-function handlePlayerInput(gameId: string, playerId: string, input: any): void
-{
-  const session = sessionStore.get(gameId);
-  if (!session || !session.isRunning)
-  {
+function startGameLoop(gameId: string): void {
+  const engine = gameEngines.get(gameId);
+  if (!engine) {
+    console.error(`[GameLoop] No engine for game ${gameId}`);
     return;
   }
-
-  // Check if this is a paddle position update
-  if (input.type === 'paddle_position')
-  {
-    // Simply relay paddle position to other players (no validation needed)
-    publishGameEvent({
-      gameId,
-      type: GameEventType.PLAYER_JOINED, // Using generic event, or create PADDLE_UPDATE
-      timestamp: Date.now(),
-      data: {
-        playerId,
-        paddleY: input.paddleY,
-      },
-    });
-  }
   
-  // Check if this is a score event
-  else if (input.type === 'score')
-  {
-    handleScoreEvent(session, playerId, input);
+  const intervalId = setInterval(async () => {
+    // Update physics (fixed 60 FPS, no deltaTime needed)
+    const events = engine.update();
+
+    // Broadcast game state (non-blocking)
+    broadcastGameState(gameId).catch(err => console.error('[GameLoop] Broadcast error:', err));
+
+    // Broadcast events (goals, hits, etc)
+    for (const event of events) {
+      broadcastGameEvent(gameId, event).catch(err => console.error('[GameLoop] Event broadcast error:', err));
+      
+      // Check for game end
+      if (event.type === 'game-end') {
+        await endGameSession(gameId);
+        stopGameLoop(gameId);
+      }
+    }
+  }, GAME_LOOP.TICK_INTERVAL);
+
+  gameLoops.set(gameId, intervalId);
+  console.log(`[GameLoop] Started for game ${gameId} at ${GAME_LOOP.TICK_RATE} FPS`);
+}
+
+/**
+ * Stop game loop
+ */
+function stopGameLoop(gameId: string): void {
+  const intervalId = gameLoops.get(gameId);
+  if (intervalId) {
+    clearInterval(intervalId);
+    gameLoops.delete(gameId);
+    gameEngines.delete(gameId);
+    console.log(`[GameLoop] Stopped for game ${gameId}`);
   }
 }
 
 /**
- * Handle score event from client
- * Validates the score and broadcasts if valid
+ * Broadcast game state to all players
  */
-async function handleScoreEvent(session: GameSession, playerId: string, scoreData: any): Promise<void>
-{
-  const player = session.players.get(playerId);
-  if (!player)
-  {
-    return;
-  }
-
-  const { scoringPlayerId, newScore } = scoreData;
-
-  // Basic anti-cheat: check if score increased by exactly 1
-  const scoringPlayer = session.players.get(scoringPlayerId);
-  if (!scoringPlayer)
-  {
-    return;
-  }
-
-  const expectedScore = scoringPlayer.score + 1;
-  if (newScore !== expectedScore)
-  {
-    console.warn(`⚠️ Invalid score from ${playerId}: expected ${expectedScore}, got ${newScore}`);
-    return; // Reject invalid score
-  }
-
-  // Update score
-  scoringPlayer.score = newScore;
+async function broadcastGameState(gameId: string): Promise<void> {
+  const session = sessionStore.get(gameId);
+  const engine = gameEngines.get(gameId);
   
-  // Update in database
-  await gameRepository.updatePlayerScore(session.id, scoringPlayerId, newScore);
+  if (!session || !engine) return;
 
-  // Update session scores array
-  const playerIndex = Array.from(session.players.keys()).indexOf(scoringPlayerId);
-  if (playerIndex !== -1)
-  {
-    session.state.scores[playerIndex] = newScore;
-  }
-
-  // Broadcast valid score event
-  await publishGameEvent({
-    gameId: session.id,
-    type: GameEventType.PONG_SCORED,
-    timestamp: Date.now(),
-    data: {
-      scored: {
-        playerId: scoringPlayerId,
-        newScore,
-        totalScore: session.state.scores,
+  const state = engine.getState();
+  const redis = await getRedisClient();
+  
+  if (redis) {
+    const playerIds = Array.from(session.players.keys());
+    
+    await redis.publish('websocket:broadcast', JSON.stringify({
+      userIds: playerIds,
+      message: {
+        type: 'game:state',
+        payload: {
+          gameId,
+          state: {
+            ball: state.ball,
+            paddle1: state.paddle1,
+            paddle2: state.paddle2,
+            scores: state.scores,
+          },
+          timestamp: Date.now(),
+        },
       },
-    },
-  });
-
-  // Check if game should end
-  const maxScore = session.game.maxScore || 5;
-  if (newScore >= maxScore)
-  {
-    await endGameSession(session.id);
+    }));
   }
+}
+
+/**
+ * Broadcast game event (goal, hit, etc)
+ */
+async function broadcastGameEvent(gameId: string, event: PongEvent): Promise<void> {
+  const session = sessionStore.get(gameId);
+  if (!session) return;
+
+  const redis = await getRedisClient();
+  if (redis) {
+    const playerIds = Array.from(session.players.keys());
+    
+    await redis.publish('websocket:broadcast', JSON.stringify({
+      userIds: playerIds,
+      message: {
+        type: 'game:event',
+        payload: {
+          gameId,
+          event: {
+            type: event.type,
+            data: event.data,
+          },
+        },
+        timestamp: Date.now(),
+      },
+    }));
+  }
+}
+
+/**
+ * Handle player input
+ */
+export function handlePlayerInput(gameId: string, playerId: string, direction: 'up' | 'down' | 'none'): void {
+  const engine = gameEngines.get(gameId);
+  if (!engine) {
+    console.warn(`[GameSessionManager] No engine for game ${gameId}`);
+    return;
+  }
+
+  engine.handleInput(playerId, { direction });
 }
 
 /**
@@ -286,11 +292,7 @@ export async function leaveGameSession(gameId: string, userId: string): Promise<
   // Remove player from database
   await gameRepository.removePlayerFromGame(gameId, userId);
 
-  // If not enough players left, cancel game
-  if (session.players.size < session.game.minPlayers)
-  {
-    await cancelGameSession(gameId);
-  }
+  console.log(`[GameSessionManager] Player ${userId} left game ${gameId}`);
 }
 
 /**
@@ -304,24 +306,37 @@ export async function endGameSession(gameId: string): Promise<void>
     return;
   }
 
+  // Get final scores from engine BEFORE stopping loop (which deletes engine)
+  const engine = gameEngines.get(gameId);
+  const finalScores = engine ? engine.getState().scores : session.state.scores;
+
+  // Stop game loop
+  stopGameLoop(gameId);
+
   // Mark as not running
   session.isRunning = false;
 
   // Update game status in database
   await gameRepository.endGame(gameId);
 
-  // Publish game finished event
-  await publishGameEvent({
-    gameId,
-    type: GameEventType.GAME_FINISHED,
-    timestamp: Date.now(),
-    data: {
-      message: 'Game finished',
-      finalScores: session.state.scores,
-    },
-  });
-
-  // TODO: Save match result to database
+  // Broadcast game finished event to all players via websocket
+  const redis = await getRedisClient();
+  if (redis) {
+    const playerIds = Array.from(session.players.keys());
+    
+    await redis.publish('websocket:broadcast', JSON.stringify({
+      userIds: playerIds,
+      message: {
+        type: 'game:finished',
+        payload: {
+          gameId,
+          message: 'Game finished',
+          finalScores,
+        },
+        timestamp: Date.now(),
+      },
+    }));
+  }
 
   // Remove session from store
   sessionStore.delete(gameId);
@@ -330,95 +345,9 @@ export async function endGameSession(gameId: string): Promise<void>
 }
 
 /**
- * Cancel a game session
- */
-async function cancelGameSession(gameId: string): Promise<void>
-{
-  const session = sessionStore.get(gameId);
-  if (!session)
-  {
-    return;
-  }
-
-  // Mark as not running
-  session.isRunning = false;
-
-  // Update game status in database
-  await gameRepository.updateGameStatus(gameId, GameStatus.CANCELLED);
-
-  // Publish cancelled event
-  await publishGameEvent({
-    gameId,
-    type: GameEventType.GAME_CANCELLED,
-    timestamp: Date.now(),
-    data: {
-      message: 'Game cancelled - not enough players',
-    },
-  });
-
-  // Remove session from store
-  sessionStore.delete(gameId);
-
-  console.log(`✅ Game ${gameId} cancelled`);
-}
-
-/**
  * Get game session
  */
 export function getGameSession(gameId: string): GameSession | undefined
 {
   return sessionStore.get(gameId);
-}
-
-/**
- * Get next player role based on current player count
- */
-function getNextPlayerRole(currentCount: number): PlayerRole
-{
-  switch (currentCount)
-  {
-    case 0:
-      return PlayerRole.PLAYER1;
-    case 1:
-      return PlayerRole.PLAYER2;
-    case 2:
-      return PlayerRole.PLAYER3;
-    case 3:
-      return PlayerRole.PLAYER4;
-    default:
-      return PlayerRole.SPECTATOR;
-  }
-}
-
-/**
- * Fetch user data from user service
- */
-async function fetchUserData(userId: string): Promise<{ username: string; avatarUrl?: string } | null>
-{
-  try
-  {
-    const response = await fetch(`${GAME_CONFIG.SERVICES.USER}/profile`, {
-      headers: {
-        'Authorization': `Bearer ${userId}`, // In reality, you'd pass proper JWT
-        'x-api-key': getInternalApiKey(),
-      },
-    });
-
-    if (!response.ok)
-    {
-      console.error(`Failed to fetch user data: ${response.status}`);
-      return null;
-    }
-
-    const userData = await response.json() as { username: string; avatarUrl?: string };
-    return {
-      username: userData.username,
-      avatarUrl: userData.avatarUrl,
-    };
-  }
-  catch (error)
-  {
-    console.error('Error fetching user data:', error);
-    return null;
-  }
 }

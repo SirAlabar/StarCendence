@@ -140,7 +140,7 @@ export default class PongLobbyPage extends BaseComponent
                         navigateTo('/pong');
                         return;
                     }
-                    
+    
                     console.log(`[PongLobby] ✅ Lobby created successfully! ID: ${this.lobbyId}`);
                     
                     // Update URL without reloading page
@@ -244,9 +244,12 @@ export default class PongLobbyPage extends BaseComponent
                 // Game is about to start - navigate all players
                 if (msg.payload?.lobbyId === this.lobbyId) {
                     this.isGameStarting = true;
-                    const isHost = this.gameLobby?.isCurrentUserHost() ?? false;  //check to  see who is host 
+                    const gameId = msg.payload.gameId;
+                    const isHost = this.gameLobby?.isCurrentUserHost() ?? false;
                     const side = isHost ? 'left' : 'right';
-                    navigateTo(`/pong-game?lobby=${this.lobbyId}&side=${side}`);
+                    
+                    console.log(`[PongLobby] 🎮 Game starting! GameID: ${gameId}, Lobby: ${this.lobbyId}, Side: ${side}`);
+                    navigateTo(`/pong-game?gameId=${gameId}&lobby=${this.lobbyId}&side=${side}`);
                 }
                 break;
 

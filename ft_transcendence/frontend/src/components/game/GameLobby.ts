@@ -590,6 +590,51 @@ export class GameLobby extends BaseComponent
         }
     }
 
+    /**
+     * Update start button area (shows/hides button based on host status)
+     */
+    public updateStartButtonArea(): void {
+        // Find the flex-1 div that contains the button area
+        const contentDiv = document.querySelector('.flex-1.flex.flex-col.px-8');
+        if (!contentDiv) {
+            console.warn('[GameLobby] Could not find content div for start button update');
+            return;
+        }
+
+        // Find the start button area (first child of content div)
+        const buttonArea = contentDiv.firstElementChild;
+        if (!buttonArea) {
+            console.warn('[GameLobby] Could not find button area');
+            return;
+        }
+
+        // Re-render the button area
+        const isHost = this.isCurrentUserHost();
+        const canStart = this.canStartGame();
+        
+        console.log('[GameLobby] updateStartButtonArea:', { isHost, canStart });
+        
+        const newHTML = isHost ? `
+            <button id="startGameBtn" class="mb-6 py-3 px-12 rounded-xl text-xl font-bold transition-all self-center flex-shrink-0 ${canStart ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-2xl shadow-cyan-500/50 border-2 border-cyan-500' : 'bg-gray-700 text-gray-500 cursor-not-allowed border-2 border-gray-600'}" ${!canStart ? 'disabled' : ''}>
+                START GAME
+            </button>
+        ` : `
+            <div class="mb-6 py-3 px-12 text-center text-gray-400 text-sm font-bold">
+                Waiting for host to start the game...
+            </div>
+        `;
+
+        buttonArea.outerHTML = newHTML;
+
+        // Re-attach event listener if button exists
+        if (isHost) {
+            const newBtn = document.getElementById('startGameBtn');
+            if (newBtn) {
+                newBtn.addEventListener('click', () => this.handleStartGame());
+            }
+        }
+    }
+
     private attachCardEventListeners(card: HTMLElement): void {
         const addBtn = card.querySelector('.add-player-btn');
         if (addBtn) {

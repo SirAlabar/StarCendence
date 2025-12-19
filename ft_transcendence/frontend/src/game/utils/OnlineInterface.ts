@@ -5,7 +5,7 @@ export interface OGameInput         //payload to inform of player movement
     type: 'game:input';
     payload: 
     {
-        matchId: string;
+        gameId: string;
         playerId: string;
         input:
         {
@@ -21,7 +21,7 @@ export interface OGameReady             //payload to inform game is ready to sta
     type: 'game:ready';
     payload:
     {
-        matchId: string;
+        gameId: string;
         playerId: string;
     };
 }
@@ -31,7 +31,7 @@ export interface OLeaveGame
     type: 'game:leave';                 //payload to inform player left
     payload:
     {
-        matchId: string;
+        gameId: string;
         playerId: string;
     };
     
@@ -51,7 +51,7 @@ export interface OGameStateUpdate
     type: 'game:state';                         //payload to pass game state (full snapshot with timestamp)
     payload: 
     {
-        matchId: string;
+        gameId: string;
         state: 
         {
             ball: 
@@ -60,21 +60,14 @@ export interface OGameStateUpdate
                 y: number;
                 dx: number;
                 dy: number;
-                radius: number;
             };
             paddle1: 
             {
-                x: number;
                 y: number;
-                width: number;
-                height: number;
             };
             paddle2: 
             {
-                x: number;
                 y: number;
-                width: number;
-                height: number;
             };
             scores: 
             {
@@ -91,7 +84,7 @@ export interface OGameEvent             //payload to infor of game event like go
     type: 'game:event';
     payload:
     {
-        matchId: string;
+        gameId: string;
         event:
         {
             type: 'goal' | 'paddle-hit' | 'wall-hit' | 'game-end';
@@ -105,7 +98,7 @@ export interface OGameStart         //payload to inform ready to start game
     type: 'game:start';
     payload:
     {
-        matchId:string;
+        gameId:string;
         playerId: string;
         playerSide: 'left' | 'right';
         player1Name: string;

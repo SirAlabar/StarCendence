@@ -2,7 +2,11 @@ import { EventManager } from './EventManager';
 import { ConnectionInfo, WebSocketMessage } from '../types/connection.types';
 import { redisBroadcast } from '../broadcasting/RedisBroadcast';
 
-const gameEvents = ['game:move', 'game:action', 'game:ready', 'game:start', 'game:pause', 'game:resume', 'game:end', 'game:input'];
+// All game events go to game:events channel - Game service filters by gameId in payload
+const gameEvents = [
+  'game:move', 'game:action', 'game:pause', 'game:resume', 'game:end',
+  'game:input', 'game:ready', 'game:start', 'game:leave', 'game:state', 'game:event'
+];
 
 for (const eventType of gameEvents)
 {
@@ -19,4 +23,3 @@ for (const eventType of gameEvents)
     });
   });
 } 
-

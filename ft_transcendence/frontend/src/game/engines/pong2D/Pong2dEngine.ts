@@ -51,6 +51,8 @@ export class LocalPongEngine
             throw Error("Failed to get 2d Context");
         this.ctx = ctx;
 
+        console.log('[Pong2D] Canvas dimensions:', canvas.width, 'x', canvas.height);
+
         //start game objects
         this.ball = new Ball(canvas.width/2, canvas.height/2, 10);
         this.ball.dx = 3;
@@ -61,6 +63,10 @@ export class LocalPongEngine
         const paddle2color = config.paddlecolor2 || 'default';
         this.paddleleft = new paddle("left", canvas, paddle1color);
         this.paddleright = new paddle("right", canvas, paddle2color);
+
+        console.log('[Pong2D] Ball position:', this.ball.x, this.ball.y, 'radius:', this.ball.radius);
+        console.log('[Pong2D] Left paddle:', this.paddleleft.x, this.paddleleft.y, this.paddleleft.width, 'x', this.paddleleft.height);
+        console.log('[Pong2D] Right paddle:', this.paddleright.x, this.paddleright.y, this.paddleright.width, 'x', this.paddleright.height);
 
         this.player1 = new player();
         this.player1.score = 0;
@@ -257,25 +263,31 @@ export class LocalPongEngine
         const speed = this.paddleleft.speed;
         
         // Player 1 (left paddle)
-        if (this.keys['w'] && this.paddleleft.y > 0) 
-        {
-            this.paddleleft.y -= speed;
-        }
-        if (this.keys['s'] && this.paddleleft.y + this.paddleleft.height < this.canvas.height) 
-        {
-            this.paddleleft.y += speed;
+        // Don't move if both opposing keys are pressed
+        if (!(this.keys['w'] && this.keys['s'])) {
+            if (this.keys['w'] && this.paddleleft.y > 0) 
+            {
+                this.paddleleft.y -= speed;
+            }
+            else if (this.keys['s'] && this.paddleleft.y + this.paddleleft.height < this.canvas.height) 
+            {
+                this.paddleleft.y += speed;
+            }
         }
         
         // Player 2 / AI (right paddle)
         if (this.config.mode === 'local-multiplayer') 
         {
-            if (this.keys['arrowup'] && this.paddleright.y > 0) 
-            {
-                this.paddleright.y -= speed;
-            }
-            if (this.keys['arrowdown'] && this.paddleright.y + this.paddleright.height < this.canvas.height) 
-            {
-                this.paddleright.y += speed;
+            // Don't move if both opposing keys are pressed
+            if (!(this.keys['arrowup'] && this.keys['arrowdown'])) {
+                if (this.keys['arrowup'] && this.paddleright.y > 0) 
+                {
+                    this.paddleright.y -= speed;
+                }
+                else if (this.keys['arrowdown'] && this.paddleright.y + this.paddleright.height < this.canvas.height) 
+                {
+                    this.paddleright.y += speed;
+                }
             }
         } 
         else if (this.config.mode === 'ai' && this.enemy) 
@@ -409,7 +421,9 @@ export class LocalPongEngine
     
     private clear(): void 
     {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        // Fill with dark background instead of just clearing
+        this.ctx.fillStyle = '#0f0f1e';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
     
     private render(): void 
@@ -425,6 +439,26 @@ export class LocalPongEngine
         else if (this.enemy) 
         {
             this.enemy.draw(this.ctx);
+        }
+
+        // Debug: Draw scores and countdown
+        this.ctx.fillStyle = "white";
+        this.ctx.font = "32px Arial";
+        this.ctx.textAlign = "center";
+        
+        // Draw scores
+        this.ctx.fillText(`${this.player1.score}`, this.canvas.width / 4, 50);
+        const player2Score = this.player2?.score ?? this.enemy?.score ?? 0;
+        this.ctx.fillText(`${player2Score}`, (this.canvas.width / 4) * 3, 50);
+
+        // Draw countdown if game hasn't started
+        if (!this.gameStarted) {
+            const elapsed = Date.now() - this.starttime;
+            const remaining = Math.ceil((this.startdelay - elapsed) / 1000);
+            if (remaining > 0) {
+                this.ctx.font = "64px Arial";
+                this.ctx.fillText(`${remaining}`, this.canvas.width / 2, this.canvas.height / 2);
+            }
         }
         
     }
@@ -457,6 +491,9 @@ export class LocalPongEngine
     
     private keydownHandler = (e: KeyboardEvent) => 
     {
+        // Ignore keyboard repeat events to prevent spam
+        if (e.repeat) return;
+        
         const key = e.key.toLowerCase();
         this.keys[key] = true;
 
@@ -475,16 +512,24 @@ export class LocalPongEngine
         this.keys[e.key.toLowerCase()] = false;
     };
     
+    private blurHandler = (): void => 
+    {
+        // Clear all keys when window loses focus to prevent stuck keys
+        this.keys = {};
+    };
+    
     private setupInputHandlers(): void 
     {
         window.addEventListener('keydown', this.keydownHandler);
         window.addEventListener('keyup', this.keyupHandler);
+        window.addEventListener('blur', this.blurHandler);
     }
     
     private removeInputHandlers(): void 
     {
         window.removeEventListener('keydown', this.keydownHandler);
         window.removeEventListener('keyup', this.keyupHandler);
+        window.removeEventListener('blur', this.blurHandler);
     }
     
 

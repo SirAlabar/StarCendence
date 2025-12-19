@@ -177,8 +177,15 @@ export class Pong3D implements GameEngine
     private setupInput(): void 
     {
         this.scene.onKeyboardObservable.add((kbInfo) => {
+            // Ignore keyboard repeat events to prevent spam (only if property exists)
+            if ('repeat' in kbInfo.event && kbInfo.event.repeat) return;
             const key = kbInfo.event.key.toLowerCase();
             this.keys[key] = kbInfo.type === KeyboardEventTypes.KEYDOWN;
+        });
+        
+        // Clear all keys when window loses focus to prevent stuck keys
+        window.addEventListener('blur', () => {
+            this.keys = {};
         });
     }
     
@@ -568,10 +575,13 @@ export class Pong3D implements GameEngine
         
         // Player 1 (left paddle) - A/D keys
         const moveVector1 = new Vector3(0, 0, 0);
-        if (this.keys[this.keybinds.p1.left] && this.paddle_left.position.z < moveBoundary) 
-            moveVector1.z += paddleSpeed;
-        if (this.keys[this.keybinds.p1.right] && this.paddle_left.position.z > -moveBoundary) 
-            moveVector1.z -= paddleSpeed;
+        // Don't move if both opposing keys are pressed
+        if (!(this.keys[this.keybinds.p1.left] && this.keys[this.keybinds.p1.right])) {
+            if (this.keys[this.keybinds.p1.left] && this.paddle_left.position.z < moveBoundary) 
+                moveVector1.z += paddleSpeed;
+            else if (this.keys[this.keybinds.p1.right] && this.paddle_left.position.z > -moveBoundary) 
+                moveVector1.z -= paddleSpeed;
+        }
         this.paddle_left.moveWithCollisions(moveVector1);
             
         
@@ -579,11 +589,13 @@ export class Pong3D implements GameEngine
         if (this.config.mode === 'local-multiplayer') 
         {
             const moveVector2 = new Vector3(0, 0, 0);
-            if (this.keys[this.keybinds.p2.left] && this.paddle_right.position.z < moveBoundary) 
-                moveVector2.z += paddleSpeed;
-            
-            if (this.keys[this.keybinds.p2.right] && this.paddle_right.position.z > -moveBoundary) 
-                moveVector2.z -= paddleSpeed;
+            // Don't move if both opposing keys are pressed
+            if (!(this.keys[this.keybinds.p2.left] && this.keys[this.keybinds.p2.right])) {
+                if (this.keys[this.keybinds.p2.left] && this.paddle_right.position.z < moveBoundary) 
+                    moveVector2.z += paddleSpeed;
+                else if (this.keys[this.keybinds.p2.right] && this.paddle_right.position.z > -moveBoundary) 
+                    moveVector2.z -= paddleSpeed;
+            }
             
             this.paddle_right.moveWithCollisions(moveVector2);
         }

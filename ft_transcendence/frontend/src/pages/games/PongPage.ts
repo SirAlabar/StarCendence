@@ -466,7 +466,7 @@ export default class PongPage extends BaseComponent
 
                 setTimeout(() => 
                 {
-                    const redirectPath = this.selectedMode === 'tournament' ? '/tournament' : '/pong-lobby';
+                    const redirectPath = this.selectedMode === 'tournament' ? '/tournament' : '/lobby?game=pong';
                     localStorage.setItem('redirectAfterLogin', redirectPath);
                     navigateTo('/login');
                 }, 3000);
@@ -486,7 +486,7 @@ export default class PongPage extends BaseComponent
         }
         else if (this.selectedMode === 'online-multiplayer') 
         {
-            navigateTo('/pong-lobby');
+            navigateTo('/lobby?game=pong');
         }
         else if (this.selectedMode === 'tournament') 
         {
