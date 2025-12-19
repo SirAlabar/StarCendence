@@ -153,10 +153,11 @@ export class PongEngine {
     return this.events;
   }
 
-  handleInput(playerId: string, input: PaddleInput): void {
+  handleInput(playerId: string, input: PaddleInput): void 
+  {
     const isPlayer1 = playerId === this.player1Id;
     const paddle = isPlayer1 ? this.state.paddle1 : this.state.paddle2;
-
+    console.log("Chegou aqui");
     if (input.direction === 'up') {
       paddle.y = Math.max(0, paddle.y - PONG.PADDLE.SPEED);
     } else if (input.direction === 'down') {

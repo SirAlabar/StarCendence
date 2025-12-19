@@ -226,7 +226,7 @@ export class OnlinePongEngine implements GameEngine
         }
         
         // Send if direction changed OR enough time passed (for continuous input)
-        const shouldSend = direction !== this.lastDirection || (now - this.lastInputSent >= this.inputThrottle);
+        const shouldSend = direction !== this.lastDirection || (now - this.lastInputSent >= this.inputThrottle) || direction != 'none';
         
         if (!shouldSend) {
             return;
