@@ -55,7 +55,7 @@ export class Features extends BaseComponent
       description: 'Real-time messaging, invites and presence.',
       bullets: ['Invitations', 'Presence', 'Moderation'],
       icon: '💬',
-      imageUrl: ''
+      imageUrl: '/assets/images/livechat.png'
     },
     {
       category: 'social',
@@ -82,7 +82,7 @@ export class Features extends BaseComponent
       description: 'Low-latency event bus for gameplay and chat.',
       bullets: ['60 FPS Streams', 'Room Routing', 'Broadcast'],
       icon: '🔌',
-      imageUrl: ''
+      imageUrl: '/assets/images/websocket.png'
     },
     {
       category: 'tech',
@@ -98,7 +98,7 @@ export class Features extends BaseComponent
       description: 'Fastify services orchestrated by Nginx + Redis.',
       bullets: ['Redis PubSub', 'Nginx Gateway', 'SQLite Persistent'],
       icon: '🧩',
-      imageUrl: ''
+      imageUrl: '/assets/images/microservice.png'
     },
     {
       category: 'tech',
