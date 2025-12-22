@@ -54,83 +54,173 @@ export class GameLobby extends BaseComponent
     }
     
     private async initializePlayerSlots(): Promise<void> 
+{
+    this.playerSlots = [];
+    
+    // Load current user
+    try 
     {
-        this.playerSlots = [];
+        this.currentUser = await UserService.getProfile();
+    }
+    catch (err) 
+    {
+        console.error('Failed to load user profile:', err);
+        this.currentUser = null;
+    }
+    
+    // Load friends with status - SAME APPROACH AS PROFILEPAGE
+    try 
+    {
+        // Get friends list from backend (includes status)
+        const friendsData = await FriendService.getFriends();
         
-        try 
+        if (!friendsData.friends) 
         {
-            this.currentUser = await UserService.getProfile();
+            this.allFriends = [];
+            this.friends = [];
         }
-        catch (err) 
+        else 
         {
-            console.error('Failed to load user profile:', err);
-            this.currentUser = null;
+            // Store all friends
+            this.allFriends = friendsData.friends.map((friend: any) => ({
+                userId: friend.userId,
+                username: friend.username,
+                status: friend.status || 'OFFLINE', // Backend provides this
+                avatarUrl: friend.avatarUrl || '/assets/images/default-avatar.jpeg'
+            }));
+            
+            // Filter online friends (same as ProfilePage)
+            this.friends = this.allFriends
+                .filter((f: any) => f.status === 'online' || f.status === 'ONLINE')
+                .map((f: any) => ({
+                    userId: f.userId,
+                    username: f.username,
+                    avatarUrl: f.avatarUrl,
+                    status: f.status
+                }));
+            
+            console.log('[GameLobby] Loaded friends:', {
+                total: this.allFriends.length,
+                online: this.friends.length
+            });
         }
         
-        try 
-        {
+        // OPTIONAL: Also initialize OnlineFriendsService for real-time updates
+        // But don't rely on it for initial load
+        try {
             await OnlineFriendsService.initialize();
             
-            OnlineFriendsService.onStatusChange((friends) => 
+            // Set up listener for real-time status changes
+            OnlineFriendsService.onStatusChange((updatedFriends) => 
             {
-                this.friends = friends;
+                console.log('[GameLobby] Friend status update from WebSocket:', updatedFriends);
+                
+                // Update friends list with real-time data
+                updatedFriends.forEach(updatedFriend => {
+                    const friendIndex = this.allFriends.findIndex(
+                        (f: any) => f.userId === updatedFriend.userId
+                    );
+                    
+                    if (friendIndex !== -1) {
+                        this.allFriends[friendIndex].status = updatedFriend.status;
+                    }
+                });
+                
+                // Refresh online friends list
+                this.friends = this.allFriends.filter(
+                    (f: any) => f.status === 'online' || f.status === 'ONLINE'
+                );
+                
+                // Update UI
                 this.updateFriendsList();
             });
-            
-            const friendsData = await FriendService.getFriends();
-            this.allFriends = friendsData.friends || [];
-            
-            this.allFriends.forEach((friend: any) => 
-            {
-                if (friend.status === 'online') 
-                {
-                    OnlineFriendsService.addFriend({
-                        userId: friend.userId,
-                        username: friend.username,
-                        avatarUrl: friend.avatarUrl || '/assets/images/default-avatar.jpeg',
-                        status: friend.status
-                    });
-                }
-            });
-            
-            this.friends = OnlineFriendsService.getOnlineFriends();
+        } catch (err) {
+            console.warn('[GameLobby] OnlineFriendsService not available:', err);
+            // Not critical - we already have friend status from FriendService
         }
-        catch (err) 
+    }
+    catch (err) 
+    {
+        console.error('Failed to load friends:', err);
+        this.friends = [];
+        this.allFriends = [];
+    }
+    
+    // Initialize player slots (host + empty slots)
+    if (this.currentUser) 
+    {
+        this.playerSlots.push({
+            id: 0,
+            playerName: this.currentUser.username,
+            userId: this.currentUser.id,
+            isOnline: true,
+            isAI: false,
+            isReady: false,
+            isHost: true,
+            avatarUrl: this.currentUser.avatarUrl || '/assets/images/default-avatar.jpeg',
+            customization: this.config.gameType === 'podracer' ? AVAILABLE_PODS[0] : null
+        });
+    }
+    
+    for (let i = 1; i < this.config.maxPlayers; i++) 
+    {
+        this.playerSlots.push({
+            id: i,
+            playerName: null,
+            userId: null,
+            isOnline: false,
+            isAI: false,
+            isReady: false,
+            isHost: false,
+            avatarUrl: '/assets/images/default-avatar.jpeg',
+            customization: null
+        });
+    }
+}
+
+// ALSO UPDATE renderFriendsList to use the same logic as ProfilePage:
+
+    private renderFriendsList(): string 
+    {
+        if (this.allFriends.length === 0) 
         {
-            console.error('Failed to load friends:', err);
-            this.friends = [];
-            this.allFriends = [];
+            return `
+                <div class="text-center text-gray-500 py-8">
+                    <p class="text-lg font-bold mb-2">No Friends Yet</p>
+                    <p class="text-sm">Add friends to invite them to games!</p>
+                </div>
+            `;
         }
         
-        if (this.currentUser) 
-        {
-            this.playerSlots.push({
-                id: 0,
-                playerName: this.currentUser.username,
-                userId: this.currentUser.id,
-                isOnline: true,
-                isAI: false,
-                isReady: false,
-                isHost: true,
-                avatarUrl: this.currentUser.avatarUrl || '/assets/images/default-avatar.jpeg',
-                customization: this.config.gameType === 'podracer' ? AVAILABLE_PODS[0] : null
-            });
-        }
-        
-        for (let i = 1; i < this.config.maxPlayers; i++) 
-        {
-            this.playerSlots.push({
-                id: i,
-                playerName: null,
-                userId: null,
-                isOnline: false,
-                isAI: false,
-                isReady: false,
-                isHost: false,
-                avatarUrl: '/assets/images/default-avatar.jpeg',
-                customization: null
-            });
-        }
+        return this.allFriends.map((friend: any) => {
+            // Check if friend is online (case-insensitive)
+            const isOnline = friend.status?.toLowerCase() === 'online';
+            
+            const statusColor = isOnline ? 'border-green-400' : 'border-gray-500';
+            const statusDot = isOnline ? 'bg-green-400' : 'bg-gray-500';
+            const statusText = isOnline ? 'text-green-400' : 'text-gray-500';
+            const statusLabel = isOnline ? '● Online' : '● Offline';
+            const buttonClass = isOnline 
+                ? 'hover:border-cyan-500 hover:bg-gray-700/50 cursor-pointer' 
+                : 'opacity-60 cursor-not-allowed';
+            
+            return `
+                <button class="invite-friend-btn w-full p-4 rounded-lg border-2 border-cyan-500/30 bg-gray-800/50 transition-all flex items-center gap-4 ${buttonClass}" 
+                    data-username="${friend.username}" 
+                    data-userid="${friend.userId}"
+                    ${!isOnline ? 'disabled' : ''}>
+                    <div class="relative">
+                        <img src="${friend.avatarUrl}" alt="${friend.username}" class="w-12 h-12 rounded-full border-2 ${statusColor}">
+                        <div class="absolute bottom-0 right-0 w-3 h-3 ${statusDot} rounded-full border-2 border-gray-800"></div>
+                    </div>
+                    <div class="flex-1 text-left">
+                        <p class="text-cyan-300 font-bold">${friend.username}</p>
+                        <p class="${statusText} text-sm">${statusLabel}</p>
+                    </div>
+                    <div class="text-cyan-300 font-bold">${isOnline ? 'INVITE' : 'OFFLINE'}</div>
+                </button>
+            `;
+        }).join('');
     }
     
     private initializeChatMessages(): void 
@@ -432,46 +522,7 @@ export class GameLobby extends BaseComponent
         return '<p class="text-gray-600 text-xs text-center">No customization</p>';
     }
     
-    private renderFriendsList(): string 
-    {
-        if (this.allFriends.length === 0) 
-        {
-            return `
-                <div class="text-center text-gray-500 py-8">
-                    <p class="text-lg font-bold mb-2">No Friends Yet</p>
-                    <p class="text-sm">Add friends to invite them to games!</p>
-                </div>
-            `;
-        }
-        
-        return this.allFriends.map(friend => {
-            const isOnline = this.friends.some(f => f.userId === friend.userId);
-            const statusColor = isOnline ? 'border-green-400' : 'border-gray-500';
-            const statusDot = isOnline ? 'bg-green-400' : 'bg-gray-500';
-            const statusText = isOnline ? 'text-green-400' : 'text-gray-500';
-            const statusLabel = isOnline ? '● Online' : '● Offline';
-            const buttonClass = isOnline 
-                ? 'hover:border-cyan-500 hover:bg-gray-700/50 cursor-pointer' 
-                : 'opacity-60 cursor-not-allowed';
-            
-            return `
-                <button class="invite-friend-btn w-full p-4 rounded-lg border-2 border-cyan-500/30 bg-gray-800/50 transition-all flex items-center gap-4 ${buttonClass}" 
-                    data-username="${friend.username}" 
-                    data-userid="${friend.userId}"
-                    ${!isOnline ? 'disabled' : ''}>
-                    <div class="relative">
-                        <img src="${friend.avatarUrl || '/assets/images/default-avatar.jpeg'}" alt="${friend.username}" class="w-12 h-12 rounded-full border-2 ${statusColor}">
-                        <div class="absolute bottom-0 right-0 w-3 h-3 ${statusDot} rounded-full border-2 border-gray-800"></div>
-                    </div>
-                    <div class="flex-1 text-left">
-                        <p class="text-cyan-300 font-bold">${friend.username}</p>
-                        <p class="${statusText} text-sm">${statusLabel}</p>
-                    </div>
-                    <div class="text-cyan-300 font-bold">${isOnline ? 'INVITE' : 'OFFLINE'}</div>
-                </button>
-            `;
-        }).join('');
-    }
+    
     
     private updateFriendsList(): void 
     {
