@@ -3,9 +3,7 @@ import { LocalPongEngine } from '../engines/pong2D/Pong2dEngine';
 import { Pong3D } from '../engines/pong3D/Pong3dEngine';
 import { webSocketService } from '@/services/websocket/WebSocketService';
 import { OnlinePongEngine } from '../engines/pong2D/Pong2dOnline';
-
-//import { OnlinePongEngine } from '../engines/pong2D/Pong2dOnline';
-
+import { OnlinePong3D } from '../engines/pong3D/Pong3dOnline';
 
 type GameStateStatus = 'menu' | 'matchmaking' | 'playing' | 'paused' | 'ended';
 type GameDimension = '2d' | '3d';
@@ -94,17 +92,17 @@ export class GameManager
                         break;
                         
                     case 'online-multiplayer':
-                    if (!onlineData) throw new Error('Missing online game data');
-                    
-                    this.currentEngine = new OnlinePongEngine(
-                        canvas, 
-                        config, 
-                        webSocketService, 
-                        onlineData.matchId, 
-                        onlineData.userId, 
-                        onlineData.side
-                    );
-                    break;
+                        if (!onlineData) throw new Error('Missing online game data');
+                        
+                        this.currentEngine = new OnlinePongEngine(
+                            canvas, 
+                            config, 
+                            webSocketService, 
+                            onlineData.matchId, 
+                            onlineData.userId, 
+                            onlineData.side
+                        );
+                        break;
                         
                     default:
                         throw new Error(`Unknown game mode: ${config.mode}`);
@@ -120,8 +118,18 @@ export class GameManager
                         break;
                         
                     case 'online-multiplayer':
+                        if (!onlineData) throw new Error('Missing online game data');
                         
-                        throw new Error('3D Online multiplayer not yet implemented');
+                        console.log('[GameManager] 🎮 Creating 3D Online Engine');
+                        this.currentEngine = new OnlinePong3D(
+                            canvas, 
+                            config, 
+                            webSocketService, 
+                            onlineData.matchId, 
+                            onlineData.userId, 
+                            onlineData.side
+                        );
+                        break;
                         
                     default:
                         throw new Error(`Unknown game mode: ${config.mode}`);
@@ -158,11 +166,9 @@ export class GameManager
             console.error('No game initialized');
             return;
         }
-
         this.currentState = 'playing';
         this.currentEngine.start();
         this.emitEvent('game:started', {});
-        this.emitEvent('Player info: ola', {});
         
     }
     
@@ -303,7 +309,6 @@ export class GameManager
         return this.playerPreferences.lastDimension;
     }
     
-
     
     public on(eventName: string, callback: EventListener): void 
     {
@@ -340,7 +345,6 @@ export class GameManager
         }
     }
     
-
     
     private setupGlobalEventListeners(): void 
     {
@@ -435,7 +439,6 @@ export class GameManager
         this.eventListeners.clear();
        
     }
-
     private play_sound() 
     {
         const audio = new Audio('/assets/sounds/sfx/paddlehit.mp3');
@@ -445,7 +448,6 @@ export class GameManager
             console.debug('[PongManager] Audio autoplay blocked:', err.message);
         });
     }
-
     private play_sound_goal() 
     {
         const audio = new Audio('/assets/sounds/sfx/goal.mp3');
@@ -455,7 +457,6 @@ export class GameManager
             console.debug('[PongManager] Audio autoplay blocked:', err.message);
         });
     }
-
     private play_sound_end() 
     {
         const audio = new Audio('/assets/sounds/sfx/gameend.mp3');
@@ -466,6 +467,5 @@ export class GameManager
         });
     }
 }
-
 // Export singleton instance
 export const gameManager = GameManager.getInstance();

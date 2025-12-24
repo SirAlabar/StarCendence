@@ -486,7 +486,11 @@ export default class PongPage extends BaseComponent
         }
         else if (this.selectedMode === 'online-multiplayer') 
         {
-            navigateTo('/lobby?game=pong');
+            if (this.selectedView === '2d')
+                navigateTo('/lobby?game=pong2d');
+            else 
+                navigateTo('/lobby?game=pong3d');
+            
         }
         else if (this.selectedMode === 'tournament') 
         {

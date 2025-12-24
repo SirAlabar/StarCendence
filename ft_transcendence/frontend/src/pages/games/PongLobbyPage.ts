@@ -95,8 +95,11 @@ export default class PongLobbyPage extends BaseComponent
         // Check URL for lobby ID parameter
         const params = new URLSearchParams(window.location.search);
         const urlLobbyId = params.get('id');
+       
+        
 
         console.log('[PongLobby] Mount - URL lobby ID:', urlLobbyId);
+        
 
         if (urlLobbyId) {
             // Joining existing lobby

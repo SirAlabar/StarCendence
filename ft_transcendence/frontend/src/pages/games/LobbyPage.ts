@@ -381,7 +381,10 @@ export default class LobbyPage extends BaseComponent
         } else {
             // Navigate to pong game
             console.log('[Lobby] Navigating to pong game:', payload.gameId);
-            navigateTo(`/pong-game?gameId=${payload.gameId}&lobbyId=${this.lobbyId}`);
+            if(this.gameType === 'pong')
+                navigateTo(`/pong-game?gameId=${payload.gameId}&lobbyId=${this.lobbyId}`);
+            else if(this.gameType === 'pong3d')
+                navigateTo(`/pong-game3d?gameId=${payload.gameId}&lobbyId=${this.lobbyId}`)
         }
     }
 
@@ -474,5 +477,10 @@ export default class LobbyPage extends BaseComponent
 
         this.lobbyId = null;
         this.isGameStarting = false;
+    }
+
+    public get_gametype()
+    {
+        return this.gameType;
     }
 }
