@@ -381,7 +381,7 @@ export default class LobbyPage extends BaseComponent
         } else {
             // Navigate to pong game
             console.log('[Lobby] Navigating to pong game:', payload.gameId);
-            if(this.gameType === 'pong')
+            if(this.gameType === 'pong2d')
                 navigateTo(`/pong-game?gameId=${payload.gameId}&lobbyId=${this.lobbyId}`);
             else if(this.gameType === 'pong3d')
                 navigateTo(`/pong-game3d?gameId=${payload.gameId}&lobbyId=${this.lobbyId}`)

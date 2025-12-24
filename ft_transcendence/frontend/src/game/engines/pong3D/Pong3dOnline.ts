@@ -1,5 +1,4 @@
 import { Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes, AbstractMesh } from "@babylonjs/core";
-import * as GUI from "@babylonjs/gui";
 import { GameConfig, GameState, GameEvent, GameEngine } from "../../utils/GameTypes";
 import { OGameEvent } from "@/game/utils/OnlineInterface";
 import { Skybox } from "./entities/Skybox";
@@ -24,8 +23,7 @@ export class OnlinePong3D implements GameEngine
     private paddle_left!: Mesh;
     private paddle_right!: Mesh;
     private platform: AbstractMesh[] = [];
-    private pauseUi: GUI.AdvancedDynamicTexture | null = null;
-    private pausePanel: GUI.StackPanel | null = null;
+  
 
     // Network
     private connection: WebSocketLikeConnection;
@@ -54,7 +52,7 @@ export class OnlinePong3D implements GameEngine
 
     // Input throttling
     private lastInputSent: number = 0;
-    private inputThrottle: number = 16; // Match 60 FPS (~16ms per frame)
+    private inputThrottle: number = 16;
     private lastDirection: 'up' | 'down' | 'none' = 'none';
 
     // Scores
@@ -65,7 +63,8 @@ export class OnlinePong3D implements GameEngine
     private eventCallbacks: Array<(event: GameEvent) => void> = [];
 
     // Keybinds (will change based on camera)
-    private keybinds = {
+    private keybinds = 
+    {
         p1: { left: "a", right: "d" },
         p2: { left: "arrowleft", right: "arrowright" }
     };
@@ -77,7 +76,8 @@ export class OnlinePong3D implements GameEngine
         gameId: string,
         playerId: string,
         playerSide: 'left' | 'right'
-    ) {
+    ) 
+    {
         this.config = config;
         this.connection = connection;
         this.gameId = gameId;
@@ -99,7 +99,7 @@ export class OnlinePong3D implements GameEngine
         this.createEnvironment();
         this.createGameObjects();
         this.enableCollisions();
-        this.initUi();
+        
 
         // Setup network and game loop
         this.setupNetworkListeners();
@@ -109,8 +109,9 @@ export class OnlinePong3D implements GameEngine
         window.addEventListener("resize", () => this.engine.resize());
     }
 
-    // ============ NETWORK SETUP ============
-    private setupNetworkListeners(): void {
+
+    private setupNetworkListeners(): void 
+    {
         // Listen for state updates from server
         this.connection.on('game:state', (data: any) => {
             if (data && data.gameId === this.gameId) {
@@ -126,35 +127,38 @@ export class OnlinePong3D implements GameEngine
         });
     }
 
-    private applyServerState(state: any): void {
-        if (!state) return;
+    private applyServerState(state: any): void 
+    {
+        if (!state) 
+            return;
 
         
         const scaleX = this.FIELD_WIDTH / this.SERVER_WIDTH;
         const scaleZ = this.FIELD_LENGTH / this.SERVER_LENGTH;
 
         
-        if (state.ball) {
+        if (state.ball) 
+        {
             this.ball.position.x = state.ball.x * scaleX;
             this.ball.position.z = state.ball.y * scaleZ; 
             
         }
 
         
-        if (state.paddle1) {
+        if (state.paddle1) 
             this.paddle_left.position.z = state.paddle1.y * scaleZ; // Server 'y' maps to client 'z'
-        }
-        if (state.paddle2) {
+        if (state.paddle2) 
             this.paddle_right.position.z = state.paddle2.y * scaleZ; // Server 'y' maps to client 'z'
-        }
 
         // Update Scores
-        if (state.scores) {
+        if (state.scores) 
+        {
             const newP1 = state.scores.player1 || 0;
             const newP2 = state.scores.player2 || 0;
 
             // Only emit if changed to avoid spam
-            if (newP1 !== this.player1Score || newP2 !== this.player2Score) {
+            if (newP1 !== this.player1Score || newP2 !== this.player2Score) 
+            {
                 this.player1Score = newP1;
                 this.player2Score = newP2;
 
@@ -169,7 +173,8 @@ export class OnlinePong3D implements GameEngine
         }
     }
 
-    private handleServerEvent(event: OGameEvent['payload']['event']): void {
+    private handleServerEvent(event: OGameEvent['payload']['event']): void 
+    {
         switch (event.type) {
             case 'goal':
                 this.emitEvent({
@@ -199,26 +204,26 @@ export class OnlinePong3D implements GameEngine
         }
     }
 
-    // ============ INPUT HANDLING ============
-    private sendInput(): void {
+    private sendInput(): void 
+    {
         const now = Date.now();
 
         
         let direction: 'up' | 'down' | 'none' = 'none';
 
-        if (this.playerSide === 'left') {
+        if (this.playerSide === 'left') 
+        {
             // Player 1 controls
             const leftKey = this.keys[this.keybinds.p1.left];
             const rightKey = this.keys[this.keybinds.p1.right];
 
             // Don't move if both opposing keys are pressed
-            if (leftKey && rightKey) {
+            if (leftKey && rightKey) 
                 direction = 'none';
-            } else if (leftKey) {
+            else if (leftKey) 
                 direction = 'up';
-            } else if (rightKey) {
+            else if (rightKey)
                 direction = 'down';
-            }
         } else {
             // Player 2 controls
             const leftKey = this.keys[this.keybinds.p2.left];
@@ -280,11 +285,13 @@ export class OnlinePong3D implements GameEngine
         });
     }
 
-    // ============ GAME LOOP ============
-    start(): void {
-        if (this.paused) this.paused = false;
+    
+    start(): void 
+    {
+        if (this.paused) 
+            this.paused = false;
 
-        console.log('[Online3DEngine] Sending Ready Signal');
+   
         this.connection.send('game:ready', {
             gameId: this.gameId,
             playerId: this.playerId
@@ -305,20 +312,14 @@ export class OnlinePong3D implements GameEngine
         this.paused = true;
     }
 
-    pause(): void {
+    pause(): void 
+    {
         this.paused = true;
-        this.emitEvent({ type: 'game-paused' });
-        if (this.pausePanel) {
-            this.pausePanel.isVisible = true;
-        }
+       
     }
 
     resume(): void {
         this.paused = false;
-        this.emitEvent({ type: 'game-resumed' });
-        if (this.pausePanel) {
-            this.pausePanel.isVisible = false;
-        }
     }
 
     private setupGameLoop(): void {
@@ -330,7 +331,7 @@ export class OnlinePong3D implements GameEngine
         });
     }
 
-    // ============ SCENE SETUP ============
+    
     private createCamera(): void {
         // Side view camera
         this.camera = new FreeCamera("camera", new Vector3(0, 0, 0), this.scene);
@@ -480,56 +481,8 @@ export class OnlinePong3D implements GameEngine
         }
     }
 
-    private initUi(): void {
-        this.pauseUi = GUI.AdvancedDynamicTexture.CreateFullscreenUI("pause-ui", true, this.scene);
-        const panel = new GUI.StackPanel();
-        panel.isVisible = false;
-        panel.width = "800px";
-        panel.height = "400px";
-        panel.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-        panel.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-        this.pauseUi.addControl(panel);
 
-        const title = new GUI.TextBlock();
-        title.text = "Paused";
-        title.fontSize = 42;
-        title.color = 'white';
-        title.height = "90px";
-        title.outlineWidth = 4;
-        title.outlineColor = 'black';
-        panel.addControl(title);
-
-        const controlsplayer1 = new GUI.TextBlock();
-        controlsplayer1.text = "Player 1 - Move with A/D (or W/S in top view)";
-        controlsplayer1.fontSize = 22;
-        controlsplayer1.color = 'white';
-        controlsplayer1.height = "80px";
-        controlsplayer1.outlineWidth = 4;
-        controlsplayer1.outlineColor = 'black';
-        panel.addControl(controlsplayer1);
-
-        const controlsplayer2 = new GUI.TextBlock();
-        controlsplayer2.text = "Player 2 - Move with Arrow Keys";
-        controlsplayer2.fontSize = 22;
-        controlsplayer2.color = 'white';
-        controlsplayer2.height = "70px";
-        controlsplayer2.outlineWidth = 4;
-        controlsplayer2.outlineColor = 'black';
-        panel.addControl(controlsplayer2);
-
-        const extra = new GUI.TextBlock();
-        extra.text = "Pause (ESC) | Change Camera (C)";
-        extra.fontSize = 22;
-        extra.color = 'white';
-        extra.height = "60px";
-        extra.outlineWidth = 4;
-        extra.outlineColor = 'black';
-        panel.addControl(extra);
-
-        this.pausePanel = panel;
-    }
-
-    // ============ INTERFACE IMPLEMENTATION ============
+  
     getState(): GameState {
         return {
             ball: {

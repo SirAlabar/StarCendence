@@ -176,7 +176,7 @@ export class Pong3D implements GameEngine
  
     private setupInput(): void 
     {
-        this.scene.onKeyboardObservable.add((kbInfo) => {
+        this.scene.onKeyboardObservable.add((kbInfo: any) => {
             // Ignore keyboard repeat events to prevent spam (only if property exists)
             if ('repeat' in kbInfo.event && kbInfo.event.repeat) return;
             const key = kbInfo.event.key.toLowerCase();
