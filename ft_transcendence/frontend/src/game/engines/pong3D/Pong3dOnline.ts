@@ -4,7 +4,6 @@ import { OGameEvent } from "@/game/utils/OnlineInterface";
 import { Skybox } from "./entities/Skybox";
 import { loadModel } from "./entities/ModelLoader";
 
-// Define WebSocket connection interface
 interface WebSocketLikeConnection {
     on(event: string, callback: Function): void;
     off(event: string, callback: Function): void;
@@ -23,7 +22,6 @@ export class OnlinePong3D implements GameEngine
     private paddle_left!: Mesh;
     private paddle_right!: Mesh;
     private platform: AbstractMesh[] = [];
-  
 
     // Network
     private connection: WebSocketLikeConnection;
@@ -31,12 +29,13 @@ export class OnlinePong3D implements GameEngine
     private playerId: string;
     private playerSide: 'left' | 'right';
 
-    // SERVER DIMENSIONS - The backend uses these fixed dimensions for physics
-    private readonly SERVER_WIDTH = 60;  // Match your FIELD_WIDTH
-    private readonly SERVER_LENGTH = 50; // Match your FIELD_LENGTH
+    // CRITICAL: Backend sends coordinates in SCREEN SPACE (like 2D canvas)
+    // We need to convert to CENTERED 3D SPACE
+    private readonly SERVER_WIDTH = 958;   // Backend uses canvas.width from 2D game
+    private readonly SERVER_HEIGHT = 538;  // Backend uses canvas.height from 2D game
     private readonly GROUND_HEIGHT = 45;
 
-    // Field dimensions (visual)
+    // 3D Field dimensions (centered coordinates)
     private readonly FIELD_WIDTH = 60;
     private readonly FIELD_LENGTH = 50;
 
@@ -62,7 +61,7 @@ export class OnlinePong3D implements GameEngine
     // Event callbacks
     private eventCallbacks: Array<(event: GameEvent) => void> = [];
 
-    // Keybinds (will change based on camera)
+    // Keybinds
     private keybinds = 
     {
         p1: { left: "a", right: "d" },
@@ -90,7 +89,8 @@ export class OnlinePong3D implements GameEngine
         this.scene.clearColor = new Color4(0, 0, 0, 1);
 
         console.log(`[Online3DEngine] Init: gameId=${gameId}, playerId=${playerId}, side=${playerSide}`);
-        console.log(this.animationFrameId);
+        console.log(`[Online3DEngine] Server dimensions: ${this.SERVER_WIDTH}x${this.SERVER_HEIGHT}`);
+        console.log(`[Online3DEngine] 3D Field dimensions: ${this.FIELD_WIDTH}x${this.FIELD_LENGTH}`);
 
         // Setup game
         this.setupInput();
@@ -99,7 +99,6 @@ export class OnlinePong3D implements GameEngine
         this.createEnvironment();
         this.createGameObjects();
         this.enableCollisions();
-        
 
         // Setup network and game loop
         this.setupNetworkListeners();
@@ -107,19 +106,17 @@ export class OnlinePong3D implements GameEngine
 
         // Handle window resize
         window.addEventListener("resize", () => this.engine.resize());
+        console.log(this.animationFrameId)
     }
-
 
     private setupNetworkListeners(): void 
     {
-        // Listen for state updates from server
         this.connection.on('game:state', (data: any) => {
             if (data && data.gameId === this.gameId) {
                 this.applyServerState(data.state);
             }
         });
 
-        // Listen for game events
         this.connection.on('game:event', (data: OGameEvent['payload']) => {
             if (data && data.gameId === this.gameId) {
                 this.handleServerEvent(data.event);
@@ -132,23 +129,37 @@ export class OnlinePong3D implements GameEngine
         if (!state) 
             return;
 
-        
-        const scaleX = this.FIELD_WIDTH / this.SERVER_WIDTH;
-        const scaleZ = this.FIELD_LENGTH / this.SERVER_LENGTH;
+    
 
-        
         if (state.ball) 
         {
-            this.ball.position.x = state.ball.x * scaleX;
-            this.ball.position.z = state.ball.y * scaleZ; 
+            // Normalize server coordinates (0-1 range), then scale to field size and center
+            const normalizedX = state.ball.x / this.SERVER_WIDTH;  // 0.0 to 1.0
+            const normalizedY = state.ball.y / this.SERVER_HEIGHT; // 0.0 to 1.0
             
+            // Convert to centered 3D coordinates
+            this.ball.position.x = (normalizedX * this.FIELD_WIDTH) - (this.FIELD_WIDTH / 2);
+            this.ball.position.z = (normalizedY * this.FIELD_LENGTH) - (this.FIELD_LENGTH / 2);
+            this.ball.position.y = this.GROUND_HEIGHT + 1;    
         }
 
-        
         if (state.paddle1) 
-            this.paddle_left.position.z = state.paddle1.y * scaleZ; // Server 'y' maps to client 'z'
+        {
+            // Convert paddle Y (screen space) to Z (3D depth)
+            const normalizedY = state.paddle1.y / this.SERVER_HEIGHT;
+            this.paddle_left.position.z = (normalizedY * this.FIELD_LENGTH) - (this.FIELD_LENGTH / 2);
+            this.paddle_left.position.y = this.GROUND_HEIGHT + 1;
+            this.paddle_left.position.x = -this.FIELD_WIDTH / 2 + 5;
+        }
+        
         if (state.paddle2) 
-            this.paddle_right.position.z = state.paddle2.y * scaleZ; // Server 'y' maps to client 'z'
+        {
+            // Convert paddle Y (screen space) to Z (3D depth)
+            const normalizedY = state.paddle2.y / this.SERVER_HEIGHT;
+            this.paddle_right.position.z = (normalizedY * this.FIELD_LENGTH) - (this.FIELD_LENGTH / 2);
+            this.paddle_right.position.y = this.GROUND_HEIGHT + 1;
+            this.paddle_right.position.x = this.FIELD_WIDTH / 2 - 5;
+        }
 
         // Update Scores
         if (state.scores) 
@@ -156,7 +167,6 @@ export class OnlinePong3D implements GameEngine
             const newP1 = state.scores.player1 || 0;
             const newP2 = state.scores.player2 || 0;
 
-            // Only emit if changed to avoid spam
             if (newP1 !== this.player1Score || newP2 !== this.player2Score) 
             {
                 this.player1Score = newP1;
@@ -207,48 +217,40 @@ export class OnlinePong3D implements GameEngine
     private sendInput(): void 
     {
         const now = Date.now();
-
-        
         let direction: 'up' | 'down' | 'none' = 'none';
 
         if (this.playerSide === 'left') 
         {
-            // Player 1 controls
             const leftKey = this.keys[this.keybinds.p1.left];
             const rightKey = this.keys[this.keybinds.p1.right];
 
-            // Don't move if both opposing keys are pressed
             if (leftKey && rightKey) 
                 direction = 'none';
             else if (leftKey) 
                 direction = 'up';
             else if (rightKey)
                 direction = 'down';
-        } else {
-            // Player 2 controls
+        } 
+        else 
+        {
             const leftKey = this.keys[this.keybinds.p2.left];
             const rightKey = this.keys[this.keybinds.p2.right];
 
-            // Don't move if both opposing keys are pressed
-            if (leftKey && rightKey) {
+            if (leftKey && rightKey) 
                 direction = 'none';
-            } else if (leftKey) {
+            else if (leftKey) 
                 direction = 'up';
-            } else if (rightKey) {
+            else if (rightKey) 
                 direction = 'down';
-            }
         }
 
-        
         const shouldSend = direction !== this.lastDirection || 
                           (now - this.lastInputSent >= this.inputThrottle) || 
                           direction !== 'none';
 
-        if (!shouldSend) {
+        if (!shouldSend) 
             return;
-        }
 
-        // Send input to server
         const sent = this.connection.send('game:input', {
             gameId: this.gameId,
             playerId: this.playerId,
@@ -257,47 +259,45 @@ export class OnlinePong3D implements GameEngine
             }
         });
 
-        if (sent) {
+        if (sent) 
+        {
             this.lastInputSent = now;
             this.lastDirection = direction;
         }
     }
 
     private setupInput(): void {
-        this.scene.onKeyboardObservable.add((kbInfo: any) => {
-            // Ignore keyboard repeat events
-            if ('repeat' in kbInfo.event && kbInfo.event.repeat) return;
+        this.scene.onKeyboardObservable.add((kbInfo) => {
+            if ('repeat' in kbInfo.event && kbInfo.event.repeat) 
+                return;
 
             const key = kbInfo.event.key.toLowerCase();
             this.keys[key] = kbInfo.type === KeyboardEventTypes.KEYDOWN;
 
-            // Handle camera switch
-            if (key === 'c' && kbInfo.type === KeyboardEventTypes.KEYDOWN && this.canChangeCamera) {
+            if (key === 'c' && kbInfo.type === KeyboardEventTypes.KEYDOWN && this.canChangeCamera) 
+            {
                 this.changeCamera();
                 this.canChangeCamera = false;
                 setTimeout(() => this.canChangeCamera = true, 500);
             }
         });
 
-        // Clear all keys when window loses focus
         window.addEventListener('blur', () => {
             this.keys = {};
         });
     }
 
-    
     start(): void 
     {
         if (this.paused) 
             this.paused = false;
 
-   
+        console.log('[Online3DEngine] Sending Ready Signal');
         this.connection.send('game:ready', {
             gameId: this.gameId,
             playerId: this.playerId
         });
 
-        // Start Babylon.js render loop
         this.engine.runRenderLoop(() => {
             if (!this.paused && !this.ended) {
                 this.scene.render();
@@ -315,7 +315,6 @@ export class OnlinePong3D implements GameEngine
     pause(): void 
     {
         this.paused = true;
-       
     }
 
     resume(): void {
@@ -325,32 +324,35 @@ export class OnlinePong3D implements GameEngine
     private setupGameLoop(): void {
         this.scene.onBeforeRenderObservable.add(() => {
             if (this.paused || this.ended) return;
-
-            // Send input to server
             this.sendInput();
         });
     }
 
-    
     private createCamera(): void {
-        // Side view camera
-        this.camera = new FreeCamera("camera", new Vector3(0, 0, 0), this.scene);
-        this.camera.position = new Vector3(-110, 90, 0);
-        this.camera.rotation = new Vector3(Math.PI / 11, Math.PI / 2, 0);
+        if (this.playerSide === 'left') {
+            this.camera = new FreeCamera("camera", new Vector3(0, 0, 0), this.scene);
+            this.camera.position = new Vector3(-110, 90, 0);
+            this.camera.rotation = new Vector3(Math.PI / 11, Math.PI / 2, 0);
+        } else {
+            this.camera = new FreeCamera("camera", new Vector3(0, 0, 0), this.scene);
+            this.camera.position = new Vector3(110, 90, 0);
+            this.camera.rotation = new Vector3(Math.PI / 11, -Math.PI / 2, 0);
+        }
 
-        // Top-down camera
         this.topCamera = new FreeCamera("topCamera", new Vector3(0, 102.50, 0), this.scene);
         this.topCamera.rotation = new Vector3(Math.PI / 2, 0, 0);
 
         this.scene.activeCamera = this.camera;
     }
 
-    private createLight(): void {
+    private createLight(): void 
+    {
         this.light = new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
         this.light.intensity = 0.2;
     }
 
-    private async createEnvironment(): Promise<void> {
+    private async createEnvironment(): Promise<void> 
+    {
         const ground = MeshBuilder.CreateGround(
             "ground",
             { width: this.FIELD_WIDTH, height: this.FIELD_LENGTH },
@@ -374,7 +376,8 @@ export class OnlinePong3D implements GameEngine
         this.platform[0].position = new Vector3(0, -70, 0);
     }
 
-    private createGameObjects(): void {
+    private createGameObjects(): void 
+    {
         // Create ball
         this.ball = MeshBuilder.CreateSphere("ball", { diameter: 2 }, this.scene);
         const ballMat = new StandardMaterial("ballMat", this.scene);
@@ -481,14 +484,12 @@ export class OnlinePong3D implements GameEngine
         }
     }
 
-
-  
     getState(): GameState {
         return {
             ball: {
                 x: this.ball.position.x,
-                y: this.ball.position.z, // Map z to y for consistency
-                dx: 0, // Velocities not used in online mode
+                y: this.ball.position.z,
+                dx: 0,
                 dy: 0,
             },
             paddle1: {
@@ -508,13 +509,11 @@ export class OnlinePong3D implements GameEngine
     destroy(): void {
         this.stop();
 
-        // Send leave message to server
         this.connection.send('game:leave', {
             gameId: this.gameId,
             playerId: this.playerId
         });
 
-        // Cleanup
         this.scene.dispose();
         this.engine.dispose();
         this.eventCallbacks = [];
@@ -524,3 +523,27 @@ export class OnlinePong3D implements GameEngine
         this.eventCallbacks.forEach(callback => callback(event));
     }
 }
+
+
+
+        // ========================================
+        // COORDINATE CONVERSION: Screen Space → 3D Centered Space
+        // ========================================
+        //
+        // SERVER (2D Canvas): Screen coordinates
+        //   Origin: Top-left (0, 0)
+        //   X range: 0 to SERVER_WIDTH (958)
+        //   Y range: 0 to SERVER_HEIGHT (538)
+        //   Center: (479, 269)
+        //
+        // CLIENT (3D World): Centered coordinates
+        //   Origin: Center of field (0, GROUND_HEIGHT, 0)
+        //   X range: -30 to +30 (FIELD_WIDTH = 60)
+        //   Z range: -25 to +25 (FIELD_LENGTH = 50)
+        //   Y: GROUND_HEIGHT (constant)
+        //
+        // CONVERSION FORMULA:
+        //   client_x = (server_x / SERVER_WIDTH) * FIELD_WIDTH - (FIELD_WIDTH / 2)
+        //   client_z = (server_y / SERVER_HEIGHT) * FIELD_LENGTH - (FIELD_LENGTH / 2)
+        //   client_y = GROUND_HEIGHT + 1
+        // ========================================
