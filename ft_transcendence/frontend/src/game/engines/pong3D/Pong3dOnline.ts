@@ -48,6 +48,7 @@ export class OnlinePong3D implements GameEngine
     private ended: boolean = false;
     private keys: Record<string, boolean> = {};
     private canChangeCamera: boolean = true;
+    private lastBallPosition: Vector3 = new Vector3(0, 0, 0);
 
     // Input throttling
     private lastInputSent: number = 0;
@@ -133,6 +134,9 @@ export class OnlinePong3D implements GameEngine
 
         if (state.ball) 
         {
+            // Store previous position before updating
+            this.lastBallPosition.copyFrom(this.ball.position);
+            
             // Normalize server coordinates (0-1 range), then scale to field size and center
             const normalizedX = state.ball.x / this.SERVER_WIDTH;  // 0.0 to 1.0
             const normalizedY = state.ball.y / this.SERVER_HEIGHT; // 0.0 to 1.0
@@ -227,9 +231,9 @@ export class OnlinePong3D implements GameEngine
             if (leftKey && rightKey) 
                 direction = 'none';
             else if (leftKey) 
-                direction = 'up';
-            else if (rightKey)
                 direction = 'down';
+            else if (rightKey)
+                direction = 'up';
         } 
         else 
         {
@@ -321,28 +325,57 @@ export class OnlinePong3D implements GameEngine
         this.paused = false;
     }
 
-    private setupGameLoop(): void {
+    private setupGameLoop(): void 
+    {
+        // Initialize last ball position
+        this.lastBallPosition.copyFrom(this.ball.position);
+        
         this.scene.onBeforeRenderObservable.add(() => {
             if (this.paused || this.ended) return;
+            
+            // Check collisions on client side for feedback
+            this.checkPaddleCollision();
+            
             this.sendInput();
         });
     }
 
-    private createCamera(): void {
-        if (this.playerSide === 'left') {
-            this.camera = new FreeCamera("camera", new Vector3(0, 0, 0), this.scene);
-            this.camera.position = new Vector3(-110, 90, 0);
+   private createCamera(): void 
+    {
+        console.log(`[Online3DEngine] Creating camera for player side: ${this.playerSide}`);
+        
+        if (this.playerSide === 'left') 
+        {
+            // Player 1 camera - looking from left side towards right
+            this.camera = new FreeCamera("camera", new Vector3(-110, 90, 0), this.scene);
             this.camera.rotation = new Vector3(Math.PI / 11, Math.PI / 2, 0);
-        } else {
-            this.camera = new FreeCamera("camera", new Vector3(0, 0, 0), this.scene);
-            this.camera.position = new Vector3(110, 90, 0);
-            this.camera.rotation = new Vector3(Math.PI / 11, -Math.PI / 2, 0);
+            console.log('[Online3DEngine] LEFT camera position:', this.camera.position);
+            console.log('[Online3DEngine] LEFT camera rotation:', this.camera.rotation);
         }
-
+        else 
+        {
+            // Player 2 camera - looking from right side towards left (FLIPPED)
+            this.camera = new FreeCamera("camera", new Vector3(110, 90, 0), this.scene);
+            this.camera.rotation = new Vector3(Math.PI / 11, -Math.PI / 2, 0);
+            console.log('[Online3DEngine] RIGHT camera position:', this.camera.position);
+            console.log('[Online3DEngine] RIGHT camera rotation:', this.camera.rotation);
+        }
+        
+        // Top camera (same for both players)
         this.topCamera = new FreeCamera("topCamera", new Vector3(0, 102.50, 0), this.scene);
         this.topCamera.rotation = new Vector3(Math.PI / 2, 0, 0);
-
+        
+        // Set active camera
         this.scene.activeCamera = this.camera;
+        
+        // CRITICAL: Attach camera to canvas to enable rendering
+        const canvas = this.engine.getRenderingCanvas();
+        if (canvas) {
+            this.camera.attachControl(canvas, true);
+            this.topCamera.attachControl(canvas, false);
+        }
+        
+        console.log('[Online3DEngine] Active camera set:', this.scene.activeCamera?.name);
     }
 
     private createLight(): void 
@@ -462,25 +495,101 @@ export class OnlinePong3D implements GameEngine
         return colors[colorName] || colors['default'];
     }
 
-    private enableCollisions(): void {
+    private enableCollisions(): void 
+    {
         this.scene.collisionsEnabled = true;
         this.ball.checkCollisions = true;
         this.paddle_left.checkCollisions = true;
         this.paddle_right.checkCollisions = true;
 
-        this.paddle_left.ellipsoid = new Vector3(0.75, 1, 5);
-        this.paddle_right.ellipsoid = new Vector3(0.75, 1, 5);
+        this.paddle_left.ellipsoid = new Vector3(1.5, 1, 6);
+        this.paddle_right.ellipsoid = new Vector3(1.5, 1, 6);
+        this.ball.ellipsoid = new Vector3(1.2, 1.2, 1.2);
     }
 
-    private changeCamera(): void {
-        if (this.scene.activeCamera === this.camera) {
+    private checkPaddleCollision(): void 
+    {
+        const ballRadius = 1;
+        const paddleHalfWidth = 0.75;
+        const paddleHalfDepth = 5;
+        const collisionMargin = 1.0; // Detection margin
+        
+        // Store last ball position for trajectory checking
+        const ballMovement = this.ball.position.subtract(this.lastBallPosition);
+        
+        // Left paddle collision
+        const leftPaddleX = -this.FIELD_WIDTH / 2 + 5;
+        const distToLeftPaddle = this.ball.position.x - leftPaddleX;
+        const wasRightOfPaddle = this.lastBallPosition.x > leftPaddleX;
+        
+        if (distToLeftPaddle > -ballRadius - paddleHalfWidth - collisionMargin &&
+            distToLeftPaddle < ballRadius + paddleHalfWidth + collisionMargin &&
+            Math.abs(this.ball.position.z - this.paddle_left.position.z) < paddleHalfDepth + ballRadius &&
+            Math.abs(this.ball.position.y - this.paddle_left.position.y) < 1 + ballRadius)
+        {
+            // Only trigger if ball is moving towards paddle (prevent multiple triggers)
+            if (ballMovement.x < 0 || wasRightOfPaddle) 
+            {
+                console.log('[Online3DEngine] Left paddle collision detected');
+                
+                // Push ball to safe position
+                this.ball.position.x = leftPaddleX + paddleHalfWidth + ballRadius + 0.1;
+                
+                this.emitEvent({ type: 'paddle-hit', paddle: 'left' });
+            }
+        }
+        
+        // Right paddle collision
+        const rightPaddleX = this.FIELD_WIDTH / 2 - 5;
+        const distToRightPaddle = rightPaddleX - this.ball.position.x;
+        const wasLeftOfPaddle = this.lastBallPosition.x < rightPaddleX;
+        
+        if (distToRightPaddle > -ballRadius - paddleHalfWidth - collisionMargin &&
+            distToRightPaddle < ballRadius + paddleHalfWidth + collisionMargin &&
+            Math.abs(this.ball.position.z - this.paddle_right.position.z) < paddleHalfDepth + ballRadius &&
+            Math.abs(this.ball.position.y - this.paddle_right.position.y) < 1 + ballRadius)
+        {
+            // Only trigger if ball is moving towards paddle (prevent multiple triggers)
+            if (ballMovement.x > 0 || wasLeftOfPaddle) 
+            {
+                console.log('[Online3DEngine] Right paddle collision detected');
+                
+                // Push ball to safe position
+                this.ball.position.x = rightPaddleX - paddleHalfWidth - ballRadius - 0.1;
+                
+                this.emitEvent({ type: 'paddle-hit', paddle: 'right' });
+            }
+        }
+        
+        // Update last position for next frame
+        this.lastBallPosition.copyFrom(this.ball.position);
+    }
+    private changeCamera(): void 
+    {
+        const canvas = this.engine.getRenderingCanvas();
+        if (!canvas) return;
+        
+        if (this.scene.activeCamera === this.camera) 
+        {
+            // Switch to top camera
+            this.camera.detachControl();
             this.scene.activeCamera = this.topCamera;
+            this.topCamera.attachControl(canvas, true);
+            
             this.keybinds.p1 = { left: "w", right: "s" };
             this.keybinds.p2 = { left: "arrowup", right: "arrowdown" };
-        } else {
+            console.log('[Online3DEngine] Switched to TOP camera');
+        } 
+        else 
+        {
+            // Switch to side camera
+            this.topCamera.detachControl();
             this.scene.activeCamera = this.camera;
+            this.camera.attachControl(canvas, true);
+            
             this.keybinds.p1 = { left: "a", right: "d" };
             this.keybinds.p2 = { left: "arrowleft", right: "arrowright" };
+            console.log('[Online3DEngine] Switched to SIDE camera');
         }
     }
 

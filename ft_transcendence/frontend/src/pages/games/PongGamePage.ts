@@ -52,7 +52,8 @@ export default class PongGamePage extends BaseComponent {
         
         console.log('[PongGamePage] 🎮 Mounting with gameId:', this.gameId, 'side:', this.side, 'userId:', userId);
 
-        if (!this.gameId || !userId) {
+        if (!this.gameId || !userId) 
+        {
             console.error('[PongGamePage] ❌ Missing game parameters');
             await Modal.alert('Error', 'Missing game parameters (gameId required)');
             navigateTo('/pong');

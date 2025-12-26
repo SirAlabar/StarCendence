@@ -301,6 +301,7 @@ export class OnlinePongEngine implements GameEngine
         this.clear();
         this.render();
         this.animationFrameId = requestAnimationFrame(this.update);
+        
     };
     
     private clear(): void 

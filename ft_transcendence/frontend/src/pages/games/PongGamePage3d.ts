@@ -119,6 +119,7 @@ export default class Pong3DGamePage extends BaseComponent
             });
 
             console.log('[Pong3DGamePage] Game initialized, starting game loop');
+            
             this.setupUIListeners();
             gameManager.startGame();
             

@@ -365,26 +365,32 @@ export default class LobbyPage extends BaseComponent
             console.log('[Lobby] Already processing game start');
             return;
         }
-
         this.isGameStarting = true;
         console.log('[Lobby] Game starting:', payload);
-
+        
+        // Determine side: host is left, non-host is right
+        let playerSide: 'left' | 'right' = 'left';
+        if (this.gameLobby) {
+            playerSide = this.gameLobby.isCurrentUserHost() ? 'left' : 'right';
+        }
+        
+        console.log('[Lobby] Player assigned to side:', playerSide);
+        
         // Wait a moment for dramatic effect
         await new Promise(resolve => setTimeout(resolve, 1000));
-
+        
         // Navigate to appropriate game page based on game type
         if (this.gameType === 'racer') {
             console.log('[Lobby] Starting racer game...');
-            // TODO: Navigate to racer game with gameId
             await Modal.alert('Info', 'Racer multiplayer not yet implemented');
             this.isGameStarting = false;
         } else {
-            // Navigate to pong game
-            console.log('[Lobby] Navigating to pong game:', payload.gameId);
+            // Navigate to pong game WITH SIDE PARAMETER
+            console.log('[Lobby] Navigating to pong game:', payload.gameId, 'side:', playerSide);
             if(this.gameType === 'pong2d')
-                navigateTo(`/pong-game?gameId=${payload.gameId}&lobbyId=${this.lobbyId}`);
+                navigateTo(`/pong-game?gameId=${payload.gameId}&side=${playerSide}&lobbyId=${this.lobbyId}`);
             else if(this.gameType === 'pong3d')
-                navigateTo(`/pong-game3d?gameId=${payload.gameId}&lobbyId=${this.lobbyId}`)
+                navigateTo(`/pong-game3d?gameId=${payload.gameId}&side=${playerSide}&lobbyId=${this.lobbyId}`);
         }
     }
 
