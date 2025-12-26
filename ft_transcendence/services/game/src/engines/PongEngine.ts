@@ -38,8 +38,9 @@ export class PongEngine {
   private player2Id: string;
   private maxScore: number;
   private events: PongEvent[] = [];
+  
 
-  constructor(player1Id: string, player2Id: string, maxScore: number = 5) {
+  constructor(player1Id: string, player2Id: string, maxScore: number = 1) {
     this.player1Id = player1Id;
     this.player2Id = player2Id;
     this.maxScore = maxScore;
@@ -48,7 +49,7 @@ export class PongEngine {
     this.state = {
       ball: this.resetBall(),
       paddle1: { y: PONG.CANVAS.HEIGHT / 2 - PONG.PADDLE.HEIGHT / 2 },
-      paddle2: { y: PONG.CANVAS.HEIGHT / 2 - PONG.PADDLE.HEIGHT / 2 },
+      paddle2: { y: PONG.CANVAS.HEIGHT / 2 - PONG.PADDLE.HEIGHT / 2 },  
       scores: { player1: 0, player2: 0 },
     };
   }
@@ -157,7 +158,7 @@ export class PongEngine {
   {
     const isPlayer1 = playerId === this.player1Id;
     const paddle = isPlayer1 ? this.state.paddle1 : this.state.paddle2;
-    console.log("Chegou aqui");
+    
     if (input.direction === 'up') {
       paddle.y = Math.max(0, paddle.y - PONG.PADDLE.SPEED);
     } else if (input.direction === 'down') {

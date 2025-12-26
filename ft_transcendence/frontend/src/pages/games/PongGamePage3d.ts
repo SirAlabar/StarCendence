@@ -69,7 +69,6 @@ export default class Pong3DGamePage extends BaseComponent
             try 
             {
                 await webSocketService.connect();
-               
             } 
             catch (error) 
             {
