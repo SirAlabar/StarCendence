@@ -38,6 +38,7 @@ export class PongEngine {
   private player2Id: string;
   private maxScore: number;
   private events: PongEvent[] = [];
+  private resetCooldown: number = 0;
   
 
   constructor(player1Id: string, player2Id: string, maxScore: number = 1) {
@@ -68,6 +69,12 @@ export class PongEngine {
 
   update(): PongEvent[] {
     this.events = [];
+
+    if (this.resetCooldown > 0) {
+      this.resetCooldown--;
+      return this.events; // Return empty events, game is "paused"
+    }
+
 
     // Update ball position (constants already calibrated for 60 FPS)
     this.state.ball.x += this.state.ball.dx;
@@ -137,6 +144,7 @@ export class PongEngine {
       this.events.push({ type: 'goal', data: { scorer: 2, score: this.state.scores.player2 } });
       this.state.ball = this.resetBall();
       
+      
       if (this.state.scores.player2 >= this.maxScore) {
         this.events.push({ type: 'game-end', data: { winner: this.player2Id } });
       }
@@ -145,6 +153,7 @@ export class PongEngine {
       this.state.scores.player1++;
       this.events.push({ type: 'goal', data: { scorer: 1, score: this.state.scores.player1 } });
       this.state.ball = this.resetBall();
+      this.resetCooldown = 30;
       
       if (this.state.scores.player1 >= this.maxScore) {
         this.events.push({ type: 'game-end', data: { winner: this.player1Id } });
