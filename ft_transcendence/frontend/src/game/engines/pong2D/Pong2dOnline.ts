@@ -51,14 +51,7 @@ export class OnlinePongEngine implements GameEngine
     // Events
     private eventCallbacks: Array<(event: GameEvent) => void> = [];
     
-    constructor(
-        canvas: HTMLCanvasElement, 
-        config: GameConfig, 
-        connection: any, 
-        gameId: string, 
-        playerId: string, 
-        playerSide: 'left' | 'right'
-    ) 
+    constructor(canvas: HTMLCanvasElement, config: GameConfig, connection: any, gameId: string, playerId: string, playerSide: 'left' | 'right') 
     {
         this.canvas = canvas;
         this.connection = connection;
@@ -76,12 +69,6 @@ export class OnlinePongEngine implements GameEngine
         this.paddleLeft = new paddle("left", canvas, config.paddlecolor1 || 'default');
         this.paddleRight = new paddle("right", canvas, config.paddlecolor2 || 'default');
         
-        console.log(`[OnlineEngine] Init: gameId=${gameId}, playerId=${playerId}, side=${playerSide}`);
-        console.log(`[OnlineEngine] Canvas dimensions:`, canvas.width, 'x', canvas.height);
-        console.log(`[OnlineEngine] Initial ball:`, this.ball.x, this.ball.y, 'r:', this.ball.radius);
-        console.log(`[OnlineEngine] Initial paddle left:`, this.paddleLeft.x, this.paddleLeft.y);
-        console.log(`[OnlineEngine] Initial paddle right:`, this.paddleRight.x, this.paddleRight.y);
-        
         // Setup
         this.setupNetworkListeners();       
         this.setupInputHandlers();
@@ -89,12 +76,11 @@ export class OnlinePongEngine implements GameEngine
     
     // NETWORK SETUP
     private setupNetworkListeners(): void {
-        // Listen for state updates from server
+       
         this.connection.on('game:state', (data: any) => 
         {
-            // Safety check: make sure this update is for our game
+            
             if (data && data.gameId === this.gameId) {
-                //console.log('Recv State:', data); // Debug log
                 this.applyServerState(data.state);
             }
         });
@@ -252,10 +238,7 @@ export class OnlinePongEngine implements GameEngine
     {
         if (this.paused) 
             this.paused = false;
-        
-        console.log('[OnlineEngine] Sending Ready Signal');
 
-        // 4. FIXED SEND: Split into Type and Payload
         this.connection.send('game:ready', {
             gameId: this.gameId,
             playerId: this.playerId

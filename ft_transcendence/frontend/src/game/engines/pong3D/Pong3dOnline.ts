@@ -190,6 +190,13 @@ export class OnlinePong3D implements GameEngine
                 this.emitEvent({ type: 'paddle-hit', paddle: event.data?.paddle || 'left' });
                 break;
             case 'wall-hit':
+                const wallBoundary = this.FIELD_LENGTH / 2;
+                const hitZ = this.ball.position.z > 0 ? wallBoundary : -wallBoundary;
+                this.flashWallHit(new Vector3(
+                    this.ball.position.x, 
+                    this.GROUND_HEIGHT + 2, 
+                    hitZ
+                ));
                 this.emitEvent({ type: 'wall-hit' });
                 break;
             case 'game-end':
@@ -197,6 +204,33 @@ export class OnlinePong3D implements GameEngine
                 this.emitEvent({ type: 'game-ended', winner: event.data?.winner });
                 break;
         }
+    }
+
+    private flashWallHit(position: Vector3): void 
+    {
+        const size = 5; // Slightly larger for better visibility
+        const flash = MeshBuilder.CreatePlane("flash", { size }, this.scene);
+
+        const mat = new StandardMaterial("flashMat", this.scene);
+        mat.diffuseColor = new Color3(1, 0, 0);
+        mat.emissiveColor = new Color3(1, 0, 0);
+        mat.alpha = 0.6;
+        mat.backFaceCulling = false;
+        flash.material = mat;
+        
+        flash.position.copyFrom(position);
+        flash.position.y += 1; 
+        
+        // Animation
+        let alpha = 0.8;
+        const interval = setInterval(() => {
+            alpha -= 0.05;
+            mat.alpha = alpha;
+            if (alpha <= 0) {
+                flash.dispose();
+                clearInterval(interval);
+            }
+        }, 30);
     }
 
     // ==========================================
@@ -304,15 +338,20 @@ export class OnlinePong3D implements GameEngine
 
    private async createEnvironment(): Promise<void> 
     {
+        // 1. Invisible Ground (Physics)
         const ground = MeshBuilder.CreateGround(
             "ground", 
             { width: this.FIELD_WIDTH, height: this.FIELD_LENGTH }, 
             this.scene
         );
         ground.position.y = this.GROUND_HEIGHT;
-        ground.visibility = 0; // Invisible
+        ground.visibility = 0; 
         ground.checkCollisions = true;
+
+        // 2. Skybox
         Skybox.createFromGLB(this.scene, "assets/images/skybox2.glb");
+
+        // 3. Floating Platform Model
         try {
             this.platform = await loadModel(
                 this.scene, 
@@ -328,10 +367,38 @@ export class OnlinePong3D implements GameEngine
                 this.platform.forEach(mesh => mesh.isPickable = false);
             }
         } 
-        catch (error) 
-        { 
-            console.error("FAILED to load Game Platform:", error); 
-        }
+        catch (error) { console.error("FAILED to load Game Platform:", error); }
+
+        
+        // Define the glow material (Cyberpunk Cyan/Blue)
+        const borderMat = new StandardMaterial("borderMat", this.scene);
+        borderMat.diffuseColor = new Color3(0, 0, 0);
+        borderMat.emissiveColor = new Color3(0, 0.8, 1); // Cyan Glow
+        borderMat.alpha = 0.5; // Slight transparency
+
+        const lineThickness = 0.5; 
+        
+        // Top Boundary Line
+        const topLine = MeshBuilder.CreateBox("topLine", { 
+            width: this.FIELD_WIDTH, 
+            height: 0.1, // Very thin vertically
+            depth: lineThickness 
+        }, this.scene);
+        
+        // Position exactly at the positive Z limit
+        topLine.position = new Vector3(0, this.GROUND_HEIGHT + 0.05, this.FIELD_LENGTH / 2);
+        topLine.material = borderMat;
+
+        // Bottom Boundary Line
+        const bottomLine = MeshBuilder.CreateBox("bottomLine", { 
+            width: this.FIELD_WIDTH, 
+            height: 0.1, 
+            depth: lineThickness 
+        }, this.scene);
+
+        // Position exactly at the negative Z limit
+        bottomLine.position = new Vector3(0, this.GROUND_HEIGHT + 0.05, -this.FIELD_LENGTH / 2);
+        bottomLine.material = borderMat;
     }
 
     private createGameObjects(): void 
