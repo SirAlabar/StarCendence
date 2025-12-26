@@ -80,18 +80,15 @@ export class OnlinePongEngine implements GameEngine
         this.connection.on('game:state', (data: any) => 
         {
             
-            if (data && data.gameId === this.gameId) {
+            if (data && data.gameId === this.gameId) 
                 this.applyServerState(data.state);
-            }
         });
         
         // Listen for game events
         this.connection.on('game:event', (data: OGameEvent['payload']) => 
         {
-            if (data && data.gameId === this.gameId) {
-                //console.log('Received game event', data.event);
+            if (data && data.gameId === this.gameId)
                 this.handleServerEvent(data.event);
-            }
         });
     }
     
@@ -99,38 +96,34 @@ export class OnlinePongEngine implements GameEngine
     {
         if (!state) return;
 
-        // Calculate scale factors (server coords -> client canvas coords)
+        // Calculate scale factors 
         const scaleX = this.canvas.width / this.SERVER_WIDTH;
         const scaleY = this.canvas.height / this.SERVER_HEIGHT;
         
-        // Scale ball position from server coordinates to canvas coordinates
+        // Scale ball position 
         this.ball.x = state.ball.x * scaleX;
         this.ball.y = state.ball.y * scaleY;
         
-        // Scale velocities (not used for rendering, but kept for consistency)
+        // Scale velocities 
         this.ball.dx = state.ball.dx * scaleX;
         this.ball.dy = state.ball.dy * scaleY;
         
-        // Scale paddle positions - server sends Y coordinate of paddle top
-        if (state.paddle1) {
+        // Scale paddle positions -
+        if (state.paddle1) 
             this.paddleLeft.y = state.paddle1.y * scaleY;
-        }
-        if (state.paddle2) {
+        if (state.paddle2) 
             this.paddleRight.y = state.paddle2.y * scaleY;
-        }
         
-        // Update Scores (server sends "scores" object with player1/player2 properties)
-        if (state.scores) {
-             const newP1 = state.scores.player1 || 0;
-             const newP2 = state.scores.player2 || 0;
-             
-             // Only emit if changed to avoid spam
-             if (newP1 !== this.player1Score || newP2 !== this.player2Score) {
+        
+        // Update Scores 
+        if (state.scores) 
+        {
+            const newP1 = state.scores.player1 || 0;
+            const newP2 = state.scores.player2 || 0;
+            if (newP1 !== this.player1Score || newP2 !== this.player2Score) 
+            {
                  this.player1Score = newP1;
                  this.player2Score = newP2;
-                 
-                 console.log('[OnlineEngine] Score updated:', newP1, '-', newP2);
-                 
                  this.emitEvent({
                     type: 'score-updated',
                     player1Score: this.player1Score,
@@ -183,42 +176,28 @@ export class OnlinePongEngine implements GameEngine
         if (this.playerSide === 'left') 
         {
             // If both keys pressed, do nothing (conflicting input)
-            if (this.keys['w'] && this.keys['s']) {
+            if (this.keys['w'] && this.keys['s']) 
                 direction = 'none';
-            }
             else if (this.keys['w'])
-            {
                 direction = 'up';
-            }     
             else if (this.keys['s'])
-            {
                 direction = 'down';
-            } 
         } 
         else     
         {
             // If both keys pressed, do nothing (conflicting input)
-            if (this.keys['arrowup'] && this.keys['arrowdown']) {
+            if (this.keys['arrowup'] && this.keys['arrowdown']) 
                 direction = 'none';
-            }
             else if (this.keys['arrowup'])
-            {
                 direction = 'up';
-            } 
             else if (this.keys['arrowdown']) 
-            {
                 direction = 'down';
-            }
         }
-        
-        // Send if direction changed OR enough time passed (for continuous input)
         const shouldSend = direction !== this.lastDirection || (now - this.lastInputSent >= this.inputThrottle) || direction != 'none';
         
-        if (!shouldSend) {
+        if (!shouldSend)
             return;
-        }
-        
-        // 3. FIXED SEND: Split into Type and Payload
+
         const sent = this.connection.send('game:input', {
             gameId: this.gameId,
             playerId: this.playerId,
@@ -227,7 +206,8 @@ export class OnlinePongEngine implements GameEngine
             }
         });
         
-        if (sent) {
+        if (sent) 
+        {
             this.lastInputSent = now;
             this.lastDirection = direction;
         }
@@ -259,8 +239,6 @@ export class OnlinePongEngine implements GameEngine
     
     pause(): void 
     {
-        // Online games usually can't be paused by one client, 
-        // but we can stop rendering locally or show a menu.
         this.paused = true;
         this.emitEvent({ type: 'game-paused' });
     }
@@ -289,7 +267,6 @@ export class OnlinePongEngine implements GameEngine
     
     private clear(): void 
     {
-        // Fill with dark background instead of just clearing
         this.ctx.fillStyle = '#0f0f1e';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
@@ -376,7 +353,6 @@ export class OnlinePongEngine implements GameEngine
     
     private blurHandler = (): void => 
     {
-        // Clear all keys when window loses focus to prevent stuck keys
         this.keys = {};
     };
     

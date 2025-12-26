@@ -125,14 +125,11 @@ export class OnlinePong3D implements GameEngine
         const scaleX = this.FIELD_WIDTH / this.SERVER_WIDTH;
         const scaleZ = this.FIELD_LENGTH / this.SERVER_HEIGHT;
 
-        if (state.ball) {
-            // 1. Calculate Target Position
+        if (state.ball) 
+        { 
             const targetX = (state.ball.x * scaleX) - (this.FIELD_WIDTH / 2);
             const targetZ = (state.ball.y * scaleZ) - (this.FIELD_LENGTH / 2);
-            
-            
             const dist = Math.abs(this.ball.position.x - targetX);
-            
             if (dist > 10) 
             {
                 this.ball.position.x = targetX;
@@ -140,7 +137,6 @@ export class OnlinePong3D implements GameEngine
             } 
             else 
             {
-                // Normal Lerp (Smoothing)
                 this.ball.position.x = this.lerp(this.ball.position.x, targetX, 0.3);
                 this.ball.position.z = this.lerp(this.ball.position.z, targetZ, 0.3);
             }
@@ -177,12 +173,15 @@ export class OnlinePong3D implements GameEngine
         }
     }
 
-    private lerp(start: number, end: number, amt: number): number {
+    private lerp(start: number, end: number, amt: number): number 
+    {
         return (1 - amt) * start + amt * end;
     }
 
-    private handleServerEvent(event: OGameEvent['payload']['event']): void {
-        switch (event.type) {
+    private handleServerEvent(event: OGameEvent['payload']['event']): void 
+    {
+        switch (event.type) 
+        {
             case 'goal':
                 this.emitEvent({ type: 'goal-scored', scorer: event.data?.scorer || 'player1' });
                 break;
@@ -256,14 +255,14 @@ export class OnlinePong3D implements GameEngine
         {
             const pressRight = this.keys[this.keybinds.p2.right]; 
             const pressLeft = this.keys[this.keybinds.p2.left]; 
-            
             if (pressRight && !pressLeft) 
                 direction = 'down'; 
             else if (pressLeft && !pressRight) 
                 direction = 'up';   
         }
 
-        if (direction !== this.lastDirection || direction !== 'none') {
+        if (direction !== this.lastDirection || direction !== 'none') 
+        {
             this.connection.send('game:input', {
                 gameId: this.gameId,
                 playerId: this.playerId,
@@ -290,18 +289,20 @@ export class OnlinePong3D implements GameEngine
             }
         });
 
-        // Clear keys on blur to prevent stuck paddles
         window.addEventListener('blur', () => { this.keys = {}; });
     }
 
-    start(): void {
+    start(): void 
+    {
         this.paused = false;
         this.connection.send('game:ready', { gameId: this.gameId, playerId: this.playerId });
         
-        this.engine.runRenderLoop(() => {
-            if (!this.paused && !this.ended) {
+        this.engine.runRenderLoop(() => 
+        {
+            if (!this.paused && !this.ended) 
+            {
                 this.scene.render();
-                this.sendInput(); // Input checked every frame
+                this.sendInput(); 
             }
         });
         
@@ -319,8 +320,8 @@ export class OnlinePong3D implements GameEngine
     // Babylon Setup
     private createCamera(): void 
     {
-        const xPos = this.playerSide === 'left' ? -110 : 110;
-        const yRot = this.playerSide === 'left' ? Math.PI / 2 : -Math.PI / 2;
+        const xPos = this.playerSide === 'left' ? -110 : 110;       //Player1 Camera
+        const yRot = this.playerSide === 'left' ? Math.PI / 2 : -Math.PI / 2; //Player2 Camera
         
         this.camera = new FreeCamera("camera", new Vector3(xPos, 90, 0), this.scene);
         this.camera.rotation = new Vector3(Math.PI / 11, yRot, 0);
@@ -370,7 +371,7 @@ export class OnlinePong3D implements GameEngine
         catch (error) { console.error("FAILED to load Game Platform:", error); }
 
         
-        // Define the glow material (Cyberpunk Cyan/Blue)
+        // Define the glow material
         const borderMat = new StandardMaterial("borderMat", this.scene);
         borderMat.diffuseColor = new Color3(0, 0, 0);
         borderMat.emissiveColor = new Color3(0, 0.8, 1); // Cyan Glow
@@ -419,7 +420,8 @@ export class OnlinePong3D implements GameEngine
         this.paddle_right = this.createPaddle("right_paddle", this.FIELD_WIDTH / 2 - 5, p2Color);
     }
 
-    private createPaddle(name: string, xPos: number, color: {diffuse: Color3, emissive: Color3}): Mesh {
+    private createPaddle(name: string, xPos: number, color: {diffuse: Color3, emissive: Color3}): Mesh 
+    {
         const mat = new StandardMaterial(name + "Mat", this.scene);
         mat.diffuseColor = color.diffuse;
         mat.emissiveColor = color.emissive;
@@ -430,7 +432,8 @@ export class OnlinePong3D implements GameEngine
         return mesh;
     }
 
-    private getPaddleColor(colorName: string) {
+    private getPaddleColor(colorName: string) 
+    {
         const colors: Record<string, any> = {
             'default': { diffuse: new Color3(0.9, 0.1, 0.1), emissive: new Color3(0.3, 0.05, 0.05) },
             'neon': { diffuse: new Color3(0, 1, 1), emissive: new Color3(0, 0.5, 0.5) },
