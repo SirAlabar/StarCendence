@@ -1132,14 +1132,11 @@ export class GameLobby extends BaseComponent
     {
         const slot = this.playerSlots[slotId];
         if (!slot || !slot.playerName) return;
-        
         // Only allow current user to change their own customization
         if (!this.currentUser || slot.userId !== this.currentUser.id) {
             return;
         }
-        
         this.currentCustomizingSlot = slotId;
-        
         if (this.config.gameType === 'podracer') 
         {
             this.showPodSelectionModal();
@@ -1148,6 +1145,28 @@ export class GameLobby extends BaseComponent
         {
             this.showPaddleModal();
         }
+    }
+
+    /**
+     * Show the podracer selection modal for the current slot
+     */
+    private showPodSelectionModal(): void {
+        const modal = document.getElementById('podSelectionModal');
+        if (!modal) return;
+        // Clear previous content
+        const content = document.getElementById('podSelectionContent');
+        if (content) {
+            content.innerHTML = '';
+        }
+        // Dynamically import PodSelection and render it
+        import('../../pages/games/PodSelectionPage').then(({ PodSelection }) => {
+            const podSelection = new PodSelection((event) => this.onPodSelected(event));
+            if (content) {
+                content.innerHTML = podSelection.render();
+                podSelection.mount();
+            }
+            modal.style.display = 'flex';
+        });
     }
     
     private showPaddleModal(): void 
@@ -1171,13 +1190,6 @@ export class GameLobby extends BaseComponent
     
     private selectPaddle(_paddleIndex: number): void 
     {
-<<<<<<< HEAD
-=======
-        this.currentCustomizingSlot = null;
-    }
-
-    private selectPaddle(_paddleIndex: number): void 
-    {
         if (this.currentCustomizingSlot === null) 
         {
             return;
@@ -1199,23 +1211,9 @@ export class GameLobby extends BaseComponent
             slot.paddleName = option.name;
             slot.paddleGradient = option.color;
         }
-
         this.closePaddleModal();
     }
-        if (!modal || !content) 
-        {
-            return;
-        }
-        
-        this.podSelection = new PodSelection((event: PodSelectionEvent) => 
-        {
-            this.onPodSelected(event);
-        });
-        
-        content.innerHTML = this.podSelection.render();
-        modal.style.display = 'flex';
-        this.podSelection.mount();
-    }
+    
     
     private onPodSelected(event: PodSelectionEvent): void 
     {

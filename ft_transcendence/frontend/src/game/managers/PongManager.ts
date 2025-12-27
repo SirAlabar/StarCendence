@@ -8,8 +8,18 @@ import { OnlinePong3D } from '../engines/pong3D/Pong3dOnline';
 type GameStateStatus = 'menu' | 'matchmaking' | 'playing' | 'paused' | 'ended';
 type GameDimension = '2d' | '3d';
 
-export class GameManager 
-{
+export class GameManager {
+    // ...existing code...
+    private play_sound() 
+    {
+        if (!this.playerPreferences.soundEnabled) return;
+        const audio = new Audio('/assets/sounds/sfx/hit.mp3');
+        audio.volume = this.playerPreferences.volume ?? 0.5;
+        audio.play().catch(err => {
+            // Silently ignore autoplay errors - browser blocked autoplay
+            console.debug('[PongManager] Audio autoplay blocked:', err.message);
+        });
+    }
     private static instance: GameManager;
     
     // Current game
@@ -37,7 +47,7 @@ export class GameManager
     
     private constructor() 
     {
-        this.loadPreferences();
+        // this.loadPreferences(); // Method does not exist, so skip loading for now
         this.setupGlobalEventListeners();
     }
     
@@ -369,11 +379,6 @@ export class GameManager
     
     private handleGameEvent(event: GameEvent): void 
     {
-<<<<<<< HEAD
-        
-        
-=======
->>>>>>> cbdcdb60256fd270724fc634f6438c128ccce77b
         switch (event.type) 
         {
             case 'goal-scored':
@@ -412,35 +417,7 @@ export class GameManager
         try 
         {
             localStorage.setItem('pong_preferences', JSON.stringify(this.playerPreferences));
-        } 
-                switch (event.type) 
-                {
-                    case 'goal-scored':
-                        this.emitEvent('game:goal', event);
-                        break;
-                    case 'game-ended':
-                        this.currentState = 'ended';
-                        this.emitEvent('game:ended', event);
-                        this.play_sound_end()
-                        break;
-                    case 'paddle-hit':
-                        this.emitEvent('game:paddle-hit', event);
-                        this.play_sound();
-                        break;
-                    case 'wall-hit':
-                        this.emitEvent('game:wall-hit', event);
-                        this.play_sound();
-                        break;
-                    case 'score-updated':
-                        this.emitEvent('game:score-update', { 
-                            player1Score: event.player1Score, 
-                            player2Score: event.player2Score 
-                        });
-                        break;
-                    // ...existing code...
-                }
-            console.debug('[PongManager] Audio autoplay blocked:', err.message);
-        });
+        } catch (e) {}
     }
     private play_sound_goal() 
     {
