@@ -1011,7 +1011,17 @@ export class GameLobby extends BaseComponent
             slot.avatarUrl = friend.avatarUrl;
             slot.customization = this.config.gameType === 'podracer' ? AVAILABLE_PODS[this.currentCustomizingSlot % AVAILABLE_PODS.length] : null;
         }
-        
+
+        // Send invite event to backend
+        const lobbyId = this.getLobbyIdFromUrl();
+        if (lobbyId) {
+            webSocketService.send('lobby:invite', {
+                gameType: this.config.gameType,
+                gameId: lobbyId,
+                invitedUserId: userId,
+            });
+        }
+
         this.closeInviteModal();
         this.refresh();
     }

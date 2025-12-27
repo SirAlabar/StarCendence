@@ -111,6 +111,9 @@ export class GameEventSubscriber {
         case 'lobby:chat':
           await this.handleLobbyChat(event);
           break;
+        case 'lobby:invite':
+          await this.handleLobbyInvite(event);
+          break;
 
         case 'game:input':
           await this.handleGameInput(event);
@@ -194,6 +197,24 @@ export class GameEventSubscriber {
     }
   }
 
+
+  private async handleLobbyInvite(event: GameEventMessage): Promise<void>
+  {
+    const { gameType, gameId, invitedUserId } = event.payload || {};
+    if (!gameType || !gameId || !invitedUserId) {
+      console.error('[GameEventSubscriber] Invalid lobby:invite event - missing gameType, gameId, or invitedUserId');
+      return;
+    }
+
+    // Broadcast lobby:invite to the invited user
+    await this.broadcastToUser(invitedUserId, {
+      type: 'lobby:invite',
+      payload: {
+        gameType,
+        gameId,
+      },
+    });
+  }
   private async handleLobbyJoin(event: GameEventMessage): Promise<void> {
     const { lobbyId } = event.payload;
     const { userId, username } = event;

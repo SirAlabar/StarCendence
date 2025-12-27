@@ -2,6 +2,12 @@
 import ChatService from './ChatService';
 import { webSocketService } from '../websocket/WebSocketService';
 
+// Import or define your modal service here
+// Example: import ModalService from '../../components/common/ModalService';
+// If you don't have a modal service, you can implement a simple one or use a global event/callback
+
+
+
 class ChatNotificationService 
 {
     private unreadMessages: Map<string, number> = new Map();
@@ -9,6 +15,7 @@ class ChatNotificationService
     private friendUnreadCallbacks: Array<(friendId: string, count: number) => void> = [];
     private isInitialized: boolean = false;
     private wsMessageHandler: ((data: any) => void) | null = null;
+    private wsLobbyInviteHandler: ((data: any) => void) | null = null;
     
     // Initialize and load unread counts from backend
     async initialize(): Promise<void> 
@@ -27,6 +34,9 @@ class ChatNotificationService
             
             // Setup WebSocket listener for real-time messages
             this.setupWebSocketListener();
+
+            // Setup WebSocket listener for lobby invites
+            this.setupLobbyInviteListener();
             
             // Notify all callbacks with initial data
             this.notifyTotalUnreadCallbacks();
@@ -55,6 +65,59 @@ class ChatNotificationService
         };
         
         webSocketService.on('chat:message', this.wsMessageHandler);
+    }
+
+    // Setup WebSocket listener for lobby invites
+    private setupLobbyInviteListener(): void {
+        this.wsLobbyInviteHandler = (data: any) => {
+            console.log('[ChatNotificationService] Received lobby:invite', data);
+            this.handleLobbyInvite(data);
+        };
+        webSocketService.on('lobby:invite', this.wsLobbyInviteHandler);
+    }
+
+    // Handle incoming lobby invite
+    private handleLobbyInvite(data: any): void {
+        try {
+            // Accepts any lobby invite with gameType and gameId
+            const { gameType, gameId, fromUsername, fromUserId, fromAvatarUrl } = data;
+            if (gameType && gameId) {
+                // Use notification system
+                const notification = {
+                    id: `invite_${fromUserId || 'unknown'}_${Date.now()}`,
+                    title: 'Game Invitation',
+                    message: `${fromUsername || 'Someone'} invited you to play ${gameType}`,
+                    type: 'invitation',
+                    avatarUrl: fromAvatarUrl,
+                    userId: fromUserId,
+                    username: fromUsername,
+                    actions: [
+                        {
+                            label: 'Join',
+                            onClick: () => {
+                                window.location.href = `/lobby?game=${encodeURIComponent(gameType)}&id=${encodeURIComponent(gameId)}`;
+                            }
+                        },
+                        {
+                            label: 'Decline',
+                            onClick: () => {}
+                        }
+                    ]
+                };
+                // Try global Notifications instance, fallback to alert
+                // @ts-ignore
+                if (typeof Notifications !== 'undefined' && typeof Notifications.show === 'function') {
+                    // @ts-ignore
+                    Notifications.show(notification);
+                } else {
+                    if (window.confirm(`${notification.message}\nJoin?`)) {
+                        window.location.href = `/lobby?game=${encodeURIComponent(gameType)}&id=${encodeURIComponent(gameId)}`;
+                    }
+                }
+            }
+        } catch (error) {
+            // Silent fail
+        }
     }
     
     // Handle incoming WebSocket message
@@ -188,6 +251,12 @@ class ChatNotificationService
         {
             webSocketService.off('chat:message', this.wsMessageHandler);
             this.wsMessageHandler = null;
+        }
+
+        // Remove lobby invite listener
+        if (this.wsLobbyInviteHandler) {
+            webSocketService.off('lobby:invite', this.wsLobbyInviteHandler);
+            this.wsLobbyInviteHandler = null;
         }
         
         this.unreadMessages.clear();
