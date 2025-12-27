@@ -50,7 +50,6 @@ export class LocalPongEngine
             throw Error("Failed to get 2d Context");
         this.ctx = ctx;
 
-        console.log('[Pong2D] Canvas dimensions:', canvas.width, 'x', canvas.height);
 
         //start game objects
         this.ball = new Ball(canvas.width/2, canvas.height/2, 10);
@@ -62,10 +61,6 @@ export class LocalPongEngine
         const paddle2color = config.paddlecolor2 || 'default';
         this.paddleleft = new paddle("left", canvas, paddle1color);
         this.paddleright = new paddle("right", canvas, paddle2color);
-
-        console.log('[Pong2D] Ball position:', this.ball.x, this.ball.y, 'radius:', this.ball.radius);
-        console.log('[Pong2D] Left paddle:', this.paddleleft.x, this.paddleleft.y, this.paddleleft.width, 'x', this.paddleleft.height);
-        console.log('[Pong2D] Right paddle:', this.paddleright.x, this.paddleright.y, this.paddleright.width, 'x', this.paddleright.height);
 
         this.player1 = new player();
         this.player1.score = 0;

@@ -533,8 +533,7 @@ export class Pong3D implements GameEngine
         } 
         else if (this.player2Score >= this.WINNING_SCORE) 
         {
-            const winner = this.config.mode === 'ai' ? 'AI' : 'Player 2';
-            console.log(`${winner} wins!`);
+            // winner is not used, logic is handled by handleGameEnd
             this.handleGameEnd('player2');
         }
     }

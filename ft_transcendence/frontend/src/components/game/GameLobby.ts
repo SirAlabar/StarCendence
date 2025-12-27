@@ -99,10 +99,7 @@ export class GameLobby extends BaseComponent
                     status: f.status
                 }));
             
-            console.log('[GameLobby] Loaded friends:', {
-                total: this.allFriends.length,
-                online: this.friends.length
-            });
+
         }
         
         // OPTIONAL: Also initialize OnlineFriendsService for real-time updates
@@ -113,7 +110,6 @@ export class GameLobby extends BaseComponent
             // Set up listener for real-time status changes
             OnlineFriendsService.onStatusChange((updatedFriends) => 
             {
-                console.log('[GameLobby] Friend status update from WebSocket:', updatedFriends);
                 
                 // Update friends list with real-time data
                 updatedFriends.forEach(updatedFriend => {
@@ -578,17 +574,11 @@ export class GameLobby extends BaseComponent
 
     public isCurrentUserHost(): boolean {
         if (!this.currentUser) {
-            console.log('[GameLobby] isCurrentUserHost: No currentUser');
             return false;
         }
         const hostSlot = this.playerSlots.find(s => s.isHost);
         const result = hostSlot?.userId === this.currentUser.id;
-        console.log('[GameLobby] isCurrentUserHost:', {
-            currentUserId: this.currentUser.id,
-            hostSlotUserId: hostSlot?.userId,
-            hostSlotName: hostSlot?.playerName,
-            result
-        });
+
         return result;
     }
 
@@ -663,7 +653,6 @@ export class GameLobby extends BaseComponent
         const isHost = this.isCurrentUserHost();
         const canStart = this.canStartGame();
         
-        console.log('[GameLobby] updateStartButtonArea:', { isHost, canStart });
         
         const newHTML = isHost ? `
             <button id="startGameBtn" class="mb-6 py-3 px-12 rounded-xl text-xl font-bold transition-all self-center flex-shrink-0 ${canStart ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-2xl shadow-cyan-500/50 border-2 border-cyan-500' : 'bg-gray-700 text-gray-500 cursor-not-allowed border-2 border-gray-600'}" ${!canStart ? 'disabled' : ''}>
@@ -1269,18 +1258,15 @@ export class GameLobby extends BaseComponent
      * Add a player to the lobby (called from WebSocket events)
      */
     public addPlayer(player: any): void {
-        console.log('[GameLobby] addPlayer called:', player);
         
         // Check if player already exists (avoid duplicates)
         if (this.hasPlayer(player.userId)) {
-            console.log('[GameLobby] Player already exists, skipping');
             return;
         }
         
         // Find empty slot
         const emptySlot = this.playerSlots.find(slot => !slot.playerName);
         if (!emptySlot) {
-            console.log('[GameLobby] No empty slot found');
             return;
         }
 
@@ -1294,13 +1280,7 @@ export class GameLobby extends BaseComponent
         emptySlot.avatarUrl = player.avatarUrl || '/assets/images/default-avatar.jpeg';
         emptySlot.customization = player.customization || null;
 
-        console.log('[GameLobby] Player added to slot:', {
-            slotId: emptySlot.id,
-            playerName: emptySlot.playerName,
-            userId: emptySlot.userId,
-            isHost: emptySlot.isHost,
-            isReady: emptySlot.isReady
-        });
+
 
         // Refresh only the player card instead of whole page
         this.refreshPlayerCard(emptySlot.id);

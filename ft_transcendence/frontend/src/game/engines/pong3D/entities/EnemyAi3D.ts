@@ -11,7 +11,7 @@ interface DifficultySettings
 
 export class Enemy3D
 {
-    private dificulty: AiDifficulty3D;
+    private difficulty: AiDifficulty3D;
     private setting: DifficultySettings;
     private targetZ: number = 0;
     private shouldMiss: boolean = false;
@@ -24,9 +24,9 @@ export class Enemy3D
     {
         this.paddle = paddle;
         this.ball = ball;
-        this.dificulty = difficulty;
+        this.difficulty = difficulty;
         this.setting = this.getSetting(difficulty);
-        console.log(this.dificulty);
+        console.log(this.difficulty);
         console.log(this.shouldMiss);
         console.log(this.setting);
     }

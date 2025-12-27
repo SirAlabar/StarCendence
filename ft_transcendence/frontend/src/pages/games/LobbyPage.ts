@@ -45,7 +45,6 @@ export default class LobbyPage extends BaseComponent
     
     async mount(): Promise<void> 
     {
-        console.log('[Lobby] ===== MOUNT START =====');
         
         // Get game type from URL parameter
         const params = new URLSearchParams(window.location.search);
@@ -55,13 +54,11 @@ export default class LobbyPage extends BaseComponent
             this.gameType = gameTypeParam;
         }
 
-        console.log('[Lobby] Game type:', this.gameType);
 
         // Determine max players based on game type
         const maxPlayers = this.gameType === 'racer' ? 4 : 2;
         const backRoute = this.gameType === 'racer' ? '/pod-racer' : '/pong';
         
-        console.log('[Lobby] Max players:', maxPlayers);
 
         // Connect to WebSocket if not already connected
         if (!webSocketService.isConnected()) {
@@ -97,15 +94,12 @@ export default class LobbyPage extends BaseComponent
         };
         
         this.gameLobby = new GameLobby(config);
-        console.log('[Lobby] GameLobby instance created');
         
         const container = document.getElementById('lobbyContainer');
         if (container) 
         {
-            console.log('[Lobby] Mounting GameLobby...');
             // Mount will handle rendering - don't render before mount!
             await this.gameLobby.mount('#lobbyContainer');
-            console.log('[Lobby] GameLobby mounted successfully');
         } else {
             console.error('[Lobby] Container #lobbyContainer not found!');
         }
@@ -113,12 +107,10 @@ export default class LobbyPage extends BaseComponent
         // Check URL for lobby ID parameter
         const urlLobbyId = params.get('id');
 
-        console.log('[Lobby] URL lobby ID:', urlLobbyId);
 
         if (urlLobbyId) {
             // Joining existing lobby
             this.lobbyId = urlLobbyId;
-            console.log('[Lobby] === JOINING EXISTING LOBBY:', this.lobbyId, '===');
             
             // Wait for lobby to be ready before sending join
             const isReady = await this.waitForLobbyReady();
@@ -132,12 +124,9 @@ export default class LobbyPage extends BaseComponent
             webSocketService.send('lobby:join', { lobbyId: this.lobbyId });
         } else {
             // Creating new lobby
-            console.log('[Lobby] === CREATING NEW LOBBY ===');
             
             // Wait for lobby to be ready before creating
-            console.log('[Lobby] Waiting for lobby ready...');
             const isReady = await this.waitForLobbyReady();
-            console.log('[Lobby] Lobby ready:', isReady);
             
             if (!isReady) {
                 await Modal.alert('Error', 'Failed to initialize lobby. Please try again.');
@@ -146,21 +135,18 @@ export default class LobbyPage extends BaseComponent
             }
 
             // Send create lobby request
-            console.log('[Lobby] Sending lobby:create with:', { gameType: this.gameType, maxPlayers });
             webSocketService.send('lobby:create', { 
                 gameType: this.gameType,
                 maxPlayers 
             });
         }
         
-        console.log('[Lobby] ===== MOUNT END =====');
     }
 
     /**
      * Handle WebSocket messages
      */
     private onWsMessage(message: any): void {
-        console.log('[Lobby] Received WebSocket message:', message);
 
         switch (message.type) {
             case 'lobby:create:ack':
@@ -204,8 +190,6 @@ export default class LobbyPage extends BaseComponent
      * Handle lobby created acknowledgment
      */
     private async handleLobbyCreated(payload: any): Promise<void> {
-        console.log('[Lobby] ===== HANDLE LOBBY CREATED =====');
-        console.log('[Lobby] Payload:', payload);
         
         if (!payload.success) {
             console.error('[Lobby] Failed to create lobby:', payload.reason);
@@ -215,17 +199,13 @@ export default class LobbyPage extends BaseComponent
         }
 
         this.lobbyId = payload.lobbyId;
-        console.log('[Lobby] ✅ Lobby created with ID:', this.lobbyId);
 
         // Update URL with lobby ID without reloading
         const newUrl = `/lobby?game=${this.gameType}&id=${this.lobbyId}`;
         window.history.pushState({}, '', newUrl);
-        console.log('[Lobby] URL updated to:', newUrl);
 
         // Wait for lobby to be ready
-        console.log('[Lobby] Waiting for lobby to be ready...');
         const isReady = await this.waitForLobbyReady();
-        console.log('[Lobby] Lobby ready after wait:', isReady, 'gameLobby exists:', !!this.gameLobby);
         
         if (!isReady || !this.gameLobby) {
             console.error('[Lobby] ❌ gameLobby not ready after waiting!');
@@ -234,31 +214,23 @@ export default class LobbyPage extends BaseComponent
 
         // Update lobby UI with all players (including host)
         if (payload.players) {
-            console.log('[Lobby] 📋 Loading', payload.players.length, 'players:', payload.players);
             
             // Clear existing players first
-            console.log('[Lobby] Clearing all players...');
             this.gameLobby.clearAllPlayers();
             
             // Add all players
             for (let i = 0; i < payload.players.length; i++) {
                 const player = payload.players[i];
-                console.log(`[Lobby] Loading player ${i + 1}/${payload.players.length}:`, player);
                 await this.loadAndAddPlayer(player);
             }
 
-            console.log('[Lobby] All players loaded. Checking host status before updateStartButtonArea...');
-            console.log('[Lobby] isCurrentUserHost():', this.gameLobby.isCurrentUserHost());
             
             // Update start button area after loading players (host detection)
-            console.log('[Lobby] 🔄 Calling updateStartButtonArea...');
             this.gameLobby.updateStartButtonArea();
-            console.log('[Lobby] ✅ updateStartButtonArea completed');
         } else {
             console.warn('[Lobby] No players in payload!');
         }
         
-        console.log('[Lobby] ===== HANDLE LOBBY CREATED END =====');
     }
 
     /**
@@ -282,7 +254,6 @@ export default class LobbyPage extends BaseComponent
             return;
         }
 
-        console.log('[Lobby] Successfully joined lobby:', payload.lobbyId);
 
         // Wait for lobby to be ready
         const isReady = await this.waitForLobbyReady();
@@ -293,7 +264,6 @@ export default class LobbyPage extends BaseComponent
 
         // Update lobby UI with all players
         if (payload.players) {
-            console.log('[Lobby] Updating UI with', payload.players.length, 'players');
             
             // Clear existing players first
             this.gameLobby.clearAllPlayers();
@@ -304,7 +274,6 @@ export default class LobbyPage extends BaseComponent
             }
 
             // Update start button area after loading players (host detection)
-            console.log('[Lobby] handleLobbyJoined: Calling updateStartButtonArea');
             this.gameLobby.updateStartButtonArea();
         }
     }
@@ -313,7 +282,6 @@ export default class LobbyPage extends BaseComponent
      * Handle player joined
      */
     private async handlePlayerJoined(payload: any): Promise<void> {
-        console.log('[Lobby] Player joined:', payload.username);
         
         if (this.gameLobby && !this.gameLobby.hasPlayer(payload.userId)) {
             await this.loadAndAddPlayer({
@@ -329,7 +297,6 @@ export default class LobbyPage extends BaseComponent
      * Handle player left
      */
     private handlePlayerLeft(payload: any): void {
-        console.log('[Lobby] Player left:', payload.userId);
         
         if (this.gameLobby) {
             this.gameLobby.removePlayer(payload.userId);
@@ -340,7 +307,6 @@ export default class LobbyPage extends BaseComponent
      * Handle player ready status change
      */
     private handlePlayerReady(payload: any): void {
-        console.log('[Lobby] Player ready status:', payload.username, payload.isReady);
         
         if (this.gameLobby) {
             this.gameLobby.updatePlayerReady(payload.userId, payload.isReady);
@@ -351,7 +317,7 @@ export default class LobbyPage extends BaseComponent
      * Handle being kicked from lobby
      */
     private async handleKicked(): Promise<void> {
-        console.log('[Lobby] Kicked from lobby');
+
         
         await Modal.alert('Kicked', 'You have been removed from the lobby by the host.');
         navigateTo(this.gameType === 'racer' ? '/pod-racer' : '/pong');
@@ -362,11 +328,11 @@ export default class LobbyPage extends BaseComponent
      */
     private async handleGameStarting(payload: any): Promise<void> {
         if (this.isGameStarting) {
-            console.log('[Lobby] Already processing game start');
+
             return;
         }
         this.isGameStarting = true;
-        console.log('[Lobby] Game starting:', payload);
+
         
         // Determine side: host is left, non-host is right
         let playerSide: 'left' | 'right' = 'left';
@@ -374,19 +340,19 @@ export default class LobbyPage extends BaseComponent
             playerSide = this.gameLobby.isCurrentUserHost() ? 'left' : 'right';
         }
         
-        console.log('[Lobby] Player assigned to side:', playerSide);
+
         
         // Wait a moment for dramatic effect
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Navigate to appropriate game page based on game type
         if (this.gameType === 'racer') {
-            console.log('[Lobby] Starting racer game...');
+
             await Modal.alert('Info', 'Racer multiplayer not yet implemented');
             this.isGameStarting = false;
         } else {
             // Navigate to pong game WITH SIDE PARAMETER
-            console.log('[Lobby] Navigating to pong game:', payload.gameId, 'side:', playerSide);
+
             if(this.gameType === 'pong2d')
                 navigateTo(`/pong-game?gameId=${payload.gameId}&side=${playerSide}&lobbyId=${this.lobbyId}`);
             else if(this.gameType === 'pong3d')
@@ -442,7 +408,7 @@ export default class LobbyPage extends BaseComponent
             // Update with full profile data if player still exists
             if (this.gameLobby.hasPlayer(playerData.userId)) {
                 // Player card will auto-update with avatar
-                console.log('[Lobby] Loaded profile for:', playerData.username);
+
             }
         } catch (error) {
             console.warn('[Lobby] Could not load full profile for:', playerData.username);
@@ -458,20 +424,20 @@ export default class LobbyPage extends BaseComponent
             return;
         }
 
-        console.log('[Lobby] Requesting game start for lobby:', this.lobbyId);
+
         webSocketService.send('lobby:start', { lobbyId: this.lobbyId });
     }
 
     public dispose(): void 
     {
-        console.log('[Lobby] Disposing');
+
         
         // Unsubscribe from WebSocket messages
         webSocketService.off('*', this.wsMessageHandler);
 
         // Leave lobby if we were in one
         if (this.lobbyId && !this.isGameStarting) {
-            console.log('[Lobby] Leaving lobby:', this.lobbyId);
+
             webSocketService.send('lobby:leave', { lobbyId: this.lobbyId });
         }
 

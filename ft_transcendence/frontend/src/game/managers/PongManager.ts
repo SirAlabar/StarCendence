@@ -130,7 +130,6 @@ export class GameManager {
                     case 'online-multiplayer':
                         if (!onlineData) throw new Error('Missing online game data');
                         
-                        console.log('[GameManager] 🎮 Creating 3D Online Engine');
                         this.currentEngine = new OnlinePong3D(
                             canvas, 
                             config, 

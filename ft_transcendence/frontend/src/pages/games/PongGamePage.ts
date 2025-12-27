@@ -50,7 +50,7 @@ export default class PongGamePage extends BaseComponent {
         const userobj = LoginService.getCurrentUser();
         const userId = userobj?.sub || userobj?.id;
         
-        console.log('[PongGamePage] 🎮 Mounting with gameId:', this.gameId, 'side:', this.side, 'userId:', userId);
+
 
         if (!this.gameId || !userId) 
         {
@@ -65,7 +65,7 @@ export default class PongGamePage extends BaseComponent {
             console.warn('[PongGamePage] ⚠️ WebSocket not connected, attempting to connect...');
             try {
                 await webSocketService.connect();
-                console.log('[PongGamePage] ✅ WebSocket connected successfully');
+
             } catch (error) {
                 console.error('[PongGamePage] ❌ Failed to connect WebSocket:', error);
                 await Modal.alert('Connection Error', 'Failed to connect to game server. Please try again.');
@@ -73,7 +73,7 @@ export default class PongGamePage extends BaseComponent {
                 return;
             }
         } else {
-            console.log('[PongGamePage] ✅ WebSocket already connected');
+
         }
 
         const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
@@ -99,7 +99,7 @@ export default class PongGamePage extends BaseComponent {
         };
 
         try {
-            console.log('[PongGamePage] 🎯 Initializing 2D game with config:', gameConfig);
+
             
             await gameManager.init2DGame(canvas, gameConfig, {
                 matchId: this.gameId,
@@ -107,15 +107,15 @@ export default class PongGamePage extends BaseComponent {
                 userId: userId
             });
 
-            console.log('[PongGamePage] ✅ Game initialized, starting game loop');
+
             this.setupUIListeners();
             gameManager.startGame();
             
             // Initialize scores to 0
-            const p1 = document.getElementById('score-p1');
-            const p2 = document.getElementById('score-p2');
-            if (p1) p1.innerText = '0';
-            if (p2) p2.innerText = '0';
+            const scoreP1 = document.getElementById('score-p1');
+            const scoreP2 = document.getElementById('score-p2');
+            if (scoreP1) scoreP1.innerText = '0';
+            if (scoreP2) scoreP2.innerText = '0';
 
             // 2. Setup Resize Observer AFTER game initialization
             this.resizeObserver = new ResizeObserver(() => {
@@ -145,33 +145,30 @@ export default class PongGamePage extends BaseComponent {
         const newWidth = wrapper.clientWidth;
         const newHeight = wrapper.clientHeight;
         
-        console.log('[PongGamePage] Fitting canvas:', newWidth, 'x', newHeight);
+
         
         // Ensure we have valid dimensions
         if (newWidth > 0 && newHeight > 0) {
             canvas.width = newWidth;
             canvas.height = newHeight;
         } else {
-            console.warn('[PongGamePage] Invalid wrapper dimensions, using fallback');
+
             canvas.width = 800;
             canvas.height = 600;
         }
     }
 
     private setupUIListeners() {
-        console.log('[PongGamePage] Setting up UI listeners');
+
         
         gameManager.on('game:score-update', (e: any) => {
-            console.log('[PongGamePage] Score update received:', e.detail);
-            const p1 = document.getElementById('score-p1');
-            const p2 = document.getElementById('score-p2');
-            if (p1) {
-                p1.innerText = e.detail.player1Score?.toString() || '0';
-                console.log('[PongGamePage] Updated P1 score to:', p1.innerText);
+            const scoreP1 = document.getElementById('score-p1');
+            const scoreP2 = document.getElementById('score-p2');
+            if (scoreP1) {
+                scoreP1.innerText = e.detail.player1Score?.toString() || '0';
             }
-            if (p2) {
-                p2.innerText = e.detail.player2Score?.toString() || '0';
-                console.log('[PongGamePage] Updated P2 score to:', p2.innerText);
+            if (scoreP2) {
+                scoreP2.innerText = e.detail.player2Score?.toString() || '0';
             }
         });
 
