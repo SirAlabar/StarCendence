@@ -14,29 +14,19 @@ services:
       - "3001:3001"
       - "5001:5001"  # Auth service Studio
 
-  # chat-service:
-  #   volumes:
-  #     - ./services/chat/chat.db:/app/prisma/chat.db:rw
-  #   environment:
-  #     - PRISMA_STUDIO=1
-  #     - PRISMA_STUDIO_PORT=5002
-  #   ports:
-  #     - "3003:3003"
-  #     - "5002:5002"  # Chat service Studio
-
-  # game-service:
-  #   volumes:
-  #     - ./services/game/game.db:/app/prisma/game.db:rw
-  #   environment:
-  #     - PRISMA_STUDIO=1
-  #     - PRISMA_STUDIO_PORT=5003
-  #   ports:
-  #     - "3002:3002"
-  #     - "5003:5003"  # Game service Studio
+  chat-service:
+    volumes:
+      - ./services/chat:/app
+      - /app/node_modules
+      - chat_data:/app/data
+    environment:
+      - PRISMA_STUDIO=1
+      - PRISMA_STUDIO_PORT=5002
+    ports:
+      - "3003:3003"
+      - "5002:5002"  # Chat service Studio
 
   user-service:
-    # volumes:
-    #   - ./services/user/prisma/user.db:/app/prisma/user.db:rw
     volumes:
       - ./services/user:/app
       - /app/node_modules
@@ -48,13 +38,3 @@ services:
     ports:
       - "3004:3004"
       - "5004:5004"  # User service Studio
-
-  # websocket-service:
-  #   volumes:
-  #     - ./services/game/game.db:/app/prisma/game.db:rw
-  #   environment:
-  #     - PRISMA_STUDIO=1
-  #     - PRISMA_STUDIO_PORT=5005
-  #   ports:
-  #     - "3002:3002"
-  #     - "5005:5005"  # Websocket service Studio

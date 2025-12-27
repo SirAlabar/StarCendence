@@ -31,7 +31,6 @@ export class LocalPongEngine
 
     //Configs
     private config: GameConfig;
-    private profileLoaded?: boolean = false;
     
     //Events
     private eventCallBack: Array<(event: GameEvent) => void> = [];
@@ -87,8 +86,6 @@ export class LocalPongEngine
 
         //input handling
         this.setupInputHandlers();
-        console.log('Local Pong Engine', config, this.profileLoaded);
-
     }
 
     private async initializeAsync(): Promise<void> 
@@ -96,33 +93,24 @@ export class LocalPongEngine
         try 
         {
             await this.loadPlayerProfiles();
-            this.profileLoaded = true;
         } 
         catch (error) 
         {
             console.error('❌ Failed to initialize async components:', error);
-            this.profileLoaded = true; // Continue anyway
         }
     }
-    private async loadPlayerProfiles(): Promise<void> 
+
+private async loadPlayerProfiles(): Promise<void> 
+{
+    try 
     {
-        try 
-        {
-            const profileLoaded = await this.player1.loadProfile();
-            if (profileLoaded) 
-            {
-                console.log('✅ Player 1 profile loaded:', this.player1.getPlayerInfo());
-            } 
-            else 
-            {
-                console.log('⚠️ Playing as guest (not authenticated)');
-            }
-            
-        } catch (error) 
-        {
-            console.error('❌ Failed to load player profiles:', error);
-        }
+        await this.player1.loadProfile();
+    } 
+    catch 
+    {
+        // Silent fail - player continues as guest
     }
+}
 
     start(): void
     {

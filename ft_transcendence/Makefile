@@ -34,6 +34,7 @@ REDIS_VOLUME = $(DOCKER_DATA_DIR)/redis
 USER_VOLUME = $(DOCKER_DATA_DIR)/user
 AUTH_VOLUME = $(DOCKER_DATA_DIR)/auth
 GAME_VOLUME = $(DOCKER_DATA_DIR)/game
+CHAT_VOLUME = $(DOCKER_DATA_DIR)/chat
 USER_AVATARS_VOLUME = $(DOCKER_DATA_DIR)/user/avatars
 PROMETHEUS_VOLUME = $(DOCKER_DATA_DIR)/prometheus
 GRAFANA_VOLUME = $(DOCKER_DATA_DIR)/grafana
@@ -113,9 +114,9 @@ setup:
 	@printf "$(CYAN)Building frontend...$(DEFAULT)\n"
 	@$(MAKE) --no-print-directory front
 	@printf "$(CYAN)Building containers...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) build nginx redis user-service auth-service websocket-service game-service
+	@$(DOCKER_COMPOSE) build nginx redis user-service auth-service websocket-service game-service chat-service
 	@printf "$(CYAN)Starting services...$(DEFAULT)\n"
-	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service websocket-service game-service
+	@$(DOCKER_COMPOSE) up -d nginx redis user-service auth-service websocket-service game-service chat-service
 	@printf "$(CYAN)Waiting for services...$(DEFAULT)\n"
 	@sleep 5
 	@printf "$(CYAN)Pushing database schema...$(DEFAULT)\n"
@@ -145,6 +146,7 @@ create-volumes:
 	@mkdir -p $(USER_VOLUME)
 	@mkdir -p $(AUTH_VOLUME)
 	@mkdir -p $(GAME_VOLUME)
+	@mkdir -p $(CHAT_VOLUME)
 	@mkdir -p $(USER_AVATARS_VOLUME)
 	@mkdir -p $(PROMETHEUS_VOLUME)
 	@mkdir -p $(GRAFANA_VOLUME)
@@ -153,6 +155,8 @@ create-volumes:
 	@printf "  - $(REDIS_VOLUME)\n"
 	@printf "  - $(USER_VOLUME)\n"
 	@printf "  - $(AUTH_VOLUME)\n"
+	@printf "  - $(GAME_VOLUME)\n"
+	@printf "  - $(CHAT_VOLUME)\n"
 	@printf "  - $(USER_AVATARS_VOLUME)\n"
 	@printf "  - $(PROMETHEUS_VOLUME)\n"
 	@printf "  - $(GRAFANA_VOLUME)\n"
@@ -380,6 +384,18 @@ auth_service_restart:
 	@docker compose up auth-service -d --force-recreate
 	@printf "$(GREEN)✅ auth-service restarted!$(DEFAULT)\n"
 
+chat_service_restart:
+	@printf "$(YELLOW)🔄 Restarting chat-service...$(DEFAULT)\n"
+	@docker compose build --no-cache chat-service
+	@docker compose up chat-service -d --force-recreate
+	@printf "$(GREEN)✅ chat-service restarted!$(DEFAULT)\n"
+
+nginx_service_restart:
+	@printf "$(YELLOW)🔄 Restarting nginx...$(DEFAULT)\n"
+	@docker compose build --no-cache nginx
+	@docker compose up nginx -d --force-recreate
+	@printf "$(GREEN)✅ nginx restarted!$(DEFAULT)\n"
+
 nodemon_restart:
 	@printf "$(YELLOW)🔄 Restarting nodemon...$(DEFAULT)\n"
 	@docker exec -it transcendence_auth sh -c "PID=$$(lsof -ti :3001); if [ -n \"$$PID\" ]; then kill $$PID; fi"
@@ -393,11 +409,6 @@ db_clean:
 	@printf "$(GREEN)✅ All tables cleaned!$(DEFAULT)\n"
 	@printf "$(CYAN)Reseeding database with default users...$(DEFAULT)\n"
 
-nginx_service_restart:
-	@printf "$(YELLOW)🔄 Restarting nginx...$(DEFAULT)\n"
-	@docker compose build --no-cache nginx
-	@docker compose up nginx -d --force-recreate
-	@printf "$(GREEN)✅ nginx restarted!$(DEFAULT)\n"
 
 ################################################################################
 #                               MONITORING                                     #

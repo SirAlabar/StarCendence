@@ -2,6 +2,7 @@
 export class Modal 
 {
     private static isModalOpen: boolean = false;
+    private static currentCleanup: (() => void) | null = null;
 
     public static async confirm(
         title: string,
@@ -11,10 +12,14 @@ export class Modal
         isDanger: boolean = false
     ): Promise<boolean> 
     {
-        if (Modal.isModalOpen) 
+        // If there's already a modal open, clean it up first
+        if (Modal.isModalOpen && Modal.currentCleanup) 
         {
-            return false;
+            Modal.currentCleanup();
+            // Time to cleanup
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
+        
         Modal.isModalOpen = true;
 
         return new Promise((resolve) => 
@@ -67,13 +72,21 @@ export class Modal
                 }
                 isCleanedUp = true;
                 
-                // ALWAYS remove event listener
+                // Remove event listener
                 document.removeEventListener('keydown', handleEscape);
                 
+                // Remove modal
                 modal.remove();
+                
+                // Reset state
                 Modal.isModalOpen = false;
+                Modal.currentCleanup = null;
+                
                 resolve(result);
             };
+            
+            // Store cleanup function so it can be called from outside
+            Modal.currentCleanup = () => cleanup(false);
             
             modal.querySelector('#confirm-yes')?.addEventListener('click', () => cleanup(true));
             modal.querySelector('#confirm-cancel')?.addEventListener('click', () => cleanup(false));
@@ -86,10 +99,14 @@ export class Modal
         buttonText: string = 'OK'
     ): Promise<void> 
     {
-        if (Modal.isModalOpen) 
+        // If there's already a modal open, clean it up first
+        if (Modal.isModalOpen && Modal.currentCleanup) 
         {
-            return;
+            Modal.currentCleanup();
+            // Give DOM time to cleanup
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
+        
         Modal.isModalOpen = true;
 
         return new Promise((resolve) => 
@@ -135,12 +152,21 @@ export class Modal
                 }
                 isCleanedUp = true;
 
+                // Remove event listener
                 document.removeEventListener('keydown', handleEscape);
 
+                // Remove modal
                 modal.remove();
+                
+                // Reset state
                 Modal.isModalOpen = false;
+                Modal.currentCleanup = null;
+
                 resolve();
             };
+
+            // Store cleanup function
+            Modal.currentCleanup = cleanup;
 
             modal.querySelector('#alert-ok')?.addEventListener('click', cleanup);
         });

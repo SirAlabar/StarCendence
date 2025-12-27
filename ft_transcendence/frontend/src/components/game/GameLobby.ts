@@ -1171,14 +1171,37 @@ export class GameLobby extends BaseComponent
     
     private selectPaddle(_paddleIndex: number): void 
     {
+<<<<<<< HEAD
+=======
+        this.currentCustomizingSlot = null;
+    }
+
+    private selectPaddle(_paddleIndex: number): void 
+    {
+        if (this.currentCustomizingSlot === null) 
+        {
+            return;
+        }
+
+        // Use the same paddle options as in renderPaddleOptions
+        const PADDLE_OPTIONS = [
+            { name: 'Default', color: 'from-cyan-500 to-blue-600' },
+            { name: 'Fire', color: 'from-red-500 to-orange-600' },
+            { name: 'Neon', color: 'from-pink-500 to-purple-600' },
+            { name: 'Forest', color: 'from-green-500 to-emerald-600' },
+            { name: 'Gold', color: 'from-yellow-500 to-amber-600' },
+            { name: 'Ice', color: 'from-blue-300 to-cyan-400' }
+        ];
+        const option = PADDLE_OPTIONS[_paddleIndex];
+        const slot = this.playerSlots[this.currentCustomizingSlot];
+        if (slot) 
+        {
+            slot.paddleName = option.name;
+            slot.paddleGradient = option.color;
+        }
+
         this.closePaddleModal();
     }
-    
-    private showPodSelectionModal(): void 
-    {
-        const modal = document.getElementById('podSelectionModal');
-        const content = document.getElementById('podSelectionContent');
-        
         if (!modal || !content) 
         {
             return;

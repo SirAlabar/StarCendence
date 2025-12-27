@@ -1,6 +1,8 @@
 import { initRouter } from './router/router';
 import { LoginService } from './services/auth/LoginService';
 import { webSocketService } from './services/websocket/WebSocketService';
+import ChatNotificationService from './services/chat/ChatNotificationService';
+import { notifications } from './components/common/Notification';
 
 export class App 
 {
@@ -23,6 +25,16 @@ export class App
 
         // Connect WebSocket automatically if user is authenticated
         this.initializeWebSocket();
+
+        // Initialize notifications if authenticated
+        if (LoginService.isAuthenticated()) 
+        {
+            // Initialize chat notification service
+            ChatNotificationService.initialize();
+            
+            // Initialize toast notifications
+            notifications.initialize();
+        }
     }
 
     private async initializeWebSocket(): Promise<void> 

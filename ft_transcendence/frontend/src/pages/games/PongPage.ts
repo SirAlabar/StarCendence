@@ -708,14 +708,12 @@ export default class PongPage extends BaseComponent
 
     private handleGameGoal(_event: Event): void 
     {
-        console.log('⚽ GOAL!');
-        
+        // console.log('⚽ GOAL!');   
     }
 
     private handlePaddleHit(_event: Event): void 
     {
-        console.log('🏓 Paddle hit!');
-        
+        // console.log('🏓 Paddle hit!');  
     }
 
     private handleScoreUpdate(event: Event): void 
