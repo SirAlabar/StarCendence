@@ -2,6 +2,8 @@
 import ChatService from './ChatService';
 import { webSocketService } from '../websocket/WebSocketService';
 
+//import { notifications } from '@/components/common/Notification';
+
 // Import or define your modal service here
 // Example: import ModalService from '../../components/common/ModalService';
 // If you don't have a modal service, you can implement a simple one or use a global event/callback
@@ -36,7 +38,7 @@ class ChatNotificationService
             this.setupWebSocketListener();
 
             // Setup WebSocket listener for lobby invites
-            this.setupLobbyInviteListener();
+           // this.setupLobbyInviteListener();
             
             // Notify all callbacks with initial data
             this.notifyTotalUnreadCallbacks();
@@ -69,15 +71,18 @@ class ChatNotificationService
     }
 
     // Setup WebSocket listener for lobby invites
-    private setupLobbyInviteListener(): void {
-        this.wsLobbyInviteHandler = (data: any) => {
-            console.log('[ChatNotificationService] Received lobby:invite', data);
-            this.handleLobbyInvite(data);
-        };
-        webSocketService.on('lobby:invite', this.handleLobbyInvite);
-    }
+    // private setupLobbyInviteListener(): void {
+    //     this.wsLobbyInviteHandler = (data: any) => {
+    //         console.log('[ChatNotificationService] Received lobby:invite', data);
+    //         // this.handleLobbyInvite(data); // Comentado para não exibir modal
+    //     };
+    //     webSocketService.on('lobby:invite', this.wsLobbyInviteHandler);
+        
+    // }
 
-    // Handle incoming lobby invite
+
+    // Handle incoming lobby invite (legacy, commented out)
+    /*
     private handleLobbyInvite(data: any): void {
         try {
             // Accepts any lobby invite with gameType and gameId
@@ -120,6 +125,29 @@ class ChatNotificationService
             // Silent fail
         }
     }
+    */
+    /*
+    private async handleLobbyInvite(data: any): Promise<void> {
+        try {
+            const { gameType, gameId, fromUsername } = data;
+            if (gameType && gameId) {
+                // Use Modal.confirm for invite
+                const confirmed = await Modal.confirm(
+                    'Game Invitation',
+                    `${fromUsername || 'Someone'} invited you to play ${gameType}`,
+                    'Join',
+                    'Decline',
+                    false
+                );
+                if (confirmed) {
+                    window.location.href = `/lobby?game=${encodeURIComponent(gameType)}&id=${encodeURIComponent(gameId)}`;
+                }
+            }
+        } catch (error) {
+            // Silent fail
+        }
+    }
+    */
     
     // Handle incoming WebSocket message
     private handleIncomingMessage(data: any): void 

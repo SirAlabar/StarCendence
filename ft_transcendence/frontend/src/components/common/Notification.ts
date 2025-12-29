@@ -14,10 +14,17 @@ interface NotificationData
     avatarUrl?: string;
     userId?: string;
     username?: string;
+    gameType?: string;
+    gameId?: string;
 }
 
 class Notifications extends BaseComponent 
 {
+    /**
+     * Handle lobby invite (show as toast)
+     */
+
+
     private notifications: HTMLElement[] = [];
     private shownIds: Set<string> = new Set();
     private readonly MAX_VISIBLE = 3;
@@ -35,7 +42,11 @@ class Notifications extends BaseComponent
     {
         // Create container
         this.createContainer();
-
+        
+        webSocketService.on('lobby:invitation', (data: any) => 
+        {
+            this.handleGameInvitation(data);
+        });
         // Listen for chat messages
         webSocketService.on('chat:message', (data: any) => 
         {
@@ -49,10 +60,11 @@ class Notifications extends BaseComponent
         });
 
         // Listen for game invitations
-        webSocketService.on('lobby:invitation', (data: any) => 
-        {
-            this.handleGameInvitation(data);
+        // Listen for lobby:invite (novo toast)
+        webSocketService.on('lobby:invite', (data: any) => {
+            this.handleLobbyInvite(data);
         });
+
     }
 
     /**
@@ -91,6 +103,22 @@ class Notifications extends BaseComponent
             username: username
         };
 
+        this.show(notification);
+    }
+    private handleLobbyInvite(data: any): void 
+    {
+        const payload = data.payload || data;
+        const notification: NotificationData = {
+            id: `invite_${payload.fromUserId}_${Date.now()}`,
+            title: 'Game Invitation',
+            message: `${payload.fromUsername} invited you to play ${payload.gameType}`,
+            type: 'invitation',
+            avatarUrl: payload.fromAvatarUrl,
+            userId: payload.fromUserId,
+            username: payload.fromUsername,
+            gameType: payload.gameType,
+            gameId: payload.gameId
+        };
         this.show(notification);
     }
 
@@ -139,81 +167,117 @@ class Notifications extends BaseComponent
      */
     private show(notification: NotificationData): void 
     {
-        if (!this.container) 
-        {
-            return;
-        }
-
-        // Don't show duplicates
-        if (this.shownIds.has(notification.id)) 
-        {
-            return;
-        }
-
+        if (!this.container) return;
+        if (this.shownIds.has(notification.id)) return;
         this.shownIds.add(notification.id);
-
-        // Remove oldest if at max
-        if (this.notifications.length >= this.MAX_VISIBLE) 
-        {
+        if (this.notifications.length >= this.MAX_VISIBLE) {
             const oldest = this.notifications.shift();
-            if (oldest) 
-            {
-                this.remove(oldest);
-            }
+            if (oldest) this.remove(oldest);
         }
-
-        // Create notification element
         const el = document.createElement('div');
         el.className = 'pointer-events-auto bg-gray-800 border border-cyan-500/30 rounded-lg p-4 shadow-lg max-w-sm animate-slide-in-right';
         el.setAttribute('data-notification-id', notification.id);
-        
-        el.innerHTML = `
-            <div class="flex items-start gap-3">
-                ${this.renderIcon(notification)}
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                        <span class="font-semibold text-white text-sm truncate">
-                            ${this.escape(notification.title)}
-                        </span>
-                        <span class="text-xs text-cyan-400">
-                            ${this.getTypeLabel(notification.type)}
-                        </span>
+
+        // Special layout for lobby invite
+        if (notification.type === 'invitation') {
+            el.innerHTML = `
+                <div class="flex items-start gap-3">
+                    ${this.renderIcon(notification)}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <span class="font-semibold text-white text-sm truncate">
+                                ${this.escape(notification.title)}
+                            </span>
+                            <span class="text-xs text-cyan-400">
+                                ${this.getTypeLabel(notification.type)}
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-300 line-clamp-2 mb-2">
+                            ${this.escape(notification.message)}
+                        </p>
+                        <div class="flex gap-2 mt-2">
+                            <button class="join-btn neon-border px-3 py-1 rounded text-cyan-400 font-bold">Join</button>
+                            <button class="decline-btn neon-border px-3 py-1 rounded text-gray-400 font-bold">Decline</button>
+                        </div>
                     </div>
-                    <p class="text-sm text-gray-300 line-clamp-2">
-                        ${this.escape(notification.message)}
-                    </p>
+                    <button class="text-gray-400 hover:text-white transition-colors ml-2 close-btn">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 </div>
-                <button class="text-gray-400 hover:text-white transition-colors ml-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-        `;
-
-        // Add click handler for close button
-        const closeBtn = el.querySelector('button');
-        closeBtn?.addEventListener('click', (e) => 
-        {
-            e.stopPropagation();
-            this.remove(el);
-        });
-
-        // Add click handler for whole notification
-        el.addEventListener('click', () => 
-        {
-            this.handleClick(notification);
-        });
-
+            `;
+            // Join button
+            const joinBtn = el.querySelector('.join-btn');
+            if (!joinBtn) {
+                console.warn('Join button not found in notification element:', el.innerHTML);
+            } else {
+                console.log('Join button found, adding event listener');
+                joinBtn.addEventListener('click', () => {
+                    console.log('Join button clicked', {
+                        gameType: notification.gameType,
+                        gameId: notification.gameId
+                    });
+                    if (notification.gameType && notification.gameId) {
+                        window.location.href = `/lobby?game=${encodeURIComponent(notification.gameType)}&id=${encodeURIComponent(notification.gameId)}`;
+                    } else {
+                        console.warn('Missing gameType or gameId in notification:', notification);
+                    }
+                    this.remove(el);
+                });
+            }
+            // Decline button
+            el.querySelector('.decline-btn')?.addEventListener('click', () => {
+                this.remove(el);
+            });
+            // Close button
+            el.querySelector('.close-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.remove(el);
+            });
+        } else {
+            // Default layout for other notifications
+            el.innerHTML = `
+                <div class="flex items-start gap-3">
+                    ${this.renderIcon(notification)}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <span class="font-semibold text-white text-sm truncate">
+                                ${this.escape(notification.title)}
+                            </span>
+                            <span class="text-xs text-cyan-400">
+                                ${this.getTypeLabel(notification.type)}
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-300 line-clamp-2">
+                            ${this.escape(notification.message)}
+                        </p>
+                    </div>
+                    <button class="text-gray-400 hover:text-white transition-colors ml-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            // Add click handler for close button
+            const closeBtn = el.querySelector('button');
+            closeBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.remove(el);
+            });
+            // Add click handler for whole notification
+            el.addEventListener('click', () => {
+                this.handleClick(notification);
+            });
+            // Auto-remove after duration
+            setTimeout(() => {
+                this.remove(el);
+            }, this.DURATION);
+        }
         // Add to container
         this.container.appendChild(el);
         this.notifications.push(el);
-
-        // Auto-remove after duration
-        setTimeout(() => 
-        {
-            this.remove(el);
-        }, this.DURATION);
     }
 
     /**
