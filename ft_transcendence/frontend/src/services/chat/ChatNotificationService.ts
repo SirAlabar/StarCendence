@@ -65,6 +65,7 @@ class ChatNotificationService
         };
         
         webSocketService.on('chat:message', this.wsMessageHandler);
+        
     }
 
     // Setup WebSocket listener for lobby invites
@@ -73,7 +74,7 @@ class ChatNotificationService
             console.log('[ChatNotificationService] Received lobby:invite', data);
             this.handleLobbyInvite(data);
         };
-        webSocketService.on('lobby:invite', this.wsLobbyInviteHandler);
+        webSocketService.on('lobby:invite', this.handleLobbyInvite);
     }
 
     // Handle incoming lobby invite
