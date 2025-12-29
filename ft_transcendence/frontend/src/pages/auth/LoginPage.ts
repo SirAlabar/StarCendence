@@ -408,7 +408,12 @@ export default class LoginPage extends BaseComponent
                 
                 // Connect WebSocket after login
                 try {
-                    await webSocketService.connect();
+                    if (!webSocketService.isConnected())
+                    {
+                        await webSocketService.connect();
+                    }
+                    
+                    
                 } catch (error) {
                     // Silently handle connection errors
                 }
@@ -496,7 +501,10 @@ export default class LoginPage extends BaseComponent
             
             // Connect WebSocket after 2FA login
             try {
-                await webSocketService.connect();
+                if (!webSocketService.isConnected())
+                {
+                    await webSocketService.connect();
+                }
             } catch (error) {
                 // Silently handle connection errors
             }
@@ -577,7 +585,10 @@ export default class LoginPage extends BaseComponent
             
             // Connect WebSocket after OAuth account creation
             try {
-                await webSocketService.connect();
+                    if (!webSocketService.isConnected())
+                    {
+                        await webSocketService.connect();
+                    }
             } catch (error) {
                 // Silently handle connection errors
             }
