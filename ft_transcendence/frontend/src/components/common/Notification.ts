@@ -2,6 +2,7 @@
  * Notifications Component
  */
 
+import { navigateTo } from '@/router/router';
 import { BaseComponent } from '../BaseComponent';
 import { webSocketService } from '@/services/websocket/WebSocketService';
 
@@ -108,15 +109,21 @@ class Notifications extends BaseComponent
     private handleLobbyInvite(data: any): void 
     {
         const payload = data.payload || data;
+        // Only allow pong2d, pong3d, or racer
+        let gameType = payload.gameType;
+        const allowedTypes = ['pong2d', 'pong3d', 'racer'];
+        if (!allowedTypes.includes(gameType)) {
+            return // silent error
+        }
         const notification: NotificationData = {
             id: `invite_${payload.fromUserId}_${Date.now()}`,
             title: 'Game Invitation',
-            message: `${payload.fromUsername} invited you to play ${payload.gameType}`,
+            message: `${payload.fromUsername} invited you to play ${gameType}`,
             type: 'invitation',
             avatarUrl: payload.fromAvatarUrl,
             userId: payload.fromUserId,
             username: payload.fromUsername,
-            gameType: payload.gameType,
+            gameType: gameType,
             gameId: payload.gameId
         };
         this.show(notification);
@@ -212,14 +219,14 @@ class Notifications extends BaseComponent
             if (!joinBtn) {
                 console.warn('Join button not found in notification element:', el.innerHTML);
             } else {
-                console.log('Join button found, adding event listener');
                 joinBtn.addEventListener('click', () => {
-                    console.log('Join button clicked', {
                         gameType: notification.gameType,
                         gameId: notification.gameId
                     });
                     if (notification.gameType && notification.gameId) {
-                        window.location.href = `/lobby?game=${encodeURIComponent(notification.gameType)}&id=${encodeURIComponent(notification.gameId)}`;
+    
+
+                         navigateTo(`/lobby?game=${encodeURIComponent(notification.gameType)}&id=${encodeURIComponent(notification.gameId)}`) 
                     } else {
                         console.warn('Missing gameType or gameId in notification:', notification);
                     }

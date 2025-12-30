@@ -38,6 +38,7 @@ export interface LobbyConfig
 export class GameLobby extends BaseComponent 
 {
     private config: LobbyConfig;
+    private urlGameType: string | null = null;
     private playerSlots: PlayerSlot[] = [];
     private currentCustomizingSlot: number | null = null;
     private podSelection: PodSelection | null = null;
@@ -51,6 +52,9 @@ export class GameLobby extends BaseComponent
     {
         super();
         this.config = config;
+        // Get gameType from URL for invites
+        const params = new URLSearchParams(window.location.search);
+        this.urlGameType = params.get('game');
     }
     
     private async initializePlayerSlots(): Promise<void> 
@@ -1014,9 +1018,14 @@ export class GameLobby extends BaseComponent
 
         // Send invite event to backend
         const lobbyId = this.getLobbyIdFromUrl();
+        let gameType = this.urlGameType;
+        const allowedTypes = ['pong2d', 'pong3d', 'racer'];
+        if (!allowedTypes.includes(gameType || '')) {
+            
+        }
         if (lobbyId) {
             webSocketService.send('lobby:invite', {
-                gameType: this.config.gameType,
+                gameType: gameType,
                 gameId: lobbyId,
                 invitedUserId: userId,
             });
