@@ -66,7 +66,8 @@ export class OnlinePong3D implements GameEngine
     // Keybinds
     private keybinds = {
         p1: { left: "a", right: "d" },
-        p2: { left: "arrowleft", right: "arrowright" }
+        //p2: { left: "arrowleft", right: "arrowright" }
+        p2: { left: "a", right: "d" }
     };
 
     constructor(

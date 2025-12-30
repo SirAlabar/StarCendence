@@ -220,12 +220,8 @@ class Notifications extends BaseComponent
                 console.warn('Join button not found in notification element:', el.innerHTML);
             } else {
                 joinBtn.addEventListener('click', () => {
-                        gameType: notification.gameType,
-                        gameId: notification.gameId
-                    });
                     if (notification.gameType && notification.gameId) {
     
-
                          navigateTo(`/lobby?game=${encodeURIComponent(notification.gameType)}&id=${encodeURIComponent(notification.gameId)}`) 
                     } else {
                         console.warn('Missing gameType or gameId in notification:', notification);

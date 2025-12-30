@@ -468,7 +468,7 @@ export class GameEventSubscriber {
         type: gameType,
         mode: GameMode.MATCH,
         maxPlayers: lobbyData.maxPlayers,
-        maxScore: 1000, // Default score, could be configurable
+        maxScore: 10, // Default score, could be configurable
       });
       if (!game)
       {

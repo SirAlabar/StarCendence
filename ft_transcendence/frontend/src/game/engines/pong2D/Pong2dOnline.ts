@@ -169,30 +169,20 @@ export class OnlinePongEngine implements GameEngine
     // SEND INPUT TO SERVER
     private sendInput(): void {
         const now = Date.now();
-        
+        if (this.playerSide == "right")
+        {            //silent error not usable
+        }
+
         // Determine current input direction
         let direction: 'up' | 'down' | 'none' = 'none';
         
-        if (this.playerSide === 'left') 
-        {
             // If both keys pressed, do nothing (conflicting input)
-            if (this.keys['w'] && this.keys['s']) 
-                direction = 'none';
-            else if (this.keys['w'])
-                direction = 'up';
-            else if (this.keys['s'])
-                direction = 'down';
-        } 
-        else     
-        {
-            // If both keys pressed, do nothing (conflicting input)
-            if (this.keys['arrowup'] && this.keys['arrowdown']) 
-                direction = 'none';
-            else if (this.keys['arrowup'])
-                direction = 'up';
-            else if (this.keys['arrowdown']) 
-                direction = 'down';
-        }
+        if (this.keys['w'] && this.keys['s']) 
+            direction = 'none';
+        else if (this.keys['w'])
+            direction = 'up';
+        else if (this.keys['s'])
+            direction = 'down';
         const shouldSend = direction !== this.lastDirection || (now - this.lastInputSent >= this.inputThrottle) || direction != 'none';
         
         if (!shouldSend)
