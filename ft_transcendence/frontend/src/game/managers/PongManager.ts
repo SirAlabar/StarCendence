@@ -100,7 +100,8 @@ export class GameManager {
                         break;
                         
                     case 'online-multiplayer':
-                        if (!onlineData) throw new Error('Missing online game data');
+                        if (!onlineData) 
+                            throw new Error('Missing online game data');
                         
                         this.currentEngine = new OnlinePongEngine(
                             canvas, 
@@ -126,7 +127,8 @@ export class GameManager {
                         break;
                         
                     case 'online-multiplayer':
-                        if (!onlineData) throw new Error('Missing online game data');
+                        if (!onlineData) 
+                            throw new Error('Missing online game data');
                         
                         this.currentEngine = new OnlinePong3D(
                             canvas, 

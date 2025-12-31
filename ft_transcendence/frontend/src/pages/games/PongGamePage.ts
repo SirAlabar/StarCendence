@@ -6,10 +6,12 @@ import { Modal } from '../../components/common/Modal';
 import { GameConfig } from '@/game/utils/GameTypes';
 import { webSocketService } from '../../services/websocket/WebSocketService';
 
+
 export default class PongGamePage extends BaseComponent {
     private gameId: string | null = null;
     private side: 'left' | 'right' = 'left';
     private resizeObserver: ResizeObserver | null = null;
+
 
     constructor() {
         super();
@@ -67,10 +69,12 @@ export default class PongGamePage extends BaseComponent {
         this.gameId = params.get('gameId');
         this.side = (params.get('side') as 'left' | 'right') || 'left';
         const userobj = LoginService.getCurrentUser();
-        const userId = userobj?.sub || userobj?.id;
+        console.log(userobj);
+        const userId = userobj?.username || userobj?.name;
+    
 
         if (!this.gameId || !userId) {
-            console.error('[PongGamePage] ❌ Missing game parameters');
+            console.error('[PongGamePage]  Missing game parameters');
             await Modal.alert('Error', 'Missing game parameters (gameId required)');
             navigateTo('/pong');
             return;
@@ -78,11 +82,11 @@ export default class PongGamePage extends BaseComponent {
 
         // Ensure WebSocket is connected
         if (!webSocketService.isConnected()) {
-            console.warn('[PongGamePage] ⚠️ WebSocket not connected, attempting to connect...');
+            console.warn('[PongGamePage] WebSocket not connected, attempting to connect...');
             try {
                 await webSocketService.connect();
             } catch (error) {
-                console.error('[PongGamePage] ❌ Failed to connect WebSocket:', error);
+                console.error('[PongGamePage] Failed to connect WebSocket:', error);
                 await Modal.alert('Connection Error', 'Failed to connect to game server. Please try again.');
                 navigateTo('/pong');
                 return;
@@ -94,7 +98,7 @@ export default class PongGamePage extends BaseComponent {
         const leaveBtn = document.getElementById('gameBackBtn');
         
         if (!canvas || !wrapper) {
-            console.error('[PongGamePage] ❌ Canvas or wrapper not found in DOM');
+            console.error('[PongGamePage] Canvas or wrapper not found in DOM');
             await Modal.alert('Error', 'Game canvas not found');
             navigateTo('/pong');
             return;
@@ -132,10 +136,6 @@ export default class PongGamePage extends BaseComponent {
             const score2 = document.getElementById('score2');
             if (score1) score1.innerText = '0';
             if (score2) score2.innerText = '0';
-            
-            // Optional: Update names if you have them passed in params or fetch them
-            // const p1Label = document.getElementById('player1Label');
-            // const p2Label = document.getElementById('player2Label');
 
             // Responsive resizing
             this.resizeObserver = new ResizeObserver(() => {
@@ -157,12 +157,12 @@ export default class PongGamePage extends BaseComponent {
         }
     }
 
-    private fitCanvasToWrapper(canvas: HTMLCanvasElement, wrapper: HTMLElement) {
-        // Calculate available space
+    private fitCanvasToWrapper(canvas: HTMLCanvasElement, wrapper: HTMLElement) 
+    {
+    
         const availWidth = wrapper.clientWidth;
         const availHeight = wrapper.clientHeight;
-        
-        // Desired aspect ratio (e.g., 16:9)
+    
         const targetRatio = 16 / 9;
         
         let newWidth = availWidth;
@@ -175,8 +175,6 @@ export default class PongGamePage extends BaseComponent {
         
         canvas.width = newWidth;
         canvas.height = newHeight;
-        
-        // Apply inline styles to ensure the visual element matches the buffer
         canvas.style.width = `${newWidth}px`;
         canvas.style.height = `${newHeight}px`;
     }
@@ -213,7 +211,7 @@ export default class PongGamePage extends BaseComponent {
 
     private animateScore(element: HTMLElement) {
         element.classList.remove('scale-150', 'text-white');
-        void element.offsetWidth; // trigger reflow
+        void element.offsetWidth; 
         element.classList.add('transition-transform', 'duration-200', 'scale-150', 'text-white');
         setTimeout(() => {
             element.classList.remove('scale-150', 'text-white');
@@ -229,7 +227,7 @@ export default class PongGamePage extends BaseComponent {
             true 
         );
         if (result) {
-            // Logic to notify server of forfeit could go here
+        
             this.dispose();
             navigateTo('/pong');
         }
@@ -237,7 +235,8 @@ export default class PongGamePage extends BaseComponent {
 
     private showWinnerOverlay(winner: string): void {
         const overlay = document.getElementById('winnerOverlay');
-        if (!overlay) return;
+        if (!overlay) 
+            return;
         
         overlay.innerHTML = `
             <div class="flex flex-col items-center justify-center gap-8 p-8 text-center animate-fade-in">
@@ -248,7 +247,7 @@ export default class PongGamePage extends BaseComponent {
                 
                 <div class="flex flex-col sm:flex-row gap-4 mt-8">
                     <button id="goBackBtn" class="px-8 py-4 rounded-lg bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold text-lg transition-all shadow-lg shadow-red-500/50">
-                        🚪 EXIT LOBBY
+                         EXIT LOBBY
                     </button>
                 </div>
             </div>
@@ -276,7 +275,7 @@ export default class PongGamePage extends BaseComponent {
             this.resizeObserver = null;
         }
         
-        // Remove listeners to prevent memory leaks
+        
         const leaveBtn = document.getElementById('gameBackBtn');
         if (leaveBtn) {
             const newBtn = leaveBtn.cloneNode(true);
