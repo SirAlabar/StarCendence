@@ -53,6 +53,9 @@ export class PongEngine {
       paddle2: { y: PONG.CANVAS.HEIGHT / 2 - PONG.PADDLE.HEIGHT / 2 },  
       scores: { player1: 0, player2: 0 },
     };
+    
+    // 5 second initial delay (5 seconds * 60 FPS = 300 frames)
+    this.resetCooldown = 300;
   }
 
   private resetBall(): Ball {
@@ -143,6 +146,7 @@ export class PongEngine {
       this.state.scores.player2++;
       this.events.push({ type: 'goal', data: { scorer: 2, score: this.state.scores.player2 } });
       this.state.ball = this.resetBall();
+      this.resetCooldown = 180;
       
       
       if (this.state.scores.player2 >= this.maxScore) {
@@ -153,7 +157,7 @@ export class PongEngine {
       this.state.scores.player1++;
       this.events.push({ type: 'goal', data: { scorer: 1, score: this.state.scores.player1 } });
       this.state.ball = this.resetBall();
-      this.resetCooldown = 30;
+      this.resetCooldown = 180;
       
       if (this.state.scores.player1 >= this.maxScore) {
         this.events.push({ type: 'game-end', data: { winner: this.player1Id } });
