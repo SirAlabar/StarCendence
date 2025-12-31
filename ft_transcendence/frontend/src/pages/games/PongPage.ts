@@ -454,7 +454,7 @@ export default class PongPage extends BaseComponent
             return;
         }
         
-        // Check authentication ONLY for online multiplayer and tournament
+       
         if (this.selectedMode === 'online-multiplayer' || this.selectedMode === 'tournament') 
         {
             if (!isAuthenticated()) 
@@ -708,12 +708,12 @@ export default class PongPage extends BaseComponent
 
     private handleGameGoal(_event: Event): void 
     {
-        // console.log('⚽ GOAL!');   
+        return;
     }
 
     private handlePaddleHit(_event: Event): void 
     {
-        // console.log('🏓 Paddle hit!');  
+        return;  
     }
 
     private handleScoreUpdate(event: Event): void 
@@ -777,7 +777,7 @@ export default class PongPage extends BaseComponent
         `;
         overlay.style.display = 'flex';
         
-        // Attach event listeners
+        
         const playAgainBtn = overlay.querySelector('#playAgainBtn');
         const goBackBtn = overlay.querySelector('#goBackBtn');
         
@@ -805,7 +805,6 @@ export default class PongPage extends BaseComponent
     private playAgain(): void 
     {
         this.hideWinnerOverlay();
-        // Reset scores
         const score1El = document.getElementById('score1');
         const score2El = document.getElementById('score2');
         if (score1El) score1El.textContent = '0';
@@ -850,7 +849,6 @@ export default class PongPage extends BaseComponent
     private goBack(): void 
     {
         this.dispose();
-        //this.resetSelection();
         navigateTo('/games');
     }
 

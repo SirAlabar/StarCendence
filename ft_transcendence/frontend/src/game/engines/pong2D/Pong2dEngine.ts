@@ -103,7 +103,7 @@ private async loadPlayerProfiles(): Promise<void>
     } 
     catch 
     {
-        // Silent fail - player continues as guest
+        
     }
 }
 
@@ -112,12 +112,12 @@ private async loadPlayerProfiles(): Promise<void>
         if (this.paused)
             this.paused = false;
 
-        this.starttime = Date.now();    // record countdown start
+        this.starttime = Date.now();    
 
         if (this.config.mode === 'ai' && this.enemy)
             this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
 
-        this.update();  // start rendering immediately
+        this.update();  
     }
 
     stop(): void 
@@ -204,8 +204,6 @@ private async loadPlayerProfiles(): Promise<void>
 
         this.clear();
         this.updatePaddles();
-
-        // Only move the ball if the game actually started
         if (this.gameStarted) 
         {
             this.updateBall();
@@ -246,7 +244,6 @@ private async loadPlayerProfiles(): Promise<void>
         const speed = this.paddleleft.speed;
         
         // Player 1 (left paddle)
-        // Don't move if both opposing keys are pressed
         if (!(this.keys['w'] && this.keys['s'])) {
             if (this.keys['w'] && this.paddleleft.y > 0) 
             {
@@ -261,7 +258,6 @@ private async loadPlayerProfiles(): Promise<void>
         // Player 2 / AI (right paddle)
         if (this.config.mode === 'local-multiplayer') 
         {
-            // Don't move if both opposing keys are pressed
             if (!(this.keys['arrowup'] && this.keys['arrowdown'])) {
                 if (this.keys['arrowup'] && this.paddleright.y > 0) 
                 {
@@ -404,7 +400,6 @@ private async loadPlayerProfiles(): Promise<void>
     
     private clear(): void 
     {
-        // Fill with dark background instead of just clearing
         this.ctx.fillStyle = '#0f0f1e';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
@@ -474,8 +469,9 @@ private async loadPlayerProfiles(): Promise<void>
     
     private keydownHandler = (e: KeyboardEvent) => 
     {
-        // Ignore keyboard repeat events to prevent spam
-        if (e.repeat) return;
+        
+        if (e.repeat) 
+            return;
         
         const key = e.key.toLowerCase();
         this.keys[key] = true;
@@ -497,7 +493,6 @@ private async loadPlayerProfiles(): Promise<void>
     
     private blurHandler = (): void => 
     {
-        // Clear all keys when window loses focus to prevent stuck keys
         this.keys = {};
     };
     

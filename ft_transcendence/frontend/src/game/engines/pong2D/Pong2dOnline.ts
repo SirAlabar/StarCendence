@@ -3,7 +3,7 @@ import {  OGameEvent } from "@/game/utils/OnlineInterface";
 import { Ball } from "./entities/Ball";
 import { paddle } from "./entities/Paddle";
 
-// Define what we expect the connection to look like based on your WebSocketService
+
 interface WebSocketLikeConnection 
 {
     on(event: string, callback: Function): void;
@@ -28,7 +28,7 @@ export class OnlinePongEngine implements GameEngine
     private playerId: string;
     private playerSide: 'left' | 'right';
     
-    // SERVER DIMENSIONS - The backend uses these fixed dimensions for physics
+    // SERVER DIMENSIONS 
     private readonly SERVER_WIDTH = 958;
     private readonly SERVER_HEIGHT = 538;
   
@@ -41,7 +41,7 @@ export class OnlinePongEngine implements GameEngine
     
     // Input throttling
     private lastInputSent: number = 0;
-    private inputThrottle: number = 16; // Match 60 FPS game loop (~16ms per frame)
+    private inputThrottle: number = 16; 
     private lastDirection: 'up' | 'down' | 'none' = 'none';
     
     // Scores
@@ -167,16 +167,15 @@ export class OnlinePongEngine implements GameEngine
     }
     
     // SEND INPUT TO SERVER
-    private sendInput(): void {
+    private sendInput(): void 
+    {
         const now = Date.now();
         if (this.playerSide == "right")
-        {            //silent error not usable
+        {           
         }
 
-        // Determine current input direction
+
         let direction: 'up' | 'down' | 'none' = 'none';
-        
-            // If both keys pressed, do nothing (conflicting input)
         if (this.keys['w'] && this.keys['s']) 
             direction = 'none';
         else if (this.keys['w'])
@@ -285,7 +284,7 @@ export class OnlinePongEngine implements GameEngine
         this.ctx.fillText(`${this.player2Score}`, (this.canvas.width / 4) * 3, 50);
     }
     
-    // INTERFACE IMPLEMENTATION
+  
     getState(): GameState 
     {
         return {
@@ -314,8 +313,6 @@ export class OnlinePongEngine implements GameEngine
     {
         this.stop();
         this.removeInputHandlers();
-        
-        // 5. FIXED SEND: Split into Type and Payload
         this.connection.send('game:leave', {
             gameId: this.gameId,
             playerId: this.playerId
@@ -329,8 +326,8 @@ export class OnlinePongEngine implements GameEngine
     // INPUT HANDLING
     private keydownHandler = (e: KeyboardEvent): void => 
     {
-        // Ignore keyboard repeat events to prevent spam
-        if (e.repeat) return;
+        if (e.repeat) 
+            return;
         
         const key = e.key.toLowerCase();
         this.keys[key] = true;

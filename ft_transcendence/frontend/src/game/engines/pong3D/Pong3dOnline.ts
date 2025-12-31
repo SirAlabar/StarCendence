@@ -31,9 +31,9 @@ export class OnlinePong3D implements GameEngine
     private playerId: string;
     private playerSide: 'left' | 'right';
 
-    // ==========================================
+    
     // DIMENSIONS & SCALING
-    // ==========================================
+    
     private readonly SERVER_WIDTH = 958;
     private readonly SERVER_HEIGHT = 538;
     private readonly GROUND_HEIGHT = 45;
@@ -66,7 +66,6 @@ export class OnlinePong3D implements GameEngine
     // Keybinds
     private keybinds = {
         p1: { left: "a", right: "d" },
-        //p2: { left: "arrowleft", right: "arrowright" }
         p2: { left: "a", right: "d" }
     };
 
@@ -102,9 +101,9 @@ export class OnlinePong3D implements GameEngine
         window.addEventListener("resize", () => this.engine.resize());
     }
 
-    // ==========================================
+   
     // NETWORK SYNC 
-    // ==========================================
+ 
     private setupNetworkListeners(): void {
         this.connection.on('game:state', (data: any) => {
             if (data?.gameId === this.gameId) {
@@ -208,7 +207,7 @@ export class OnlinePong3D implements GameEngine
 
     private flashWallHit(position: Vector3): void 
     {
-        const size = 5; // Slightly larger for better visibility
+        const size = 5; 
         const flash = MeshBuilder.CreatePlane("flash", { size }, this.scene);
 
         const mat = new StandardMaterial("flashMat", this.scene);
@@ -233,9 +232,9 @@ export class OnlinePong3D implements GameEngine
         }, 30);
     }
 
-    // ==========================================
+    
     // INPUT 
-    // ==========================================
+   
     private sendInput(): void {
         const now = Date.now();
         if (now - this.lastInputSent < 16) 
@@ -274,9 +273,9 @@ export class OnlinePong3D implements GameEngine
         }
     }
 
-    // ==========================================
+  
     // SETUP
-    // ==========================================
+   
     private setupInput(): void {
         this.scene.onKeyboardObservable.add((kbInfo) => {
             const key = kbInfo.event.key.toLowerCase();
@@ -321,7 +320,7 @@ export class OnlinePong3D implements GameEngine
     // Babylon Setup
     private createCamera(): void 
     {
-        const xPos = this.playerSide === 'left' ? -110 : 110;       //Player1 Camera
+        const xPos = this.playerSide === 'left' ? -110 : 110;                 //Player1 Camera
         const yRot = this.playerSide === 'left' ? Math.PI / 2 : -Math.PI / 2; //Player2 Camera
         
         this.camera = new FreeCamera("camera", new Vector3(xPos, 90, 0), this.scene);
@@ -340,7 +339,7 @@ export class OnlinePong3D implements GameEngine
 
    private async createEnvironment(): Promise<void> 
     {
-        // 1. Invisible Ground (Physics)
+        //Invisible Ground 
         const ground = MeshBuilder.CreateGround(
             "ground", 
             { width: this.FIELD_WIDTH, height: this.FIELD_LENGTH }, 
@@ -350,10 +349,10 @@ export class OnlinePong3D implements GameEngine
         ground.visibility = 0; 
         ground.checkCollisions = true;
 
-        // 2. Skybox
+        //Skybox
         Skybox.createFromGLB(this.scene, "assets/images/skybox2.glb");
 
-        // 3. Floating Platform Model
+        //Floating Platform Model
         try {
             this.platform = await loadModel(
                 this.scene, 
@@ -372,22 +371,22 @@ export class OnlinePong3D implements GameEngine
         catch (error) { console.error("FAILED to load Game Platform:", error); }
 
         
-        // Define the glow material
+        
         const borderMat = new StandardMaterial("borderMat", this.scene);
         borderMat.diffuseColor = new Color3(0, 0, 0);
-        borderMat.emissiveColor = new Color3(0, 0.8, 1); // Cyan Glow
-        borderMat.alpha = 0.5; // Slight transparency
+        borderMat.emissiveColor = new Color3(0, 0.8, 1); 
+        borderMat.alpha = 0.5; 
 
         const lineThickness = 0.5; 
         
         // Top Boundary Line
         const topLine = MeshBuilder.CreateBox("topLine", { 
             width: this.FIELD_WIDTH, 
-            height: 0.1, // Very thin vertically
+            height: 0.1, 
             depth: lineThickness 
         }, this.scene);
         
-        // Position exactly at the positive Z limit
+        
         topLine.position = new Vector3(0, this.GROUND_HEIGHT + 0.05, this.FIELD_LENGTH / 2);
         topLine.material = borderMat;
 
@@ -398,7 +397,7 @@ export class OnlinePong3D implements GameEngine
             depth: lineThickness 
         }, this.scene);
 
-        // Position exactly at the negative Z limit
+        
         bottomLine.position = new Vector3(0, this.GROUND_HEIGHT + 0.05, -this.FIELD_LENGTH / 2);
         bottomLine.material = borderMat;
     }

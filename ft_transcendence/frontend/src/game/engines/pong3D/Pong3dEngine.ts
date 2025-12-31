@@ -177,13 +177,14 @@ export class Pong3D implements GameEngine
     private setupInput(): void 
     {
         this.scene.onKeyboardObservable.add((kbInfo: any) => {
-            // Ignore keyboard repeat events to prevent spam (only if property exists)
-            if ('repeat' in kbInfo.event && kbInfo.event.repeat) return;
+            
+            if ('repeat' in kbInfo.event && kbInfo.event.repeat) 
+                return;
             const key = kbInfo.event.key.toLowerCase();
             this.keys[key] = kbInfo.type === KeyboardEventTypes.KEYDOWN;
         });
         
-        // Clear all keys when window loses focus to prevent stuck keys
+        
         window.addEventListener('blur', () => {
             this.keys = {};
         });
@@ -533,7 +534,6 @@ export class Pong3D implements GameEngine
         } 
         else if (this.player2Score >= this.WINNING_SCORE) 
         {
-            // winner is not used, logic is handled by handleGameEnd
             this.handleGameEnd('player2');
         }
     }
@@ -571,8 +571,8 @@ export class Pong3D implements GameEngine
         
         // Player 1 (left paddle) - A/D keys
         const moveVector1 = new Vector3(0, 0, 0);
-        // Don't move if both opposing keys are pressed
-        if (!(this.keys[this.keybinds.p1.left] && this.keys[this.keybinds.p1.right])) {
+        if (!(this.keys[this.keybinds.p1.left] && this.keys[this.keybinds.p1.right])) 
+        {
             if (this.keys[this.keybinds.p1.left] && this.paddle_left.position.z < moveBoundary) 
                 moveVector1.z += paddleSpeed;
             else if (this.keys[this.keybinds.p1.right] && this.paddle_left.position.z > -moveBoundary) 
@@ -581,12 +581,13 @@ export class Pong3D implements GameEngine
         this.paddle_left.moveWithCollisions(moveVector1);
             
         
-        // Player 2 (right paddle) - only in multiplayer mode
+        // Player 2 (right paddle) 
         if (this.config.mode === 'local-multiplayer') 
         {
             const moveVector2 = new Vector3(0, 0, 0);
-            // Don't move if both opposing keys are pressed
-            if (!(this.keys[this.keybinds.p2.left] && this.keys[this.keybinds.p2.right])) {
+            
+            if (!(this.keys[this.keybinds.p2.left] && this.keys[this.keybinds.p2.right])) 
+            {
                 if (this.keys[this.keybinds.p2.left] && this.paddle_right.position.z < moveBoundary) 
                     moveVector2.z += paddleSpeed;
                 else if (this.keys[this.keybinds.p2.right] && this.paddle_right.position.z > -moveBoundary) 
@@ -616,7 +617,7 @@ export class Pong3D implements GameEngine
             this.scene.activeCamera = this.topCamera;
             this.keybinds.p1 = { left: "w", right: "s" };
             this.keybinds.p2 = { left: "arrowup", right: "arrowdown" };
-            //this.topCamera.attachControl(this.scene.getEngine().getRenderingCanvas()!, true); //for free camera if needed
+            
         } 
         else 
         {
@@ -659,14 +660,14 @@ export class Pong3D implements GameEngine
  
     initUi() 
     {
-        this.pauseUi = GUI.AdvancedDynamicTexture.CreateFullscreenUI("pause-ui", true, this.scene); //start pauseui 
+        this.pauseUi = GUI.AdvancedDynamicTexture.CreateFullscreenUI("pause-ui", true, this.scene); 
         const panel = new GUI.StackPanel;
         panel.isVisible = false;
-        panel.width = "800px";     // <-- required!
+        panel.width = "800px";     
         panel.height = "400px";
         panel.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
         panel.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-        this.pauseUi.addControl(panel);                         //create the menu panel and pass it to this.pauseUi
+        this.pauseUi.addControl(panel);                         
 
         
         const title = new GUI.TextBlock();

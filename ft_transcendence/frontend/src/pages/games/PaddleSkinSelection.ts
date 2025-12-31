@@ -119,6 +119,6 @@ export class PaddleSkinSelection extends BaseComponent
     
     public dispose(): void 
     {
-        // Cleanup
+        
     }
 }

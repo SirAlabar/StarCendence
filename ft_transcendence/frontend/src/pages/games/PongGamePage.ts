@@ -66,27 +66,31 @@ export default class PongGamePage extends BaseComponent {
             try {
                 await webSocketService.connect();
 
-            } catch (error) {
+            } 
+            catch (error) 
+            {
                 console.error('[PongGamePage] ❌ Failed to connect WebSocket:', error);
                 await Modal.alert('Connection Error', 'Failed to connect to game server. Please try again.');
                 navigateTo('/pong');
                 return;
             }
-        } else {
-
+        } 
+        else 
+        {
+            console.log('[PongGamePage] WebSocket already connected');
         }
 
         const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
         const wrapper = document.getElementById('canvas-wrapper') as HTMLDivElement;
         
-        if (!canvas || !wrapper) {
+        if (!canvas || !wrapper) 
+        {
             console.error('[PongGamePage] ❌ Canvas or wrapper not found in DOM');
             await Modal.alert('Error', 'Game canvas not found');
             navigateTo('/pong');
             return;
         }
 
-        // 1. Initial Sizing - set canvas size BEFORE game initialization
         this.fitCanvasToWrapper(canvas, wrapper);
 
         const gameConfig: GameConfig = {
@@ -117,12 +121,12 @@ export default class PongGamePage extends BaseComponent {
             if (scoreP1) scoreP1.innerText = '0';
             if (scoreP2) scoreP2.innerText = '0';
 
-            // 2. Setup Resize Observer AFTER game initialization
+            
             this.resizeObserver = new ResizeObserver(() => {
                 const oldWidth = canvas.width;
                 const oldHeight = canvas.height;
                 this.fitCanvasToWrapper(canvas, wrapper);
-                // Only resize game if dimensions actually changed
+                
                 if (oldWidth !== canvas.width || oldHeight !== canvas.height) {
                     gameManager.resizeGame(canvas.width, canvas.height);
                 }
@@ -136,18 +140,11 @@ export default class PongGamePage extends BaseComponent {
         }
     }
 
-    /**
-     * Sets internal canvas resolution to match CSS display size
-     * This prevents blurry rendering
-     */
-    private fitCanvasToWrapper(canvas: HTMLCanvasElement, wrapper: HTMLElement) {
-        // Set internal resolution to match displayed size
+    private fitCanvasToWrapper(canvas: HTMLCanvasElement, wrapper: HTMLElement) 
+    {
+       
         const newWidth = wrapper.clientWidth;
         const newHeight = wrapper.clientHeight;
-        
-
-        
-        // Ensure we have valid dimensions
         if (newWidth > 0 && newHeight > 0) {
             canvas.width = newWidth;
             canvas.height = newHeight;

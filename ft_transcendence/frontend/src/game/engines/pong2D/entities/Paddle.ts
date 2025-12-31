@@ -1,6 +1,6 @@
 import { PADDLE_COLORS } from "../../pong3D/entities/PaddleColor";
 
-//paddle for 2d
+
 export class paddle
 {
     x: number;                                                      //position on x

@@ -9,14 +9,14 @@ type GameStateStatus = 'menu' | 'matchmaking' | 'playing' | 'paused' | 'ended';
 type GameDimension = '2d' | '3d';
 
 export class GameManager {
-    // ...existing code...
+    
     private play_sound() 
     {
-        if (!this.playerPreferences.soundEnabled) return;
+        if (!this.playerPreferences.soundEnabled) 
+            return;
         const audio = new Audio('/assets/sounds/sfx/hit.mp3');
         audio.volume = this.playerPreferences.volume ?? 0.5;
         audio.play().catch(err => {
-            // Silently ignore autoplay errors - browser blocked autoplay
             console.debug('[PongManager] Audio autoplay blocked:', err.message);
         });
     }
@@ -47,7 +47,6 @@ export class GameManager {
     
     private constructor() 
     {
-        // this.loadPreferences(); // Method does not exist, so skip loading for now
         this.setupGlobalEventListeners();
     }
     
@@ -85,13 +84,12 @@ export class GameManager {
         this.currentConfig = config;
         this.currentDimension = dimension;
         
-        // Apply player preferences to config
         config.paddlecolor1 = config.paddlecolor1;
         config.paddlecolor2 = config.paddlecolor2 || this.playerPreferences.paddle2Color;
         
         try 
         {
-            // Create appropriate engine based on dimension and mode
+            
             if (dimension === '2d') 
             {
                 switch (config.mode) 
@@ -218,8 +216,7 @@ export class GameManager {
             console.warn('No game engine to resize');
             return;
         }
-        
-        // Only LocalPongEngine and Pong3D have resize methods
+    
         if ('resize' in this.currentEngine && typeof this.currentEngine.resize === 'function') 
         {
             this.currentEngine.resize(newWidth, newHeight);
@@ -346,7 +343,6 @@ export class GameManager {
         const event = new CustomEvent(eventName, { detail });
         window.dispatchEvent(event);
         
-        // Also call registered callbacks
         const listeners = this.eventListeners.get(eventName);
         if (listeners) 
         {
@@ -423,7 +419,6 @@ export class GameManager {
         const audio = new Audio('/assets/sounds/sfx/goal.mp3');
         audio.volume = 0.6;
         audio.play().catch(err => {
-            // Silently ignore autoplay errors - browser blocked autoplay
             console.debug('[PongManager] Audio autoplay blocked:', err.message);
         });
     }
@@ -432,7 +427,6 @@ export class GameManager {
         const audio = new Audio('/assets/sounds/sfx/gameend.mp3');
         audio.volume = 0.6;
         audio.play().catch(err => {
-            // Silently ignore autoplay errors - browser blocked autoplay
             console.debug('[PongManager] Audio autoplay blocked:', err.message);
         });
     }

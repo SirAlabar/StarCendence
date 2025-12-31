@@ -93,7 +93,6 @@ export default class Pong3DGamePage extends BaseComponent
             return;
         }
 
-        // 1. Initial Sizing - set canvas size BEFORE game initialization
         this.fitCanvasToWrapper(canvas, wrapper);
 
         const gameConfig: GameConfig = 
@@ -149,19 +148,11 @@ export default class Pong3DGamePage extends BaseComponent
         }
     }
 
-    /**
-     * Sets internal canvas resolution to match CSS display size
-     * This prevents blurry rendering
-     */
     private fitCanvasToWrapper(canvas: HTMLCanvasElement, wrapper: HTMLElement) 
     {
-        // Set internal resolution to match displayed size
+       
         const newWidth = wrapper.clientWidth;
         const newHeight = wrapper.clientHeight;
-        
-        console.log('[Pong3DGamePage] Fitting canvas:', newWidth, 'x', newHeight);
-        
-        // Ensure we have valid dimensions
         if (newWidth > 0 && newHeight > 0) 
         {
             canvas.width = newWidth;
