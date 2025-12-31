@@ -17,27 +17,44 @@ export default class PongGamePage extends BaseComponent {
 
     render(): string {
         return `
-            <div class="game-page-container d-flex flex-column align-items-center justify-content-center vh-100 bg-dark w-100">
+            <div class="w-full h-screen flex flex-col bg-gray-950">
+                <!-- Game HUD (Score, Back Button) -->
+                <div id="pongHUD" class="w-full px-4 py-4 bg-gray-900/80 border-b border-cyan-500/50">
+                    <div class="max-w-7xl mx-auto flex items-center justify-between">
+                        <!-- Score Display -->
+                        <div class="flex-1 flex justify-around items-center">
+                            <div class="text-center">
+                                <p class="text-xs sm:text-sm text-gray-400 mb-1">PLAYER 1</p>
+                                <p id="score-p1" class="text-3xl sm:text-4xl md:text-5xl font-bold text-cyan-400 font-mono">0</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-500">-</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-xs sm:text-sm text-gray-400 mb-1">PLAYER 2</p>
+                                <p id="score-p2" class="text-3xl sm:text-4xl md:text-5xl font-bold text-purple-400 font-mono">0</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Back Button -->
+                        <button id="gameBackBtn" class="ml-4 sm:ml-8 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm md:text-base transition-all">
+                            ← BACK
+                        </button>
+                    </div>
+                </div>
                 
-                <div class="game-header mb-3 text-white d-flex justify-content-between" style="width: 95%; max-width: 1400px;">
-                    <div class="player-1">
-                        <span class="badge bg-primary fs-5" id="score-p1">0</span>
-                        <span id="name-p1" class="ms-2">Player 1</span>
+                <!-- Main Content Area -->
+                <div class="flex-1 flex items-center justify-center p-4 overflow-auto">
+                    <div class="relative w-full max-w-7xl">
+                        <div id="canvas-wrapper" class="w-full rounded-2xl border-2 border-cyan-500 bg-black shadow-2xl shadow-cyan-500/50" 
+                             style="aspect-ratio: 16/9; position: relative;">
+                            <canvas id="pongCanvas" style="display: block; width: 100%; height: 100%; background-color: #0f0f1e;"></canvas>
+                        </div>
+                        
+                        <div class="mt-3 text-center text-gray-400 text-xs sm:text-sm">
+                            Controls: ${this.side === 'left' ? 'W / S' : 'Arrow Up / Arrow Down'} | Press ESC to Pause
+                        </div>
                     </div>
-                    <div class="game-timer" id="game-timer">00:00</div>
-                    <div class="player-2">
-                        <span id="name-p2" class="me-2">Player 2</span>
-                        <span class="badge bg-danger fs-5" id="score-p2">0</span>
-                    </div>
-                </div>
-
-                <div id="canvas-wrapper" class="shadow-lg border border-secondary rounded" 
-                     style="width: 95%; max-width: 1400px; aspect-ratio: 16/9; position: relative; background-color: #1a1a2e; margin: 0 auto;">
-                    <canvas id="pongCanvas" style="display: block; width: 100%; height: 100%; background-color: #0f0f1e;"></canvas>
-                </div>
-
-                <div class="mt-3 text-muted">
-                    <small>Controls: ${this.side === 'left' ? 'W / S' : 'Arrow Up / Arrow Down'} | Press ESC to Pause</small>
                 </div>
             </div>
         `;
@@ -157,6 +174,22 @@ export default class PongGamePage extends BaseComponent {
 
     private setupUIListeners() {
 
+        // Add back button listener
+        const gameBackBtn = document.getElementById('gameBackBtn');
+        if (gameBackBtn) {
+            gameBackBtn.addEventListener('click', async () => {
+                const result = await Modal.confirm(
+                    'Exit Game',
+                    'Are you sure you want to exit the game?',
+                    'EXIT',
+                    'CANCEL',
+                    true
+                );
+                if (result) {
+                    navigateTo('/pong');
+                }
+            });
+        }
         
         gameManager.on('game:score-update', (e: any) => {
             const scoreP1 = document.getElementById('score-p1');
