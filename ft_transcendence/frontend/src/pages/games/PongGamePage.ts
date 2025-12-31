@@ -6,12 +6,10 @@ import { Modal } from '../../components/common/Modal';
 import { GameConfig } from '@/game/utils/GameTypes';
 import { webSocketService } from '../../services/websocket/WebSocketService';
 
-
 export default class PongGamePage extends BaseComponent {
     private gameId: string | null = null;
     private side: 'left' | 'right' = 'left';
     private resizeObserver: ResizeObserver | null = null;
-
 
     constructor() {
         super();
@@ -19,46 +17,27 @@ export default class PongGamePage extends BaseComponent {
 
     render(): string {
         return `
-            <div class="w-full h-screen flex flex-col bg-gray-950">
-                <div id="pongMessage" class="w-full px-4 pt-4"></div>
+            <div class="game-page-container d-flex flex-column align-items-center justify-content-center vh-100 bg-dark w-100">
                 
-                <div id="pongHUD" class="w-full px-4 py-4 bg-gray-900/80 border-b border-cyan-500/50">
-                    <div class="max-w-7xl mx-auto flex items-center justify-between">
-                        <div class="flex-1 flex justify-around items-center">
-                            <div class="text-center">
-                                <p class="text-xs sm:text-sm text-gray-400 mb-1"><span id="player1Label">PLAYER 1</span></p>
-                                <p id="score1" class="text-3xl sm:text-4xl md:text-5xl font-bold text-cyan-400 font-mono">0</p>
-                            </div>
-                            <div class="text-center">
-                                <p class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-500">-</p>
-                            </div>
-                            <div class="text-center">
-                                <p class="text-xs sm:text-sm text-gray-400 mb-1"><span id="player2Label">PLAYER 2</span></p>
-                                <p id="score2" class="text-3xl sm:text-4xl md:text-5xl font-bold text-purple-400 font-mono">0</p>
-                            </div>
-                        </div>
-                        
-                        <button id="gameBackBtn" class="ml-4 sm:ml-8 px-4 sm:px-6 py-2 sm:py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm md:text-base transition-all">
-                            LEAVE MATCH
-                        </button>
+                <div class="game-header mb-3 text-white d-flex justify-content-between" style="width: 95%; max-width: 1400px;">
+                    <div class="player-1">
+                        <span class="badge bg-primary fs-5" id="score-p1">0</span>
+                        <span id="name-p1" class="ms-2">Player 1</span>
                     </div>
-                </div>
-                
-                <div class="flex-1 flex items-center justify-center p-4 overflow-auto">
-                    <div id="canvas-wrapper" class="relative w-full max-w-7xl h-full flex items-center justify-center">
-                        <canvas 
-                            id="pongCanvas" 
-                            class="w-full max-h-full rounded-2xl border-2 border-cyan-500 bg-black shadow-2xl shadow-cyan-500/50"
-                            style="display: block; aspect-ratio: 16/9;"
-                        ></canvas>
-                        
-                        <div id="winnerOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-40 rounded-2xl" style="display: none;">
-                        </div>
+                    <div class="game-timer" id="game-timer">00:00</div>
+                    <div class="player-2">
+                        <span id="name-p2" class="me-2">Player 2</span>
+                        <span class="badge bg-danger fs-5" id="score-p2">0</span>
                     </div>
                 </div>
 
-                <div class="absolute bottom-4 left-0 w-full text-center text-gray-500 text-xs sm:text-sm pointer-events-none">
-                     Controls: ${this.side === 'left' ? 'W / S' : 'Arrow Up / Arrow Down'}
+                <div id="canvas-wrapper" class="shadow-lg border border-secondary rounded" 
+                     style="width: 95%; max-width: 1400px; aspect-ratio: 16/9; position: relative; background-color: #1a1a2e; margin: 0 auto;">
+                    <canvas id="pongCanvas" style="display: block; width: 100%; height: 100%; background-color: #0f0f1e;"></canvas>
+                </div>
+
+                <div class="mt-3 text-muted">
+                    <small>Controls: ${this.side === 'left' ? 'W / S' : 'Arrow Up / Arrow Down'} | Press ESC to Pause</small>
                 </div>
             </div>
         `;
@@ -69,12 +48,13 @@ export default class PongGamePage extends BaseComponent {
         this.gameId = params.get('gameId');
         this.side = (params.get('side') as 'left' | 'right') || 'left';
         const userobj = LoginService.getCurrentUser();
-        console.log(userobj);
-        const userId = userobj?.username || userobj?.name;
-    
+        const userId = userobj?.sub || userobj?.id;
+        
 
-        if (!this.gameId || !userId) {
-            console.error('[PongGamePage]  Missing game parameters');
+
+        if (!this.gameId || !userId) 
+        {
+            console.error('[PongGamePage] ❌ Missing game parameters');
             await Modal.alert('Error', 'Missing game parameters (gameId required)');
             navigateTo('/pong');
             return;
@@ -82,34 +62,35 @@ export default class PongGamePage extends BaseComponent {
 
         // Ensure WebSocket is connected
         if (!webSocketService.isConnected()) {
-            console.warn('[PongGamePage] WebSocket not connected, attempting to connect...');
+            console.warn('[PongGamePage] ⚠️ WebSocket not connected, attempting to connect...');
             try {
                 await webSocketService.connect();
-            } catch (error) {
-                console.error('[PongGamePage] Failed to connect WebSocket:', error);
+
+            } 
+            catch (error) 
+            {
+                console.error('[PongGamePage] ❌ Failed to connect WebSocket:', error);
                 await Modal.alert('Connection Error', 'Failed to connect to game server. Please try again.');
                 navigateTo('/pong');
                 return;
             }
         } 
+        else 
+        {
+            console.log('[PongGamePage] WebSocket already connected');
+        }
 
         const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
         const wrapper = document.getElementById('canvas-wrapper') as HTMLDivElement;
-        const leaveBtn = document.getElementById('gameBackBtn');
         
-        if (!canvas || !wrapper) {
-            console.error('[PongGamePage] Canvas or wrapper not found in DOM');
+        if (!canvas || !wrapper) 
+        {
+            console.error('[PongGamePage] ❌ Canvas or wrapper not found in DOM');
             await Modal.alert('Error', 'Game canvas not found');
             navigateTo('/pong');
             return;
         }
 
-        // Attach Leave Listener
-        if (leaveBtn) {
-            leaveBtn.addEventListener('click', () => this.handleLeaveMatch());
-        }
-
-        // Initial Fit
         this.fitCanvasToWrapper(canvas, wrapper);
 
         const gameConfig: GameConfig = {
@@ -122,26 +103,28 @@ export default class PongGamePage extends BaseComponent {
         };
 
         try {
+
+            
             await gameManager.init2DGame(canvas, gameConfig, {
                 matchId: this.gameId,
                 side: this.side,
                 userId: userId
             });
 
+
             this.setupUIListeners();
             gameManager.startGame();
             
-            // Initialize scores
-            const score1 = document.getElementById('score1');
-            const score2 = document.getElementById('score2');
-            if (score1) score1.innerText = '0';
-            if (score2) score2.innerText = '0';
+            // Initialize scores to 0
+            const scoreP1 = document.getElementById('score-p1');
+            const scoreP2 = document.getElementById('score-p2');
+            if (scoreP1) scoreP1.innerText = '0';
+            if (scoreP2) scoreP2.innerText = '0';
 
-            // Responsive resizing
+            
             this.resizeObserver = new ResizeObserver(() => {
                 const oldWidth = canvas.width;
                 const oldHeight = canvas.height;
-                
                 this.fitCanvasToWrapper(canvas, wrapper);
                 
                 if (oldWidth !== canvas.width || oldHeight !== canvas.height) {
@@ -159,129 +142,47 @@ export default class PongGamePage extends BaseComponent {
 
     private fitCanvasToWrapper(canvas: HTMLCanvasElement, wrapper: HTMLElement) 
     {
-    
-        const availWidth = wrapper.clientWidth;
-        const availHeight = wrapper.clientHeight;
-    
-        const targetRatio = 16 / 9;
-        
-        let newWidth = availWidth;
-        let newHeight = availWidth / targetRatio;
-        
-        if (newHeight > availHeight) {
-            newHeight = availHeight;
-            newWidth = newHeight * targetRatio;
+       
+        const newWidth = wrapper.clientWidth;
+        const newHeight = wrapper.clientHeight;
+        if (newWidth > 0 && newHeight > 0) {
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+        } else {
+
+            canvas.width = 800;
+            canvas.height = 600;
         }
-        
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        canvas.style.width = `${newWidth}px`;
-        canvas.style.height = `${newHeight}px`;
     }
 
     private setupUIListeners() {
+
+        
         gameManager.on('game:score-update', (e: any) => {
-            const score1 = document.getElementById('score1');
-            const score2 = document.getElementById('score2');
-            
-            // Add a little pop animation when score updates
-            if (score1) {
-                const oldVal = score1.innerText;
-                const newVal = e.detail.player1Score?.toString() || '0';
-                if (oldVal !== newVal) {
-                    score1.innerText = newVal;
-                    this.animateScore(score1);
-                }
+            const scoreP1 = document.getElementById('score-p1');
+            const scoreP2 = document.getElementById('score-p2');
+            if (scoreP1) {
+                scoreP1.innerText = e.detail.player1Score?.toString() || '0';
             }
-            if (score2) {
-                const oldVal = score2.innerText;
-                const newVal = e.detail.player2Score?.toString() || '0';
-                if (oldVal !== newVal) {
-                    score2.innerText = newVal;
-                    this.animateScore(score2);
-                }
+            if (scoreP2) {
+                scoreP2.innerText = e.detail.player2Score?.toString() || '0';
             }
         });
 
         gameManager.on('game:ended', (e: any) => {
             const winner = e.detail.winner;
-            this.showWinnerOverlay(winner);
-        });
-    }
-
-    private animateScore(element: HTMLElement) {
-        element.classList.remove('scale-150', 'text-white');
-        void element.offsetWidth; 
-        element.classList.add('transition-transform', 'duration-200', 'scale-150', 'text-white');
-        setTimeout(() => {
-            element.classList.remove('scale-150', 'text-white');
-        }, 200);
-    }
-
-    private async handleLeaveMatch(): Promise<void> {
-        const result = await Modal.confirm(
-            'Leave Match',
-            'Are you sure? You will forfeit the game.',
-            'LEAVE',
-            'CANCEL',
-            true 
-        );
-        if (result) {
-        
-            this.dispose();
-            navigateTo('/pong');
-        }
-    }
-
-    private showWinnerOverlay(winner: string): void {
-        const overlay = document.getElementById('winnerOverlay');
-        if (!overlay) 
-            return;
-        
-        overlay.innerHTML = `
-            <div class="flex flex-col items-center justify-center gap-8 p-8 text-center animate-fade-in">
-                <div class="animate-pulse">
-                    <h2 class="text-6xl font-bold text-white mb-4">🏆</h2>
-                    <h3 class="text-4xl font-bold text-cyan-400 mb-2">${this.escapeHtml(winner)} Wins!</h3>
-                </div>
-                
-                <div class="flex flex-col sm:flex-row gap-4 mt-8">
-                    <button id="goBackBtn" class="px-8 py-4 rounded-lg bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white font-bold text-lg transition-all shadow-lg shadow-red-500/50">
-                         EXIT LOBBY
-                    </button>
-                </div>
-            </div>
-        `;
-        overlay.style.display = 'flex';
-        
-        const goBackBtn = overlay.querySelector('#goBackBtn');
-        if (goBackBtn) {
-            goBackBtn.addEventListener('click', () => {
-                this.dispose();
+            Modal.alert('Game Over', `${winner} Wins!`).then(() => {
                 navigateTo('/pong');
             });
-        }
-    }
-
-    private escapeHtml(text: string): string {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        });
     }
 
     dispose(): void {
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
-            this.resizeObserver = null;
         }
-        
-        
-        const leaveBtn = document.getElementById('gameBackBtn');
-        if (leaveBtn) {
-            const newBtn = leaveBtn.cloneNode(true);
-            leaveBtn.parentNode?.replaceChild(newBtn, leaveBtn);
-        }
-
         gameManager.cleanup();
     }
+
+    
 }
