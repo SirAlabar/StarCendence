@@ -511,9 +511,13 @@ export class GameLobby extends BaseComponent
         }
         else if (this.config.gameType === 'pong') 
         {
+            
+            const gradient = slot.paddleGradient || 'from-cyan-500 to-blue-600';
+            const name = slot.paddleName || 'Default';
+
             return `
-                <div class="w-10 h-16 bg-gradient-to-b from-cyan-500 to-blue-600 rounded-lg mb-1"></div>
-                <p class="text-cyan-300 font-bold text-xs text-center">Default Paddle</p>
+                <div class="w-10 h-16 bg-gradient-to-b ${gradient} rounded-lg mb-1"></div>
+                <p class="text-cyan-300 font-bold text-xs text-center">${name}</p>
             `;
         }
         
@@ -1189,8 +1193,6 @@ export class GameLobby extends BaseComponent
         {
             return;
         }
-
-        // Use the same paddle options as in renderPaddleOptions
         const PADDLE_OPTIONS = [
             { name: 'Default', color: 'from-cyan-500 to-blue-600' },
             { name: 'Fire', color: 'from-red-500 to-orange-600' },
@@ -1199,16 +1201,19 @@ export class GameLobby extends BaseComponent
             { name: 'Gold', color: 'from-yellow-500 to-amber-600' },
             { name: 'Ice', color: 'from-blue-300 to-cyan-400' }
         ];
+
         const option = PADDLE_OPTIONS[_paddleIndex];
         const slot = this.playerSlots[this.currentCustomizingSlot];
+        
         if (slot) 
         {
             slot.paddleName = option.name;
             slot.paddleGradient = option.color;
+            this.refreshPlayerCard(this.currentCustomizingSlot);
         }
+        
         this.closePaddleModal();
     }
-    
     
     private onPodSelected(event: PodSelectionEvent): void 
     {

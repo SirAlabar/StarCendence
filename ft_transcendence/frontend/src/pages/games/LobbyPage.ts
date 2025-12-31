@@ -288,7 +288,8 @@ export default class LobbyPage extends BaseComponent
                 userId: payload.userId,
                 username: payload.username,
                 isHost: payload.isHost,
-                isReady: payload.isReady || false
+                isReady: payload.isReady || false,
+                avatar: payload.avatarUrl,
             });
         }
     }
@@ -383,6 +384,7 @@ export default class LobbyPage extends BaseComponent
         isHost: boolean;
         isReady: boolean;
         joinedAt?: number;
+        avatar?: any;
     }): Promise<void> {
         if (!this.gameLobby) {
             console.error('[Lobby] ❌ gameLobby is null in loadAndAddPlayer!');
@@ -397,7 +399,7 @@ export default class LobbyPage extends BaseComponent
             isReady: playerData.isReady,
             isOnline: true,
             isAI: false,
-            avatarUrl: '/assets/images/default-avatar.jpeg'
+            avatarUrl: playerData.avatar || '/assets/images/default-avatar.jpeg'
         });
 
         // Try to load full profile asynchronously (won't block)
