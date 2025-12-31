@@ -99,6 +99,7 @@ export class OnlinePong3D implements GameEngine
 
         // Handle resize
         window.addEventListener("resize", () => this.engine.resize());
+        console.log(this.paused)
     }
 
    
@@ -299,7 +300,7 @@ export class OnlinePong3D implements GameEngine
         
         this.engine.runRenderLoop(() => 
         {
-            if (!this.paused && !this.ended) 
+            if (!this.ended) 
             {
                 this.scene.render();
                 this.sendInput(); 
@@ -414,10 +415,10 @@ export class OnlinePong3D implements GameEngine
 
         // Paddles
         const p1Color = this.getPaddleColor(this.config?.paddlecolor1 || 'default');
-        this.paddle_left = this.createPaddle("left_paddle", -this.FIELD_WIDTH / 2 + 5, p1Color);
+        this.paddle_left = this.createPaddle("left_paddle", -this.FIELD_WIDTH / 2 + 3, p1Color);
 
         const p2Color = this.getPaddleColor(this.config?.paddlecolor2 || 'default');
-        this.paddle_right = this.createPaddle("right_paddle", this.FIELD_WIDTH / 2 - 5, p2Color);
+        this.paddle_right = this.createPaddle("right_paddle", this.FIELD_WIDTH / 2 - 3, p2Color);
     }
 
     private createPaddle(name: string, xPos: number, color: {diffuse: Color3, emissive: Color3}): Mesh 
