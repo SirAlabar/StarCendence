@@ -72,7 +72,6 @@ export class GameLobby extends BaseComponent
         this.currentUser = null;
     }
     
-    // Load friends with status - SAME APPROACH AS PROFILEPAGE
     try 
     {
         // Get friends list from backend (includes status)
@@ -136,7 +135,6 @@ export class GameLobby extends BaseComponent
             });
         } catch (err) {
             console.warn('[GameLobby] OnlineFriendsService not available:', err);
-            // Not critical - we already have friend status from FriendService
         }
     }
     catch (err) 
@@ -1004,17 +1002,6 @@ export class GameLobby extends BaseComponent
             return;
         }
         
-        const slot = this.playerSlots[this.currentCustomizingSlot];
-        if (slot) 
-        {
-            slot.playerName = username;
-            slot.userId = userId;
-            slot.isOnline = true;
-            slot.isAI = false;
-            slot.isReady = false;
-            slot.avatarUrl = friend.avatarUrl;
-            slot.customization = this.config.gameType === 'podracer' ? AVAILABLE_PODS[this.currentCustomizingSlot % AVAILABLE_PODS.length] : null;
-        }
 
         // Send invite event to backend
         const lobbyId = this.getLobbyIdFromUrl();
