@@ -328,38 +328,46 @@ export default class LobbyPage extends BaseComponent
      * Handle game starting
      */
     private async handleGameStarting(payload: any): Promise<void> {
-        if (this.isGameStarting) {
+    if (this.isGameStarting) 
+        return;
+    this.isGameStarting = true;
 
-            return;
-        }
-        this.isGameStarting = true;
+    // 1. Determine side
+    let playerSide: 'left' | 'right' = 'left';
+    
+    // 2. Prepare default colors
+    let p1Color = 'default';
+    let p2Color = 'default';
 
-        
-        // Determine side: host is left, non-host is right
-        let playerSide: 'left' | 'right' = 'left';
-        if (this.gameLobby) {
-            playerSide = this.gameLobby.isCurrentUserHost() ? 'left' : 'right';
-        }
-        
+    if (this.gameLobby) 
+    {
+        playerSide = this.gameLobby.isCurrentUserHost() ? 'left' : 'right';
 
-        
-        // Wait a moment for dramatic effect
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Navigate to appropriate game page based on game type
-        if (this.gameType === 'racer') {
+        const slots = this.gameLobby.getPlayerSlots();
+        const p1 = slots.find(s => s.id === 0); 
+        const p2 = slots.find(s => s.id === 1); 
+        console.log(p1, p2)
 
-            await Modal.alert('Info', 'Racer multiplayer not yet implemented');
-            this.isGameStarting = false;
-        } else {
-            // Navigate to pong game WITH SIDE PARAMETER
-
-            if(this.gameType === 'pong2d')
-                navigateTo(`/pong-game?gameId=${payload.gameId}&side=${playerSide}&lobbyId=${this.lobbyId}`);
-            else if(this.gameType === 'pong3d')
-                navigateTo(`/pong-game3d?gameId=${payload.gameId}&side=${playerSide}&lobbyId=${this.lobbyId}`);
-        }
+        if (p1 && p1.paddleName) 
+            p1Color = p1.paddleName.toLowerCase();
+        if (p2 && p2.paddleName) 
+            p2Color = p2.paddleName.toLowerCase();
     }
+
+    
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    if (this.gameType === 'racer') {
+        await Modal.alert('Info', 'Racer multiplayer not yet implemented');
+        this.isGameStarting = false;
+    } else {
+        
+        const baseUrl = this.gameType === 'pong3d' ? '/pong-game3d' : '/pong-game';
+        const url = `${baseUrl}?gameId=${payload.gameId}&side=${playerSide}&lobbyId=${this.lobbyId}&p1Color=${p1Color}&p2Color=${p2Color}`;
+        
+        navigateTo(url);
+    }
+}
 
     /**
      * Handle lobby chat message

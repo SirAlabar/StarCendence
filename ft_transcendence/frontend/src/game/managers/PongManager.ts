@@ -84,7 +84,7 @@ export class GameManager {
         this.currentConfig = config;
         this.currentDimension = dimension;
         
-        config.paddlecolor1 = config.paddlecolor1;
+        config.paddlecolor1 = config.paddlecolor1 || this.playerPreferences.paddle1Color;
         config.paddlecolor2 = config.paddlecolor2 || this.playerPreferences.paddle2Color;
         
         try 

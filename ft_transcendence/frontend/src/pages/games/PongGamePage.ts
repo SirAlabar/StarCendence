@@ -66,7 +66,8 @@ export default class PongGamePage extends BaseComponent {
         this.side = (params.get('side') as 'left' | 'right') || 'left';
         const userobj = LoginService.getCurrentUser();
         const userId = userobj?.sub || userobj?.id;
-        
+        const p1Color = params.get('p1Color') || 'default';
+        const p2Color = params.get('p2Color') || 'default';
 
 
         if (!this.gameId || !userId) 
@@ -111,13 +112,13 @@ export default class PongGamePage extends BaseComponent {
         this.fitCanvasToWrapper(canvas, wrapper);
 
         const gameConfig: GameConfig = {
-            mode: 'online-multiplayer',
-            difficulty: 'easy',
-            paddlecolor1: undefined,
-            paddlecolor2: undefined,
-            gamewidth: canvas.width, 
-            gameheight: canvas.height
-        };
+        mode: 'online-multiplayer',
+        difficulty: 'easy',
+        paddlecolor1: p1Color as any, 
+        paddlecolor2: p2Color as any,
+        gamewidth: canvas.width, 
+        gameheight: canvas.height
+    };
 
         try {
 

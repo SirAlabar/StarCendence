@@ -524,6 +524,10 @@ export class GameLobby extends BaseComponent
         return '<p class="text-gray-600 text-xs text-center">No customization</p>';
     }
     
+    public getPlayerSlots(): PlayerSlot[] 
+    {
+        return this.playerSlots;
+    }
     
     
     private updateFriendsList(): void 
