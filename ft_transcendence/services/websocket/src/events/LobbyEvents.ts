@@ -2,7 +2,7 @@ import { EventManager } from './EventManager';
 import { ConnectionInfo, WebSocketMessage } from '../types/connection.types';
 import { redisBroadcast } from '../broadcasting/RedisBroadcast';
 
-const lobbyEvents = ['lobby:create', 'lobby:join', 'lobby:leave', 'lobby:kick', 'lobby:ready', 'lobby:start', 'lobby:chat'];
+const lobbyEvents = ['lobby:create', 'lobby:invite', 'lobby:join', 'lobby:leave', 'lobby:kick', 'lobby:ready', 'lobby:start', 'lobby:chat'];
 
 for (const eventType of lobbyEvents)
 {

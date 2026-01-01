@@ -1,19 +1,31 @@
-import { GameConfig, GameState, GameEvent, IGameEngine, Paddlecolor } from '../utils/GameTypes';
+import { GameConfig, GameState, GameEvent, GameEngine, Paddlecolor } from '../utils/GameTypes';
 import { LocalPongEngine } from '../engines/pong2D/Pong2dEngine';
 import { Pong3D } from '../engines/pong3D/Pong3dEngine';
-
+import { webSocketService } from '@/services/websocket/WebSocketService';
+import { OnlinePongEngine } from '../engines/pong2D/Pong2dOnline';
+import { OnlinePong3D } from '../engines/pong3D/Pong3dOnline';
 
 type GameStateStatus = 'menu' | 'matchmaking' | 'playing' | 'paused' | 'ended';
 type GameDimension = '2d' | '3d';
 
-export class ImprovedGameManager 
-{
-    private static instance: ImprovedGameManager;
+export class GameManager {
+    
+    private play_sound() 
+    {
+        if (!this.playerPreferences.soundEnabled) 
+            return;
+        const audio = new Audio('/assets/sounds/sfx/hit.mp3');
+        audio.volume = this.playerPreferences.volume ?? 0.5;
+        audio.play().catch(err => {
+            console.debug('[PongManager] Audio autoplay blocked:', err.message);
+        });
+    }
+    private static instance: GameManager;
     
     // Current game
-    private currentEngine: IGameEngine | null = null;
-    private currentState: GameStateStatus = 'menu';
-    private currentConfig: GameConfig | null = null;
+    private currentEngine: GameEngine | null = null;      //start,stop,pause,resume,destoy,getstate,onevent
+    private currentState: GameStateStatus = 'menu';       
+    private currentConfig: GameConfig | null = null;      
     private currentDimension: GameDimension | null = null;
     
     // Canvas reference
@@ -35,33 +47,32 @@ export class ImprovedGameManager
     
     private constructor() 
     {
-        this.loadPreferences();
         this.setupGlobalEventListeners();
     }
     
     // Singleton
-    public static getInstance(): ImprovedGameManager 
+    public static getInstance(): GameManager 
     {
-        if (!ImprovedGameManager.instance) {
-            ImprovedGameManager.instance = new ImprovedGameManager();
+        if (!GameManager.instance) {
+            GameManager.instance = new GameManager();
         }
-        return ImprovedGameManager.instance;
+        return GameManager.instance;
     }
     
     
-    public async init2DGame(canvas: HTMLCanvasElement, config: GameConfig): Promise<void> 
+    public async init2DGame(canvas: HTMLCanvasElement, config: GameConfig, onlineData?:{matchId: string; side: 'left' | 'right'; userId: string}): Promise<void> 
     {
-        return this.initGame(canvas, config, '2d');
+        return this.initGame(canvas, config, '2d', onlineData);
     }
     
    
-    public async init3DGame(canvas: HTMLCanvasElement, config: GameConfig): Promise<void> 
+    public async init3DGame(canvas: HTMLCanvasElement, config: GameConfig, onlineData?:{matchId: string; side: 'left' | 'right'; userId: string}): Promise<void> 
     {
-        return this.initGame(canvas, config, '3d');
+        return this.initGame(canvas, config, '3d', onlineData);
     }
     
     
-    private async initGame(canvas: HTMLCanvasElement, config: GameConfig, dimension: GameDimension): Promise<void> 
+    private async initGame(canvas: HTMLCanvasElement, config: GameConfig, dimension: GameDimension, onlineData?:{matchId: string; side: 'left' | 'right'; userId: string}): Promise<void> 
     {
         if (this.currentState === 'playing') 
         {
@@ -73,13 +84,12 @@ export class ImprovedGameManager
         this.currentConfig = config;
         this.currentDimension = dimension;
         
-        // Apply player preferences to config
-        config.paddlecolor1 = config.paddlecolor1;
+        config.paddlecolor1 = config.paddlecolor1 || this.playerPreferences.paddle1Color;
         config.paddlecolor2 = config.paddlecolor2 || this.playerPreferences.paddle2Color;
         
         try 
         {
-            // Create appropriate engine based on dimension and mode
+            
             if (dimension === '2d') 
             {
                 switch (config.mode) 
@@ -90,7 +100,18 @@ export class ImprovedGameManager
                         break;
                         
                     case 'online-multiplayer':
-                        throw new Error('Online multiplayer not yet implemented');
+                        if (!onlineData) 
+                            throw new Error('Missing online game data');
+                        
+                        this.currentEngine = new OnlinePongEngine(
+                            canvas, 
+                            config, 
+                            webSocketService, 
+                            onlineData.matchId, 
+                            onlineData.userId, 
+                            onlineData.side
+                        );
+                        break;
                         
                     default:
                         throw new Error(`Unknown game mode: ${config.mode}`);
@@ -106,7 +127,18 @@ export class ImprovedGameManager
                         break;
                         
                     case 'online-multiplayer':
-                        throw new Error('3D Online multiplayer not yet implemented');
+                        if (!onlineData) 
+                            throw new Error('Missing online game data');
+                        
+                        this.currentEngine = new OnlinePong3D(
+                            canvas, 
+                            config, 
+                            webSocketService, 
+                            onlineData.matchId, 
+                            onlineData.userId, 
+                            onlineData.side
+                        );
+                        break;
                         
                     default:
                         throw new Error(`Unknown game mode: ${config.mode}`);
@@ -143,11 +175,9 @@ export class ImprovedGameManager
             console.error('No game initialized');
             return;
         }
-
         this.currentState = 'playing';
         this.currentEngine.start();
         this.emitEvent('game:started', {});
-        this.emitEvent('Player info: ola', {});
         
     }
     
@@ -179,6 +209,20 @@ export class ImprovedGameManager
             this.pauseGame();
         else if (this.currentState === 'paused') 
             this.resumeGame();
+    }
+    
+    public resizeGame(newWidth: number, newHeight: number): void 
+    {
+        if (!this.currentEngine) 
+        {
+            console.warn('No game engine to resize');
+            return;
+        }
+    
+        if ('resize' in this.currentEngine && typeof this.currentEngine.resize === 'function') 
+        {
+            this.currentEngine.resize(newWidth, newHeight);
+        }
     }
     
     public cleanup(): void 
@@ -273,7 +317,6 @@ export class ImprovedGameManager
         return this.playerPreferences.lastDimension;
     }
     
-
     
     public on(eventName: string, callback: EventListener): void 
     {
@@ -302,7 +345,6 @@ export class ImprovedGameManager
         const event = new CustomEvent(eventName, { detail });
         window.dispatchEvent(event);
         
-        // Also call registered callbacks
         const listeners = this.eventListeners.get(eventName);
         if (listeners) 
         {
@@ -310,7 +352,6 @@ export class ImprovedGameManager
         }
     }
     
-
     
     private setupGlobalEventListeners(): void 
     {
@@ -373,58 +414,24 @@ export class ImprovedGameManager
         try 
         {
             localStorage.setItem('pong_preferences', JSON.stringify(this.playerPreferences));
-        } 
-        catch (e) 
-        {
-            console.warn('Failed to save preferences:', e);
-        }
+        } catch (e) {}
     }
-    
-    private loadPreferences(): void 
-    {
-        try 
-        {
-            const saved = localStorage.getItem('pong_preferences');
-            if (saved) 
-            {
-                this.playerPreferences = { ...this.playerPreferences, ...JSON.parse(saved) };
-            }
-        } 
-        catch (e) 
-        {
-            console.warn('Failed to load preferences:', e);
-        }
-    }
-    
-    
-    public destroy(): void 
-    {
-        this.cleanup();
-        this.eventListeners.clear();
-       
-    }
-
-    private play_sound() 
-    {
-        const audio = new Audio('../../../../public/assets/sounds/sfx/paddlehit.mp3');
-        audio.volume = 0.6;
-        audio.play();
-    }
-
     private play_sound_goal() 
     {
-        const audio = new Audio('../../../../public/assets/sounds/sfx/goal.mp3');
+        const audio = new Audio('/assets/sounds/sfx/goal.mp3');
         audio.volume = 0.6;
-        audio.play();
+        audio.play().catch(err => {
+            console.debug('[PongManager] Audio autoplay blocked:', err.message);
+        });
     }
-
     private play_sound_end() 
     {
-        const audio = new Audio('../../../../public/assets/sounds/sfx/gameend.mp3');
+        const audio = new Audio('/assets/sounds/sfx/gameend.mp3');
         audio.volume = 0.6;
-        audio.play();
+        audio.play().catch(err => {
+            console.debug('[PongManager] Audio autoplay blocked:', err.message);
+        });
     }
 }
-
 // Export singleton instance
-export const gameManager = ImprovedGameManager.getInstance();
+export const gameManager = GameManager.getInstance();

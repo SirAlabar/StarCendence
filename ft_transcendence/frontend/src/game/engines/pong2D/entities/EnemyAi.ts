@@ -1,14 +1,12 @@
-// EnemyAi.ts - Improved AI with ball prediction (1 second decision interval)
-
 import { Ball } from "./Ball";
 
 export type AiDifficulty = 'easy' | 'hard';
 
 interface DifficultySettings 
 {
-    errorMargin: number;                        // How far off from perfect positioning
-    missChance: number;                         // Probability of intentional miss (0-1)
-    predictionAccuracy: number;                 // How accurate ball prediction is (0-1)
+    errorMargin: number;                        
+    missChance: number;                         
+    predictionAccuracy: number;                 
 }
 
 export class enemy 
@@ -21,7 +19,7 @@ export class enemy
     score: number = 0;
     color: string = "red";
 
-    // AI-specific properties
+  
     private targetY: number;
     private difficulty: AiDifficulty;
     private settings: DifficultySettings;
@@ -70,11 +68,7 @@ export class enemy
         }
         const error = (Math.random() - 0.5) * this.settings.errorMargin;
         this.targetY += error;
-
-        // Clamp target to canvas bounds
         this.targetY = Math.max(this.height / 2, Math.min(canvasHeight - this.height / 2, this.targetY));
-
-        // Return movement decision
         return this.getMovementDirection();
     }
 
@@ -82,11 +76,10 @@ export class enemy
 
     private predictBallPosition(ball: Ball, canvasHeight: number): number {
         
-        // Only predict if ball is moving towards the AI paddle
+       
         if (ball.dx <= 0) 
             return canvasHeight / 2;
 
-        // Calculate time until ball reaches paddle
         const distanceToTravel = this.x - ball.x;
         if (distanceToTravel <= 0) 
             return ball.y;
@@ -116,7 +109,6 @@ export class enemy
                 simDy = -Math.abs(simDy);           // Reverse direction (going up now)
             }
             
-            // Stop if we've reached the paddle
             if (simX >= this.x) 
                 break;
         }
@@ -165,7 +157,6 @@ export class enemy
         else if (this.targetY > centerY + 5) 
             this.y += effectiveSpeed;
 
-        // Keep within bounds
         if (this.y < 0) this.y = 0;
         if (this.y + this.height > canvasHeight)
             this.y = canvasHeight - this.height;
@@ -173,29 +164,21 @@ export class enemy
 
 
     draw(ctx: CanvasRenderingContext2D): void 
-        {
+    {
             
             let color = this.color.startsWith('#') ? this.color : '#ff0000';
-
-            // Optional pulse animation
             const t = Date.now() / 300;
-            const pulse = (Math.sin(t) + 1) / 2; // 0–1
+            const pulse = (Math.sin(t) + 1) / 2; 
             const glow = 10 + pulse * 15;
-
-            // Create gradient
             const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y + this.height);
             gradient.addColorStop(0, color);
             gradient.addColorStop(0.5, `${color}aa`);
             gradient.addColorStop(1, `${color}33`);
-
-            // Draw glowing paddle
             ctx.shadowColor = color;
             ctx.shadowBlur = glow;
             ctx.fillStyle = gradient;
             ctx.fillRect(this.x, this.y, this.width, this.height);
-
-            // Reset shadow so other drawings aren't affected
             ctx.shadowBlur = 0;
-        }
+    }
 
 }

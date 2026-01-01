@@ -50,6 +50,7 @@ export class LocalPongEngine
             throw Error("Failed to get 2d Context");
         this.ctx = ctx;
 
+
         //start game objects
         this.ball = new Ball(canvas.width/2, canvas.height/2, 10);
         this.ball.dx = 3;
@@ -102,7 +103,7 @@ private async loadPlayerProfiles(): Promise<void>
     } 
     catch 
     {
-        // Silent fail - player continues as guest
+        
     }
 }
 
@@ -111,12 +112,12 @@ private async loadPlayerProfiles(): Promise<void>
         if (this.paused)
             this.paused = false;
 
-        this.starttime = Date.now();    // record countdown start
+        this.starttime = Date.now();    
 
         if (this.config.mode === 'ai' && this.enemy)
             this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
 
-        this.update();  // start rendering immediately
+        this.update();  
     }
 
     stop(): void 
@@ -153,28 +154,16 @@ private async loadPlayerProfiles(): Promise<void>
                 y: this.ball.y,
                 dx: this.ball.dx,
                 dy: this.ball.dy,
-                radius: this.ball.radius
+               
             },
             paddle1: 
             {
-                x: this.paddleleft.x,
                 y: this.paddleleft.y,
-                width: this.paddleleft.width,
-                height: this.paddleleft.height,
-                color: this.config.paddlecolor1 || 'default'
+        
             },
             paddle2: 
             {
-                x: this.paddleright.x,
                 y: this.paddleright.y,
-                width: this.paddleright.width,
-                height: this.paddleright.height,
-                color: this.config.paddlecolor2 || 'default'
-            },
-            scores: 
-            {
-                player1: this.player1.score,
-                player2: this.player2?.score || this.enemy?.score || 0
             },
             timestamp: Date.now()
         };
@@ -215,8 +204,6 @@ private async loadPlayerProfiles(): Promise<void>
 
         this.clear();
         this.updatePaddles();
-
-        // Only move the ball if the game actually started
         if (this.gameStarted) 
         {
             this.updateBall();
@@ -257,25 +244,29 @@ private async loadPlayerProfiles(): Promise<void>
         const speed = this.paddleleft.speed;
         
         // Player 1 (left paddle)
-        if (this.keys['w'] && this.paddleleft.y > 0) 
-        {
-            this.paddleleft.y -= speed;
-        }
-        if (this.keys['s'] && this.paddleleft.y + this.paddleleft.height < this.canvas.height) 
-        {
-            this.paddleleft.y += speed;
+        if (!(this.keys['w'] && this.keys['s'])) {
+            if (this.keys['w'] && this.paddleleft.y > 0) 
+            {
+                this.paddleleft.y -= speed;
+            }
+            else if (this.keys['s'] && this.paddleleft.y + this.paddleleft.height < this.canvas.height) 
+            {
+                this.paddleleft.y += speed;
+            }
         }
         
         // Player 2 / AI (right paddle)
         if (this.config.mode === 'local-multiplayer') 
         {
-            if (this.keys['arrowup'] && this.paddleright.y > 0) 
-            {
-                this.paddleright.y -= speed;
-            }
-            if (this.keys['arrowdown'] && this.paddleright.y + this.paddleright.height < this.canvas.height) 
-            {
-                this.paddleright.y += speed;
+            if (!(this.keys['arrowup'] && this.keys['arrowdown'])) {
+                if (this.keys['arrowup'] && this.paddleright.y > 0) 
+                {
+                    this.paddleright.y -= speed;
+                }
+                else if (this.keys['arrowdown'] && this.paddleright.y + this.paddleright.height < this.canvas.height) 
+                {
+                    this.paddleright.y += speed;
+                }
             }
         } 
         else if (this.config.mode === 'ai' && this.enemy) 
@@ -409,7 +400,8 @@ private async loadPlayerProfiles(): Promise<void>
     
     private clear(): void 
     {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillStyle = '#0f0f1e';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
     
     private render(): void 
@@ -425,6 +417,26 @@ private async loadPlayerProfiles(): Promise<void>
         else if (this.enemy) 
         {
             this.enemy.draw(this.ctx);
+        }
+
+        // Debug: Draw scores and countdown
+        this.ctx.fillStyle = "white";
+        this.ctx.font = "32px Arial";
+        this.ctx.textAlign = "center";
+        
+        // Draw scores
+        this.ctx.fillText(`${this.player1.score}`, this.canvas.width / 4, 50);
+        const player2Score = this.player2?.score ?? this.enemy?.score ?? 0;
+        this.ctx.fillText(`${player2Score}`, (this.canvas.width / 4) * 3, 50);
+
+        // Draw countdown if game hasn't started
+        if (!this.gameStarted) {
+            const elapsed = Date.now() - this.starttime;
+            const remaining = Math.ceil((this.startdelay - elapsed) / 1000);
+            if (remaining > 0) {
+                this.ctx.font = "64px Arial";
+                this.ctx.fillText(`${remaining}`, this.canvas.width / 2, this.canvas.height / 2);
+            }
         }
         
     }
@@ -457,6 +469,10 @@ private async loadPlayerProfiles(): Promise<void>
     
     private keydownHandler = (e: KeyboardEvent) => 
     {
+        
+        if (e.repeat) 
+            return;
+        
         const key = e.key.toLowerCase();
         this.keys[key] = true;
 
@@ -475,16 +491,23 @@ private async loadPlayerProfiles(): Promise<void>
         this.keys[e.key.toLowerCase()] = false;
     };
     
+    private blurHandler = (): void => 
+    {
+        this.keys = {};
+    };
+    
     private setupInputHandlers(): void 
     {
         window.addEventListener('keydown', this.keydownHandler);
         window.addEventListener('keyup', this.keyupHandler);
+        window.addEventListener('blur', this.blurHandler);
     }
     
     private removeInputHandlers(): void 
     {
         window.removeEventListener('keydown', this.keydownHandler);
         window.removeEventListener('keyup', this.keyupHandler);
+        window.removeEventListener('blur', this.blurHandler);
     }
     
 

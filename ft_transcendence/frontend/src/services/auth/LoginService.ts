@@ -291,6 +291,7 @@ export class LoginService
         {
             // Decode JWT token (basic decode, not verification)
             const payload = JSON.parse(atob(token.split('.')[1]));
+            
             return payload;
         } 
         catch (error) 

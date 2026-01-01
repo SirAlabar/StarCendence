@@ -1,6 +1,6 @@
 import { PADDLE_COLORS } from "../../pong3D/entities/PaddleColor";
 
-//paddle for 2d
+
 export class paddle
 {
     x: number;                                                      //position on x
@@ -24,9 +24,9 @@ export class paddle
         this.color = color.toHexString();
 
         if(side === 'left')                                         //if constructor called with left position left paddle
-            this.x = 30;
+            this.x = 20;
         if(side === 'right')                                        //if constructor called with right position right paddle
-            this.x = canvas.width - this.width - 30;
+            this.x = canvas.width - this.width - 20;
     }
 
     update(canvas: HTMLCanvasElement)                       

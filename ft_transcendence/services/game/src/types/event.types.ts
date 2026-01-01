@@ -183,14 +183,6 @@ export class RedisChannels
   }
   
   /**
-   * Get chat channel for a game
-   */
-  static gameChat(gameId: string): string
-  {
-    return `game:${gameId}:chat`;
-  }
-  
-  /**
    * Get tournament updates channel
    */
   static tournamentUpdates(tournamentId: string): string

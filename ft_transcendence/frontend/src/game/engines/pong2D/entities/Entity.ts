@@ -1,5 +1,3 @@
-// Base entity class
-
 export abstract class Entity
 {
     x: number;

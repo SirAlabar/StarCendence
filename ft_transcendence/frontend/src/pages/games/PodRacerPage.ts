@@ -133,7 +133,7 @@ export default class PodRacerPage extends BaseComponent
 
                 setTimeout(() => 
                 {
-                    localStorage.setItem('redirectAfterLogin', '/racer-lobby');
+                    localStorage.setItem('redirectAfterLogin', '/lobby?game=racer');
                     navigateTo('/login');
                 }, 3000);
 
@@ -141,7 +141,7 @@ export default class PodRacerPage extends BaseComponent
             }
             
             // Navigate to racer lobby if authenticated
-            navigateTo('/racer-lobby');
+            navigateTo('/lobby?game=racer');
         }
     }
 

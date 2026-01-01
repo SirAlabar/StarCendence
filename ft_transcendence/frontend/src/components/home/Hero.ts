@@ -53,9 +53,24 @@ export class Hero extends BaseComponent
 
   async mount(): Promise<void> 
   {
-    const section = document.getElementById('hero-section')!;
+    const section = document.getElementById('hero-section');
+    if (!section) {
+      console.error('[Hero] Hero section not found');
+      return;
+    }
+
     this.canvas = document.getElementById('hero-hover-canvas') as HTMLCanvasElement;
-    this.gl = this.canvas.getContext('webgl')!;
+    if (!this.canvas) {
+      console.error('[Hero] Canvas element not found');
+      return;
+    }
+
+    const gl = this.canvas.getContext('webgl');
+    if (!gl) {
+      console.error('[Hero] WebGL not supported');
+      return;
+    }
+    this.gl = gl;
 
     this.setupCanvas(section);
     this.setupShaders();
@@ -72,6 +87,8 @@ export class Hero extends BaseComponent
   {
     const resize = () =>
     {
+      if (!this.gl) return;
+      
       const rect = section.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
       this.canvas.width = rect.width * dpr;
