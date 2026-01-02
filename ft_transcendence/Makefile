@@ -411,7 +411,10 @@ nginx_service_restart:
 nodemon_restart:
 	@printf "$(YELLOW)🔄 Restarting nodemon...$(DEFAULT)\n"
 	@docker exec -it transcendence_auth sh -c "PID=$$(lsof -ti :3001); if [ -n \"$$PID\" ]; then kill $$PID; fi"
+	@docker exec -it transcendence_game sh -c "PID=$$(lsof -ti :3002); if [ -n \"$$PID\" ]; then kill $$PID; fi"
+	@docker exec -it transcendence_chat sh -c "PID=$$(lsof -ti :3003); if [ -n \"$$PID\" ]; then kill $$PID; fi"
 	@docker exec -it transcendence_user sh -c "PID=$$(lsof -ti :3004); if [ -n \"$$PID\" ]; then kill $$PID; fi"
+	@docker exec -it transcendence_websocket sh -c "PID=$$(lsof -ti :3005); if [ -n \"$$PID\" ]; then kill $$PID; fi"
 	@printf "$(GREEN)✅ nodemon restarted!$(DEFAULT)\n"
 
 db_clean:
