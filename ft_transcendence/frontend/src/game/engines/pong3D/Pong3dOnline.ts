@@ -231,7 +231,9 @@ export class OnlinePong3D implements GameEngine
                 break;
             case 'game-end':
                 this.ended = true;
-                this.emitEvent({ type: 'game-ended', winner: event.data?.winner });
+                // Prefer human-readable winner name if provided by server
+                const winnerName = event.data?.winnerName || event.data?.winner;
+                this.emitEvent({ type: 'game-ended', winner: winnerName });
                 break;
         }
     }

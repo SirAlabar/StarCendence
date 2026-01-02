@@ -184,9 +184,11 @@ export class OnlinePongEngine implements GameEngine
                 
             case 'game-end':
                 this.ended = true;
+                // Prefer human-readable winner name if provided by server
+                const winnerName = event.data?.winnerName || event.data?.winner;
                 this.emitEvent({
                     type: 'game-ended',
-                    winner: event.data?.winner || 'player1'
+                    winner: winnerName || 'player1'
                 });
                 break;
         }

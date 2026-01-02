@@ -9,6 +9,7 @@ import { RedisChannels } from '../types/event.types';
 import * as gameRepository from '../repositories/gameRepository';
 import { notFound } from '../utils/HttpError';
 import { PongEngine, PongEvent } from '../engines/PongEngine';
+import { determineWinner } from '../utils/scoreUtils';
 
 const { GAME_LOOP } = GAME_CONFIG;
 
@@ -244,17 +245,27 @@ async function broadcastGameEvent(gameId: string, event: PongEvent): Promise<voi
   const redis = await getRedisClient();
   if (redis) {
     const playerIds = Array.from(session.players.keys());
-    
+    // If this is a game-end event, try to include a human-readable winner name
+    const eventPayload = {
+      type: event.type,
+      data: { ...event.data },
+    } as any;
+
+    if (event.type === 'game-end' && event.data && event.data.winner) {
+      const winnerId = event.data.winner as string;
+      const winnerPlayer = session.players.get(winnerId);
+      if (winnerPlayer && winnerPlayer.username) {
+        eventPayload.data.winnerName = winnerPlayer.username;
+      }
+    }
+
     await redis.publish('websocket:broadcast', JSON.stringify({
       userIds: playerIds,
       message: {
         type: 'game:event',
         payload: {
           gameId,
-          event: {
-            type: event.type,
-            data: event.data,
-          },
+          event: eventPayload,
         },
         timestamp: Date.now(),
       },
@@ -323,7 +334,23 @@ export async function endGameSession(gameId: string): Promise<void>
   const redis = await getRedisClient();
   if (redis) {
     const playerIds = Array.from(session.players.keys());
-    
+    // Try to attach winner id and human-readable name
+    let winnerId: string | undefined;
+    if (engine && typeof engine.getWinner === 'function') {
+      winnerId = engine.getWinner() || undefined;
+    }
+    if (!winnerId) {
+      // fallback to score utility
+      try {
+        const playersArray = Array.from(session.players.values());
+        winnerId = determineWinner(playersArray as any);
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    const winnerName = winnerId ? session.players.get(winnerId)?.username : undefined;
+
     await redis.publish('websocket:broadcast', JSON.stringify({
       userIds: playerIds,
       message: {
@@ -332,6 +359,8 @@ export async function endGameSession(gameId: string): Promise<void>
           gameId,
           message: 'Game finished',
           finalScores,
+          winnerId: winnerId,
+          winnerName: winnerName,
         },
         timestamp: Date.now(),
       },
