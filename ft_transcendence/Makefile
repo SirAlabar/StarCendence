@@ -390,6 +390,18 @@ chat_service_restart:
 	@docker compose up chat-service -d --force-recreate
 	@printf "$(GREEN)✅ chat-service restarted!$(DEFAULT)\n"
 
+game_service_restart:
+	@printf "$(YELLOW)🔄 Restarting game-service...$(DEFAULT)\n"
+	@docker compose build --no-cache game-service
+	@docker compose up game-service -d --force-recreate
+	@printf "$(GREEN)✅ game-service restarted!$(DEFAULT)\n"
+
+websocket_service_restart:
+	@printf "$(YELLOW)🔄 Restarting websocket-service...$(DEFAULT)\n"
+	@docker compose build --no-cache websocket-service
+	@docker compose up websocket-service -d --force-recreate
+	@printf "$(GREEN)✅ websocket-service restarted!$(DEFAULT)\n"
+
 nginx_service_restart:
 	@printf "$(YELLOW)🔄 Restarting nginx...$(DEFAULT)\n"
 	@docker compose build --no-cache nginx

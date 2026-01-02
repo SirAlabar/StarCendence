@@ -1,33 +1,27 @@
 #!/bin/bash
 set -e
 
-echo "🎮 Starting Game Service..."
-
-# Ensure data directory exists
-mkdir -p /app/data
+echo "Starting Game Service..."
 
 # Set DATABASE_URL for Prisma
 export DATABASE_URL="file:/app/data/game.db"
 
-# Push database schema (creates/updates tables)
-echo "📊 Pushing database schema..."
-npx prisma db push --skip-generate --accept-data-loss
-
-# Build TypeScript if dist doesn't exist or in development
-if [ ! -d "/app/dist" ] || [ "$NODE_ENV" = "development" ]; then
-    echo "🔨 Building TypeScript..."
-    npm run build
+# Check if database exists, if not create it
+if [ ! -f "prisma/auth.db" ]; then
+    echo " Database not found, initializing..."
+    npx prisma db push
+    echo " Database initialized successfully"
+else
+    echo " Database already exists"
 fi
 
-# Check if build succeeded
-if [ ! -f "/app/dist/server.js" ]; then
-    echo "❌ Error: dist/server.js not found after build"
-    echo "📂 Contents of /app:"
-    ls -la /app
-    echo "📂 Contents of /app/dist:"
-    ls -la /app/dist || echo "dist folder doesn't exist"
-    exit 1
+if [ "${PRISMA_STUDIO:-}" = "1" ] || [ "${PRISMA_STUDIO:-}" = "true" ]; then
+  echo " Starting Prisma Studio on ${PRISMA_STUDIO_PORT:-5003}..."
+  npx prisma studio --port ${PRISMA_STUDIO_PORT:-5003} --browser none &
 fi
 
-echo "🚀 Starting server..."
-exec node dist/server.js
+export CHOKIDAR_USEPOLLING=true
+
+# Build and start the application
+echo " Building TypeScript..."
+npm run dev
