@@ -11,6 +11,15 @@ import { AiDifficulty } from '../../game/engines/pong2D/entities/EnemyAi';
 
 export type GameType = 'pong' | 'podracer';
 
+const PADDLE_OPTIONS = [
+    { name: 'Default', color: 'from-cyan-500 to-blue-600' },
+    { name: 'Fire', color: 'from-red-500 to-orange-600' },
+    { name: 'Neon', color: 'from-pink-500 to-purple-600' },
+    { name: 'Forest', color: 'from-green-500 to-emerald-600' },
+    { name: 'Gold', color: 'from-yellow-500 to-amber-600' },
+    { name: 'Ice', color: 'from-blue-300 to-cyan-400' }
+];
+
 export interface PlayerSlot 
 {
     id: number;
@@ -628,7 +637,8 @@ export class GameLobby extends BaseComponent
 
     private updateStartButton(): void {
         const startBtn = document.getElementById('startGameBtn') as HTMLButtonElement;
-        if (!startBtn) return;
+        if (!startBtn) 
+            return;
 
         const canStart = this.canStartGame();
         
@@ -1161,7 +1171,7 @@ export class GameLobby extends BaseComponent
         if (content) {
             content.innerHTML = '';
         }
-        // Dynamically import PodSelection and render it
+        
         import('../../pages/games/PodSelectionPage').then(({ PodSelection }) => {
             const podSelection = new PodSelection((event) => this.onPodSelected(event));
             if (content) {
@@ -1191,32 +1201,49 @@ export class GameLobby extends BaseComponent
         this.currentCustomizingSlot = null;
     }
     
-    private selectPaddle(_paddleIndex: number): void 
+    private selectPaddle(paddleIndex: number): void 
     {
         if (this.currentCustomizingSlot === null) 
-        {
             return;
-        }
-        const PADDLE_OPTIONS = [
-            { name: 'Default', color: 'from-cyan-500 to-blue-600' },
-            { name: 'Fire', color: 'from-red-500 to-orange-600' },
-            { name: 'Neon', color: 'from-pink-500 to-purple-600' },
-            { name: 'Forest', color: 'from-green-500 to-emerald-600' },
-            { name: 'Gold', color: 'from-yellow-500 to-amber-600' },
-            { name: 'Ice', color: 'from-blue-300 to-cyan-400' }
-        ];
 
-        const option = PADDLE_OPTIONS[_paddleIndex];
+        const option = PADDLE_OPTIONS[paddleIndex];
         const slot = this.playerSlots[this.currentCustomizingSlot];
         
         if (slot) 
         {
+            // Update Locally immediately
             slot.paddleName = option.name;
             slot.paddleGradient = option.color;
-            this.refreshPlayerCard(this.currentCustomizingSlot);
+            this.refreshPlayerCard(slot.id);
+            console.log(slot.paddleName)
+            if (this.currentUser && slot.userId === this.currentUser.id) {
+                const lobbyId = this.getLobbyIdFromUrl();
+                if (lobbyId) {
+                    webSocketService.send('lobby:player:update', {
+                        lobbyId: lobbyId,
+                        paddle: option.name
+                    });
+                }
+            }
         }
-        
         this.closePaddleModal();
+    }
+    public updatePlayerPaddle(userId: string, paddleName: string): void 
+    {
+        // Find the player slot by their User ID
+        const slot = this.playerSlots.find(s => s.userId === userId);
+        if (!slot) return;
+
+        
+        const option = PADDLE_OPTIONS.find(p => p.name.toLowerCase() === paddleName.toLowerCase()) 
+                       || PADDLE_OPTIONS[0]; 
+
+       
+        slot.paddleName = option.name;
+        slot.paddleGradient = option.color;
+        console.log(userId, paddleName, slot.paddleName)
+       
+        this.refreshPlayerCard(slot.id);
     }
     
     private onPodSelected(event: PodSelectionEvent): void 

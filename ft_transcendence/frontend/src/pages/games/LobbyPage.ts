@@ -161,6 +161,10 @@ export default class LobbyPage extends BaseComponent
                 this.handlePlayerJoined(message.payload);
                 break;
 
+            case 'lobby:player:update': 
+                this.handlePlayerUpdate(message.payload);
+                break;
+
             case 'lobby:player:leave':
                 this.handlePlayerLeft(message.payload);
                 break;
@@ -186,6 +190,12 @@ export default class LobbyPage extends BaseComponent
         }
     }
 
+    private handlePlayerUpdate(payload: any): void {
+        // payload should contain: { userId: string, paddle: string }
+        if (this.gameLobby && payload.userId && payload.paddle) {
+            this.gameLobby.updatePlayerPaddle(payload.userId, payload.paddle);
+        }
+    }
     /**
      * Handle lobby created acknowledgment
      */
