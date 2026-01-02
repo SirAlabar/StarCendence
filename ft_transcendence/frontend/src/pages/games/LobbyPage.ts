@@ -3,6 +3,8 @@ import { GameLobby, LobbyConfig } from '../../components/game/GameLobby';
 import { navigateTo } from '../../router/router';
 import { Modal } from '@/components/common/Modal';
 import { webSocketService } from '@/services/websocket/WebSocketService';
+import { RacerScene } from '@/game/engines/racer/RacerScene';
+import { GameCanvas } from '@/game/engines/racer/GameCanvas';
 
 export default class LobbyPage extends BaseComponent 
 {
@@ -327,47 +329,54 @@ export default class LobbyPage extends BaseComponent
     /**
      * Handle game starting
      */
-    private async handleGameStarting(payload: any): Promise<void> {
-    if (this.isGameStarting) 
-        return;
-    this.isGameStarting = true;
-
-    // 1. Determine side
-    let playerSide: 'left' | 'right' = 'left';
-    
-    // 2. Prepare default colors
-    let p1Color = 'default';
-    let p2Color = 'default';
-
-    if (this.gameLobby) 
+    private async handleGameStarting(payload: any): Promise<void> 
     {
-        playerSide = this.gameLobby.isCurrentUserHost() ? 'left' : 'right';
+        if (this.isGameStarting) 
+        {
+            return;
+        }
+        this.isGameStarting = true;
 
-        const slots = this.gameLobby.getPlayerSlots();
-        const p1 = slots.find(s => s.id === 0); 
-        const p2 = slots.find(s => s.id === 1); 
-        console.log(p1, p2)
+        // Wait a second for UI
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        if (p1 && p1.paddleName) 
-            p1Color = p1.paddleName.toLowerCase();
-        if (p2 && p2.paddleName) 
-            p2Color = p2.paddleName.toLowerCase();
+        if (this.gameType === 'racer') 
+        {
+            // Navigate to racer with gameId
+            const url = `/pod-racer?gameId=${payload.gameId}&lobbyId=${this.lobbyId}`;
+            navigateTo(url);
+        } 
+        else 
+        {
+            // Pong
+            let playerSide: 'left' | 'right' = 'left';
+            let p1Color = 'default';
+            let p2Color = 'default';
+
+            if (this.gameLobby) 
+            {
+                playerSide = this.gameLobby.isCurrentUserHost() ? 'left' : 'right';
+
+                const slots = this.gameLobby.getPlayerSlots();
+                const p1 = slots.find(s => s.id === 0); 
+                const p2 = slots.find(s => s.id === 1);
+
+                if (p1 && p1.paddleName) 
+                {
+                    p1Color = p1.paddleName.toLowerCase();
+                }
+                if (p2 && p2.paddleName) 
+                {
+                    p2Color = p2.paddleName.toLowerCase();
+                }
+            }
+
+            const baseUrl = this.gameType === 'pong3d' ? '/pong-game3d' : '/pong-game';
+            const url = `${baseUrl}?gameId=${payload.gameId}&side=${playerSide}&lobbyId=${this.lobbyId}&p1Color=${p1Color}&p2Color=${p2Color}`;
+            
+            navigateTo(url);
+        }
     }
-
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    if (this.gameType === 'racer') {
-        await Modal.alert('Info', 'Racer multiplayer not yet implemented');
-        this.isGameStarting = false;
-    } else {
-        
-        const baseUrl = this.gameType === 'pong3d' ? '/pong-game3d' : '/pong-game';
-        const url = `${baseUrl}?gameId=${payload.gameId}&side=${playerSide}&lobbyId=${this.lobbyId}&p1Color=${p1Color}&p2Color=${p2Color}`;
-        
-        navigateTo(url);
-    }
-}
 
     /**
      * Handle lobby chat message
@@ -428,14 +437,59 @@ export default class LobbyPage extends BaseComponent
     /**
      * Start game (called when host clicks Start Game)
      */
-    private startGame(): void {
-        if (!this.lobbyId) {
+    private async startGame(): Promise<void> 
+    {
+        if (!this.lobbyId) 
+        {
             console.error('[Lobby] Cannot start game: no lobby ID');
             return;
         }
 
+        // For racer - load track and send checkpoints
+        if (this.gameType === 'racer') 
+        {
+            try 
+            {
+                // Create temporary canvas
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.id = 'temp-checkpoint-canvas'; // Give it an ID
+                tempCanvas.width = 1;
+                tempCanvas.height = 1;
+                tempCanvas.style.display = 'none';
+                document.body.appendChild(tempCanvas);
 
-        webSocketService.send('lobby:start', { lobbyId: this.lobbyId });
+                // Load track
+                const gameCanvas = new GameCanvas('temp-checkpoint-canvas'); // Pass canvas ID
+                await gameCanvas.initialize(); // No parameters
+                const racerScene = new RacerScene(gameCanvas);
+                await racerScene.loadTrack();
+
+                // Get checkpoints
+                const checkpoints = racerScene.getCheckpointsForBackend();
+
+                // Cleanup
+                racerScene.dispose();
+                gameCanvas.dispose();
+                document.body.removeChild(tempCanvas);
+
+                // Send with checkpoints
+                webSocketService.send('lobby:start', { 
+                    lobbyId: this.lobbyId,
+                    checkpoints: checkpoints,
+                    totalLaps: 3
+                });
+            } 
+            catch (error) 
+            {
+                console.error('[Lobby] Failed to load track:', error);
+                await Modal.alert('Error', 'Failed to load race track');
+            }
+        } 
+        else 
+        {
+            // Pong - works as before!
+            webSocketService.send('lobby:start', { lobbyId: this.lobbyId });
+        }
     }
 
     public dispose(): void 

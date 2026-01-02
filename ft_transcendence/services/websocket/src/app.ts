@@ -11,6 +11,7 @@ import './events/GameEvents';
 import './events/LobbyEvents';
 import './events/ChatEvents';
 import './events/TournamentEvents';
+import './events/RacerEvents';
 
 export async function createApp(): Promise<FastifyInstance>
 {

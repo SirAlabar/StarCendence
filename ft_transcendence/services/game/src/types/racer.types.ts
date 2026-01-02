@@ -1,110 +1,264 @@
-// Racer Game Types - All Pod Racing-specific entities and logic
-
 /**
- * Complete Racer game state
+ * Racer Game Types
+ * TypeScript type definitions for multiplayer racing game
  */
-export interface RacerState
+
+export interface Vector3 
 {
-  pods: Pod[];
-  checkpoints: Checkpoint[];
-  currentLap: number[];
-  positions: number[]; // Race positions (1st, 2nd, 3rd, 4th)
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface Quaternion 
+{
+  x: number;
+  y: number;
+  z: number;
+  w: number;
 }
 
 /**
- * Pod racer vehicle
+ * Player input from client
  */
-export interface Pod
+export interface RacerInput 
+{
+  throttle: number;    // 0.0 to 1.0
+  brake: number;       // 0.0 to 1.0
+  steering: number;    // -1.0 to 1.0 (left/right)
+  timestamp: number;   // Client timestamp
+}
+
+/**
+ * Player state in the race
+ */
+export interface PlayerState 
 {
   playerId: string;
+  username: string;
   
-  // Position
-  x: number;
-  y: number;
-  z: number;
-  
-  // Rotation
-  rotation: number; // Radians
-  
-  // Physics
+  // Transform
+  position: Vector3;
+  rotation: Quaternion;
   velocity: Vector3;
-  acceleration: number;
-  speed: number;
-  maxSpeed: number;
   
-  // Race state
+  // Race progress
   currentLap: number;
-  lastCheckpoint: number;
-  position: number; // 1st, 2nd, 3rd, 4th
+  checkpointIndex: number;
+  lastCheckpointTime: number;
   
-  // Boost/powerups
-  hasPowerup?: boolean;
-  powerupType?: string;
+  // Status
+  isFinished: boolean;
+  isRespawning: boolean;
+  finishTime: number | null;
+  
+  // Performance
+  lapTimes: number[];
+  bestLapTime: number | null;
 }
 
 /**
- * Race checkpoint
+ * Complete race state
  */
-export interface Checkpoint
+export interface RacerGameState 
+{
+  gameId: string;
+  players: Map<string, PlayerState>;
+  
+  // Race configuration
+  totalLaps: number;
+  totalCheckpoints: number;
+  maxPlayers: number;
+  
+  // Race status
+  raceStatus: RaceStatus;
+  startTime: number | null;
+  endTime: number | null;
+  
+  // Track info
+  trackName: string;
+  trackBounds: TrackBounds;
+}
+
+/**
+ * Racer state (alias for compatibility with game.types.ts)
+ */
+export type RacerState = RacerGameState;
+
+/**
+ * Track boundaries for validation
+ */
+export interface TrackBounds 
+{
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  minZ: number;
+  maxZ: number;
+}
+
+/**
+ * Checkpoint data
+ */
+export interface Checkpoint 
 {
   id: number;
-  x: number;
-  y: number;
-  z: number;
+  name: string;
+  position: Vector3;
   radius: number;
+  isStartLine: boolean;
 }
 
 /**
- * 3D Vector for position/velocity
+ * Race status enum
  */
-export interface Vector3
+export enum RaceStatus 
 {
-  x: number;
-  y: number;
-  z: number;
+  WAITING = 'waiting',
+  COUNTDOWN = 'countdown',
+  RACING = 'racing',
+  FINISHED = 'finished',
+  CANCELLED = 'cancelled'
 }
 
 /**
- * Racer player input
+ * Player standings for leaderboard
  */
-export interface RacerInput
+export interface PlayerStanding 
 {
-  accelerate?: boolean;
-  brake?: boolean;
-  turnDirection?: 'left' | 'right' | 'none';
-  usePowerup?: boolean;
+  position: number;
+  playerId: string;
+  username: string;
+  currentLap: number;
+  checkpointIndex: number;
+  distanceToNextCheckpoint: number;
+  isFinished: boolean;
+  finishTime: number | null;
 }
 
 /**
- * Racer-specific event data
+ * Validation result
  */
-export interface RacerEventData
+export interface ValidationResult 
 {
-  // Lap complete
-  lapComplete?: {
+  valid: boolean;
+  reason?: string;
+  correctedValue?: any;
+}
+
+/**
+ * Race event types
+ */
+export enum RaceEventType 
+{
+  CHECKPOINT_PASSED = 'checkpoint_passed',
+  LAP_COMPLETED = 'lap_completed',
+  RACE_FINISHED = 'race_finished',
+  PLAYER_RESPAWNED = 'player_respawned',
+  PLAYER_OUT_OF_BOUNDS = 'player_out_of_bounds',
+  RACE_STARTED = 'race_started',
+  COUNTDOWN_TICK = 'countdown_tick'
+}
+
+/**
+ * Race event payload
+ */
+export interface RaceEvent 
+{
+  type: RaceEventType;
+  gameId: string;
+  playerId: string;
+  timestamp: number;
+  data: any;
+}
+
+/**
+ * Racer event data (alias for compatibility with event.types.ts)
+ */
+export type RacerEventData = RaceEvent['data'];
+
+/**
+ * Input message from client
+ */
+export interface RacerInputMessage 
+{
+  type: 'game:racer:input';
+  gameId: string;
+  playerId: string;
+  input: RacerInput;
+}
+
+/**
+ * State update message to clients
+ */
+export interface RacerStateMessage 
+{
+  type: 'game:racer:state';
+  gameId: string;
+  timestamp: number;
+  players: PlayerStateDTO[];
+}
+
+/**
+ * Player state DTO (Data Transfer Object) for network
+ */
+export interface PlayerStateDTO 
+{
+  playerId: string;
+  username: string;
+  position: Vector3;
+  rotation: Quaternion;
+  velocity: Vector3;
+  currentLap: number;
+  checkpointIndex: number;
+  isFinished: boolean;
+}
+
+/**
+ * Event message to clients
+ */
+export interface RacerEventMessage 
+{
+  type: string;
+  gameId: string;
+  playerId?: string;
+  timestamp: number;
+  data: any;
+}
+
+/**
+ * Race configuration
+ */
+export interface RaceConfig 
+{
+  totalLaps: number;
+  maxPlayers: number;
+  trackName: string;
+  countdownDuration: number;  // seconds
+  respawnCooldown: number;     // milliseconds
+  checkpointTimeout: number;   // milliseconds
+}
+
+/**
+ * Request to create a new race (from lobby)
+ */
+export interface CreateRaceRequest 
+{
+  gameId: string;
+  players: Array<{
     playerId: string;
-    lapNumber: number;
-    lapTime: number;
-  };
-  
-  // Checkpoint hit
-  checkpointHit?: {
-    playerId: string;
-    checkpointId: number;
-    timestamp: number;
-  };
-  
-  // Powerup collected
-  powerupCollected?: {
-    playerId: string;
-    powerupType: string;
-    position: Vector3;
-  };
-  
-  // Race finished
-  raceFinished?: {
-    playerId: string;
-    finalPosition: number;
-    totalTime: number;
-  };
+    username: string;
+  }>;
+  checkpoints: Checkpoint[];
+  totalLaps: number;
+}
+
+/**
+ * Player spawn data
+ */
+export interface SpawnPoint 
+{
+  position: Vector3;
+  rotation: Quaternion;
 }

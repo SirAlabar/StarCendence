@@ -7,6 +7,7 @@ import { redisBroadcast } from '../broadcasting/RedisBroadcast';
  * Racer event types handled by WebSocket service
  */
 const RACER_EVENTS = [
+  'game:racer:input',    // Main input handler - Frontend sends this!
   'racer:join',
   'racer:leave',
   'racer:pod_selected',
@@ -41,7 +42,7 @@ async function handleRacerEvent(
 {
   try
   {
-    // Validate message has required fields
+    // Validate message has required fieldsQ
     if (!message.type || !message.payload)
     {
       console.warn(`⚠️ Invalid racer message from ${connection.userId}:`, message);
@@ -430,5 +431,61 @@ EventManager.registerHandler('racer:disconnect', async (
   catch (error)
   {
     console.error('❌ Error in racer:disconnect handler:', error);
+  }
+});
+
+/**
+ * Handle game:racer:input event
+ * Main input handler - processes throttle, brake, steering from frontend
+ */
+EventManager.registerHandler('game:racer:input', async (
+  message: WebSocketMessage,
+  connection: ConnectionInfo
+): Promise<void> =>
+{
+  try
+  {
+    const { gameId, input } = message.payload;
+
+    if (!gameId || !input)
+    {
+      console.warn(`⚠️ game:racer:input missing required fields from ${connection.userId}`);
+      return;
+    }
+
+    // Validate input structure
+    if (typeof input.throttle !== 'number' || 
+        typeof input.steering !== 'number')
+    {
+      console.warn(`⚠️ game:racer:input invalid input structure from ${connection.userId}`);
+      return;
+    }
+
+    // Publish to game-specific channel for Game Service to process
+    await redisBroadcast.publishToChannel(`game:${gameId}:input`, {
+      type: 'game:racer:input',
+      payload: {
+        userId: connection.userId,
+        username: connection.username,
+        gameId,
+        input: {
+          throttle: input.throttle,
+          brake: input.brake || 0,
+          steering: input.steering,
+          timestamp: input.timestamp || Date.now(),
+        },
+      },
+      timestamp: Date.now(),
+    });
+
+    // Log only occasionally to avoid spam (every 30th input)
+    if (Math.random() < 0.033)
+    {
+      console.log(`🎮 [game:racer:input] ${connection.username} → game:${gameId}:input`);
+    }
+  }
+  catch (error)
+  {
+    console.error('❌ Error in game:racer:input handler:', error);
   }
 });

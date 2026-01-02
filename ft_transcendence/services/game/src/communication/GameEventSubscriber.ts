@@ -2,6 +2,7 @@ import { RedisClientType } from 'redis';
 import { LobbyManager } from '../managers/LobbyManager';
 import { createGameSession, addLobbyPlayerToGame, startGameSession, handlePlayerInput } from '../managers/GameSessionManager';
 import { GameType, GameMode} from '../utils/constants';
+import { racerMessageHandler } from '../communication/RacerMessageHandler';  // ← ADD THIS
 export interface GameEventMessage {
   type: string;
   payload: any;
@@ -123,7 +124,7 @@ export class GameEventSubscriber {
           await this.handleGameReady(event);
           break;
 
-        default:
+        default: 
           break;
       }
     } catch (error) {
@@ -503,6 +504,48 @@ export class GameEventSubscriber {
           })),
         },
       });
+
+      // ============================================================
+      // RACER-SPECIFIC: Create actual game manager
+      // ============================================================
+      if (gameType === GameType.RACER)
+      {
+        console.log(`[GameEventSubscriber] 🏁 Creating racer game manager for ${gameId}`);
+        
+        // Get checkpoints from payload (sent by frontend)
+        const checkpoints = event.payload.checkpoints || [];
+        const totalLaps = event.payload.totalLaps || 3;
+        
+        if (checkpoints.length === 0)
+        {
+          console.error(`[GameEventSubscriber] ❌ No checkpoints provided for racer game ${gameId}`);
+        }
+        else
+        {
+          console.log(`[GameEventSubscriber] 📍 Checkpoints: ${checkpoints.length}, Laps: ${totalLaps}`);
+          
+          // Create racer game with RacerMessageHandler
+          const success = await racerMessageHandler.handleCreateRace({
+            gameId,
+            players: players.map(p => ({
+              playerId: p.userId,  // ← Changed from userId to playerId
+              username: p.username
+            })),
+            checkpoints,
+            totalLaps
+          });
+          
+          if (success)
+          {
+            console.log(`[GameEventSubscriber] ✅ Racer game ${gameId} created successfully`);
+          }
+          else
+          {
+            console.error(`[GameEventSubscriber] ❌ Failed to create racer game ${gameId}`);
+          }
+        }
+      }
+      // ============================================================
 
 
     } catch (error) {

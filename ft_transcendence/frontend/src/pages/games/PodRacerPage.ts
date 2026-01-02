@@ -11,6 +11,7 @@ export default class PodRacerPage extends BaseComponent
     private podSelection: PodSelection | null = null;
     private selectedPodConfig: PodConfig = AVAILABLE_PODS[0];
     private isDisposed: boolean = false;
+    private gameId: string | null = null; // Multiplayer support
     
     render(): string 
     {
@@ -88,7 +89,35 @@ export default class PodRacerPage extends BaseComponent
     {
         this.isDisposed = false;
         (window as any).podRacerPage = this;
-        this.attachModeSelectionListeners();
+        
+        // Check if coming from lobby (multiplayer)
+        const params = new URLSearchParams(window.location.search);
+        this.gameId = params.get('gameId');
+        
+        if (this.gameId) 
+        {
+            // Multiplayer - skip EVERYTHING, go straight to race
+            console.log(`[PodRacerPage] 🌐 Multiplayer race - gameId: ${this.gameId}`);
+            
+            // Use default pod (users already chose in lobby)
+            this.selectedPodConfig = AVAILABLE_PODS[0];
+            
+            // Hide mode selection and pod selection containers
+            const modeContainer = document.getElementById('modeSelectionContainer');
+            const podContainer = document.getElementById('podSelectionContainer');
+            if (modeContainer) modeContainer.style.display = 'none';
+            if (podContainer) podContainer.style.display = 'none';
+            
+            // Show canvas and start race immediately
+            this.showRaceView();
+            this.startRace();
+        } 
+        else 
+        {
+            // Single-player - show mode selection
+            this.attachModeSelectionListeners();
+        }
+        
         this.setupPageCleanup();
     }
 
@@ -283,7 +312,8 @@ export default class PodRacerPage extends BaseComponent
             {
                 debugMode: false,
                 performanceMonitoring: true,
-                cameraMode: 'racing'
+                cameraMode: 'racing',
+                gameId: this.gameId // Pass gameId for multiplayer
             });
             
             if (!this.racerRenderer)

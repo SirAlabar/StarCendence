@@ -1,13 +1,19 @@
 // redis pub sub for cross server broadcasting
-import { RedisClientType } from 'redis';
-import { getRedisClient, isRedisConnected } from '../config/redisConfig';
+import { RedisClientType, createClient } from 'redis';
+import { getRedisClient, isRedisConnected, getRedisConfig } from '../config/redisConfig';
 import { connectionPool } from '../connections/ConnectionPool';
 import { WebSocketMessage } from '../types/connection.types';
 
 export interface BroadcastMessage {
   type: string;
   payload: any;
-  targetUserId?: string;
+  targetUserId?: string;  // Single user
+  userIds?: string[];     // Multiple users (for game states)
+  message?: {             // Nested message structure (for game service)
+    type: string;
+    payload: any;
+    timestamp?: number;
+  };
   timestamp?: number;
 }
 
@@ -34,10 +40,8 @@ export class RedisBroadcast
         await getRedisClient();
       }
 
-  // need two separate clients one to listen one to send
-      const { getRedisConfig } = await import('../config/redisConfig');
+      // Get Redis config and create two separate clients (one to listen, one to send)
       const redisConfig = getRedisConfig();
-      const { createClient } = await import('redis');
       
       this.subscriber = createClient({
         socket: {
@@ -186,55 +190,68 @@ export class RedisBroadcast
     {
       const broadcastMessage: BroadcastMessage = JSON.parse(message);
 
-      // skip messages we sent ourselves
+      // Extract actual message (handle nested structure from Game Service)
+      let messageType: string;
+      let messagePayload: any;
+      let messageTimestamp: number;
+
+      if (broadcastMessage.message)
+      {
+        // Nested structure from Game Service
+        messageType = broadcastMessage.message.type;
+        messagePayload = broadcastMessage.message.payload;
+        messageTimestamp = broadcastMessage.message.timestamp || Date.now();
+      }
+      else
+      {
+        // Direct structure
+        messageType = broadcastMessage.type;
+        messagePayload = broadcastMessage.payload;
+        messageTimestamp = broadcastMessage.timestamp || Date.now();
+      }
+
+      const wsMessage: WebSocketMessage = {
+        type: messageType,
+        payload: messagePayload,
+        timestamp: messageTimestamp,
+      };
+
+      // Determine target connections
+      let targetConnections: any[] = [];
+
       if (broadcastMessage.targetUserId)
       {
-        // send to one user
-        const connections = connectionPool.getConnectionsByUserId(broadcastMessage.targetUserId);
-        
-        for (const connection of connections)
+        // Send to single user
+        targetConnections = connectionPool.getConnectionsByUserId(broadcastMessage.targetUserId);
+      }
+      else if (broadcastMessage.userIds && Array.isArray(broadcastMessage.userIds))
+      {
+        // Send to multiple specific users (e.g., players in a game)
+        for (const userId of broadcastMessage.userIds)
         {
-          try
-          {
-            if (connection.socket.readyState === 1) // WebSocket.OPEN
-            {
-              const wsMessage: WebSocketMessage = {
-                type: broadcastMessage.type,
-                payload: broadcastMessage.payload,
-                timestamp: broadcastMessage.timestamp || Date.now(),
-              };
-              connection.socket.send(JSON.stringify(wsMessage));
-            }
-          }
-          catch (error)
-          {
-            console.error(`Error sending message to connection ${connection.connectionId}:`, error);
-          }
+          const connections = connectionPool.getConnectionsByUserId(userId);
+          targetConnections.push(...connections);
         }
       }
       else
       {
-        // send to everyone
-        const allConnections = connectionPool.getAll();
-        
-        for (const connection of allConnections)
+        // Send to everyone
+        targetConnections = connectionPool.getAll();
+      }
+
+      // Send to all target connections
+      for (const connection of targetConnections)
+      {
+        try
         {
-          try
+          if (connection.socket.readyState === 1) // WebSocket.OPEN
           {
-            if (connection.socket.readyState === 1) // WebSocket.OPEN
-            {
-              const wsMessage: WebSocketMessage = {
-                type: broadcastMessage.type,
-                payload: broadcastMessage.payload,
-                timestamp: broadcastMessage.timestamp || Date.now(),
-              };
-              connection.socket.send(JSON.stringify(wsMessage));
-            }
+            connection.socket.send(JSON.stringify(wsMessage));
           }
-          catch (error)
-          {
-            console.error(`Error sending message to connection ${connection.connectionId}:`, error);
-          }
+        }
+        catch (error)
+        {
+          console.error(`Error sending message to connection ${connection.connectionId}:`, error);
         }
       }
     }
@@ -508,4 +525,3 @@ export class RedisBroadcast
 
 // Export singleton instance
 export const redisBroadcast = new RedisBroadcast();
-
