@@ -2,6 +2,7 @@ import { GameConfig, GameState, GameEvent, GameEngine } from "../../utils/GameTy
 import {  OGameEvent } from "@/game/utils/OnlineInterface";
 import { Ball } from "./entities/Ball";
 import { paddle } from "./entities/Paddle";
+import { PADDLE_COLORS } from "../pong3D/entities/PaddleColor";
 
 
 interface WebSocketLikeConnection 
@@ -89,6 +90,32 @@ export class OnlinePongEngine implements GameEngine
         {
             if (data && data.gameId === this.gameId)
                 this.handleServerEvent(data.event);
+        });
+        
+        // Listen for paddle customization updates from lobby and apply colors live
+        this.connection.on('lobby:player:update', (payload: any) => {
+            try {
+                if (!payload || !payload.paddle) return;
+
+                const key = (payload.paddle || '').toLowerCase();
+                const colorObj = PADDLE_COLORS[key];
+                if (!colorObj) return;
+
+                const hex = colorObj.toHexString();
+
+                // Determine whether payload refers to local player or opponent
+                if (payload.userId === this.playerId) {
+                    // Update local player's paddle color
+                    if (this.playerSide === 'left') this.paddleLeft.color = hex;
+                    else this.paddleRight.color = hex;
+                } else {
+                    // Opponent changed
+                    if (this.playerSide === 'left') this.paddleRight.color = hex;
+                    else this.paddleLeft.color = hex;
+                }
+            } catch (err) {
+                // ignore errors silently
+            }
         });
     }
     

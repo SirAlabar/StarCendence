@@ -6,6 +6,7 @@ export interface LobbyPlayer {
   username: string;
   isHost: boolean;
   isReady: boolean;
+  paddle?: string | null;
   joinedAt: number;
 }
 
@@ -194,6 +195,21 @@ export class LobbyManager {
     console.log(`[LobbyManager] Player ${userId} ready status updated to ${isReady} in lobby ${lobbyId}`);
   }
 
+  /**
+   * Set a player's paddle/customization in lobby state
+   */
+  async setPlayerPaddle(lobbyId: string, userId: string, paddleName: string): Promise<void> {
+    const isMember = await this.redis.sIsMember(`lobby:${lobbyId}:players`, userId);
+    if (!isMember) {
+      throw new Error('Player not in lobby');
+    }
+
+    await this.redis.hSet(`lobby:${lobbyId}:player:${userId}`, 'paddle', paddleName);
+    await this.redis.expire(`lobby:${lobbyId}:player:${userId}`, 3600);
+
+    console.log(`[LobbyManager] Player ${userId} paddle updated to ${paddleName} in lobby ${lobbyId}`);
+  }
+
   async getLobbyPlayers(lobbyId: string): Promise<LobbyPlayer[]> {
     const userIds = await this.redis.sMembers(`lobby:${lobbyId}:players`);
     const players: LobbyPlayer[] = [];
@@ -206,6 +222,7 @@ export class LobbyManager {
           username: playerData.username || 'Unknown',
           isHost: playerData.isHost === 'true',
           isReady: playerData.isReady === 'true',
+          paddle: playerData.paddle || null,
           joinedAt: parseInt(playerData.joinedAt || '0'),
         });
       }

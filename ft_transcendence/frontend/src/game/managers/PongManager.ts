@@ -290,6 +290,19 @@ export class GameManager {
         
         this.savePreferences();
         this.emitEvent('preferences:updated', { paddle, color });
+            // If connected to websocket and inside a lobby, notify server so other players update live
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const lobbyId = urlParams.get('id') || urlParams.get('lobbyId');
+                if (lobbyId && typeof (window as any).webSocketService !== 'undefined' && webSocketService.isConnected()) {
+                    webSocketService.send('lobby:player:update', {
+                        lobbyId,
+                        paddle: color
+                    });
+                }
+            } catch (err) {
+                // ignore in non-browser contexts
+            }
         
     }
     

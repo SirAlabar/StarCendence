@@ -117,6 +117,35 @@ export class OnlinePong3D implements GameEngine
                 this.handleServerEvent(data.event);
             }
         });
+
+        // Listen for lobby customization updates and apply paddle colors
+        this.connection.on('lobby:player:update', (payload: any) => {
+            try {
+                if (!payload || !payload.paddle) return;
+                const color = this.getPaddleColor((payload.paddle || '').toLowerCase());
+                if (payload.userId === this.playerId) {
+                    // local player
+                    if (this.playerSide === 'left') {
+                        (this.paddle_left.material as StandardMaterial).diffuseColor = color.diffuse;
+                        (this.paddle_left.material as StandardMaterial).emissiveColor = color.emissive;
+                    } else {
+                        (this.paddle_right.material as StandardMaterial).diffuseColor = color.diffuse;
+                        (this.paddle_right.material as StandardMaterial).emissiveColor = color.emissive;
+                    }
+                } else {
+                    // opponent
+                    if (this.playerSide === 'left') {
+                        (this.paddle_right.material as StandardMaterial).diffuseColor = color.diffuse;
+                        (this.paddle_right.material as StandardMaterial).emissiveColor = color.emissive;
+                    } else {
+                        (this.paddle_left.material as StandardMaterial).diffuseColor = color.diffuse;
+                        (this.paddle_left.material as StandardMaterial).emissiveColor = color.emissive;
+                    }
+                }
+            } catch (err) {
+                // ignore
+            }
+        });
     }
 
     private applyServerState(state: any): void {

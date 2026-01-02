@@ -420,6 +420,11 @@ export default class LobbyPage extends BaseComponent
             avatarUrl: playerData.avatar || '/assets/images/default-avatar.jpeg'
         });
 
+        // If playerData contains a paddle selection, update it in the UI
+        if (playerData && (playerData as any).paddle) {
+            this.gameLobby.updatePlayerPaddle(playerData.userId, (playerData as any).paddle);
+        }
+
         // Try to load full profile asynchronously (won't block)
         try {
             const UserService = (await import('@/services/user/UserService')).default;

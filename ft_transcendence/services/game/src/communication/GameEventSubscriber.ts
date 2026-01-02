@@ -2,6 +2,7 @@ import { RedisClientType } from 'redis';
 import { LobbyManager } from '../managers/LobbyManager';
 import { createGameSession, addLobbyPlayerToGame, startGameSession, handlePlayerInput } from '../managers/GameSessionManager';
 import { GameType, GameMode} from '../utils/constants';
+
 export interface GameEventMessage {
   type: string;
   payload: any;
@@ -104,6 +105,10 @@ export class GameEventSubscriber {
           await this.handleLobbyReady(event);
           break;
 
+        case 'lobby:player:update':
+          await this.handleLobbyPlayerUpdate(event);
+          break;
+
         case 'lobby:start':
           await this.handleLobbyStart(event);
           break;
@@ -172,6 +177,7 @@ export class GameEventSubscriber {
             username: p.username,
             isHost: p.isHost,
             isReady: p.isReady,
+            paddle: p.paddle || null,
             joinedAt: p.joinedAt,
           })),
         },
@@ -215,6 +221,7 @@ export class GameEventSubscriber {
       },
     });
   }
+
   private async handleLobbyJoin(event: GameEventMessage): Promise<void> {
     const { lobbyId } = event.payload;
     const { userId, username } = event;
@@ -262,7 +269,8 @@ export class GameEventSubscriber {
             username: p.username,
             isHost: p.isHost,
             isReady: p.isReady,
-            joinedAt: p.joinedAt,
+              paddle: p.paddle || null,
+              joinedAt: p.joinedAt,
           })),
         },
       });
@@ -500,6 +508,7 @@ export class GameEventSubscriber {
             userId: p.userId,
             username: p.username,
             isHost: p.isHost,
+            paddle: p.paddle || null,
           })),
         },
       });
@@ -538,6 +547,43 @@ export class GameEventSubscriber {
       console.log(`[GameEventSubscriber] 💬 ${username} sent chat in lobby ${lobbyId}: "${message}"`);
     } catch (error) {
       console.error(`[GameEventSubscriber] ❌ Failed to handle chat:`, error);
+    }
+  }
+
+  private async handleLobbyPlayerUpdate(event: GameEventMessage): Promise<void> {
+    const { lobbyId, paddle } = event.payload || {};
+    const { userId, username } = event;
+
+    if (!lobbyId || !paddle) {
+      console.error('[GameEventSubscriber] Invalid lobby:player:update event - missing lobbyId or paddle');
+      return;
+    }
+
+    try {
+      // Validate membership
+      const isMember = await this.lobbyManager.getLobbyUserIds(lobbyId);
+      if (!isMember || isMember.length === 0 || !isMember.includes(userId)) {
+        console.warn(`[GameEventSubscriber] User ${userId} tried to update paddle but is not in lobby ${lobbyId}`);
+        return;
+      }
+
+      // Persist paddle name in lobby player hash
+      await this.lobbyManager.setPlayerPaddle(lobbyId, userId, paddle);
+
+      // Broadcast update to everyone in lobby
+      const userIds = await this.lobbyManager.getLobbyUserIds(lobbyId);
+      await this.broadcastToUsers(userIds, {
+        type: 'lobby:player:update',
+        payload: {
+          lobbyId,
+          userId,
+          paddle,
+        },
+      });
+
+      console.log(`[GameEventSubscriber] 🔁 Broadcasted paddle update for ${username} (${userId}) in lobby ${lobbyId}`);
+    } catch (error) {
+      console.error('[GameEventSubscriber] ❌ Failed to handle lobby:player:update:', error);
     }
   }
 
