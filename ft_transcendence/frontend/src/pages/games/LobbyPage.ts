@@ -2,6 +2,7 @@ import { BaseComponent } from '../../components/BaseComponent';
 import { GameLobby, LobbyConfig } from '../../components/game/GameLobby';
 import { navigateTo } from '../../router/router';
 import { Modal } from '@/components/common/Modal';
+import { LoginService } from '@/services/auth/LoginService';
 import { webSocketService } from '@/services/websocket/WebSocketService';
 
 export default class LobbyPage extends BaseComponent 
@@ -210,6 +211,21 @@ export default class LobbyPage extends BaseComponent
 
         this.lobbyId = payload.lobbyId;
 
+        // Preserve any local paddle selection the host made before lobby ID was assigned
+        let hostPendingPaddle: string | null = null;
+        try {
+            const userobj = LoginService.getCurrentUser();
+            const currentUserId = userobj?.sub || userobj?.id;
+            if (this.gameLobby) {
+                const existing = this.gameLobby.getPlayerSlots().find(s => s.userId === currentUserId);
+                if (existing && existing.paddleName) {
+                    hostPendingPaddle = existing.paddleName;
+                }
+            }
+        } catch (err) {
+            // ignore
+        }
+
         // Update URL with lobby ID without reloading
         const newUrl = `/lobby?game=${this.gameType}&id=${this.lobbyId}`;
         window.history.pushState({}, '', newUrl);
@@ -232,6 +248,14 @@ export default class LobbyPage extends BaseComponent
             for (let i = 0; i < payload.players.length; i++) {
                 const player = payload.players[i];
                 await this.loadAndAddPlayer(player);
+            }
+
+            // If host had a pre-selection before lobby ID existed, send it now so server persists & broadcasts
+            if (hostPendingPaddle && this.lobbyId) {
+                webSocketService.send('lobby:player:update', {
+                    lobbyId: this.lobbyId,
+                    paddle: hostPendingPaddle
+                });
             }
 
             
