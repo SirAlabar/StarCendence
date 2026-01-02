@@ -54,7 +54,7 @@ export const GAME_CONFIG = {
   PONG: {
     CANVAS: {
       WIDTH: 958,
-      HEIGHT: 538,
+      HEIGHT: 540,
     },
     PADDLE: {
       WIDTH: 10,
