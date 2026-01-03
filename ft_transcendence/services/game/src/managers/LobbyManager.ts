@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto';
 export interface LobbyPlayer {
   userId: string;
   username: string;
+  avatarUrl: string;
   isHost: boolean;
   isReady: boolean;
   paddle?: string | null;
@@ -59,6 +60,7 @@ export class LobbyManager {
   async createLobby(
     lobbyId: string,
     userId: string,
+    avatarUrl: string,
     username: string,
     gameType: string,
     maxPlayers: number
@@ -77,6 +79,7 @@ export class LobbyManager {
     await this.redis.hSet(`lobby:${lobbyId}:player:${userId}`, {
       userId,
       username,
+      avatarUrl,
       isHost: 'true',
       isReady: 'false',
       joinedAt: Date.now().toString(),
@@ -90,7 +93,7 @@ export class LobbyManager {
 
   }
 
-  async joinLobby(lobbyId: string, userId: string, username: string): Promise<{
+  async joinLobby(lobbyId: string, userId: string, username: string, avatarUrl: string): Promise<{
     success: boolean;
     reason?: string;
     playerCount?: number;
@@ -124,6 +127,7 @@ export class LobbyManager {
     await this.redis.hSet(`lobby:${lobbyId}:player:${userId}`, {
       userId,
       username,
+      avatarUrl,
       isHost: 'false',
       isReady: 'false',
       joinedAt: Date.now().toString(),
@@ -220,6 +224,7 @@ export class LobbyManager {
         players.push({
           userId: playerData.userId,
           username: playerData.username || 'Unknown',
+          avatarUrl: playerData.avatarUrl,
           isHost: playerData.isHost === 'true',
           isReady: playerData.isReady === 'true',
           paddle: playerData.paddle || null,

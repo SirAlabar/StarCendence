@@ -264,9 +264,18 @@ export default class LobbyPage extends BaseComponent
             this.gameLobby.clearAllPlayers();
             
             // Add all players
-            for (let i = 0; i < payload.players.length; i++) {
-                const player = payload.players[i];
+
+      
+            const player = payload.players[0];
+            player.avatarUrl = this.userProfile?.avatarUrl;
+      
+             try
+            {
                 await this.loadAndAddPlayer(player);
+            }
+            catch(error)
+            {
+
             }
 
             // If host had a pre-selection before lobby ID existed, send it now so server persists & broadcasts
@@ -336,9 +345,9 @@ export default class LobbyPage extends BaseComponent
             await this.loadAndAddPlayer({
                 userId: payload.userId,
                 username: payload.username,
+                avatarUrl: payload.avatarUrl, // This should come from the server now!
                 isHost: payload.isHost,
                 isReady: payload.isReady || false,
-                avatar: payload.avatarUrl, // This should come from the server now!
             });
         }
     }
@@ -427,10 +436,10 @@ export default class LobbyPage extends BaseComponent
     private async loadAndAddPlayer(playerData: {
         userId: string;
         username: string;
+        avatarUrl?: string;
         isHost: boolean;
         isReady: boolean;
         joinedAt?: number;
-        avatar?: any;
     }): Promise<void> {
         if (!this.gameLobby) {
             console.error('[Lobby] ❌ gameLobby is null in loadAndAddPlayer!');
@@ -438,7 +447,7 @@ export default class LobbyPage extends BaseComponent
         }
 
         // 1. Prefer the avatar sent by the server/payload
-        let finalAvatarUrl = playerData.avatar; 
+        let finalAvatarUrl = playerData.avatarUrl; 
 
         // 2. If no avatar in payload, and this player is ME, use my local profile
         if (!finalAvatarUrl) 
@@ -463,11 +472,11 @@ export default class LobbyPage extends BaseComponent
             this.gameLobby.addPlayer({
                 userId: playerData.userId,
                 username: playerData.username,
+                avatarUrl: playerData.avatarUrl,
                 isHost: playerData.isHost,
                 isReady: playerData.isReady,
                 isOnline: true,
                 isAI: false,
-                avatarUrl: finalAvatarUrl 
             });
         }
         else
@@ -475,11 +484,11 @@ export default class LobbyPage extends BaseComponent
             this.gameLobby.addPlayer({
                 userId: playerData.userId,
                 username: playerData.username,
+                avatarUrl: playerData.avatarUrl,
                 isHost: playerData.isHost,
                 isReady: playerData.isReady,
                 isOnline: true,
                 isAI: false,
-                avatarUrl: ""
             });
         }
         

@@ -138,7 +138,7 @@ export class GameEventSubscriber {
 
  
   private async handleLobbyCreate(event: GameEventMessage): Promise<void> {
-    const { gameType, maxPlayers } = event.payload;
+    const { gameType, maxPlayers, avatarUrl } = event.payload;
     const { userId, username } = event;
 
     try {
@@ -149,13 +149,13 @@ export class GameEventSubscriber {
       await this.lobbyManager.createLobby(
         lobbyId,
         userId,
+        avatarUrl,
         username || 'Player',
         gameType || 'pong',
         maxPlayers || 2
       );
 
       const players = await this.lobbyManager.getLobbyPlayers(lobbyId);
-      console.log(event)
 
       console.log(`[GameEventSubscriber] 🔍 LOBBY CREATE DEBUG:`, {
         creatorUserId: userId,
@@ -224,11 +224,11 @@ export class GameEventSubscriber {
   }
 
   private async handleLobbyJoin(event: GameEventMessage): Promise<void> {
-    const { lobbyId } = event.payload;
-    const { userId, username } = event;
+    const { lobbyId, avatarUrl } = event.payload;
+    const { userId, username, } = event;
 
     try {
-      const result = await this.lobbyManager.joinLobby(lobbyId, userId, username || 'Player');
+      const result = await this.lobbyManager.joinLobby(lobbyId, userId, username || 'Player', avatarUrl);
 
       if (!result.success) {
         await this.broadcastToUser(userId, {
@@ -268,6 +268,7 @@ export class GameEventSubscriber {
           players: players.map(p => ({
             userId: p.userId,
             username: p.username,
+            avatarUrl: p.avatarUrl,
             isHost: p.isHost,
             isReady: p.isReady,
               paddle: p.paddle || null,
@@ -290,6 +291,7 @@ export class GameEventSubscriber {
               lobbyId,
               userId,
               username,
+              avatarUrl,
               isHost: joinerIsHost,
               isReady: false,
             },
