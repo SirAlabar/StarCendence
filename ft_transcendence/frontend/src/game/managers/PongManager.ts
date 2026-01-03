@@ -378,14 +378,6 @@ export class GameManager {
         window.addEventListener('keydown', keyHandler);
         this.on('cleanup', () => window.removeEventListener('keydown', keyHandler));
         
-        // Handle visibility change (pause when tab is hidden)
-        const visibilityHandler = () => {
-            if (document.hidden && this.currentState === 'playing') {
-                this.pauseGame();
-            }
-        };
-        document.addEventListener('visibilitychange', visibilityHandler);
-        this.on('cleanup', () => document.removeEventListener('visibilitychange', visibilityHandler));
     }
     
     private handleGameEvent(event: GameEvent): void 

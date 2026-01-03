@@ -141,7 +141,7 @@ export class GameEventSubscriber {
     const { gameType, maxPlayers, avatarUrl } = event.payload;
     const { userId, username } = event;
 
-    try {
+    try { 
       // Generate unique lobby ID
       const lobbyId = await this.lobbyManager.generateUniqueLobbyId();
       
@@ -185,6 +185,7 @@ export class GameEventSubscriber {
       });
 
       const stats = await this.lobbyManager.getLobbyStats(lobbyId);
+      
       console.log(`[GameEventSubscriber] 🎮 Lobby ${lobbyId} created:`, {
         gameType,
         maxPlayers,
