@@ -4,6 +4,8 @@ import { navigateTo } from '../../router/router';
 import { Modal } from '@/components/common/Modal';
 import { LoginService } from '@/services/auth/LoginService';
 import { webSocketService } from '@/services/websocket/WebSocketService';
+import UserService from '../../services/user/UserService';
+import { UserProfile } from '../../types/user.types';
 
 export default class LobbyPage extends BaseComponent 
 {
@@ -12,8 +14,7 @@ export default class LobbyPage extends BaseComponent
     private lobbyId: string | null = null;
     private isGameStarting: boolean = false;
     private gameType: string = 'pong'; // Default to pong
-    private player1avatar: any;
-    private player2avatar: any;
+    private userProfile: UserProfile | null = null;
 
     /**
      * Wait for gameLobby to be fully mounted in DOM (with retry mechanism)
@@ -30,6 +31,8 @@ export default class LobbyPage extends BaseComponent
             const lobbyContainer = document.getElementById('lobbyContainer');
             const playerCards = lobbyContainer?.querySelectorAll('.player-card, [class*="player"]');
             
+            // REMOVED: this.loadProfile(); (We do this once in mount() now)
+
             if (lobbyContainer && playerCards && playerCards.length > 0) {
                 return true;
             }
@@ -48,7 +51,9 @@ export default class LobbyPage extends BaseComponent
     
     async mount(): Promise<void> 
     {
-        
+        // 1. Load Profile FIRST so we have the avatar ready for the handshake
+        await this.loadProfile();
+
         // Get game type from URL parameter
         const params = new URLSearchParams(window.location.search);
         const gameTypeParam = params.get('game');
@@ -57,12 +62,10 @@ export default class LobbyPage extends BaseComponent
             this.gameType = gameTypeParam;
         }
 
-
         // Determine max players based on game type
         const maxPlayers = this.gameType === 'racer' ? 4 : 2;
         const backRoute = this.gameType === 'racer' ? '/pod-racer' : '/pong';
         
-
         // Connect to WebSocket if not already connected
         if (!webSocketService.isConnected()) {
             try {
@@ -110,7 +113,6 @@ export default class LobbyPage extends BaseComponent
         // Check URL for lobby ID parameter
         const urlLobbyId = params.get('id');
 
-
         if (urlLobbyId) {
             // Joining existing lobby
             this.lobbyId = urlLobbyId;
@@ -123,8 +125,11 @@ export default class LobbyPage extends BaseComponent
                 return;
             }
 
-            // Send join request
-            webSocketService.send('lobby:join', { lobbyId: this.lobbyId });
+            // Send join request WITH Avatar
+            webSocketService.send('lobby:join', { 
+                lobbyId: this.lobbyId,
+                avatarUrl: this.userProfile?.avatarUrl
+            });
         } else {
             // Creating new lobby
             
@@ -137,20 +142,31 @@ export default class LobbyPage extends BaseComponent
                 return;
             }
 
-            // Send create lobby request
+            // Send create lobby request WITH Avatar
             webSocketService.send('lobby:create', { 
                 gameType: this.gameType,
-                maxPlayers 
+                maxPlayers,
+                avatarUrl: this.userProfile?.avatarUrl
             });
         }
-        
+    }
+
+    private async loadProfile(): Promise<void> 
+    {
+        try 
+        {
+            this.userProfile = await UserService.getProfile();
+        } 
+        catch (err) 
+        {
+            console.error('Failed to load profile:', err);
+        }
     }
 
     /**
      * Handle WebSocket messages
      */
     private onWsMessage(message: any): void {
-
         switch (message.type) {
             case 'lobby:create:ack':
                 this.handleLobbyCreated(message.payload);
@@ -199,6 +215,7 @@ export default class LobbyPage extends BaseComponent
             this.gameLobby.updatePlayerPaddle(payload.userId, payload.paddle);
         }
     }
+
     /**
      * Handle lobby created acknowledgment
      */
@@ -260,13 +277,11 @@ export default class LobbyPage extends BaseComponent
                 });
             }
 
-            
             // Update start button area after loading players (host detection)
             this.gameLobby.updateStartButtonArea();
         } else {
             console.warn('[Lobby] No players in payload!');
         }
-        
     }
 
     /**
@@ -290,7 +305,6 @@ export default class LobbyPage extends BaseComponent
             return;
         }
 
-
         // Wait for lobby to be ready
         const isReady = await this.waitForLobbyReady();
         if (!isReady || !this.gameLobby) {
@@ -300,7 +314,7 @@ export default class LobbyPage extends BaseComponent
 
         // Update lobby UI with all players
         if (payload.players) {
-            
+            console.log(payload)
             // Clear existing players first
             this.gameLobby.clearAllPlayers();
             
@@ -318,14 +332,13 @@ export default class LobbyPage extends BaseComponent
      * Handle player joined
      */
     private async handlePlayerJoined(payload: any): Promise<void> {
-        
         if (this.gameLobby && !this.gameLobby.hasPlayer(payload.userId)) {
             await this.loadAndAddPlayer({
                 userId: payload.userId,
                 username: payload.username,
                 isHost: payload.isHost,
                 isReady: payload.isReady || false,
-                avatar: payload.avatarUrl,
+                avatar: payload.avatarUrl, // This should come from the server now!
             });
         }
     }
@@ -334,7 +347,6 @@ export default class LobbyPage extends BaseComponent
      * Handle player left
      */
     private handlePlayerLeft(payload: any): void {
-        
         if (this.gameLobby) {
             this.gameLobby.removePlayer(payload.userId);
         }
@@ -344,7 +356,6 @@ export default class LobbyPage extends BaseComponent
      * Handle player ready status change
      */
     private handlePlayerReady(payload: any): void {
-        
         if (this.gameLobby) {
             this.gameLobby.updatePlayerReady(payload.userId, payload.isReady);
         }
@@ -354,8 +365,6 @@ export default class LobbyPage extends BaseComponent
      * Handle being kicked from lobby
      */
     private async handleKicked(): Promise<void> {
-
-        
         await Modal.alert('Kicked', 'You have been removed from the lobby by the host.');
         navigateTo(this.gameType === 'racer' ? '/pod-racer' : '/pong');
     }
@@ -364,48 +373,44 @@ export default class LobbyPage extends BaseComponent
      * Handle game starting
      */
     private async handleGameStarting(payload: any): Promise<void> {
-    if (this.isGameStarting) 
-        return;
-    this.isGameStarting = true;
+        if (this.isGameStarting) 
+            return;
+        this.isGameStarting = true;
 
-    // 1. Determine side
-    let playerSide: 'left' | 'right' = 'left';
-    
-    // 2. Prepare default colors
-    let p1Color = 'default';
-    let p2Color = 'default';
-
-    if (this.gameLobby) 
-    {
-        playerSide = this.gameLobby.isCurrentUserHost() ? 'left' : 'right';
-
-        const slots = this.gameLobby.getPlayerSlots();
-        const p1 = slots.find(s => s.id === 0); 
-        const p2 = slots.find(s => s.id === 1); 
-        console.log(p1, p2)
-        this.player1avatar = p1?.avatarUrl;
-        this.player2avatar = p2?.avatarUrl;
-
-        if (p1 && p1.paddleName) 
-            p1Color = p1.paddleName.toLowerCase();
-        if (p2 && p2.paddleName) 
-            p2Color = p2.paddleName.toLowerCase();
-    }
-
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    if (this.gameType === 'racer') {
-        await Modal.alert('Info', 'Racer multiplayer not yet implemented');
-        this.isGameStarting = false;
-    } else {
+        // 1. Determine side
+        let playerSide: 'left' | 'right' = 'left';
         
-        const baseUrl = this.gameType === 'pong3d' ? '/pong-game3d' : '/pong-game';
-        const url = `${baseUrl}?gameId=${payload.gameId}&side=${playerSide}&lobbyId=${this.lobbyId}&p1Color=${p1Color}&p2Color=${p2Color}`;
+        // 2. Prepare default colors
+        let p1Color = 'default';
+        let p2Color = 'default';
+
+        if (this.gameLobby) 
+        {
+            playerSide = this.gameLobby.isCurrentUserHost() ? 'left' : 'right';
+
+            const slots = this.gameLobby.getPlayerSlots();
+            const p1 = slots.find(s => s.id === 0); 
+            const p2 = slots.find(s => s.id === 1); 
+            console.log(p1, p2)
+           
+            if (p1 && p1.paddleName) 
+                p1Color = p1.paddleName.toLowerCase();
+            if (p2 && p2.paddleName) 
+                p2Color = p2.paddleName.toLowerCase();
+        }
         
-        navigateTo(url);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (this.gameType === 'racer') {
+            await Modal.alert('Info', 'Racer multiplayer not yet implemented');
+            this.isGameStarting = false;
+        } else {
+            const baseUrl = this.gameType === 'pong3d' ? '/pong-game3d' : '/pong-game';
+            const url = `${baseUrl}?gameId=${payload.gameId}&side=${playerSide}&lobbyId=${this.lobbyId}&p1Color=${p1Color}&p2Color=${p2Color}`;
+            
+            navigateTo(url);
+        }
     }
-}
 
     /**
      * Handle lobby chat message
@@ -413,11 +418,6 @@ export default class LobbyPage extends BaseComponent
     private handleChat(payload: any): void {
         if (this.gameLobby) {
             this.gameLobby.addChatMessage(payload);
-        }
-    }
-
-    /**
-     * Start game (called when host clicks Start );
         }
     }
 
@@ -436,13 +436,28 @@ export default class LobbyPage extends BaseComponent
             console.error('[Lobby] ❌ gameLobby is null in loadAndAddPlayer!');
             return;
         }
-        const slots = this.gameLobby.getPlayerSlots();
-        const p1 = slots.find(s => s.id === 0); 
-        const p2 = slots.find(s => s.id === 1); 
-        this.player1avatar = p1?.avatarUrl
-        this.player2avatar = p2?.avatarUrl;
-        console.log("hello", this.player1avatar)
-        // Add player with basic data first
+
+        // 1. Prefer the avatar sent by the server/payload
+        let finalAvatarUrl = playerData.avatar; 
+
+        // 2. If no avatar in payload, and this player is ME, use my local profile
+        if (!finalAvatarUrl) 
+        {
+            try {
+                // If this is the current user, we can trust the local profile
+                if (this.userProfile && this.userProfile.username === playerData.username) {
+                     finalAvatarUrl = this.userProfile.avatarUrl;
+                }
+            } catch (e) {
+                console.log("Could not load local profile match");
+            }
+        }
+
+        // 3. Fallback to default
+        finalAvatarUrl = finalAvatarUrl || '/assets/images/default-avatar.jpeg';
+
+        console.log(`[Lobby] Adding player ${playerData.username} with avatar:`, finalAvatarUrl);
+        
         if(playerData.isHost === true)
         {
             this.gameLobby.addPlayer({
@@ -452,7 +467,7 @@ export default class LobbyPage extends BaseComponent
                 isReady: playerData.isReady,
                 isOnline: true,
                 isAI: false,
-                avatarUrl: this.player1avatar || '/assets/images/default-avatar.jpeg'
+                avatarUrl: finalAvatarUrl 
             });
         }
         else
@@ -464,28 +479,14 @@ export default class LobbyPage extends BaseComponent
                 isReady: playerData.isReady,
                 isOnline: true,
                 isAI: false,
-                avatarUrl: this.player2avatar || '/assets/images/default-avatar.jpeg'
+                avatarUrl: ""
             });
         }
+        
 
         // If playerData contains a paddle selection, update it in the UI
         if (playerData && (playerData as any).paddle) {
             this.gameLobby.updatePlayerPaddle(playerData.userId, (playerData as any).paddle);
-        }
-
-        // Try to load full profile asynchronously (won't block)
-        try {
-            const UserService = (await import('@/services/user/UserService')).default;
-            await UserService.getProfile();
-            console.log(UserService)
-            
-            // Update with full profile data if player still exists
-            if (this.gameLobby.hasPlayer(playerData.userId)) {
-                // Player card will auto-update with avatar
-
-            }
-        } catch (error) {
-            console.warn('[Lobby] Could not load full profile for:', playerData.username);
         }
     }
 
@@ -497,21 +498,16 @@ export default class LobbyPage extends BaseComponent
             console.error('[Lobby] Cannot start game: no lobby ID');
             return;
         }
-
-
         webSocketService.send('lobby:start', { lobbyId: this.lobbyId });
     }
 
     public dispose(): void 
     {
-
-        
         // Unsubscribe from WebSocket messages
         webSocketService.off('*', this.wsMessageHandler);
 
         // Leave lobby if we were in one
         if (this.lobbyId && !this.isGameStarting) {
-
             webSocketService.send('lobby:leave', { lobbyId: this.lobbyId });
         }
 

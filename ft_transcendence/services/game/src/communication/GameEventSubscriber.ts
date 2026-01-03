@@ -155,6 +155,7 @@ export class GameEventSubscriber {
       );
 
       const players = await this.lobbyManager.getLobbyPlayers(lobbyId);
+      console.log(event)
 
       console.log(`[GameEventSubscriber] 🔍 LOBBY CREATE DEBUG:`, {
         creatorUserId: userId,

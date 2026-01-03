@@ -61,7 +61,8 @@ export class LobbyManager {
     userId: string,
     username: string,
     gameType: string,
-    maxPlayers: number
+    maxPlayers: number,
+    avatar?: any
   ): Promise<void> {
     await this.redis.hSet(`lobby:${lobbyId}:data`, {
       lobbyId,
@@ -73,10 +74,11 @@ export class LobbyManager {
     });
 
     await this.redis.sAdd(`lobby:${lobbyId}:players`, userId);
-
+    await this.redis.sAdd(`lobby:${lobbyId}:players`, avatar)
     await this.redis.hSet(`lobby:${lobbyId}:player:${userId}`, {
       userId,
       username,
+      avatar,
       isHost: 'true',
       isReady: 'false',
       joinedAt: Date.now().toString(),
@@ -86,7 +88,7 @@ export class LobbyManager {
     await this.redis.expire(`lobby:${lobbyId}:players`, 3600);
     await this.redis.expire(`lobby:${lobbyId}:player:${userId}`, 3600);
 
-    console.log(`[LobbyManager] Created lobby ${lobbyId} by ${username} (${gameType}, max: ${maxPlayers})`);
+    console.log(`[LobbyManager] Created lobby ${lobbyId} by ${username} (${gameType}, max: ${maxPlayers}), avata: ${avatar} `);
 
   }
 
