@@ -323,7 +323,6 @@ export default class LobbyPage extends BaseComponent
 
         // Update lobby UI with all players
         if (payload.players) {
-            console.log(payload)
             // Clear existing players first
             this.gameLobby.clearAllPlayers();
             
@@ -400,7 +399,6 @@ export default class LobbyPage extends BaseComponent
             const slots = this.gameLobby.getPlayerSlots();
             const p1 = slots.find(s => s.id === 0); 
             const p2 = slots.find(s => s.id === 1); 
-            console.log(p1, p2)
            
             if (p1 && p1.paddleName) 
                 p1Color = p1.paddleName.toLowerCase();
@@ -458,7 +456,7 @@ export default class LobbyPage extends BaseComponent
                      finalAvatarUrl = this.userProfile.avatarUrl;
                 }
             } catch (e) {
-                console.log("Could not load local profile match");
+                console.error("Could not load local profile match");
             }
         }
 

@@ -307,42 +307,22 @@ export class GameLobby extends BaseComponent
                     <div class="bg-gradient-to-br from-gray-900 to-blue-900/50 rounded-2xl border-2 border-cyan-500/50 p-8 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
                         <h2 class="text-2xl font-bold text-cyan-300 mb-6 text-center">INVITE PLAYER</h2>
                         
+                        <div class="flex items-center justify-between mb-2">
+                            <h2 class="text-2xl font-bold text-cyan-300 text-center flex-1">INVITE PLAYER</h2>
+                            <button id="refreshFriendsBtn" class="ml-4 px-4 py-2 rounded-lg border border-cyan-500 text-cyan-300 hover:bg-cyan-800/40 font-bold transition-all text-sm">Refresh</button>
+                        </div>
                         <div id="friendsListContainer" class="space-y-4 mb-6">
                             ${this.renderFriendsList()}
                         </div>
-                        
-                        <button id="closeInviteModal" class="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold">
-                            CLOSE
-                        </button>
+                        <div class="flex flex-col gap-2">
+                            <button id="closeInviteModal" class="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold">
+                                CLOSE
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Player Type Selection Modal (Friend or AI) -->
-                <div id="playerTypeModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm items-center justify-center z-50" style="display: none;">
-                    <div class="bg-gradient-to-br from-gray-900 to-blue-900/50 rounded-2xl border-2 border-cyan-500/50 p-8 max-w-3xl w-full mx-4">
-                        <h2 class="text-3xl font-bold text-cyan-300 mb-8 text-center">ADD PLAYER</h2>
-
-                        <div class="grid grid-cols-${this.config.gameType === 'podracer' ? '1' : '2'} gap-6 mb-6">
-                            <button id="selectInviteFriend" class="p-8 rounded-xl border-2 border-cyan-500/40 bg-gradient-to-br from-cyan-900/40 to-gray-900/60 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/50 transition-all">
-                                <div class="text-6xl mb-4">👥</div>
-                                <h3 class="text-2xl font-bold text-cyan-400 mb-2">INVITE FRIEND</h3>
-                                <p class="text-gray-400">Play with online friends</p>
-                            </button>
-
-                            ${this.config.gameType !== 'podracer' ? `
-                            <button id="selectAddAI" class="p-8 rounded-xl border-2 border-purple-500/40 bg-gradient-to-br from-purple-900/40 to-gray-900/60 hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/50 transition-all">
-                                <div class="text-6xl mb-4">🤖</div>
-                                <h3 class="text-2xl font-bold text-purple-400 mb-2">ADD AI</h3>
-                                <p class="text-gray-400">Play against bot</p>
-                            </button>
-                            ` : ''}
-                        </div>
-
-                        <button id="closePlayerTypeModal" class="w-full py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-bold">
-                            CANCEL
-                        </button>
-                    </div>
-                </div>
+                <!-- Player Type Selection Modal (REMOVED) -->
                 
                 <div id="aiDifficultyModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm items-center justify-center z-50" style="display: none;">
                     <div class="bg-gradient-to-br from-gray-900 to-blue-900/50 rounded-2xl border-2 border-cyan-500/50 p-8 max-w-4xl w-full mx-4">
@@ -439,7 +419,7 @@ export class GameLobby extends BaseComponent
                     <div class="flex flex-col items-center justify-center h-full min-h-[140px]">
                         <div class="text-5xl mb-3 opacity-20">+</div>
                         <h3 class="text-base font-bold text-gray-600 mb-3">
-                            ${this.config.gameType === 'podracer' ? 'ADD PLAYER' : 'ADD PLAYER / AI'}
+                            ADD PLAYER
                         </h3>
                         <button class="add-player-btn px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-400 text-sm font-bold transition-all" data-slot="${slot.id}">
                             PRESS ENTER
@@ -782,7 +762,8 @@ export class GameLobby extends BaseComponent
             if (addBtn) 
             {
                 const slotId = parseInt(addBtn.dataset.slot!, 10);
-                this.handleAddPlayer(slotId);
+                this.currentCustomizingSlot = slotId;
+                this.showInviteModal(slotId);
                 return;
             }
 
@@ -824,40 +805,17 @@ export class GameLobby extends BaseComponent
                 this.closeInviteModal();
                 return;
             }
-
-            if (target.closest('#closePlayerTypeModal')) 
+            if (target.closest('#refreshFriendsBtn'))
             {
-                this.closePlayerTypeModal();
+                this.refreshFriendsList();
                 return;
             }
-
-            if (target.closest('#selectInviteFriend')) 
+            if (target.closest('#addBotBtn'))
             {
-                this.closePlayerTypeModal();
-                this.showInviteModalFromPlayerType();
+                this.addAIPlayer('easy'); // Default to easy, or show AI modal if you want difficulty selection
                 return;
             }
-
-            if (target.closest('#selectAddAI')) 
-            {
-                this.closePlayerTypeModal();
-                this.showAIModalFromPlayerType();
-                return;
-            }
-            
-            if (target.closest('#selectInviteFriend')) 
-            {
-                this.closePlayerTypeModal();
-                this.showInviteModal(this.currentCustomizingSlot!);
-                return;
-            }
-            
-            if (target.closest('#selectAddAI')) 
-            {
-                this.closePlayerTypeModal();
-                this.showAIModal(this.currentCustomizingSlot!);
-                return;
-            }
+                
             
             if (target.closest('#closePlayerTypeModal')) 
             {
@@ -917,6 +875,22 @@ export class GameLobby extends BaseComponent
         }
     }
     
+                 private async refreshFriendsList(): Promise<void> 
+                 {
+                    try {
+                        const friendsData = await FriendService.getFriends();
+                        this.allFriends = friendsData.friends.map((friend: any) => ({
+                            userId: friend.userId,
+                            username: friend.username,
+                            status: friend.status || 'OFFLINE',
+                            avatarUrl: friend.avatarUrl || '/assets/images/default-avatar.jpeg'
+                        }));
+                        this.friends = this.allFriends.filter((f: any) => f.status === 'online' || f.status === 'ONLINE');
+                        this.updateFriendsList();
+                    } catch (err) {
+                        console.error('Failed to refresh friends:', err);
+                    }
+                }
     private sendChatMessage(): void 
     {
         const chatInput = document.getElementById('chatInput') as HTMLInputElement;
@@ -969,23 +943,6 @@ export class GameLobby extends BaseComponent
         }
     }
     
-    private showInviteModalFromPlayerType(): void 
-    {
-        const modal = document.getElementById('inviteModal');
-        if (modal) 
-        {
-            modal.style.display = 'flex';
-        }
-    }
-    
-    private showAIModalFromPlayerType(): void 
-    {
-        const modal = document.getElementById('aiDifficultyModal');
-        if (modal) 
-        {
-            modal.style.display = 'flex';
-        }
-    }
     
     private showInviteModal(slotId: number): void 
     {
@@ -1040,15 +997,6 @@ export class GameLobby extends BaseComponent
         this.refresh();
     }
     
-    private showAIModal(slotId: number): void 
-    {
-        this.currentCustomizingSlot = slotId;
-        const modal = document.getElementById('aiDifficultyModal');
-        if (modal) 
-        {
-            modal.style.display = 'flex';
-        }
-    }
     
     private closeAIModal(): void 
     {
