@@ -53,7 +53,7 @@ export const GAME_CONFIG = {
   // Pong Game Configuration (16:9 aspect ratio - 958x538)
   PONG: {
     CANVAS: {
-      WIDTH: 958,
+      WIDTH: 960,
       HEIGHT: 540,
     },
     PADDLE: {

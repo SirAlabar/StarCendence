@@ -222,6 +222,7 @@ export class GameManager {
         if ('resize' in this.currentEngine && typeof this.currentEngine.resize === 'function') 
         {
             this.currentEngine.resize(newWidth, newHeight);
+            console.log("got here resize")
         }
     }
     

@@ -12,6 +12,8 @@ export default class LobbyPage extends BaseComponent
     private lobbyId: string | null = null;
     private isGameStarting: boolean = false;
     private gameType: string = 'pong'; // Default to pong
+    private player1avatar: any;
+    private player2avatar: any;
 
     /**
      * Wait for gameLobby to be fully mounted in DOM (with retry mechanism)
@@ -381,6 +383,8 @@ export default class LobbyPage extends BaseComponent
         const p1 = slots.find(s => s.id === 0); 
         const p2 = slots.find(s => s.id === 1); 
         console.log(p1, p2)
+        this.player1avatar = p1?.avatarUrl;
+        this.player2avatar = p2?.avatarUrl;
 
         if (p1 && p1.paddleName) 
             p1Color = p1.paddleName.toLowerCase();
@@ -432,17 +436,37 @@ export default class LobbyPage extends BaseComponent
             console.error('[Lobby] ❌ gameLobby is null in loadAndAddPlayer!');
             return;
         }
-
+        const slots = this.gameLobby.getPlayerSlots();
+        const p1 = slots.find(s => s.id === 0); 
+        const p2 = slots.find(s => s.id === 1); 
+        this.player1avatar = p1?.avatarUrl
+        this.player2avatar = p2?.avatarUrl;
+        console.log("hello", this.player1avatar)
         // Add player with basic data first
-        this.gameLobby.addPlayer({
-            userId: playerData.userId,
-            username: playerData.username,
-            isHost: playerData.isHost,
-            isReady: playerData.isReady,
-            isOnline: true,
-            isAI: false,
-            avatarUrl: playerData.avatar || '/assets/images/default-avatar.jpeg'
-        });
+        if(playerData.isHost === true)
+        {
+            this.gameLobby.addPlayer({
+                userId: playerData.userId,
+                username: playerData.username,
+                isHost: playerData.isHost,
+                isReady: playerData.isReady,
+                isOnline: true,
+                isAI: false,
+                avatarUrl: this.player1avatar || '/assets/images/default-avatar.jpeg'
+            });
+        }
+        else
+        {
+            this.gameLobby.addPlayer({
+                userId: playerData.userId,
+                username: playerData.username,
+                isHost: playerData.isHost,
+                isReady: playerData.isReady,
+                isOnline: true,
+                isAI: false,
+                avatarUrl: this.player2avatar || '/assets/images/default-avatar.jpeg'
+            });
+        }
 
         // If playerData contains a paddle selection, update it in the UI
         if (playerData && (playerData as any).paddle) {
@@ -453,6 +477,7 @@ export default class LobbyPage extends BaseComponent
         try {
             const UserService = (await import('@/services/user/UserService')).default;
             await UserService.getProfile();
+            console.log(UserService)
             
             // Update with full profile data if player still exists
             if (this.gameLobby.hasPlayer(playerData.userId)) {

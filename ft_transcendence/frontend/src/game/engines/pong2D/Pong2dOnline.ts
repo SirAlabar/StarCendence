@@ -30,8 +30,8 @@ export class OnlinePongEngine implements GameEngine
     private playerSide: 'left' | 'right';
     
     // SERVER DIMENSIONS 
-    private readonly SERVER_WIDTH = 958;
-    private readonly SERVER_HEIGHT = 538;
+    private readonly SERVER_WIDTH = 960;
+    private readonly SERVER_HEIGHT = 540;
   
 
     // State
@@ -389,5 +389,28 @@ export class OnlinePongEngine implements GameEngine
     private emitEvent(event: GameEvent): void 
     {
         this.eventCallbacks.forEach(callback => callback(event));
+    }
+
+    public resize(newWidth: number, newHeight: number): void 
+    {
+    
+        const scaleX = newWidth / this.SERVER_WIDTH;
+        const scaleY = newHeight / this.SERVER_HEIGHT;
+        
+        // Recalculate paddle dimensions with scale
+        const paddleWidth = 10 * scaleX;
+        const paddleHeight = 100 * scaleY;
+        const paddleOffset = 20 * scaleX;
+        
+        // Reposition left paddle (20px from left edge, scaled)
+        this.paddleLeft.x = paddleOffset;
+        this.paddleLeft.width = paddleWidth;
+        this.paddleLeft.height = paddleHeight;
+        
+        // Reposition right paddle (20px from right edge, scaled)
+        this.paddleRight.x = newWidth - paddleWidth - paddleOffset;
+        this.paddleRight.width = paddleWidth;
+        this.paddleRight.height = paddleHeight;
+    
     }
 }
