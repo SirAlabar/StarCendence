@@ -437,14 +437,14 @@ export default class LobbyPage extends BaseComponent
             return;
         }
 
-        // 1. Prefer the avatar sent by the server/payload
+        
         let finalAvatarUrl = playerData.avatar; 
 
-        // 2. If no avatar in payload, and this player is ME, use my local profile
+        
         if (!finalAvatarUrl) 
         {
             try {
-                // If this is the current user, we can trust the local profile
+                
                 if (this.userProfile && this.userProfile.username === playerData.username) {
                      finalAvatarUrl = this.userProfile.avatarUrl;
                 }
@@ -453,13 +453,12 @@ export default class LobbyPage extends BaseComponent
             }
         }
 
-        // 3. Fallback to default
+        
         finalAvatarUrl = finalAvatarUrl || '/assets/images/default-avatar.jpeg';
 
         console.log(`[Lobby] Adding player ${playerData.username} with avatar:`, finalAvatarUrl);
         
-        if(playerData.isHost === true)
-        {
+        
             this.gameLobby.addPlayer({
                 userId: playerData.userId,
                 username: playerData.username,
@@ -469,19 +468,6 @@ export default class LobbyPage extends BaseComponent
                 isAI: false,
                 avatarUrl: finalAvatarUrl 
             });
-        }
-        else
-        {
-            this.gameLobby.addPlayer({
-                userId: playerData.userId,
-                username: playerData.username,
-                isHost: playerData.isHost,
-                isReady: playerData.isReady,
-                isOnline: true,
-                isAI: false,
-                avatarUrl: ""
-            });
-        }
         
 
         // If playerData contains a paddle selection, update it in the UI
