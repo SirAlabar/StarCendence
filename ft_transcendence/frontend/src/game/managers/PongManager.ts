@@ -162,7 +162,7 @@ export class GameManager {
         } 
         catch (error) 
         {
-            console.error('❌ Failed to initialize game:', error);
+            console.error(' Failed to initialize game:', error);
             this.currentState = 'menu';
             throw error;
         }
@@ -222,6 +222,7 @@ export class GameManager {
         if ('resize' in this.currentEngine && typeof this.currentEngine.resize === 'function') 
         {
             this.currentEngine.resize(newWidth, newHeight);
+            console.log("got here resize")
         }
     }
     
@@ -290,12 +291,24 @@ export class GameManager {
         
         this.savePreferences();
         this.emitEvent('preferences:updated', { paddle, color });
+            
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const lobbyId = urlParams.get('id') || urlParams.get('lobbyId');
+                if (lobbyId && typeof (window as any).webSocketService !== 'undefined' && webSocketService.isConnected()) {
+                    webSocketService.send('lobby:player:update', {
+                        lobbyId,
+                        paddle: color
+                    });
+                }
+            } catch (err) {
+                console.log("failed to set paddle color")
+            }
         
     }
     
     public getPaddleColor(paddle: 1 | 2): Paddlecolor 
     {
-        //current way to setup paddle color
         return paddle === 1 
             ? "neon"
             : "ice";
@@ -357,21 +370,13 @@ export class GameManager {
     {
         // Keyboard shortcuts
         const keyHandler = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && this.isGameActive()) {
+            if (e.key === 'Escape' && this.isGameActive() && this.currentConfig?.mode != 'online-multiplayer') {
                 this.togglePause();
             }
         };
         window.addEventListener('keydown', keyHandler);
         this.on('cleanup', () => window.removeEventListener('keydown', keyHandler));
         
-        // Handle visibility change (pause when tab is hidden)
-        const visibilityHandler = () => {
-            if (document.hidden && this.currentState === 'playing') {
-                this.pauseGame();
-            }
-        };
-        document.addEventListener('visibilitychange', visibilityHandler);
-        this.on('cleanup', () => document.removeEventListener('visibilitychange', visibilityHandler));
     }
     
     private handleGameEvent(event: GameEvent): void 
@@ -390,7 +395,7 @@ export class GameManager {
                 
             case 'paddle-hit':
                 this.emitEvent('game:paddle-hit', event);
-                this.play_sound();
+                this.play_paddle_hit();
                 break;
                 
             case 'wall-hit':
@@ -427,6 +432,15 @@ export class GameManager {
     private play_sound_end() 
     {
         const audio = new Audio('/assets/sounds/sfx/gameend.mp3');
+        audio.volume = 0.6;
+        audio.play().catch(err => {
+            console.debug('[PongManager] Audio autoplay blocked:', err.message);
+        });
+    }
+
+    private play_paddle_hit()
+    {
+        const audio = new Audio('/assets/sounds/sfx/paddlehit.mp3');
         audio.volume = 0.6;
         audio.play().catch(err => {
             console.debug('[PongManager] Audio autoplay blocked:', err.message);

@@ -112,12 +112,15 @@ export default class Pong3DGamePage extends BaseComponent
 
         this.fitCanvasToWrapper(canvas, wrapper);
 
+        const p1Color = params.get('p1Color') || 'default';
+        const p2Color = params.get('p2Color') || 'default';
+
         const gameConfig: GameConfig = 
         {
             mode: 'online-multiplayer',
             difficulty: 'easy',
-            paddlecolor1: "neon",
-            paddlecolor2: "neon",
+            paddlecolor1: p1Color as any,
+            paddlecolor2: p2Color as any,
             gamewidth: canvas.width, 
             gameheight: canvas.height
         };

@@ -2,7 +2,8 @@ import { RedisClientType } from 'redis';
 import { LobbyManager } from '../managers/LobbyManager';
 import { createGameSession, addLobbyPlayerToGame, startGameSession, handlePlayerInput } from '../managers/GameSessionManager';
 import { GameType, GameMode} from '../utils/constants';
-import { racerMessageHandler } from '../communication/RacerMessageHandler';  // ← ADD THIS
+import { racerMessageHandler } from '../communication/RacerMessageHandler';
+
 export interface GameEventMessage {
   type: string;
   payload: any;
@@ -105,6 +106,10 @@ export class GameEventSubscriber {
           await this.handleLobbyReady(event);
           break;
 
+        case 'lobby:player:update':
+          await this.handleLobbyPlayerUpdate(event);
+          break;
+
         case 'lobby:start':
           await this.handleLobbyStart(event);
           break;
@@ -134,10 +139,10 @@ export class GameEventSubscriber {
 
  
   private async handleLobbyCreate(event: GameEventMessage): Promise<void> {
-    const { gameType, maxPlayers } = event.payload;
+    const { gameType, maxPlayers, avatarUrl } = event.payload;
     const { userId, username } = event;
 
-    try {
+    try { 
       // Generate unique lobby ID
       const lobbyId = await this.lobbyManager.generateUniqueLobbyId();
       
@@ -145,6 +150,7 @@ export class GameEventSubscriber {
       await this.lobbyManager.createLobby(
         lobbyId,
         userId,
+        avatarUrl,
         username || 'Player',
         gameType || 'pong',
         maxPlayers || 2
@@ -173,12 +179,14 @@ export class GameEventSubscriber {
             username: p.username,
             isHost: p.isHost,
             isReady: p.isReady,
+            paddle: p.paddle || null,
             joinedAt: p.joinedAt,
           })),
         },
       });
 
       const stats = await this.lobbyManager.getLobbyStats(lobbyId);
+      
       console.log(`[GameEventSubscriber] 🎮 Lobby ${lobbyId} created:`, {
         gameType,
         maxPlayers,
@@ -216,12 +224,13 @@ export class GameEventSubscriber {
       },
     });
   }
+
   private async handleLobbyJoin(event: GameEventMessage): Promise<void> {
-    const { lobbyId } = event.payload;
-    const { userId, username } = event;
+    const { lobbyId, avatarUrl } = event.payload;
+    const { userId, username, } = event;
 
     try {
-      const result = await this.lobbyManager.joinLobby(lobbyId, userId, username || 'Player');
+      const result = await this.lobbyManager.joinLobby(lobbyId, userId, username || 'Player', avatarUrl);
 
       if (!result.success) {
         await this.broadcastToUser(userId, {
@@ -261,9 +270,11 @@ export class GameEventSubscriber {
           players: players.map(p => ({
             userId: p.userId,
             username: p.username,
+            avatarUrl: p.avatarUrl,
             isHost: p.isHost,
             isReady: p.isReady,
-            joinedAt: p.joinedAt,
+              paddle: p.paddle || null,
+              joinedAt: p.joinedAt,
           })),
         },
       });
@@ -282,6 +293,7 @@ export class GameEventSubscriber {
               lobbyId,
               userId,
               username,
+              avatarUrl,
               isHost: joinerIsHost,
               isReady: false,
             },
@@ -469,7 +481,7 @@ export class GameEventSubscriber {
         type: gameType,
         mode: GameMode.MATCH,
         maxPlayers: lobbyData.maxPlayers,
-        maxScore: 10, // Default score, could be configurable
+        maxScore: 5, // Default score, could be configurable
       });
       if (!game)
       {
@@ -501,6 +513,7 @@ export class GameEventSubscriber {
             userId: p.userId,
             username: p.username,
             isHost: p.isHost,
+            paddle: p.paddle || null,
           })),
         },
       });
@@ -581,6 +594,43 @@ export class GameEventSubscriber {
       console.log(`[GameEventSubscriber] 💬 ${username} sent chat in lobby ${lobbyId}: "${message}"`);
     } catch (error) {
       console.error(`[GameEventSubscriber] ❌ Failed to handle chat:`, error);
+    }
+  }
+
+  private async handleLobbyPlayerUpdate(event: GameEventMessage): Promise<void> {
+    const { lobbyId, paddle } = event.payload || {};
+    const { userId, username } = event;
+
+    if (!lobbyId || !paddle) {
+      console.error('[GameEventSubscriber] Invalid lobby:player:update event - missing lobbyId or paddle');
+      return;
+    }
+
+    try {
+      // Validate membership
+      const isMember = await this.lobbyManager.getLobbyUserIds(lobbyId);
+      if (!isMember || isMember.length === 0 || !isMember.includes(userId)) {
+        console.warn(`[GameEventSubscriber] User ${userId} tried to update paddle but is not in lobby ${lobbyId}`);
+        return;
+      }
+
+      // Persist paddle name in lobby player hash
+      await this.lobbyManager.setPlayerPaddle(lobbyId, userId, paddle);
+
+      // Broadcast update to everyone in lobby
+      const userIds = await this.lobbyManager.getLobbyUserIds(lobbyId);
+      await this.broadcastToUsers(userIds, {
+        type: 'lobby:player:update',
+        payload: {
+          lobbyId,
+          userId,
+          paddle,
+        },
+      });
+
+      console.log(`[GameEventSubscriber] 🔁 Broadcasted paddle update for ${username} (${userId}) in lobby ${lobbyId}`);
+    } catch (error) {
+      console.error('[GameEventSubscriber] ❌ Failed to handle lobby:player:update:', error);
     }
   }
 

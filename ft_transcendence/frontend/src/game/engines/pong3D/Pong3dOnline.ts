@@ -3,6 +3,7 @@ import { GameConfig, GameState, GameEvent, GameEngine } from "../../utils/GameTy
 import { OGameEvent } from "@/game/utils/OnlineInterface";
 import { Skybox } from "./entities/Skybox";
 import { loadModel } from "./entities/ModelLoader";
+import { PADDLE_COLORS } from "./entities/PaddleColor";
 
 interface WebSocketLikeConnection {
     on(event: string, callback: Function): void;
@@ -117,6 +118,34 @@ export class OnlinePong3D implements GameEngine
                 this.handleServerEvent(data.event);
             }
         });
+
+        this.connection.on('lobby:player:update', (payload: any) => {
+            try {
+                if (!payload || !payload.paddle) return;
+                const color = this.getPaddleColor((payload.paddle || '').toLowerCase());
+                if (payload.userId === this.playerId) {
+                    // local player
+                    if (this.playerSide === 'left') {
+                        (this.paddle_left.material as StandardMaterial).diffuseColor = color.diffuse;
+                        (this.paddle_left.material as StandardMaterial).emissiveColor = color.emissive;
+                    } else {
+                        (this.paddle_right.material as StandardMaterial).diffuseColor = color.diffuse;
+                        (this.paddle_right.material as StandardMaterial).emissiveColor = color.emissive;
+                    }
+                } else {
+                    // opponent
+                    if (this.playerSide === 'left') {
+                        (this.paddle_right.material as StandardMaterial).diffuseColor = color.diffuse;
+                        (this.paddle_right.material as StandardMaterial).emissiveColor = color.emissive;
+                    } else {
+                        (this.paddle_left.material as StandardMaterial).diffuseColor = color.diffuse;
+                        (this.paddle_left.material as StandardMaterial).emissiveColor = color.emissive;
+                    }
+                }
+            } catch (err) {
+                console.log("failed to get update payload!")
+            }
+        });
     }
 
     private applyServerState(state: any): void {
@@ -201,7 +230,8 @@ export class OnlinePong3D implements GameEngine
                 break;
             case 'game-end':
                 this.ended = true;
-                this.emitEvent({ type: 'game-ended', winner: event.data?.winner });
+                const winnerName = event.data?.winnerName || event.data?.winner;
+                this.emitEvent({ type: 'game-ended', winner: winnerName });
                 break;
         }
     }
@@ -435,11 +465,10 @@ export class OnlinePong3D implements GameEngine
 
     private getPaddleColor(colorName: string) 
     {
-        const colors: Record<string, any> = {
-            'default': { diffuse: new Color3(0.9, 0.1, 0.1), emissive: new Color3(0.3, 0.05, 0.05) },
-            'neon': { diffuse: new Color3(0, 1, 1), emissive: new Color3(0, 0.5, 0.5) },
-        };
-        return colors[colorName] || colors['default'];
+        const key = (colorName || 'default').toLowerCase();
+        const base = PADDLE_COLORS[key] || PADDLE_COLORS['default'];
+        const emissive = new Color3(base.r * 0.5, base.g * 0.5, base.b * 0.5);
+        return { diffuse: base, emissive };
     }
 
     private enableCollisions(): void {

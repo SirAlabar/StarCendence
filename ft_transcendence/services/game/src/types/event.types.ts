@@ -61,6 +61,7 @@ export interface PlayerEventData
 {
   playerId: string;
   username: string;
+  avatar?: any;
   action?: 'joined' | 'left' | 'ready' | 'disconnected' | 'reconnected';
 }
 

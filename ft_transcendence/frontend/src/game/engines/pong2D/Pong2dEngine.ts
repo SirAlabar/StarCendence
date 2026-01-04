@@ -31,6 +31,7 @@ export class LocalPongEngine
 
     //Configs
     private config: GameConfig;
+    private profileLoaded?: boolean = false;
     
     //Events
     private eventCallBack: Array<(event: GameEvent) => void> = [];
@@ -50,7 +51,6 @@ export class LocalPongEngine
             throw Error("Failed to get 2d Context");
         this.ctx = ctx;
 
-
         //start game objects
         this.ball = new Ball(canvas.width/2, canvas.height/2, 10);
         this.ball.dx = 3;
@@ -65,7 +65,6 @@ export class LocalPongEngine
         this.player1 = new player();
         this.player1.score = 0;
         
-
         //configs
         if(config.mode === 'local-multiplayer')
         {
@@ -81,6 +80,7 @@ export class LocalPongEngine
 
         //input handling
         this.setupInputHandlers();
+
     }
 
     private async initializeAsync(): Promise<void> 
@@ -88,24 +88,34 @@ export class LocalPongEngine
         try 
         {
             await this.loadPlayerProfiles();
+            this.profileLoaded = true;
+            console.log(this.profileLoaded);
         } 
         catch (error) 
         {
-            console.error('❌ Failed to initialize async components:', error);
+            this.profileLoaded = true; // Continue anyway
         }
     }
-
-private async loadPlayerProfiles(): Promise<void> 
-{
-    try 
+    private async loadPlayerProfiles(): Promise<void> 
     {
-        await this.player1.loadProfile();
-    } 
-    catch 
-    {
-        
+        try 
+        {
+            const profileLoaded = await this.player1.loadProfile();
+            if (profileLoaded) 
+            {
+                console.log('Player 1 profile loaded:', this.player1.getPlayerInfo());
+            } 
+            else 
+            {
+                console.log('Playing as guest (not authenticated)');
+            }
+            
+        } 
+        catch (error) 
+        {
+            console.error('❌ Failed to load player profiles:', error);
+        }
     }
-}
 
     start(): void
     {
@@ -117,7 +127,7 @@ private async loadPlayerProfiles(): Promise<void>
         if (this.config.mode === 'ai' && this.enemy)
             this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
 
-        this.update();  
+        this.update(); 
     }
 
     stop(): void 
@@ -204,6 +214,8 @@ private async loadPlayerProfiles(): Promise<void>
 
         this.clear();
         this.updatePaddles();
+
+        
         if (this.gameStarted) 
         {
             this.updateBall();
@@ -230,7 +242,7 @@ private async loadPlayerProfiles(): Promise<void>
         const pulse = Math.sin(Date.now() / 200) * 2;
         this.ball.radius = 15 + pulse;
         
-        // Top/bottom wall collision
+       
         if (this.ball.y + this.ball.radius > this.canvas.height || 
             this.ball.y - this.ball.radius < 0) 
         {
@@ -244,29 +256,25 @@ private async loadPlayerProfiles(): Promise<void>
         const speed = this.paddleleft.speed;
         
         // Player 1 (left paddle)
-        if (!(this.keys['w'] && this.keys['s'])) {
-            if (this.keys['w'] && this.paddleleft.y > 0) 
-            {
-                this.paddleleft.y -= speed;
-            }
-            else if (this.keys['s'] && this.paddleleft.y + this.paddleleft.height < this.canvas.height) 
-            {
-                this.paddleleft.y += speed;
-            }
+        if (this.keys['w'] && this.paddleleft.y > 0) 
+        {
+            this.paddleleft.y -= speed;
+        }
+        if (this.keys['s'] && this.paddleleft.y + this.paddleleft.height < this.canvas.height) 
+        {
+            this.paddleleft.y += speed;
         }
         
         // Player 2 / AI (right paddle)
         if (this.config.mode === 'local-multiplayer') 
         {
-            if (!(this.keys['arrowup'] && this.keys['arrowdown'])) {
-                if (this.keys['arrowup'] && this.paddleright.y > 0) 
-                {
-                    this.paddleright.y -= speed;
-                }
-                else if (this.keys['arrowdown'] && this.paddleright.y + this.paddleright.height < this.canvas.height) 
-                {
-                    this.paddleright.y += speed;
-                }
+            if (this.keys['arrowup'] && this.paddleright.y > 0) 
+            {
+                this.paddleright.y -= speed;
+            }
+            if (this.keys['arrowdown'] && this.paddleright.y + this.paddleright.height < this.canvas.height) 
+            {
+                this.paddleright.y += speed;
             }
         } 
         else if (this.config.mode === 'ai' && this.enemy) 
@@ -400,8 +408,7 @@ private async loadPlayerProfiles(): Promise<void>
     
     private clear(): void 
     {
-        this.ctx.fillStyle = '#0f0f1e';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
     
     private render(): void 
@@ -417,26 +424,6 @@ private async loadPlayerProfiles(): Promise<void>
         else if (this.enemy) 
         {
             this.enemy.draw(this.ctx);
-        }
-
-        // Debug: Draw scores and countdown
-        this.ctx.fillStyle = "white";
-        this.ctx.font = "32px Arial";
-        this.ctx.textAlign = "center";
-        
-        // Draw scores
-        this.ctx.fillText(`${this.player1.score}`, this.canvas.width / 4, 50);
-        const player2Score = this.player2?.score ?? this.enemy?.score ?? 0;
-        this.ctx.fillText(`${player2Score}`, (this.canvas.width / 4) * 3, 50);
-
-        // Draw countdown if game hasn't started
-        if (!this.gameStarted) {
-            const elapsed = Date.now() - this.starttime;
-            const remaining = Math.ceil((this.startdelay - elapsed) / 1000);
-            if (remaining > 0) {
-                this.ctx.font = "64px Arial";
-                this.ctx.fillText(`${remaining}`, this.canvas.width / 2, this.canvas.height / 2);
-            }
         }
         
     }
@@ -469,10 +456,6 @@ private async loadPlayerProfiles(): Promise<void>
     
     private keydownHandler = (e: KeyboardEvent) => 
     {
-        
-        if (e.repeat) 
-            return;
-        
         const key = e.key.toLowerCase();
         this.keys[key] = true;
 
@@ -491,23 +474,16 @@ private async loadPlayerProfiles(): Promise<void>
         this.keys[e.key.toLowerCase()] = false;
     };
     
-    private blurHandler = (): void => 
-    {
-        this.keys = {};
-    };
-    
     private setupInputHandlers(): void 
     {
         window.addEventListener('keydown', this.keydownHandler);
         window.addEventListener('keyup', this.keyupHandler);
-        window.addEventListener('blur', this.blurHandler);
     }
     
     private removeInputHandlers(): void 
     {
         window.removeEventListener('keydown', this.keydownHandler);
         window.removeEventListener('keyup', this.keyupHandler);
-        window.removeEventListener('blur', this.blurHandler);
     }
     
 

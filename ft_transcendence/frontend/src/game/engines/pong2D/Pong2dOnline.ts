@@ -2,6 +2,7 @@ import { GameConfig, GameState, GameEvent, GameEngine } from "../../utils/GameTy
 import {  OGameEvent } from "@/game/utils/OnlineInterface";
 import { Ball } from "./entities/Ball";
 import { paddle } from "./entities/Paddle";
+import { PADDLE_COLORS } from "../pong3D/entities/PaddleColor";
 
 
 interface WebSocketLikeConnection 
@@ -29,8 +30,8 @@ export class OnlinePongEngine implements GameEngine
     private playerSide: 'left' | 'right';
     
     // SERVER DIMENSIONS 
-    private readonly SERVER_WIDTH = 958;
-    private readonly SERVER_HEIGHT = 538;
+    private readonly SERVER_WIDTH = 960;
+    private readonly SERVER_HEIGHT = 540;
   
 
     // State
@@ -89,6 +90,35 @@ export class OnlinePongEngine implements GameEngine
         {
             if (data && data.gameId === this.gameId)
                 this.handleServerEvent(data.event);
+        });
+        this.connection.on('lobby:player:update', (payload: any) => {
+            try {
+                if (!payload || !payload.paddle) 
+                    return;
+
+                const key = (payload.paddle || '').toLowerCase();
+                const colorObj = PADDLE_COLORS[key];
+                if (!colorObj) 
+                    return;
+
+                const hex = colorObj.toHexString();
+                if (payload.userId === this.playerId) {
+                   
+                    if (this.playerSide === 'left') 
+                        this.paddleLeft.color = hex;
+                    else 
+                        this.paddleRight.color = hex;
+                } 
+                else 
+                {
+                    if (this.playerSide === 'left')
+                         this.paddleRight.color = hex;
+                    else 
+                        this.paddleLeft.color = hex;
+                }
+            } catch (err) {
+                console.log("failed to send payload");
+            }
         });
     }
     
@@ -157,9 +187,10 @@ export class OnlinePongEngine implements GameEngine
                 
             case 'game-end':
                 this.ended = true;
+                const winnerName = event.data?.winnerName || event.data?.winner;
                 this.emitEvent({
                     type: 'game-ended',
-                    winner: event.data?.winner || 'player1'
+                    winner: winnerName || 'player1'
                 });
                 break;
         }
@@ -170,11 +201,7 @@ export class OnlinePongEngine implements GameEngine
     private sendInput(): void 
     {
         const now = Date.now();
-        if (this.playerSide == "right")
-        {           
-        }
-
-
+       
         let direction: 'up' | 'down' | 'none' = 'none';
         if (this.keys['w'] && this.keys['s']) 
             direction = 'none';
@@ -360,5 +387,28 @@ export class OnlinePongEngine implements GameEngine
     private emitEvent(event: GameEvent): void 
     {
         this.eventCallbacks.forEach(callback => callback(event));
+    }
+
+    public resize(newWidth: number, newHeight: number): void 
+    {
+    
+        const scaleX = newWidth / this.SERVER_WIDTH;
+        const scaleY = newHeight / this.SERVER_HEIGHT;
+        
+        // Recalculate paddle dimensions with scale
+        const paddleWidth = 10 * scaleX;
+        const paddleHeight = 100 * scaleY;
+        const paddleOffset = 20 * scaleX;
+        
+        // Reposition left paddle (20px from left edge, scaled)
+        this.paddleLeft.x = paddleOffset;
+        this.paddleLeft.width = paddleWidth;
+        this.paddleLeft.height = paddleHeight;
+        
+        // Reposition right paddle (20px from right edge, scaled)
+        this.paddleRight.x = newWidth - paddleWidth - paddleOffset;
+        this.paddleRight.width = paddleWidth;
+        this.paddleRight.height = paddleHeight;
+    
     }
 }
