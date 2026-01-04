@@ -395,7 +395,7 @@ export class GameManager {
                 
             case 'paddle-hit':
                 this.emitEvent('game:paddle-hit', event);
-                this.play_sound();
+                this.play_paddle_hit();
                 break;
                 
             case 'wall-hit':
@@ -432,6 +432,15 @@ export class GameManager {
     private play_sound_end() 
     {
         const audio = new Audio('/assets/sounds/sfx/gameend.mp3');
+        audio.volume = 0.6;
+        audio.play().catch(err => {
+            console.debug('[PongManager] Audio autoplay blocked:', err.message);
+        });
+    }
+
+    private play_paddle_hit()
+    {
+        const audio = new Audio('/assets/sounds/sfx/paddlehit.mp3');
         audio.volume = 0.6;
         audio.play().catch(err => {
             console.debug('[PongManager] Audio autoplay blocked:', err.message);
