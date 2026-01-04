@@ -14,6 +14,8 @@ export default class PongPage extends BaseComponent
     private gameEndHandler: ((event: Event) => void) | null = null;
     private gameGoalHandler: ((event: Event) => void) | null = null;
     private gamePaddleHitHandler: ((event: Event) => void) | null = null;
+    private gamePauseHandler: ((event: Event) => void) | null = null;
+    private gameResumeHandler: ((event: Event) => void) | null = null;
     private selectedMode: GameMode = null;
     private selectedView: ViewType = null;
 
@@ -70,6 +72,49 @@ export default class PongPage extends BaseComponent
                     </div>
                 </div>
             </div>
+
+
+            <!-- Pause Overlay -->
+                <div id="pauseOverlay" class="absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-sm z-50" style="display: none;">
+                    <div class="bg-gradient-to-br from-slate-800/95 to-slate-900/95 border-2 border-blue-500/50 rounded-2xl p-12 max-w-2xl shadow-2xl shadow-blue-500/20">
+                        <h2 class="text-6xl font-bold text-white mb-8 text-center tracking-wider" style="text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);">PAUSED</h2>
+                        
+                        <div class="border-t-2 border-slate-600/30 my-6"></div>
+                        
+                        <div class="space-y-4 text-lg font-mono">
+                            <div class="flex justify-between items-center px-4 py-2 bg-slate-700/30 rounded-lg">
+                                <span class="text-slate-400">Player 1</span>
+                                <span class="text-blue-400 font-bold" id="pauseP1Controls">W / S</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center px-4 py-2 bg-slate-700/30 rounded-lg">
+                                <span class="text-slate-400" id="pauseP2Label">Player 2</span>
+                                <span class="text-purple-400 font-bold" id="pauseP2Controls">↑ / ↓</span>
+                            </div>
+                            
+                            <div class="border-t border-slate-600/30 my-4"></div>
+                            
+                            <div class="flex justify-between items-center px-4 py-2 bg-slate-700/30 rounded-lg">
+                                <span class="text-slate-400">Resume</span>
+                                <span class="text-white font-bold">SPACE</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center px-4 py-2 bg-slate-700/30 rounded-lg">
+                                <span class="text-slate-400">Menu/Quit</span>
+                                <span class="text-red-400 font-bold">ESC</span>
+                            </div>
+                            
+                            <div id="pause3DExtra" class="flex justify-between items-center px-4 py-2 bg-slate-700/30 rounded-lg" style="display: none;">
+                                <span class="text-slate-400">Change Camera</span>
+                                <span class="text-cyan-400 font-bold">C</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-8 text-center">
+                            <p class="text-slate-500 text-sm font-mono">/// GAME PAUSED ///</p>
+                        </div>
+                    </div>
+                </div>
         `;
     }
 
@@ -279,6 +324,8 @@ export default class PongPage extends BaseComponent
         this.gameEndHandler = this.handleGameEnd.bind(this);
         this.gameGoalHandler = this.handleGameGoal.bind(this);
         this.gamePaddleHitHandler = this.handlePaddleHit.bind(this);
+        this.gamePauseHandler = this.handleGamePause.bind(this);
+        this.gameResumeHandler = this.handleGameResume.bind(this);
         
         // Subscribe to game events
         gameManager.on('game:ended', this.gameEndHandler);
@@ -286,6 +333,8 @@ export default class PongPage extends BaseComponent
         gameManager.on('game:paddle-hit', this.gamePaddleHitHandler);
         gameManager.on('game:score-update', this.handleScoreUpdate.bind(this));
         gameManager.on('game:score-update_3d', this.handleScoreUpdate.bind(this));
+        gameManager.on('game:paused', this.gamePauseHandler);
+        gameManager.on('game:resumed', this.gameResumeHandler);
         
         
     }
@@ -650,6 +699,53 @@ export default class PongPage extends BaseComponent
         canvas.height = container.clientHeight;
     }
 
+    private handleGamePause(_event: Event): void 
+    {
+        const overlay = document.getElementById('pauseOverlay');
+        if (!overlay) return;
+        
+        // Update controls text based on game type
+        const p2Label = document.getElementById('pauseP2Label');
+        const p2Controls = document.getElementById('pauseP2Controls');
+        const p1Controls = document.getElementById('pauseP1Controls');
+        const extra3D = document.getElementById('pause3DExtra');
+        
+        if (this.selectedView === '3d') 
+        {
+            // Show 3D-specific controls
+            if (extra3D) extra3D.style.display = 'flex';
+            
+            // Check active camera to update controls
+            // For now, default to side view controls
+            if (p1Controls) p1Controls.textContent = 'A / D';
+            if (p2Controls) p2Controls.textContent = '← / →';
+        } 
+        else 
+        {
+            // 2D controls
+            if (extra3D) extra3D.style.display = 'none';
+            if (p1Controls) p1Controls.textContent = 'W / S';
+            if (p2Controls) p2Controls.textContent = '↑ / ↓';
+        }
+        
+        // Update player 2 label
+        if (p2Label) 
+        {
+            p2Label.textContent = this.selectedMode === 'ai' ? 'AI' : 'Player 2';
+        }
+        
+        overlay.style.display = 'flex';
+    }
+
+    private handleGameResume(_event: Event): void 
+    {
+        const overlay = document.getElementById('pauseOverlay');
+        if (overlay) 
+        {
+            overlay.style.display = 'none';
+        }
+    }
+
     private setupResizeListener(canvas: HTMLCanvasElement): void 
     {
         if (this.resizeListener) 
@@ -875,6 +971,18 @@ export default class PongPage extends BaseComponent
         {
             gameManager.off('game:paddle-hit', this.gamePaddleHitHandler);
             this.gamePaddleHitHandler = null;
+        }
+
+        if (this.gamePauseHandler) 
+        {
+            gameManager.off('game:paused', this.gamePauseHandler);
+            this.gamePauseHandler = null;
+        }
+        
+        if (this.gameResumeHandler) 
+        {
+            gameManager.off('game:resumed', this.gameResumeHandler);
+            this.gameResumeHandler = null;
         }
         
         // Remove resize listener
