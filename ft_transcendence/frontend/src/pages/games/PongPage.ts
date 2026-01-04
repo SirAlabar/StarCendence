@@ -712,17 +712,12 @@ export default class PongPage extends BaseComponent
         
         if (this.selectedView === '3d') 
         {
-            // Show 3D-specific controls
             if (extra3D) extra3D.style.display = 'flex';
-            
-            // Check active camera to update controls
-            // For now, default to side view controls
             if (p1Controls) p1Controls.textContent = 'A / D';
             if (p2Controls) p2Controls.textContent = '← / →';
         } 
         else 
         {
-            // 2D controls
             if (extra3D) extra3D.style.display = 'none';
             if (p1Controls) p1Controls.textContent = 'W / S';
             if (p2Controls) p2Controls.textContent = '↑ / ↓';
