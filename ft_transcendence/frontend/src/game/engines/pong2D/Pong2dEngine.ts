@@ -113,7 +113,7 @@ export class LocalPongEngine
         } 
         catch (error) 
         {
-            console.error('❌ Failed to load player profiles:', error);
+            console.error(' Failed to load player profiles:', error);
         }
     }
 

@@ -53,7 +53,7 @@ export default class Pong3DGamePage extends BaseComponent
                         </div>
                         
                         <div class="mt-3 text-center text-gray-400 text-xs sm:text-sm">
-                            Controls: ${this.side === 'left' ? 'A / D (or W/S in top view)' : 'Arrow Left / Arrow Right (or Up/Down in top view)'} | Press C to Change Camera | Press ESC to Pause
+                            Controls: ${this.side === 'left' ? 'A / D ( W/S in top view)' : 'A / D ( W/S in top view)'} | Press C to Change Camera
                         </div>
                     </div>
                 </div>
