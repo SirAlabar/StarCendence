@@ -119,7 +119,6 @@ export class OnlinePong3D implements GameEngine
             }
         });
 
-        // Listen for lobby customization updates and apply paddle colors
         this.connection.on('lobby:player:update', (payload: any) => {
             try {
                 if (!payload || !payload.paddle) return;
@@ -144,7 +143,7 @@ export class OnlinePong3D implements GameEngine
                     }
                 }
             } catch (err) {
-                // ignore
+                console.log("failed to get update payload!")
             }
         });
     }
@@ -231,7 +230,6 @@ export class OnlinePong3D implements GameEngine
                 break;
             case 'game-end':
                 this.ended = true;
-                // Prefer human-readable winner name if provided by server
                 const winnerName = event.data?.winnerName || event.data?.winner;
                 this.emitEvent({ type: 'game-ended', winner: winnerName });
                 break;
@@ -469,7 +467,6 @@ export class OnlinePong3D implements GameEngine
     {
         const key = (colorName || 'default').toLowerCase();
         const base = PADDLE_COLORS[key] || PADDLE_COLORS['default'];
-        // Make a slightly dimmer emissive color
         const emissive = new Color3(base.r * 0.5, base.g * 0.5, base.b * 0.5);
         return { diffuse: base, emissive };
     }

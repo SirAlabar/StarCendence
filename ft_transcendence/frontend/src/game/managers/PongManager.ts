@@ -162,7 +162,7 @@ export class GameManager {
         } 
         catch (error) 
         {
-            console.error('❌ Failed to initialize game:', error);
+            console.error(' Failed to initialize game:', error);
             this.currentState = 'menu';
             throw error;
         }
@@ -302,14 +302,13 @@ export class GameManager {
                     });
                 }
             } catch (err) {
-                // ignore in non-browser contexts
+                console.log("failed to set paddle color")
             }
         
     }
     
     public getPaddleColor(paddle: 1 | 2): Paddlecolor 
     {
-        //current way to setup paddle color
         return paddle === 1 
             ? "neon"
             : "ice";

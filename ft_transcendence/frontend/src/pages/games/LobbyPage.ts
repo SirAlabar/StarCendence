@@ -30,8 +30,7 @@ export default class LobbyPage extends BaseComponent
             // Check if DOM elements are ready (lobby container exists with player slots)
             const lobbyContainer = document.getElementById('lobbyContainer');
             const playerCards = lobbyContainer?.querySelectorAll('.player-card, [class*="player"]');
-            
-            // REMOVED: this.loadProfile(); (We do this once in mount() now)
+        
 
             if (lobbyContainer && playerCards && playerCards.length > 0) {
                 return true;
@@ -51,7 +50,7 @@ export default class LobbyPage extends BaseComponent
     
     async mount(): Promise<void> 
     {
-        // 1. Load Profile FIRST so we have the avatar ready for the handshake
+        
         await this.loadProfile();
 
         // Get game type from URL parameter
@@ -104,7 +103,6 @@ export default class LobbyPage extends BaseComponent
         const container = document.getElementById('lobbyContainer');
         if (container) 
         {
-            // Mount will handle rendering - don't render before mount!
             await this.gameLobby.mount('#lobbyContainer');
         } else {
             console.error('[Lobby] Container #lobbyContainer not found!');
@@ -210,7 +208,7 @@ export default class LobbyPage extends BaseComponent
     }
 
     private handlePlayerUpdate(payload: any): void {
-        // payload should contain: { userId: string, paddle: string }
+        
         if (this.gameLobby && payload.userId && payload.paddle) {
             this.gameLobby.updatePlayerPaddle(payload.userId, payload.paddle);
         }
@@ -229,8 +227,6 @@ export default class LobbyPage extends BaseComponent
         }
 
         this.lobbyId = payload.lobbyId;
-
-        // Preserve any local paddle selection the host made before lobby ID was assigned
         let hostPendingPaddle: string | null = null;
         try {
             const userobj = LoginService.getCurrentUser();

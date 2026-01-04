@@ -91,30 +91,33 @@ export class OnlinePongEngine implements GameEngine
             if (data && data.gameId === this.gameId)
                 this.handleServerEvent(data.event);
         });
-        
-        // Listen for paddle customization updates from lobby and apply colors live
         this.connection.on('lobby:player:update', (payload: any) => {
             try {
-                if (!payload || !payload.paddle) return;
+                if (!payload || !payload.paddle) 
+                    return;
 
                 const key = (payload.paddle || '').toLowerCase();
                 const colorObj = PADDLE_COLORS[key];
-                if (!colorObj) return;
+                if (!colorObj) 
+                    return;
 
                 const hex = colorObj.toHexString();
-
-                // Determine whether payload refers to local player or opponent
                 if (payload.userId === this.playerId) {
-                    // Update local player's paddle color
-                    if (this.playerSide === 'left') this.paddleLeft.color = hex;
-                    else this.paddleRight.color = hex;
-                } else {
-                    // Opponent changed
-                    if (this.playerSide === 'left') this.paddleRight.color = hex;
-                    else this.paddleLeft.color = hex;
+                   
+                    if (this.playerSide === 'left') 
+                        this.paddleLeft.color = hex;
+                    else 
+                        this.paddleRight.color = hex;
+                } 
+                else 
+                {
+                    if (this.playerSide === 'left')
+                         this.paddleRight.color = hex;
+                    else 
+                        this.paddleLeft.color = hex;
                 }
             } catch (err) {
-                // ignore errors silently
+                console.log("failed to send payload");
             }
         });
     }
@@ -184,7 +187,6 @@ export class OnlinePongEngine implements GameEngine
                 
             case 'game-end':
                 this.ended = true;
-                // Prefer human-readable winner name if provided by server
                 const winnerName = event.data?.winnerName || event.data?.winner;
                 this.emitEvent({
                     type: 'game-ended',
@@ -199,11 +201,7 @@ export class OnlinePongEngine implements GameEngine
     private sendInput(): void 
     {
         const now = Date.now();
-        if (this.playerSide == "right")
-        {           
-        }
-
-
+       
         let direction: 'up' | 'down' | 'none' = 'none';
         if (this.keys['w'] && this.keys['s']) 
             direction = 'none';
