@@ -113,7 +113,7 @@ export class LocalPongEngine
         } 
         catch (error) 
         {
-            console.error('❌ Failed to load player profiles:', error);
+            console.error(' Failed to load player profiles:', error);
         }
     }
 
@@ -144,7 +144,6 @@ export class LocalPongEngine
     {
         this.paused = true;
         this.emitEvent({type: 'game-paused'})
-        this.drawPauseOverlay();
     }
 
     resume():void
@@ -428,29 +427,6 @@ export class LocalPongEngine
         
     }
     
-    private drawPauseOverlay(): void 
-    {
-        this.ctx.save();
-        this.ctx.globalAlpha = 0.7;
-        this.ctx.fillStyle = "black";
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.globalAlpha = 1;
-        this.ctx.fillStyle = "white";
-        this.ctx.font = "48px 'Press Start To Play', monospace";
-        this.ctx.textAlign = "center";
-        this.ctx.fillText("PAUSED", this.canvas.width / 2, this.canvas.height / 3.50);
-        this.ctx.font = "25px 'Press Start To Play', monospace";
-        this.ctx.fillStyle = "red";
-        this.ctx.fillText("Player 1 - UP (W) Down (S)", this.canvas.width / 2, this.canvas.height / 1.80);
-        this.ctx.fillStyle = "green";
-        this.ctx.fillText("Player 2 - UP (↑) Down(↓) ", this.canvas.width / 2, this.canvas.height / 1.70);
-        this.ctx.fillStyle = "green";
-        this.ctx.fillText("Start Ball (SPACEBAR) ", this.canvas.width / 2, this.canvas.height / 1.60);
-        this.ctx.fillStyle = "red";
-        this.ctx.fillText("Pause (ESC)", this.canvas.width / 2, this.canvas.height / 1.50);
-        
-        this.ctx.restore();
-    }
     
   
     

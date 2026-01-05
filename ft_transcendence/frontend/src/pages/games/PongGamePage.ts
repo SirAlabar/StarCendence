@@ -52,7 +52,7 @@ export default class PongGamePage extends BaseComponent {
                         </div>
                         
                         <div class="mt-3 text-center text-gray-400 text-xs sm:text-sm">
-                            Controls: ${this.side === 'left' ? 'W / S' : 'Arrow Up / Arrow Down'} | Press ESC to Pause
+                            Controls: ${this.side === 'left' ? 'W / S' : 'W / S'} 
                         </div>
                     </div>
                 </div>
@@ -131,6 +131,7 @@ export default class PongGamePage extends BaseComponent {
 
 
             this.setupUIListeners();
+            gameManager.resizeGame(canvas.width, canvas.height);
             gameManager.startGame();
             
             // Initialize scores to 0

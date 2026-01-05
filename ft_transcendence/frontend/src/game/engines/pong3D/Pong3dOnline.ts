@@ -445,10 +445,10 @@ export class OnlinePong3D implements GameEngine
 
         // Paddles
         const p1Color = this.getPaddleColor(this.config?.paddlecolor1 || 'default');
-        this.paddle_left = this.createPaddle("left_paddle", -this.FIELD_WIDTH / 2 + 3, p1Color);
+        this.paddle_left = this.createPaddle("left_paddle", -this.FIELD_WIDTH / 2 + 1, p1Color);
 
         const p2Color = this.getPaddleColor(this.config?.paddlecolor2 || 'default');
-        this.paddle_right = this.createPaddle("right_paddle", this.FIELD_WIDTH / 2 - 3, p2Color);
+        this.paddle_right = this.createPaddle("right_paddle", this.FIELD_WIDTH / 2 - 1, p2Color);
     }
 
     private createPaddle(name: string, xPos: number, color: {diffuse: Color3, emissive: Color3}): Mesh 
@@ -482,12 +482,12 @@ export class OnlinePong3D implements GameEngine
         if (!isTop) 
         { 
             this.keybinds.p1 = { left: "w", right: "s" };
-            this.keybinds.p2 = { left: "arrowup", right: "arrowdown" };
+            this.keybinds.p2 = { left: "w", right: "s" };
         } 
         else 
         { 
             this.keybinds.p1 = { left: "a", right: "d" };
-            this.keybinds.p2 = { left: "arrowleft", right: "arrowright" };
+            this.keybinds.p2 = { left: "a", right: "d" };
         }
     }
 
@@ -501,7 +501,10 @@ export class OnlinePong3D implements GameEngine
         };
     }
 
-    onEvent(callback: (event: GameEvent) => void): void { this.eventCallbacks.push(callback); }
+    onEvent(callback: (event: GameEvent) => void): void 
+    { 
+        this.eventCallbacks.push(callback); 
+    }
     
     private emitEvent(event: GameEvent): void { this.eventCallbacks.forEach(cb => cb(event)); }
 

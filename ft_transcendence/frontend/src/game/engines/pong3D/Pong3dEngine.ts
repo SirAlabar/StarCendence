@@ -1,5 +1,4 @@
 import {Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes, AbstractMesh} from "@babylonjs/core";
-import * as GUI from "@babylonjs/gui";
 import { GameConfig, GameState, GameEvent, GameEngine } from "../../utils/GameTypes";
 import { Skybox } from "./entities/Skybox";
 import { loadModel } from "./entities/ModelLoader";
@@ -20,8 +19,6 @@ export class Pong3D implements GameEngine
     private gravity = -0.02;
     private canChangeCamera: boolean = true;
     private platform: AbstractMesh[] = [];
-    private pauseUi: GUI.AdvancedDynamicTexture | null = null;
-    private pausePanel: GUI.StackPanel | null = null;
     private gameStarted : boolean = false;
     private waitingSpace: boolean = false;
     
@@ -67,7 +64,6 @@ export class Pong3D implements GameEngine
         this.createEnvironment();
         this.createGameObjects();
         this.enableCollisions();
-        this.initUi();
         
         // Initialize AI if in AI mode
         if (this.config.mode === 'ai') 
@@ -113,23 +109,14 @@ export class Pong3D implements GameEngine
     pause(): void 
     {
         this.paused = true;
-        this.emitEvent({ type: 'game-paused' });
-        if(this.pausePanel)
-        {
-            this.pausePanel.isVisible = true;
-        }
-        
+        this.emitEvent({ type: 'game-paused' });        
     }
     
 
     resume(): void 
     {
         this.paused = false;
-
         this.emitEvent({ type: 'game-resumed' });
-
-        if (this.pausePanel)
-            this.pausePanel.isVisible = false;
     }
     
     getState(): GameState 
@@ -658,57 +645,6 @@ export class Pong3D implements GameEngine
         }, 30);
     }
  
-    initUi() 
-    {
-        this.pauseUi = GUI.AdvancedDynamicTexture.CreateFullscreenUI("pause-ui", true, this.scene); 
-        const panel = new GUI.StackPanel;
-        panel.isVisible = false;
-        panel.width = "800px";     
-        panel.height = "400px";
-        panel.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-        panel.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-        this.pauseUi.addControl(panel);                         
-
-        
-        const title = new GUI.TextBlock();
-        title.text = "Paused";
-        title.fontSize = 42;
-        title.color = 'white';
-        title.height = "90px";  
-        title.outlineWidth = 4;
-        title.outlineColor = 'black';
-        panel.addControl(title);
-        
-        const controlsplayer1 = new GUI.TextBlock();
-        controlsplayer1.text = "Player 1 - UP (W) Down (S)";
-        controlsplayer1.fontSize = 22;
-        controlsplayer1.color = 'white';
-        controlsplayer1.height = "80px";  
-        controlsplayer1.outlineWidth = 4;
-        controlsplayer1.outlineColor = 'black';
-        panel.addControl(controlsplayer1);
-        this.pausePanel = panel;
-
-        const controlsplayer2 = new GUI.TextBlock();
-        controlsplayer2.text = "Player 2 - UP (↑) Down(↓)";
-        controlsplayer2.fontSize = 22;
-        controlsplayer2.color = 'white';
-        controlsplayer2.height = "70px";  
-        controlsplayer2.outlineWidth = 4;
-        controlsplayer2.outlineColor = 'black';
-        panel.addControl(controlsplayer2);
-        this.pausePanel = panel;
-
-        const extra = new GUI.TextBlock();
-        extra.text = "Start Ball (SPACEBAR) | Pause (ESC) | Change Camera (C)";
-        extra.fontSize = 22;
-        extra.color = 'white';
-        extra.height = "60px";  
-        extra.outlineWidth = 4;
-        extra.outlineColor = 'black';
-        panel.addControl(extra);
-        this.pausePanel = panel;
-    }
     
     private emitEvent(event: GameEvent): void 
     {

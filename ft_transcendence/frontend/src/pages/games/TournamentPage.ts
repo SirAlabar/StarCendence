@@ -73,7 +73,6 @@ export default class TournamentPage extends BaseComponent
                                         <li>• Requires exactly <strong>4 players</strong></li>
                                         <li>• Single elimination format</li>
                                         <li>• Best of 3 matches</li>
-                                        <li>• AI opponents allowed</li>
                                     </ul>
                                 </div>
 
