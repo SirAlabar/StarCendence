@@ -131,6 +131,7 @@ export default class PongGamePage extends BaseComponent {
 
 
             this.setupUIListeners();
+            gameManager.resizeGame(canvas.width, canvas.height);
             gameManager.startGame();
             
             // Initialize scores to 0
