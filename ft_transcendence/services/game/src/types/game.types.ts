@@ -94,9 +94,7 @@ export function isRacerGame(type: GameType): boolean
 export function isMultiplayerGame(mode: GameMode): boolean
 {
   return [
-    GameMode.MULTIPLAYER_2P,
-    GameMode.MULTIPLAYER_3P,
-    GameMode.MULTIPLAYER_4P,
+    GameMode.MATCH,
     GameMode.TOURNAMENT,
   ].includes(mode);
 }

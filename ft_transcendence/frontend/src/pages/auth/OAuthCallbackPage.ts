@@ -35,7 +35,11 @@ export default class OAuthCallbackPage extends BaseComponent
             {
                 // Existing user - connect WebSocket and redirect to profile
                 try {
-                    await webSocketService.connect();
+                    if (!webSocketService.isConnected())
+                    {
+                        await webSocketService.connect();
+
+                    }
                 } catch (error) {
                     // Silently handle connection errors
                 }

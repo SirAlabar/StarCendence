@@ -1,11 +1,10 @@
 import {Engine, Scene, FreeCamera, HemisphericLight, Mesh, MeshBuilder, StandardMaterial, Vector3, Color3, Color4, KeyboardEventTypes, AbstractMesh} from "@babylonjs/core";
-import * as GUI from "@babylonjs/gui";
-import { GameConfig, GameState, GameEvent, IGameEngine } from "../../utils/GameTypes";
+import { GameConfig, GameState, GameEvent, GameEngine } from "../../utils/GameTypes";
 import { Skybox } from "./entities/Skybox";
 import { loadModel } from "./entities/ModelLoader";
 import { AiDifficulty3D, Enemy3D } from "./entities/EnemyAi3D";
 
-export class Pong3D implements IGameEngine 
+export class Pong3D implements GameEngine 
 {
     private engine: Engine;
     private scene: Scene;
@@ -20,8 +19,6 @@ export class Pong3D implements IGameEngine
     private gravity = -0.02;
     private canChangeCamera: boolean = true;
     private platform: AbstractMesh[] = [];
-    private pauseUi: GUI.AdvancedDynamicTexture | null = null;
-    private pausePanel: GUI.StackPanel | null = null;
     private gameStarted : boolean = false;
     private waitingSpace: boolean = false;
     
@@ -67,7 +64,6 @@ export class Pong3D implements IGameEngine
         this.createEnvironment();
         this.createGameObjects();
         this.enableCollisions();
-        this.initUi();
         
         // Initialize AI if in AI mode
         if (this.config.mode === 'ai') 
@@ -113,23 +109,14 @@ export class Pong3D implements IGameEngine
     pause(): void 
     {
         this.paused = true;
-        this.emitEvent({ type: 'game-paused' });
-        if(this.pausePanel)
-        {
-            this.pausePanel.isVisible = true;
-        }
-        
+        this.emitEvent({ type: 'game-paused' });        
     }
     
 
     resume(): void 
     {
         this.paused = false;
-
         this.emitEvent({ type: 'game-resumed' });
-
-        if (this.pausePanel)
-            this.pausePanel.isVisible = false;
     }
     
     getState(): GameState 
@@ -141,25 +128,15 @@ export class Pong3D implements IGameEngine
                 y: this.ball.position.z, 
                 dx: this.ballVelocity.x,
                 dy: this.ballVelocity.z,
-                radius: 1
+                
             },
             paddle1: {
-                x: this.paddle_left.position.x,
                 y: this.paddle_left.position.z,
-                width: 1.5,
-                height: 10,
-                color: this.config.paddlecolor1 || 'default'
+               
             },
             paddle2: {
-                x: this.paddle_right.position.x,
                 y: this.paddle_right.position.z,
-                width: 1.5,
-                height: 10,
-                color: this.config.paddlecolor2 || 'default'
-            },
-            scores: {
-                player1: this.player1Score,
-                player2: this.player2Score
+             
             },
             timestamp: Date.now()
         };
@@ -186,9 +163,17 @@ export class Pong3D implements IGameEngine
  
     private setupInput(): void 
     {
-        this.scene.onKeyboardObservable.add((kbInfo) => {
+        this.scene.onKeyboardObservable.add((kbInfo: any) => {
+            
+            if ('repeat' in kbInfo.event && kbInfo.event.repeat) 
+                return;
             const key = kbInfo.event.key.toLowerCase();
             this.keys[key] = kbInfo.type === KeyboardEventTypes.KEYDOWN;
+        });
+        
+        
+        window.addEventListener('blur', () => {
+            this.keys = {};
         });
     }
     
@@ -536,8 +521,6 @@ export class Pong3D implements IGameEngine
         } 
         else if (this.player2Score >= this.WINNING_SCORE) 
         {
-            const winner = this.config.mode === 'ai' ? 'AI' : 'Player 2';
-            console.log(`${winner} wins!`);
             this.handleGameEnd('player2');
         }
     }
@@ -575,22 +558,28 @@ export class Pong3D implements IGameEngine
         
         // Player 1 (left paddle) - A/D keys
         const moveVector1 = new Vector3(0, 0, 0);
-        if (this.keys[this.keybinds.p1.left] && this.paddle_left.position.z < moveBoundary) 
-            moveVector1.z += paddleSpeed;
-        if (this.keys[this.keybinds.p1.right] && this.paddle_left.position.z > -moveBoundary) 
-            moveVector1.z -= paddleSpeed;
+        if (!(this.keys[this.keybinds.p1.left] && this.keys[this.keybinds.p1.right])) 
+        {
+            if (this.keys[this.keybinds.p1.left] && this.paddle_left.position.z < moveBoundary) 
+                moveVector1.z += paddleSpeed;
+            else if (this.keys[this.keybinds.p1.right] && this.paddle_left.position.z > -moveBoundary) 
+                moveVector1.z -= paddleSpeed;
+        }
         this.paddle_left.moveWithCollisions(moveVector1);
             
         
-        // Player 2 (right paddle) - only in multiplayer mode
+        // Player 2 (right paddle) 
         if (this.config.mode === 'local-multiplayer') 
         {
             const moveVector2 = new Vector3(0, 0, 0);
-            if (this.keys[this.keybinds.p2.left] && this.paddle_right.position.z < moveBoundary) 
-                moveVector2.z += paddleSpeed;
             
-            if (this.keys[this.keybinds.p2.right] && this.paddle_right.position.z > -moveBoundary) 
-                moveVector2.z -= paddleSpeed;
+            if (!(this.keys[this.keybinds.p2.left] && this.keys[this.keybinds.p2.right])) 
+            {
+                if (this.keys[this.keybinds.p2.left] && this.paddle_right.position.z < moveBoundary) 
+                    moveVector2.z += paddleSpeed;
+                else if (this.keys[this.keybinds.p2.right] && this.paddle_right.position.z > -moveBoundary) 
+                    moveVector2.z -= paddleSpeed;
+            }
             
             this.paddle_right.moveWithCollisions(moveVector2);
         }
@@ -615,7 +604,7 @@ export class Pong3D implements IGameEngine
             this.scene.activeCamera = this.topCamera;
             this.keybinds.p1 = { left: "w", right: "s" };
             this.keybinds.p2 = { left: "arrowup", right: "arrowdown" };
-            //this.topCamera.attachControl(this.scene.getEngine().getRenderingCanvas()!, true); //for free camera if needed
+            
         } 
         else 
         {
@@ -656,57 +645,6 @@ export class Pong3D implements IGameEngine
         }, 30);
     }
  
-    initUi() 
-    {
-        this.pauseUi = GUI.AdvancedDynamicTexture.CreateFullscreenUI("pause-ui", true, this.scene); //start pauseui 
-        const panel = new GUI.StackPanel;
-        panel.isVisible = false;
-        panel.width = "800px";     // <-- required!
-        panel.height = "400px";
-        panel.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-        panel.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-        this.pauseUi.addControl(panel);                         //create the menu panel and pass it to this.pauseUi
-
-        
-        const title = new GUI.TextBlock();
-        title.text = "Paused";
-        title.fontSize = 42;
-        title.color = 'white';
-        title.height = "90px";  
-        title.outlineWidth = 4;
-        title.outlineColor = 'black';
-        panel.addControl(title);
-        
-        const controlsplayer1 = new GUI.TextBlock();
-        controlsplayer1.text = "Player 1 - UP (W) Down (S)";
-        controlsplayer1.fontSize = 22;
-        controlsplayer1.color = 'white';
-        controlsplayer1.height = "80px";  
-        controlsplayer1.outlineWidth = 4;
-        controlsplayer1.outlineColor = 'black';
-        panel.addControl(controlsplayer1);
-        this.pausePanel = panel;
-
-        const controlsplayer2 = new GUI.TextBlock();
-        controlsplayer2.text = "Player 2 - UP (↑) Down(↓)";
-        controlsplayer2.fontSize = 22;
-        controlsplayer2.color = 'white';
-        controlsplayer2.height = "70px";  
-        controlsplayer2.outlineWidth = 4;
-        controlsplayer2.outlineColor = 'black';
-        panel.addControl(controlsplayer2);
-        this.pausePanel = panel;
-
-        const extra = new GUI.TextBlock();
-        extra.text = "Start Ball (SPACEBAR) | Pause (ESC) | Change Camera (C)";
-        extra.fontSize = 22;
-        extra.color = 'white';
-        extra.height = "60px";  
-        extra.outlineWidth = 4;
-        extra.outlineColor = 'black';
-        panel.addControl(extra);
-        this.pausePanel = panel;
-    }
     
     private emitEvent(event: GameEvent): void 
     {

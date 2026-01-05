@@ -4,8 +4,10 @@ import { randomBytes } from 'crypto';
 export interface LobbyPlayer {
   userId: string;
   username: string;
+  avatarUrl: string;
   isHost: boolean;
   isReady: boolean;
+  paddle?: string | null;
   joinedAt: number;
 }
 
@@ -58,6 +60,7 @@ export class LobbyManager {
   async createLobby(
     lobbyId: string,
     userId: string,
+    avatarUrl: string,
     username: string,
     gameType: string,
     maxPlayers: number
@@ -76,6 +79,7 @@ export class LobbyManager {
     await this.redis.hSet(`lobby:${lobbyId}:player:${userId}`, {
       userId,
       username,
+      avatarUrl,
       isHost: 'true',
       isReady: 'false',
       joinedAt: Date.now().toString(),
@@ -86,15 +90,18 @@ export class LobbyManager {
     await this.redis.expire(`lobby:${lobbyId}:player:${userId}`, 3600);
 
     console.log(`[LobbyManager] Created lobby ${lobbyId} by ${username} (${gameType}, max: ${maxPlayers})`);
+
   }
 
-  async joinLobby(lobbyId: string, userId: string, username: string): Promise<{
+  async joinLobby(lobbyId: string, userId: string, username: string, avatarUrl: string): Promise<{
     success: boolean;
     reason?: string;
     playerCount?: number;
   }> {
     // Check if lobby exists
     const exists = await this.redis.exists(`lobby:${lobbyId}:data`);
+
+
     if (!exists) {
       console.log(`[LobbyManager] Lobby ${lobbyId} not found`);
       return { success: false, reason: 'room_not_found' };
@@ -120,6 +127,7 @@ export class LobbyManager {
     await this.redis.hSet(`lobby:${lobbyId}:player:${userId}`, {
       userId,
       username,
+      avatarUrl,
       isHost: 'false',
       isReady: 'false',
       joinedAt: Date.now().toString(),
@@ -131,7 +139,8 @@ export class LobbyManager {
     return { success: true, playerCount: currentPlayers + 1 };
   }
 
-  async leaveLobby(lobbyId: string, userId: string): Promise<void> {
+  async leaveLobby(lobbyId: string, userId: string): Promise<void> 
+  {
     await this.redis.sRem(`lobby:${lobbyId}:players`, userId);
     await this.redis.del(`lobby:${lobbyId}:player:${userId}`);
 
@@ -190,6 +199,21 @@ export class LobbyManager {
     console.log(`[LobbyManager] Player ${userId} ready status updated to ${isReady} in lobby ${lobbyId}`);
   }
 
+  /**
+   * Set a player's paddle/customization in lobby state
+   */
+  async setPlayerPaddle(lobbyId: string, userId: string, paddleName: string): Promise<void> {
+    const isMember = await this.redis.sIsMember(`lobby:${lobbyId}:players`, userId);
+    if (!isMember) {
+      throw new Error('Player not in lobby');
+    }
+
+    await this.redis.hSet(`lobby:${lobbyId}:player:${userId}`, 'paddle', paddleName);
+    await this.redis.expire(`lobby:${lobbyId}:player:${userId}`, 3600);
+
+    console.log(`[LobbyManager] Player ${userId} paddle updated to ${paddleName} in lobby ${lobbyId}`);
+  }
+
   async getLobbyPlayers(lobbyId: string): Promise<LobbyPlayer[]> {
     const userIds = await this.redis.sMembers(`lobby:${lobbyId}:players`);
     const players: LobbyPlayer[] = [];
@@ -200,8 +224,10 @@ export class LobbyManager {
         players.push({
           userId: playerData.userId,
           username: playerData.username || 'Unknown',
+          avatarUrl: playerData.avatarUrl,
           isHost: playerData.isHost === 'true',
           isReady: playerData.isReady === 'true',
+          paddle: playerData.paddle || null,
           joinedAt: parseInt(playerData.joinedAt || '0'),
         });
       }
@@ -259,5 +285,18 @@ export class LobbyManager {
       players,
       data,
     };
+  }
+
+  /**
+   * Update lobby status
+   */
+  async updateLobbyStatus(lobbyId: string, status: LobbyData['status']): Promise<void> {
+    const exists = await this.redis.exists(`lobby:${lobbyId}:data`);
+    if (!exists) {
+      throw new Error('Lobby not found');
+    }
+
+    await this.redis.hSet(`lobby:${lobbyId}:data`, 'status', status);
+    console.log(`[LobbyManager] Updated lobby ${lobbyId} status to ${status}`);
   }
 }

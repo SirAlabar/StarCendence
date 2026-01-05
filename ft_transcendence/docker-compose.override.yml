@@ -38,3 +38,19 @@ services:
     ports:
       - "3004:3004"
       - "5004:5004"  # User service Studio
+
+  game-service:
+    environment:
+      - PRISMA_STUDIO=1
+      - PRISMA_STUDIO_PORT=5003
+    ports:
+      - "3002:3002"
+      - "5003:5003"  # Game service Studio  
+    volumes:
+      - ./services/game:/app
+      - /app/node_modules
+
+  websocket-service:
+    volumes:
+      - ./services/websocket:/app
+      - /app/node_modules

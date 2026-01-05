@@ -1,6 +1,5 @@
 // Player Types - Player entities and statistics
 
-import { PlayerRole } from '../utils/constants';
 
 /**
  * Player participating in a game
@@ -10,7 +9,6 @@ export interface GamePlayer
   id: string;
   userId: string;
   username: string;
-  role: PlayerRole; // PLAYER1, PLAYER2, PLAYER3, PLAYER4, SPECTATOR
   
   // Connection state
   isConnected: boolean;

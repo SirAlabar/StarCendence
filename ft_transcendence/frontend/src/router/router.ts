@@ -183,17 +183,24 @@ const routeConfig: Record<string, any> =
         layout: 'auth',
         headerType: 'minimal'
     },
-    '/pong-lobby':
+    '/lobby':
     {
-        component: () => import('../pages/games/PongLobbyPage'),
-        title: 'Pong Lobby - Transcendence',
+        component: () => import('../pages/games/LobbyPage'),
+        title: 'Game Lobby - Transcendence',
         layout: 'game',
         headerType: 'default'
     },
-    '/racer-lobby':
+    '/pong-game':
     {
-        component: () => import('../pages/games/RacerLobbyPage'),
-        title: 'Racer Lobby - Transcendence',
+        component: () => import('../pages/games/PongGamePage'),
+        title: 'Pong Online Game',
+        layout: 'game',
+        headerType: 'default'
+    },
+    '/pong-game3d':
+    {
+        component: () => import('../pages/games/PongGamePage3d'),
+        title: 'Pong Online 3d Game',
         layout: 'game',
         headerType: 'default'
     },

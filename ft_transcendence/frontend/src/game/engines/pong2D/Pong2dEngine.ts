@@ -31,6 +31,7 @@ export class LocalPongEngine
 
     //Configs
     private config: GameConfig;
+    private profileLoaded?: boolean = false;
     
     //Events
     private eventCallBack: Array<(event: GameEvent) => void> = [];
@@ -64,7 +65,6 @@ export class LocalPongEngine
         this.player1 = new player();
         this.player1.score = 0;
         
-
         //configs
         if(config.mode === 'local-multiplayer')
         {
@@ -80,6 +80,7 @@ export class LocalPongEngine
 
         //input handling
         this.setupInputHandlers();
+
     }
 
     private async initializeAsync(): Promise<void> 
@@ -87,36 +88,46 @@ export class LocalPongEngine
         try 
         {
             await this.loadPlayerProfiles();
+            this.profileLoaded = true;
+            console.log(this.profileLoaded);
         } 
         catch (error) 
         {
-            console.error('❌ Failed to initialize async components:', error);
+            this.profileLoaded = true; // Continue anyway
         }
     }
-
-private async loadPlayerProfiles(): Promise<void> 
-{
-    try 
+    private async loadPlayerProfiles(): Promise<void> 
     {
-        await this.player1.loadProfile();
-    } 
-    catch 
-    {
-        // Silent fail - player continues as guest
+        try 
+        {
+            const profileLoaded = await this.player1.loadProfile();
+            if (profileLoaded) 
+            {
+                console.log('Player 1 profile loaded:', this.player1.getPlayerInfo());
+            } 
+            else 
+            {
+                console.log('Playing as guest (not authenticated)');
+            }
+            
+        } 
+        catch (error) 
+        {
+            console.error(' Failed to load player profiles:', error);
+        }
     }
-}
 
     start(): void
     {
         if (this.paused)
             this.paused = false;
 
-        this.starttime = Date.now();    // record countdown start
+        this.starttime = Date.now();    
 
         if (this.config.mode === 'ai' && this.enemy)
             this.lastAiDecisionTime = Date.now() - this.aiDecisionInterval;
 
-        this.update();  // start rendering immediately
+        this.update(); 
     }
 
     stop(): void 
@@ -133,7 +144,6 @@ private async loadPlayerProfiles(): Promise<void>
     {
         this.paused = true;
         this.emitEvent({type: 'game-paused'})
-        this.drawPauseOverlay();
     }
 
     resume():void
@@ -153,28 +163,16 @@ private async loadPlayerProfiles(): Promise<void>
                 y: this.ball.y,
                 dx: this.ball.dx,
                 dy: this.ball.dy,
-                radius: this.ball.radius
+               
             },
             paddle1: 
             {
-                x: this.paddleleft.x,
                 y: this.paddleleft.y,
-                width: this.paddleleft.width,
-                height: this.paddleleft.height,
-                color: this.config.paddlecolor1 || 'default'
+        
             },
             paddle2: 
             {
-                x: this.paddleright.x,
                 y: this.paddleright.y,
-                width: this.paddleright.width,
-                height: this.paddleright.height,
-                color: this.config.paddlecolor2 || 'default'
-            },
-            scores: 
-            {
-                player1: this.player1.score,
-                player2: this.player2?.score || this.enemy?.score || 0
             },
             timestamp: Date.now()
         };
@@ -216,7 +214,7 @@ private async loadPlayerProfiles(): Promise<void>
         this.clear();
         this.updatePaddles();
 
-        // Only move the ball if the game actually started
+        
         if (this.gameStarted) 
         {
             this.updateBall();
@@ -243,7 +241,7 @@ private async loadPlayerProfiles(): Promise<void>
         const pulse = Math.sin(Date.now() / 200) * 2;
         this.ball.radius = 15 + pulse;
         
-        // Top/bottom wall collision
+       
         if (this.ball.y + this.ball.radius > this.canvas.height || 
             this.ball.y - this.ball.radius < 0) 
         {
@@ -429,29 +427,6 @@ private async loadPlayerProfiles(): Promise<void>
         
     }
     
-    private drawPauseOverlay(): void 
-    {
-        this.ctx.save();
-        this.ctx.globalAlpha = 0.7;
-        this.ctx.fillStyle = "black";
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.globalAlpha = 1;
-        this.ctx.fillStyle = "white";
-        this.ctx.font = "48px 'Press Start To Play', monospace";
-        this.ctx.textAlign = "center";
-        this.ctx.fillText("PAUSED", this.canvas.width / 2, this.canvas.height / 3.50);
-        this.ctx.font = "25px 'Press Start To Play', monospace";
-        this.ctx.fillStyle = "red";
-        this.ctx.fillText("Player 1 - UP (W) Down (S)", this.canvas.width / 2, this.canvas.height / 1.80);
-        this.ctx.fillStyle = "green";
-        this.ctx.fillText("Player 2 - UP (↑) Down(↓) ", this.canvas.width / 2, this.canvas.height / 1.70);
-        this.ctx.fillStyle = "green";
-        this.ctx.fillText("Start Ball (SPACEBAR) ", this.canvas.width / 2, this.canvas.height / 1.60);
-        this.ctx.fillStyle = "red";
-        this.ctx.fillText("Pause (ESC)", this.canvas.width / 2, this.canvas.height / 1.50);
-        
-        this.ctx.restore();
-    }
     
   
     

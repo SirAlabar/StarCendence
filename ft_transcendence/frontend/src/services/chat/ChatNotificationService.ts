@@ -9,6 +9,7 @@ class ChatNotificationService
     private friendUnreadCallbacks: Array<(friendId: string, count: number) => void> = [];
     private isInitialized: boolean = false;
     private wsMessageHandler: ((data: any) => void) | null = null;
+    private wsLobbyInviteHandler: ((data: any) => void) | null = null;
     
     // Initialize and load unread counts from backend
     async initialize(): Promise<void> 
@@ -27,6 +28,9 @@ class ChatNotificationService
             
             // Setup WebSocket listener for real-time messages
             this.setupWebSocketListener();
+
+            // Setup WebSocket listener for lobby invites
+           // this.setupLobbyInviteListener();
             
             // Notify all callbacks with initial data
             this.notifyTotalUnreadCallbacks();
@@ -55,7 +59,10 @@ class ChatNotificationService
         };
         
         webSocketService.on('chat:message', this.wsMessageHandler);
+        
     }
+
+
     
     // Handle incoming WebSocket message
     private handleIncomingMessage(data: any): void 
@@ -188,6 +195,12 @@ class ChatNotificationService
         {
             webSocketService.off('chat:message', this.wsMessageHandler);
             this.wsMessageHandler = null;
+        }
+
+        // Remove lobby invite listener
+        if (this.wsLobbyInviteHandler) {
+            webSocketService.off('lobby:invite', this.wsLobbyInviteHandler);
+            this.wsLobbyInviteHandler = null;
         }
         
         this.unreadMessages.clear();

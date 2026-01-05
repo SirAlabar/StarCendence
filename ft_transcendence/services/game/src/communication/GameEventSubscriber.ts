@@ -1,5 +1,7 @@
 import { RedisClientType } from 'redis';
 import { LobbyManager } from '../managers/LobbyManager';
+import { createGameSession, addLobbyPlayerToGame, startGameSession, handlePlayerInput } from '../managers/GameSessionManager';
+import { GameType, GameMode} from '../utils/constants';
 
 export interface GameEventMessage {
   type: string;
@@ -24,6 +26,9 @@ export class GameEventSubscriber {
   private subscriber: RedisClientType;
   private publisher: RedisClientType;
   private lobbyManager: LobbyManager;
+  // Track last input times for cleanup purposes
+  private lastInputTimes: Map<string, number> = new Map();
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(subscriber: RedisClientType, publisher: RedisClientType, lobbyManager: LobbyManager) {
     this.subscriber = subscriber;
@@ -35,6 +40,44 @@ export class GameEventSubscriber {
     await this.subscriber.subscribe('game:events', async (message) => {
       await this.handleGameEvent(message);
     });
+    
+    // Clean up old input times every 5 minutes to prevent memory leaks
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupOldInputTimes();
+    }, 300000); // 5 minutes
+  }
+
+  /**
+   * Clean up input times older than 10 minutes
+   */
+  private cleanupOldInputTimes(): void {
+    const now = Date.now();
+    const maxAge = 600000; // 10 minutes
+    
+    for (const [key, timestamp] of this.lastInputTimes.entries()) {
+      if (now - timestamp > maxAge) {
+        this.lastInputTimes.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Clean up input time for a specific player when they leave a game
+   */
+  public cleanupPlayerInput(gameId: string, playerId: string): void {
+    const inputKey = `${gameId}-${playerId}`;
+    this.lastInputTimes.delete(inputKey);
+  }
+
+  /**
+   * Dispose resources
+   */
+  public dispose(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.lastInputTimes.clear();
   }
 
   private async handleGameEvent(rawMessage: string): Promise<void> {
@@ -62,12 +105,27 @@ export class GameEventSubscriber {
           await this.handleLobbyReady(event);
           break;
 
+        case 'lobby:player:update':
+          await this.handleLobbyPlayerUpdate(event);
+          break;
+
         case 'lobby:start':
           await this.handleLobbyStart(event);
           break;
 
         case 'lobby:chat':
           await this.handleLobbyChat(event);
+          break;
+        case 'lobby:invite':
+          await this.handleLobbyInvite(event);
+          break;
+
+        case 'game:input':
+          await this.handleGameInput(event);
+          break;
+
+        case 'game:ready':
+          await this.handleGameReady(event);
           break;
 
         default:
@@ -78,11 +136,12 @@ export class GameEventSubscriber {
     }
   }
 
+ 
   private async handleLobbyCreate(event: GameEventMessage): Promise<void> {
-    const { gameType, maxPlayers } = event.payload;
+    const { gameType, maxPlayers, avatarUrl } = event.payload;
     const { userId, username } = event;
 
-    try {
+    try { 
       // Generate unique lobby ID
       const lobbyId = await this.lobbyManager.generateUniqueLobbyId();
       
@@ -90,6 +149,7 @@ export class GameEventSubscriber {
       await this.lobbyManager.createLobby(
         lobbyId,
         userId,
+        avatarUrl,
         username || 'Player',
         gameType || 'pong',
         maxPlayers || 2
@@ -118,12 +178,14 @@ export class GameEventSubscriber {
             username: p.username,
             isHost: p.isHost,
             isReady: p.isReady,
+            paddle: p.paddle || null,
             joinedAt: p.joinedAt,
           })),
         },
       });
 
       const stats = await this.lobbyManager.getLobbyStats(lobbyId);
+      
       console.log(`[GameEventSubscriber] 🎮 Lobby ${lobbyId} created:`, {
         gameType,
         maxPlayers,
@@ -143,12 +205,31 @@ export class GameEventSubscriber {
     }
   }
 
+
+  private async handleLobbyInvite(event: GameEventMessage): Promise<void>
+  {
+    const { gameType, gameId, invitedUserId } = event.payload || {};
+    if (!gameType || !gameId || !invitedUserId) {
+      console.error('[GameEventSubscriber] Invalid lobby:invite event - missing gameType, gameId, or invitedUserId');
+      return;
+    }
+
+    // Broadcast lobby:invite to the invited user
+    await this.broadcastToUser(invitedUserId, {
+      type: 'lobby:invite',
+      payload: {
+        gameType,
+        gameId,
+      },
+    });
+  }
+
   private async handleLobbyJoin(event: GameEventMessage): Promise<void> {
-    const { lobbyId } = event.payload;
-    const { userId, username } = event;
+    const { lobbyId, avatarUrl } = event.payload;
+    const { userId, username, } = event;
 
     try {
-      const result = await this.lobbyManager.joinLobby(lobbyId, userId, username || 'Player');
+      const result = await this.lobbyManager.joinLobby(lobbyId, userId, username || 'Player', avatarUrl);
 
       if (!result.success) {
         await this.broadcastToUser(userId, {
@@ -188,9 +269,11 @@ export class GameEventSubscriber {
           players: players.map(p => ({
             userId: p.userId,
             username: p.username,
+            avatarUrl: p.avatarUrl,
             isHost: p.isHost,
             isReady: p.isReady,
-            joinedAt: p.joinedAt,
+              paddle: p.paddle || null,
+              joinedAt: p.joinedAt,
           })),
         },
       });
@@ -209,6 +292,7 @@ export class GameEventSubscriber {
               lobbyId,
               userId,
               username,
+              avatarUrl,
               isHost: joinerIsHost,
               isReady: false,
             },
@@ -375,12 +459,64 @@ export class GameEventSubscriber {
       }
 
       console.log(`[GameEventSubscriber] ✅ Starting game for lobby ${lobbyId} with ${players.length} players`);
+    
+      // Map lobby game type to GameType enum
+      let gameType: GameType;
+      switch (lobbyData.gameType.toLowerCase()) {
+        case 'pong2d':
+        case 'pong3d':
+        case 'pong':
+          gameType = GameType.PONG;
+          break;
+        case 'racer':
+          gameType = GameType.RACER;
+          break;
+        default:
+          gameType = GameType.PONG;
+      }
 
+      // Create game session in database
+      const { game, gameId } = await createGameSession({
+        type: gameType,
+        mode: GameMode.MATCH,
+        maxPlayers: lobbyData.maxPlayers,
+        maxScore: 5, // Default score, could be configurable
+      });
+      if (!game)
+      {
+        //do nothing xd not checking here!!!!!11111
+      }
+
+      // Add all players to the game session
+      for (const player of players) {
+        await addLobbyPlayerToGame(gameId, player.userId, player.username);
+      }
+
+      // Start the game session now that all players are added
+      await startGameSession(gameId);
+
+      console.log(`[GameEventSubscriber] 📝 Created game session ${gameId} for lobby ${lobbyId} with ${players.length} players`);
+
+      // Update lobby status to in_game
+      await this.lobbyManager.updateLobbyStatus(lobbyId, 'in_game');
+
+      // Broadcast game starting to all players
       const userIds = players.map(p => p.userId);
       await this.broadcastToUsers(userIds, {
         type: 'lobby:game:starting',
-        payload: { lobbyId }
+        payload: {
+          lobbyId,
+          gameId,
+          gameType,
+          players: players.map(p => ({
+            userId: p.userId,
+            username: p.username,
+            isHost: p.isHost,
+            paddle: p.paddle || null,
+          })),
+        },
       });
+
 
     } catch (error) {
       console.error(`[GameEventSubscriber] ❌ Error starting game for lobby ${lobbyId}:`, error);
@@ -418,6 +554,43 @@ export class GameEventSubscriber {
     }
   }
 
+  private async handleLobbyPlayerUpdate(event: GameEventMessage): Promise<void> {
+    const { lobbyId, paddle } = event.payload || {};
+    const { userId, username } = event;
+
+    if (!lobbyId || !paddle) {
+      console.error('[GameEventSubscriber] Invalid lobby:player:update event - missing lobbyId or paddle');
+      return;
+    }
+
+    try {
+      // Validate membership
+      const isMember = await this.lobbyManager.getLobbyUserIds(lobbyId);
+      if (!isMember || isMember.length === 0 || !isMember.includes(userId)) {
+        console.warn(`[GameEventSubscriber] User ${userId} tried to update paddle but is not in lobby ${lobbyId}`);
+        return;
+      }
+
+      // Persist paddle name in lobby player hash
+      await this.lobbyManager.setPlayerPaddle(lobbyId, userId, paddle);
+
+      // Broadcast update to everyone in lobby
+      const userIds = await this.lobbyManager.getLobbyUserIds(lobbyId);
+      await this.broadcastToUsers(userIds, {
+        type: 'lobby:player:update',
+        payload: {
+          lobbyId,
+          userId,
+          paddle,
+        },
+      });
+
+      console.log(`[GameEventSubscriber] 🔁 Broadcasted paddle update for ${username} (${userId}) in lobby ${lobbyId}`);
+    } catch (error) {
+      console.error('[GameEventSubscriber] ❌ Failed to handle lobby:player:update:', error);
+    }
+  }
+
   private async broadcastToUser(userId: string, message: any): Promise<void> {
     const request: WebSocketBroadcastRequest = {
       targetUserId: userId,
@@ -440,6 +613,41 @@ export class GameEventSubscriber {
     };
 
     await this.publisher.publish('websocket:broadcast', JSON.stringify(request));
-    console.log(`[GameEventSubscriber] 📤 Broadcasted ${message.type} to ${userIds.length} user(s)`);
+  }
+
+  /**
+   * Handle game:ready event (player is ready to play)
+   */
+  private async handleGameReady(event: GameEventMessage): Promise<void> {
+    const { gameId, playerId } = event.payload;
+
+    if (!gameId || !playerId) {
+      console.error('[GameEventSubscriber] Invalid game:ready event - missing gameId or playerId');
+      return;
+    }
+    
+    // You could track ready status here if needed, for now just acknowledge
+    // The game loop should already be running from startGameSession
+  }
+
+  /**
+   * Handle game:input event (paddle movement)
+   */
+  private async handleGameInput(event: GameEventMessage): Promise<void> {
+    const { gameId, playerId, input } = event.payload;
+
+    if (!gameId || !playerId || !input) {
+      console.error('[GameEventSubscriber] Invalid game:input event - missing gameId, playerId or input');
+      return;
+    }
+
+    // Always process the input, but track timing for rate limiting if needed
+    const inputKey = `${gameId}-${playerId}`;
+    const now = Date.now();
+    this.lastInputTimes.set(inputKey, now);
+
+    // Forward to GameSessionManager to update paddle position immediately
+    // The game engine will process input at its own tick rate
+    handlePlayerInput(gameId, playerId, input.direction);
   }
 }

@@ -1,6 +1,6 @@
 // Game Repository - Database operations for games
 import { PrismaClient, Game, GamePlayer } from '@prisma/client';
-import { GameType, GameMode, GameStatus, PlayerRole } from '../utils/constants';
+import { GameType, GameMode, GameStatus } from '../utils/constants';
 import { notFound } from '../utils/HttpError';
 
 const prisma = new PrismaClient();
@@ -98,15 +98,12 @@ export async function endGame(gameId: string): Promise<Game>
 export async function addPlayerToGame(data: {
   gameId: string;
   userId: string;
-  playerRole: PlayerRole;
 }): Promise<GamePlayer>
 {
   const player = await prisma.gamePlayer.create({
     data: {
       gameId: data.gameId,
       userId: data.userId,
-      playerRole: data.playerRole,
-      isReady: false,
       isConnected: true,
       score: 0,
     },

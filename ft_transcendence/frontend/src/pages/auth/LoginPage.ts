@@ -3,6 +3,8 @@ import { LoginService } from '../../services/auth/LoginService';
 import { OAuthService } from '../../services/auth/OAuthService';
 import { FormValidator } from '../../services/user/FormValidator';
 import { webSocketService } from '../../services/websocket/WebSocketService';
+import ChatNotificationService from '../../services/chat/ChatNotificationService';
+import { notifications } from '../../components/common/Notification';
 
 export default class LoginPage extends BaseComponent 
 {
@@ -14,6 +16,19 @@ export default class LoginPage extends BaseComponent
     private messageContainer: HTMLElement | null = null;
     private mode: 'login' | 'set-username' | '2fa-verify' = 'login';
     private tempToken: string = '';
+
+
+    private async initializeRealtimeServices(): Promise<void> {
+        try {
+            if (!webSocketService.isConnected()) {
+                await webSocketService.connect();
+            }
+            ChatNotificationService.initialize();
+            notifications.initialize();
+        } catch (error) {
+            // Silently handle connection errors
+        }
+    }
 
     render(): string 
     {
@@ -406,12 +421,8 @@ export default class LoginPage extends BaseComponent
             {
                 this.showMessage('Login successful! Redirecting...', 'success');
                 
-                // Connect WebSocket after login
-                try {
-                    await webSocketService.connect();
-                } catch (error) {
-                    // Silently handle connection errors
-                }
+                // Initialize realtime services (WebSocket, notifications)
+                await this.initializeRealtimeServices();
                 
                 setTimeout(() => 
                 {
@@ -494,12 +505,8 @@ export default class LoginPage extends BaseComponent
 
             this.showMessage('2FA verification successful! Redirecting...', 'success');
             
-            // Connect WebSocket after 2FA login
-            try {
-                await webSocketService.connect();
-            } catch (error) {
-                // Silently handle connection errors
-            }
+            // Initialize realtime services (WebSocket, notifications)
+            await this.initializeRealtimeServices();
             
             setTimeout(() => 
             {
@@ -575,12 +582,8 @@ export default class LoginPage extends BaseComponent
 
             this.showMessage('Account created successfully! Redirecting...', 'success');
             
-            // Connect WebSocket after OAuth account creation
-            try {
-                await webSocketService.connect();
-            } catch (error) {
-                // Silently handle connection errors
-            }
+            // Initialize realtime services (WebSocket, notifications)
+            await this.initializeRealtimeServices();
             
             setTimeout(() => 
             {

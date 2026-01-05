@@ -61,6 +61,7 @@ export interface PlayerEventData
 {
   playerId: string;
   username: string;
+  avatar?: any;
   action?: 'joined' | 'left' | 'ready' | 'disconnected' | 'reconnected';
 }
 
@@ -180,14 +181,6 @@ export class RedisChannels
   static gameEvents(gameId: string): string
   {
     return `game:${gameId}:events`;
-  }
-  
-  /**
-   * Get chat channel for a game
-   */
-  static gameChat(gameId: string): string
-  {
-    return `game:${gameId}:chat`;
   }
   
   /**

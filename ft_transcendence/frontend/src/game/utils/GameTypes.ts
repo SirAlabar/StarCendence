@@ -11,32 +11,19 @@ export interface GameState
         y:number;
         dx:number;
         dy:number;
-        radius: number;
     };
 
     paddle1:
     {
-        x:number;
         y:number;
-        width:number;
-        height:number;
-        color: Paddlecolor;
+    
     };
 
     paddle2:
     {
-        x:number;
         y:number;
-        width:number;
-        height:number;
-        color: Paddlecolor;
     };
     
-    scores:
-    {
-        player1:number;
-        player2:number;
-    };
     timestamp: number;  //for lag compensation
 
 }
@@ -100,7 +87,7 @@ export interface IGameRender
 }
 
 //interface for gameengine (local or sync)
-export interface IGameEngine
+export interface GameEngine
 {
     start(): void;
     stop(): void;

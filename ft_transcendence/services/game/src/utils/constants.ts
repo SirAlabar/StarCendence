@@ -50,11 +50,11 @@ export const GAME_CONFIG = {
     CLEANUP_INTERVAL: 60000, // 1 minute
   },
 
-  // Pong Game Configuration
+  // Pong Game Configuration (16:9 aspect ratio - 958x538)
   PONG: {
     CANVAS: {
-      WIDTH: 800,
-      HEIGHT: 600,
+      WIDTH: 960,
+      HEIGHT: 540,
     },
     PADDLE: {
       WIDTH: 10,
@@ -63,7 +63,7 @@ export const GAME_CONFIG = {
       OFFSET: 20, // Distance from edge
     },
     BALL: {
-      RADIUS: 8,
+      RADIUS: 7,
       INITIAL_SPEED: 5,
       MAX_SPEED: 15,
       SPEED_INCREMENT: 0.5,
@@ -112,9 +112,7 @@ export enum GameType {
 
 // Game Mode Enum
 export enum GameMode {
-  MULTIPLAYER_2P = 'MULTIPLAYER_2P',
-  MULTIPLAYER_3P = 'MULTIPLAYER_3P',
-  MULTIPLAYER_4P = 'MULTIPLAYER_4P',
+  MATCH = 'MATCH',
   TOURNAMENT = 'TOURNAMENT',
 }
 
@@ -127,15 +125,6 @@ export enum GameStatus {
   PAUSED = 'PAUSED',
   FINISHED = 'FINISHED',
   CANCELLED = 'CANCELLED',
-}
-
-// Player Role Enum
-export enum PlayerRole {
-  PLAYER1 = 'PLAYER1',
-  PLAYER2 = 'PLAYER2',
-  PLAYER3 = 'PLAYER3',
-  PLAYER4 = 'PLAYER4',
-  SPECTATOR = 'SPECTATOR',
 }
 
 // Tournament Status Enum
