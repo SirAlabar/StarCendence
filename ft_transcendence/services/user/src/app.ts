@@ -7,7 +7,6 @@ import { fastifyErrorHandler } from './handlers/errorHandler'
 import { internalRoutes } from './internal/internalRoutes'
 import { userRoutes } from './profile/userRoutes'
 import { friendRoutes } from './friends/friendRoutes'
-import { matchHistoryRoutes } from './match_history/matchHistoryRoutes'
 import { leaderboardRoutes } from './leaderboard/leaderboardRoutes'
 
 export async function buildApp() 
@@ -58,7 +57,6 @@ export async function buildApp()
   fastify.register(leaderboardRoutes);
   fastify.register(userRoutes);
   fastify.register(friendRoutes);
-  fastify.register(matchHistoryRoutes)
 
   return fastify
 }

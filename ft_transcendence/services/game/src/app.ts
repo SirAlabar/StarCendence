@@ -8,6 +8,7 @@ import { initializeRedis, closeRedis, getRedisClient } from './communication/Red
 import { GameEventSubscriber } from './communication/GameEventSubscriber';
 import { LobbyManager } from './managers/LobbyManager';
 import { PrismaClient } from '@prisma/client';
+import { matchHistoryRoutes } from './match_history/matchHistoryRoutes';
 
 const prisma = new PrismaClient();
 
@@ -50,6 +51,9 @@ export async function createApp(): Promise<FastifyInstance>
   // Register routes
   registerGameRoutes(fastify);
   registerInputRoutes(fastify);
+
+  fastify.register(matchHistoryRoutes);
+  
 
   // Error handler
   fastify.setErrorHandler((error, _request, reply) => {
