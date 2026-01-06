@@ -539,7 +539,7 @@ export default class LobbyPage extends BaseComponent
                 await racerScene.loadTrack();
 
                 // Get checkpoints
-                const checkpoints = racerScene.getCheckpointsForBackend();
+                // const checkpoints = racerScene.getCheckpointsForBackend();
 
                 // Cleanup
                 racerScene.dispose();
@@ -549,7 +549,7 @@ export default class LobbyPage extends BaseComponent
                 // Send with checkpoints
                 webSocketService.send('lobby:start', { 
                     lobbyId: this.lobbyId,
-                    checkpoints: checkpoints,
+                    // checkpoints: checkpoints,
                     totalLaps: 3
                 });
             } 

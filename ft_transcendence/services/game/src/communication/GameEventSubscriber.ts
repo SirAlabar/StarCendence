@@ -470,6 +470,7 @@ export class GameEventSubscriber {
           gameType = GameType.PONG;
           break;
         case 'racer':
+        case 'podracer':
           gameType = GameType.RACER;
           break;
         default:
@@ -525,26 +526,15 @@ export class GameEventSubscriber {
       {
         console.log(`[GameEventSubscriber] 🏁 Creating racer game manager for ${gameId}`);
         
-        // Get checkpoints from payload (sent by frontend)
-        const checkpoints = event.payload.checkpoints || [];
         const totalLaps = event.payload.totalLaps || 3;
         
-        if (checkpoints.length === 0)
-        {
-          console.error(`[GameEventSubscriber] ❌ No checkpoints provided for racer game ${gameId}`);
-        }
-        else
-        {
-          console.log(`[GameEventSubscriber] 📍 Checkpoints: ${checkpoints.length}, Laps: ${totalLaps}`);
-          
           // Create racer game with RacerMessageHandler
           const success = await racerMessageHandler.handleCreateRace({
             gameId,
             players: players.map(p => ({
-              playerId: p.userId,  // ← Changed from userId to playerId
+              playerId: p.userId,
               username: p.username
             })),
-            checkpoints,
             totalLaps
           });
           
@@ -557,8 +547,7 @@ export class GameEventSubscriber {
             console.error(`[GameEventSubscriber] ❌ Failed to create racer game ${gameId}`);
           }
         }
-      }
-      // ============================================================
+        // ============================================================
 
 
     } catch (error) {

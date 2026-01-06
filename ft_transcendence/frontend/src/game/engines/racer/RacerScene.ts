@@ -471,30 +471,6 @@ export class RacerScene
     return this.gameCanvas;
   }
 
-  /**
-   * Export checkpoints in backend-compatible format
-   */
-  public getCheckpointsForBackend(): Array<{
-    id: number;
-    name: string;
-    position: { x: number; y: number; z: number };
-    radius: number;
-    isStartLine: boolean;
-  }> 
-  {
-    return this.checkpoints.map((checkpoint) => ({
-      id: checkpoint.id,
-      name: checkpoint.name,
-      position: {
-        x: checkpoint.position.x,
-        y: checkpoint.position.y,
-        z: checkpoint.position.z
-      },
-      radius: 30,
-      isStartLine: checkpoint.name.toLowerCase() === 'start_line'
-    }));
-  }
-
   public dispose(): void 
   {
     if (this.track) 

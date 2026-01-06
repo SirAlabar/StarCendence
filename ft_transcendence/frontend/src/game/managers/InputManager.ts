@@ -1,5 +1,4 @@
 import { RacerPhysics } from '../engines/racer/RacerPhysics';
-import { webSocketService } from '@/services/websocket/WebSocketService';
 
 export enum CameraMode 
 {
@@ -40,11 +39,6 @@ export class InputManager
   private playerPodId: string | null = null;
   private allowPodMovement: boolean = true;
   
-  // Multiplayer mode
-  private multiplayerMode: boolean = false;
-  private gameId: string | null = null;
-  private positionBroadcastInterval: number | null = null;
-  
   constructor() 
   {
     this.inputState = 
@@ -74,92 +68,6 @@ export class InputManager
   {
     this.racerPhysics = physics;
     this.playerPodId = podId;
-  }
-
-  /**
-   * Enable multiplayer mode - inputs go to local physics + broadcast position
-   */
-  public setMultiplayerMode(gameId: string): void 
-  {
-    this.multiplayerMode = true;
-    this.gameId = gameId;
-    
-    // Start broadcasting position at 20 Hz (every 50ms)
-    this.startPositionBroadcast();
-    
-    console.log(`[InputManager] 🌐 Multiplayer mode enabled for game ${gameId}`);
-  }
-
-  /**
-   * Disable multiplayer mode - inputs go to local physics only
-   */
-  public setSinglePlayerMode(): void 
-  {
-    this.multiplayerMode = false;
-    this.gameId = null;
-    this.stopPositionBroadcast();
-    console.log('[InputManager] 🖥️ Single-player mode enabled');
-  }
-
-  /**
-   * Start broadcasting player position to server
-   */
-  private startPositionBroadcast(): void 
-  {
-    if (this.positionBroadcastInterval) 
-    {
-      return;
-    }
-    
-    // Broadcast position 20 times per second
-    this.positionBroadcastInterval = setInterval(() => 
-    {
-      this.broadcastPlayerPosition();
-    }, 50) as unknown as number;
-    
-    console.log('[InputManager] 📡 Position broadcast started (20 Hz)');
-  }
-
-  /**
-   * Stop broadcasting player position
-   */
-  private stopPositionBroadcast(): void 
-  {
-    if (this.positionBroadcastInterval) 
-    {
-      clearInterval(this.positionBroadcastInterval);
-      this.positionBroadcastInterval = null;
-      console.log('[InputManager] 📡 Position broadcast stopped');
-    }
-  }
-
-  /**
-   * Broadcast current player position to server
-   */
-  private broadcastPlayerPosition(): void 
-  {
-    if (!this.multiplayerMode || !this.gameId || !this.racerPhysics || !this.playerPodId) 
-    {
-      return;
-    }
-    
-    // Get current position and rotation from physics
-    const position = this.racerPhysics.getPosition(this.playerPodId);
-    const rotation = this.racerPhysics.getRotation(this.playerPodId);
-    const velocity = this.racerPhysics.getVelocity(this.playerPodId);
-    
-    if (!position || !rotation) 
-    {
-      return;
-    }
-    
-    // Send to server
-    webSocketService.send('racer:position', {
-      gameId: this.gameId,
-      position: { x: position.x, y: position.y, z: position.z },
-      rotation: { x: rotation.x, y: rotation.y, z: rotation.z, w: rotation.w },
-      velocity: velocity ? { x: velocity.x, y: velocity.y, z: velocity.z } : { x: 0, y: 0, z: 0 }
-    });
   }
 
   private setupEventListeners(): void 
@@ -284,7 +192,6 @@ export class InputManager
 
   private handleMovement(direction: { x: number; z: number }): void 
   {
-    // ✅ ALWAYS move local pod with physics (client-authoritative)
     if (this.shouldSendToPhysics()) 
     {
       const physicsInput = 
@@ -298,8 +205,6 @@ export class InputManager
         this.racerPhysics.movePod(this.playerPodId, physicsInput);
       }
     }
-    
-    // Note: Position broadcast happens separately at 20 Hz (see startPositionBroadcast)
   }
 
   private shouldSendToPhysics(): boolean 
@@ -336,7 +241,6 @@ export class InputManager
   public dispose(): void 
   {
     this.isActive = false;
-    this.stopPositionBroadcast();
     
     if (this.canvas) 
     {
@@ -349,8 +253,6 @@ export class InputManager
     this.canvas = null;
     this.racerPhysics = null;
     this.playerPodId = null;
-    this.multiplayerMode = false;
-    this.gameId = null;
     this.resetInputState();
   }
 }

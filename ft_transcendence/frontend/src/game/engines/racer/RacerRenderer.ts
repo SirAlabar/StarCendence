@@ -2,25 +2,16 @@ import { GameCanvas } from './GameCanvas';
 import { RacerScene } from './RacerScene';
 import { RacerPod } from './RacerPods';
 import { RacerUIManager } from '../../managers/RacerUIManager';
-import { PodConfig, AVAILABLE_PODS } from '../../utils/PodConfig';
+import { PodConfig } from '../../utils/PodConfig';
 import { RaceManager } from '../../managers/RaceManager';
 import { getBaseUrl } from '@/types/api.types';
-import { webSocketService } from '@/services/websocket/WebSocketService';
-import { Vector3, Quaternion } from '@babylonjs/core';
 
 export interface RacerRendererConfig 
 {
   debugMode?: boolean;
   performanceMonitoring?: boolean;
   cameraMode?: 'racing' | 'free' | 'player';
-  gameId?: string | null; // Multiplayer support
-}
-
-interface RemotePod 
-{
-  userId: string;
-  pod: RacerPod;
-  lastUpdate: number;
+  gameId?: string | null;
 }
 
 export class RacerRenderer 
@@ -28,7 +19,6 @@ export class RacerRenderer
   private gameCanvas: GameCanvas | null = null;
   private racerScene: RacerScene | null = null;
   private playerPod: RacerPod | null = null;
-  private remotePods: Map<string, RemotePod> = new Map();
   private racerUIManager: RacerUIManager | null = null;
   private loadingOverlay: HTMLElement | null = null;
   private isLoadingActive: boolean = false;
@@ -36,7 +26,7 @@ export class RacerRenderer
   private isInitialized: boolean = false;
   private hudUpdateInterval: number | null = null;
   private raceManager: RaceManager | null = null;
-  private gameId: string | null = null; // Multiplayer support
+  private gameId: string | null = null;
   
   public onLoadingProgress: ((message: string, progress: number, stage: string) => void) | null = null;
   public onTrackLoaded: ((track: any) => void) | null = null;
@@ -51,145 +41,17 @@ export class RacerRenderer
       performanceMonitoring: false,
       ...config
     };
-    
-    // Store gameId for multiplayer
-    this.gameId = config?.gameId || null;
-    
+    this.gameId = config?.gameId ?? null;
+
     if (this.gameId) 
     {
       console.log(`[RacerRenderer] 🌐 Multiplayer mode - gameId: ${this.gameId}`);
       // Setup WebSocket listener for multiplayer state updates
-      this.setupMultiplayerListener();
     } 
     else 
     {
       console.log('[RacerRenderer] 🖥️  Single-player mode');
     }
-  }
-  
-  /**
-   * ✅ NEW: Setup WebSocket listener for receiving other players' positions
-   */
-  private setupMultiplayerListener(): void 
-  {
-    webSocketService.on('game:racer:state', (data: any) => 
-    {
-      if (data.gameId !== this.gameId) 
-      {
-        return; // Not for this game
-      }
-      
-      // Update remote players' positions
-      this.updateRemotePlayers(data.players);
-    });
-    
-    console.log('[RacerRenderer] 📡 Multiplayer listener setup complete');
-  }
-  
-  /**
-   * ✅ NEW: Update remote players from server broadcast
-   */
-  private updateRemotePlayers(players: any[]): void 
-  {
-    if (!this.gameCanvas || !this.racerScene) 
-    {
-      return;
-    }
-    
-    const currentUserId = (window as any).userId; // Get current user's ID
-    
-    for (const playerData of players) 
-    {
-      const { playerId, position, rotation } = playerData;
-      
-      // Skip own player
-      if (playerId === currentUserId) 
-      {
-        continue;
-      }
-      
-      // Get or create remote pod
-      let remotePod = this.remotePods.get(playerId);
-      
-      if (!remotePod) 
-      {
-        // Create new remote pod
-        console.log(`[RacerRenderer] 🎮 Creating remote pod for player ${playerId}`);
-        remotePod = this.createRemotePod(playerId);
-        
-        if (!remotePod) 
-        {
-          continue;
-        }
-      }
-      
-      // Update position with interpolation
-      const mesh = remotePod.pod.getMesh();
-      if (mesh && position) 
-      {
-        const targetPos = new Vector3(position.x, position.y, position.z);
-        
-        // Smooth interpolation (15% per frame)
-        mesh.position = Vector3.Lerp(mesh.position, targetPos, 0.15);
-        
-        // Update rotation if provided
-        if (rotation && mesh.rotationQuaternion) 
-        {
-          const targetRot = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
-          mesh.rotationQuaternion = Quaternion.Slerp(mesh.rotationQuaternion, targetRot, 0.15);
-        }
-        
-        remotePod.lastUpdate = Date.now();
-      }
-    }
-  }
-  
-  /**
-   * ✅ NEW: Create a pod for remote player
-   */
-  private createRemotePod(userId: string): RemotePod | undefined 
-  {
-    if (!this.gameCanvas || !this.racerScene) 
-    {
-      return undefined;
-    }
-    
-    const scene = this.gameCanvas.getScene();
-    if (!scene) 
-    {
-      return undefined;
-    }
-    
-    // Use default Anakin pod for all remote players (consistent look)
-    const remotePodConfig: PodConfig = {
-      ...AVAILABLE_PODS[0], // Anakin's pod
-      id: `remote_${userId}`,
-      name: `Remote Player ${userId.substring(0, 8)}`
-    };
-    
-    const remotePod = new RacerPod(scene, remotePodConfig);
-    
-    // Load model asynchronously
-    remotePod.loadModel().then(() => 
-    {
-      console.log(`[RacerRenderer] ✅ Remote pod loaded for ${userId}`);
-      
-      // Don't enable physics for remote pods (they just follow positions)
-    }).catch((error) => 
-    {
-      console.error(`[RacerRenderer] ❌ Failed to load remote pod for ${userId}:`, error);
-    });
-    
-    const remoteData: RemotePod = 
-    {
-      userId,
-      pod: remotePod,
-      lastUpdate: Date.now()
-    };
-    
-    this.remotePods.set(userId, remoteData);
-    
-    return remoteData;
   }
   
   public async initialize(canvasId: string, selectedPod: PodConfig): Promise<void> 
@@ -309,12 +171,6 @@ export class RacerRenderer
       if (inputManager) 
       {
         inputManager.setAllowPodMovement(true);
-        
-        // Enable multiplayer mode if gameId exists
-        if (this.gameId) 
-        {
-          inputManager.setMultiplayerMode(this.gameId);
-        }
       }
     
       this.racerUIManager.startRace();
@@ -433,17 +289,10 @@ export class RacerRenderer
     const trackMesh = this.racerScene.getTrack();
     if (trackMesh) 
     {
-      const collisionMesh = this.racerScene.findCollisionMesh();
-      if (collisionMesh) 
-      {
-        physics.addCollisionMesh(collisionMesh);
-      }
+      await physics.setupTrackCollision(this.racerScene);
     }
-
-    const trackBounds = this.racerScene.getTrackBounds();
-    this.gameCanvas.setTrackBounds(trackBounds);
   }
-
+  
   private async initializeVisualTrack(): Promise<void> 
   {
     if (!this.gameCanvas) 
@@ -451,222 +300,206 @@ export class RacerRenderer
       return;
     }
     
-    this.updateLoadingProgress('Loading polar pass track...', 35, 'track');
+    this.updateLoadingProgress('Loading racing track...', 30, 'track');
     
-    this.racerScene = new RacerScene(this.gameCanvas, 
+    this.racerScene = new RacerScene(this.gameCanvas);
+    
+    this.racerScene.onLoadingProgress = (percentage, asset) => 
     {
-      trackSize: 1000,
-      trackSubdivisions: 50,
-      enableFog: true,
-    });
-
-    this.racerScene.onLoadingProgress = (percentage: number, asset: string) => 
-    {
-      const progress = 35 + (percentage * 0.3);
-      this.updateLoadingProgress(`Loading track: ${asset}`, progress, 'track');
+      this.updateLoadingProgress(`Loading ${asset}...`, 30 + (percentage * 0.4), 'track');
     };
-
-    this.racerScene.onLoadingComplete = () => 
+    
+    this.racerScene.onTrackLoaded = (track) => 
     {
-      this.updateLoadingProgress('Track loaded!', 70, 'track');
-      
-      if (this.onTrackLoaded && this.racerScene) 
+      if (this.gameCanvas) 
       {
-        const track = this.racerScene.getTrack();
-        if (track) 
+        const cameraManager = this.gameCanvas.getCameraManager();
+        if (cameraManager) 
         {
-          this.onTrackLoaded(track);
+          cameraManager.setTrackBounds(this.racerScene!.getTrackBounds());
         }
       }
+      
+      if (this.onTrackLoaded) 
+      {
+        this.onTrackLoaded(track);
+      }
     };
-
+    
     await this.racerScene.loadTrack();
   }
 
-  private async loadPlayerPod(podConfig: PodConfig): Promise<void> 
-  {
-    if (!this.gameCanvas || !this.racerScene) 
-    {
-      return;
-    }
-    
-    const scene = this.gameCanvas.getScene();
-    if (!scene) 
-    {
-      return;
-    }
-
-    this.updateLoadingProgress('Loading pod racer...', 75, 'pod');
-
-    this.playerPod = new RacerPod(scene, podConfig);
-
-    this.playerPod.onLoadingProgress = (progress: number) => 
-    {
-      const adjustedProgress = 75 + (progress * 0.15);
-      this.updateLoadingProgress(`Loading pod: ${Math.round(progress)}%`, adjustedProgress, 'pod');
-    };
-
-    this.playerPod.onLoaded = (pod) => 
-    {
-      this.updateLoadingProgress('Pod loaded! Setting up physics...', 90, 'pod');
-      
-      const startPositions = this.racerScene!.getStartingPositions(1);
-      const startPos = startPositions[0];
-
-      if (this.racerScene) 
-      {
-        pod.initializeCheckpoints(this.racerScene);
-      }
-
-      const physics = this.gameCanvas!.getPhysics();
-      if (physics) 
-      {
-        pod.enablePhysics(physics, startPos);
-      }
-
-      this.gameCanvas!.setPlayerPod(pod);
-      
-      if (this.onPodLoaded) 
-      {
-        this.onPodLoaded(pod);
-      }
-    };
-
-    await this.playerPod.loadModel();
-  }
-
-  private async getUserAvatarUrl(): Promise<string> 
-  {
+private async getUserAvatarUrl(): Promise<string | null> 
+{
     try 
     {
-      const token = localStorage.getItem('access_token');
+      const UserService = (await import('../../../services/user/UserService')).default;
+      const profile = await UserService.getProfile();
       
-      if (!token) 
+      if (profile.avatarUrl) 
       {
-        return '/assets/images/default-avatar.jpeg';
+        const avatarUrl = profile.avatarUrl ? `${getBaseUrl()}${profile.avatarUrl}` : null;
+        return avatarUrl;
       }
-
-      const response = await fetch(`${getBaseUrl()}/users/me`, 
-      {
-        headers: 
-        {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) 
-      {
-        return '/assets/images/default-avatar.jpeg';
-      }
-
-      const userData = await response.json();
-      return userData.avatarUrl || '/assets/images/default-avatar.jpeg';
+      
+      return null;
     } 
     catch (error) 
     {
-      return '/assets/images/default-avatar.jpeg';
+      console.warn('Could not fetch user avatar, using default:', error);
+      return null;
     }
-  }
+}
 
-  private async preloadAvatarImage(url: string): Promise<string> 
+  private preloadAvatarImage(userAvatarUrl?: string | null): Promise<string>
   {
     return new Promise((resolve) => 
     {
-      const img = new Image();
+      const defaultAvatar = '/assets/images/default-avatar.jpeg';
       
+      if (!userAvatarUrl) 
+      {
+        const img = new Image();
+        img.src = defaultAvatar;
+        resolve(defaultAvatar);
+        return;
+      }
+      
+      const img = new Image();
       img.onload = () => 
       {
-        resolve(url);
+        resolve(userAvatarUrl);
       };
-      
       img.onerror = () => 
       {
-        resolve('/assets/images/default-avatar.jpeg');
+        const fallbackImg = new Image();
+        fallbackImg.src = defaultAvatar;
+        resolve(defaultAvatar);
       };
-      
-      img.src = url;
+      img.src = userAvatarUrl;
     });
   }
+    
+  private async loadPlayerPod(selectedPod: PodConfig): Promise<void> 
+  {
+    if (!this.gameCanvas || !this.racerScene) 
+    {
+      throw new Error('Missing dependencies for pod loading');
+    }
+    
+    this.updateLoadingProgress(`Loading ${selectedPod.name}...`, 70, 'pod');
 
+    try 
+    {
+      if (this.playerPod) 
+      {
+        this.playerPod.dispose();
+        this.playerPod = null;
+      }
+      
+      this.playerPod = new RacerPod(this.gameCanvas.getScene()!, selectedPod);
+      
+      this.playerPod.onLoaded = (pod) => 
+      {
+        const startPositions = this.racerScene!.getStartingPositions(4);
+              
+        const playerStartPos = startPositions[0];
+        
+        pod.setPosition(playerStartPos);
+
+        pod.initializeCheckpoints(this.racerScene!);
+        
+        this.gameCanvas!.setPlayerPod(pod);
+        
+        const physics = this.gameCanvas!.getPhysics();
+        if (physics && physics.isPhysicsReady()) 
+        {
+          pod.enablePhysics(physics, playerStartPos);
+        }
+
+        if (this.onPodLoaded) 
+        {
+          this.onPodLoaded(pod);
+        }
+      };
+      
+      this.playerPod.onLoadingError = (error) => 
+      {
+        console.error('Pod loading error:', error);
+        if (this.onError) 
+        {
+          this.onError(`Failed to load pod: ${error}`);
+        }
+      };
+      
+      await this.playerPod.loadModel();
+      
+    } 
+    catch (error) 
+    {
+      console.error('Pod loading failed:', error);
+      throw error;
+    }
+  }
+  
   private createLoadingOverlay(): void 
   {
-    const overlay = document.createElement('div');
-    overlay.id = 'racerLoadingOverlay';
-    overlay.className = 'fixed inset-0 z-[9999] flex items-center justify-center';
-    overlay.style.cssText = `
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f172a 100%);
-      backdrop-filter: blur(10px);
-    `;
-    
-    overlay.innerHTML = `
-      <div class="text-center">
-        <div class="mb-8">
-          <div class="relative w-32 h-32 mx-auto">
-            <div class="absolute inset-0 rounded-full border-4 border-cyan-500/30 animate-ping"></div>
-            <div class="absolute inset-0 rounded-full border-4 border-t-cyan-500 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+    const loadingHTML = `
+      <div id="racerLoadingOverlay" class="fixed inset-0 bg-black/95 flex items-center justify-center" style="z-index: 2000;">
+        <canvas id="racerParticleCanvas" class="absolute inset-0 w-full h-full"></canvas>
+        
+        <div class="relative z-10 text-center">
+          <div class="relative w-40 h-40 mx-auto mb-8">
+            <svg class="w-40 h-40 transform -rotate-90" viewBox="0 0 160 160">
+              <circle 
+                cx="80" 
+                cy="80" 
+                r="60" 
+                fill="none" 
+                stroke="rgba(75, 85, 99, 0.3)" 
+                stroke-width="4"
+              />
+              <circle 
+                id="racerProgressCircle"
+                cx="80" 
+                cy="80" 
+                r="60" 
+                fill="none" 
+                stroke="url(#progressGradient)" 
+                stroke-width="4"
+                stroke-linecap="round"
+                stroke-dasharray="377"
+                stroke-dashoffset="377"
+                class="transition-all duration-500 ease-out"
+                style="filter: drop-shadow(0 0 8px #a855f7);"
+              />
+              <defs>
+                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#63eafe;stop-opacity:1" />
+                  <stop offset="50%" style="stop-color:#9333ea;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+            </svg>
+            
+            <div class="absolute inset-0 flex items-center justify-center">
+              <span id="racerProgressPercent" class="text-white text-xl font-bold">0%</span>
+            </div>
           </div>
+
+          <h3 class="text-white text-2xl font-bold mb-4">Loading Race</h3>
+          
+          <p class="text-cyan-300 text-lg" id="racerLoadingMessage">
+            Fueling Pod...
+          </p>
         </div>
-        
-        <h2 id="loadingTitle" class="text-4xl font-bold mb-4 text-white">
-          INITIALIZING POD RACER
-        </h2>
-        
-        <div id="loadingMessage" class="text-cyan-400 text-xl mb-6 h-8">
-          Starting engines...
-        </div>
-        
-        <div class="w-96 h-2 bg-gray-800 rounded-full overflow-hidden mx-auto">
-          <div id="loadingBar" class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300" style="width: 0%"></div>
-        </div>
-        
-        <div id="loadingStage" class="text-gray-500 text-sm mt-4">
-          Preparing scene...
-        </div>
-        
-        <canvas id="loadingParticles" class="absolute inset-0 pointer-events-none" style="width: 100%; height: 100%;"></canvas>
       </div>
     `;
     
-    document.body.appendChild(overlay);
-    this.loadingOverlay = overlay;
+    document.body.insertAdjacentHTML('beforeend', loadingHTML);
+    this.loadingOverlay = document.getElementById('racerLoadingOverlay');
   }
-
-  private updateLoadingProgress(message: string, progress: number, stage: string): void 
-  {
-    const messageEl = document.getElementById('loadingMessage');
-    const barEl = document.getElementById('loadingBar');
-    const stageEl = document.getElementById('loadingStage');
-    
-    if (messageEl) 
-    {
-      messageEl.textContent = message;
-    }
-    
-    if (barEl) 
-    {
-      barEl.style.width = `${progress}%`;
-    }
-    
-    if (stageEl) 
-    {
-      const stages = 
-      {
-        'canvas': 'Scene Setup',
-        'physics': 'Physics Engine',
-        'track': 'Loading Track',
-        'pod': 'Loading Pod',
-        'complete': 'Ready!'
-      };
-      
-      stageEl.textContent = stages[stage as keyof typeof stages] || stage;
-    }
-    
-    if (this.onLoadingProgress) 
-    {
-      this.onLoadingProgress(message, progress, stage);
-    }
-  }
-
+  
   private showLoading(): void 
   {
     if (this.loadingOverlay) 
@@ -675,48 +508,92 @@ export class RacerRenderer
       this.isLoadingActive = true;
     }
   }
-
+  
   private hideLoading(): void 
   {
     if (this.loadingOverlay) 
     {
-      this.loadingOverlay.style.opacity = '0';
-      this.loadingOverlay.style.transition = 'opacity 0.5s ease-out';
-      
-      setTimeout(() => 
-      {
-        if (this.loadingOverlay) 
-        {
-          this.loadingOverlay.remove();
-          this.loadingOverlay = null;
-        }
-        this.isLoadingActive = false;
-      }, 500);
+      this.loadingOverlay.style.display = 'none';
+      this.isLoadingActive = false;
     }
   }
-
-  private showLoadingError(message: string): void 
+  
+  private showLoadingError(errorMessage: string): void 
   {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-900/90 text-white px-6 py-3 rounded-lg z-[10000]';
-    errorDiv.textContent = message;
-    
-    document.body.appendChild(errorDiv);
+    const messageElement = document.getElementById('racerLoadingMessage');
+    if (messageElement) 
+    {
+      messageElement.innerHTML = `<span class="text-red-400">Error: ${errorMessage}</span>`;
+    }
     
     setTimeout(() => 
     {
-      errorDiv.remove();
-    }, 5000);
+      if (this.loadingOverlay) 
+      {
+        const contentDiv = this.loadingOverlay.querySelector('.relative.z-10');
+        if (contentDiv) 
+        {
+          contentDiv.insertAdjacentHTML('beforeend', `
+            <div class="mt-4">
+              <button onclick="location.reload()" 
+                      class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 mr-2">
+                Retry
+              </button>
+              <button onclick="history.back()" 
+                      class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                Back
+              </button>
+            </div>
+          `);
+        }
+      }
+    }, 2000);
+  }
+  
+  private updateLoadingProgress(message: string, progress: number, stage: string): void 
+  {
+    const messageElement = document.getElementById('racerLoadingMessage');
+    if (messageElement) 
+    {
+      const simpleMessages = [
+        'Fueling Pod...',
+        'Checking engines...',
+        'Loading track data...',
+        'Racer positioning...',
+        'Systems online...',
+        'Ready to race!'
+      ];
+      
+      const messageIndex = Math.floor((progress / 100) * (simpleMessages.length - 1));
+      messageElement.textContent = simpleMessages[messageIndex];
+    }
+
+    const progressCircle = document.getElementById('racerProgressCircle');
+    const progressPercent = document.getElementById('racerProgressPercent');
+    
+    if (progressCircle && progressPercent) 
+    {
+      const circumference = 377;
+      const offset = circumference - (progress / 100) * circumference;
+      
+      progressCircle.style.strokeDashoffset = offset.toString();
+      progressPercent.textContent = `${Math.round(progress)}%`;
+    }
+    
+    if (this.onLoadingProgress) 
+    {
+      this.onLoadingProgress(message, progress, stage);
+    }
   }
 
   private initializeParticles(): void 
   {
-    const canvas = document.getElementById('loadingParticles') as HTMLCanvasElement;
+    const canvas = document.getElementById('racerParticleCanvas') as HTMLCanvasElement;
     if (!canvas) 
     {
       return;
     }
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) 
     {
@@ -734,24 +611,28 @@ export class RacerRenderer
       vy: number;
       size: number;
       opacity: number;
-      life?: number;
-      maxLife?: number;
-      isFighting?: boolean;
-      trail?: { x: number; y: number; opacity: number; }[];
+      life: number;
+      maxLife: number;
+      isFighting: boolean;
+      trail: Array<{x: number; y: number; opacity: number}>;
     }
 
     const backgroundParticles: Particle[] = [];
     const fightingParticles: Particle[] = [];
-
-    for (let i = 0; i < 100; i++) 
+    
+    for (let i = 0; i < 30; i++) 
     {
       backgroundParticles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        size: Math.random() * 2 + 1,
-        opacity: Math.random() * 0.5 + 0.2
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: (Math.random() - 0.5) * 0.6,
+        size: Math.random() * 3 + 2,
+        opacity: Math.random() * 0.6 + 0.4,
+        life: 1,
+        maxLife: 1,
+        isFighting: false,
+        trail: []
       });
     }
 
@@ -847,20 +728,20 @@ export class RacerRenderer
       {
         const particle = fightingParticles[i];
         
-        particle.trail!.unshift({
+        particle.trail.unshift({
           x: particle.x,
           y: particle.y,
           opacity: particle.opacity
         });
         
-        if (particle.trail!.length > 15) 
+        if (particle.trail.length > 15) 
         {
-          particle.trail!.pop();
+          particle.trail.pop();
         }
         
-        particle.trail!.forEach((point, index) => 
+        particle.trail.forEach((point, index) => 
         {
-          point.opacity = (particle.opacity * (1 - index / particle.trail!.length)) * 0.8;
+          point.opacity = (particle.opacity * (1 - index / particle.trail.length)) * 0.8;
         });
         
         particle.vx += (Math.random() - 0.5) * 0.8;
@@ -880,10 +761,10 @@ export class RacerRenderer
         particle.x += particle.vx;
         particle.y += particle.vy;
         
-        particle.life!--;
-        particle.opacity = particle.life! / particle.maxLife!;
+        particle.life--;
+        particle.opacity = particle.life / particle.maxLife;
 
-        if (particle.life! <= 0) 
+        if (particle.life <= 0) 
         {
           fightingParticles.splice(i, 1);
         }
@@ -929,13 +810,13 @@ export class RacerRenderer
 
       fightingParticles.forEach(particle => 
       {
-        particle.trail!.forEach((point, index) => 
+        particle.trail.forEach((point, index) => 
         {
           if (point.opacity > 0.05) 
           {
             ctx.globalAlpha = point.opacity;
             
-            const trailSize = particle.size * (1 - index / particle.trail!.length) * 0.8;
+            const trailSize = particle.size * (1 - index / particle.trail.length) * 0.8;
             
             const trailGradient = ctx.createRadialGradient(
               point.x, point.y, 0,
@@ -1025,19 +906,6 @@ export class RacerRenderer
       this.playerPod = null;
     }
     
-    // 👈 NEW: Dispose remote pods
-    this.remotePods.forEach((remotePod) => 
-    {
-      remotePod.pod.dispose();
-    });
-    this.remotePods.clear();
-    
-    // Remove multiplayer listener
-    if (this.gameId) 
-    {
-      webSocketService.off('game:racer:state', () => {});
-    }
-    
     if (this.racerUIManager) 
     {
       this.racerUIManager.dispose();
@@ -1052,6 +920,11 @@ export class RacerRenderer
 
     if (this.gameCanvas) 
     {
+      const physics = this.gameCanvas.getPhysics();
+      if (physics) 
+      {
+      }
+
       this.gameCanvas.dispose();
       this.gameCanvas = null;
     }

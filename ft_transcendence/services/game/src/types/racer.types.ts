@@ -250,7 +250,6 @@ export interface CreateRaceRequest
     playerId: string;
     username: string;
   }>;
-  checkpoints: Checkpoint[];
   totalLaps: number;
 }
 

@@ -56,6 +56,8 @@ export class GameLobby extends BaseComponent
     private friends: FriendWithStatus[] = [];
     private allFriends: any[] = []; // Store all friends (online + offline)
     private mountSelector: string | null = null;
+    private eventsAttached: boolean = false;
+    private inviteCheck: boolean = false;
     
     constructor(config: LobbyConfig) 
     {
@@ -113,8 +115,7 @@ export class GameLobby extends BaseComponent
             
 
         }
-        
-        // OPTIONAL: Also initialize OnlineFriendsService for real-time updates
+
         // But don't rely on it for initial load
         try {
             await OnlineFriendsService.initialize();
@@ -729,168 +730,194 @@ export class GameLobby extends BaseComponent
         this.attachEventListeners();
     }
 
+    private readonly boundRootClickHandler = (e: Event) =>
+    {
+        const target = e.target as HTMLElement;
+
+        if (target.closest('#startGameBtn'))
+        {
+            this.handleStartGame();
+            return;
+        }
+
+        if (target.closest('#backBtn'))
+        {
+            this.config.onBack();
+            return;
+        }
+
+        const addBtn = target.closest('.add-player-btn') as HTMLElement | null;
+        if (addBtn)
+        {
+            const slotId = parseInt(addBtn.dataset.slot!, 10);
+            this.currentCustomizingSlot = slotId;
+            this.showInviteModal(slotId);
+            return;
+        }
+
+        const changeBtn = target.closest('.change-btn') as HTMLElement | null;
+        if (changeBtn)
+        {
+            const slotId = parseInt(changeBtn.dataset.slot!, 10);
+            this.handleChangeCustomization(slotId);
+            return;
+        }
+
+        const readyBtn = target.closest('.ready-btn') as HTMLElement | null;
+        if (readyBtn)
+        {
+            const slotId = parseInt(readyBtn.dataset.slot!, 10);
+            this.toggleReady(slotId);
+            return;
+        }
+
+        const removeBtn = target.closest('.remove-btn') as HTMLElement | null;
+        if (removeBtn)
+        {
+            const slotId = parseInt(removeBtn.dataset.slot!, 10);
+            this.handleRemovePlayer(slotId);
+            return;
+        }
+
+        const inviteBtn = target.closest('.invite-friend-btn') as HTMLElement | null;
+        if (inviteBtn)
+        {
+            const username = inviteBtn.dataset.username!;
+            const userId = inviteBtn.dataset.userid!;
+            this.invitePlayer(username, userId);
+            return;
+        }
+
+        if (target.closest('#closeInviteModal'))
+        {
+            this.closeInviteModal();
+            return;
+        }
+
+        if (target.closest('#refreshFriendsBtn'))
+        {
+            this.refreshFriendsList();
+            return;
+        }
+
+        if (target.closest('#addBotBtn'))
+        {
+            this.addAIPlayer('easy');
+            return;
+        }
+
+        if (target.closest('#closePlayerTypeModal'))
+        {
+            this.closePlayerTypeModal();
+            return;
+        }
+
+        if (target.closest('#selectEasyAI'))
+        {
+            this.addAIPlayer('easy');
+            return;
+        }
+
+        if (target.closest('#selectHardAI'))
+        {
+            this.addAIPlayer('hard');
+            return;
+        }
+
+        if (target.closest('#closeAIModal'))
+        {
+            this.closeAIModal();
+            return;
+        }
+
+        const paddleBtn = target.closest('.select-paddle-btn') as HTMLElement | null;
+        if (paddleBtn)
+        {
+            const paddleIndex = parseInt(paddleBtn.dataset.paddle!, 10);
+            this.selectPaddle(paddleIndex);
+            return;
+        }
+
+        if (target.closest('#closePaddleModal'))
+        {
+            this.closePaddleModal();
+            return;
+        }
+    }
+
+    private readonly boundChatKeydownHandler = (e: KeyboardEvent) =>
+    {
+        if (e.key === 'Enter')
+        {
+            this.sendChatMessage();
+        }
+    }
+
+    private readonly boundChatSendClickHandler = () =>
+    {
+        this.sendChatMessage();
+    }
+
+
     private attachEventListeners(): void
     {
-        if (!this.mountSelector) 
+        if (this.eventsAttached)
+        {
+            return;
+        }
+
+        if (!this.mountSelector)
         {
             return;
         }
 
         const root = document.querySelector(this.mountSelector);
-        if (!root) 
+        if (!root)
         {
             return;
         }
 
-        root.addEventListener('click', (e: Event) => 
-        {
-            const target = e.target as HTMLElement;
+        // Main delegated click handler
+        root.addEventListener('click', this.boundRootClickHandler);
 
-            if (target.closest('#startGameBtn')) 
-            {
-                this.handleStartGame();
-                return;
-            }
-
-            if (target.closest('#backBtn')) 
-            {
-                this.config.onBack();
-                return;
-            }
-
-            const addBtn = target.closest('.add-player-btn') as HTMLElement | null;
-            if (addBtn) 
-            {
-                const slotId = parseInt(addBtn.dataset.slot!, 10);
-                this.currentCustomizingSlot = slotId;
-                this.showInviteModal(slotId);
-                return;
-            }
-
-            const changeBtn = target.closest('.change-btn') as HTMLElement | null;
-            if (changeBtn) 
-            {
-                const slotId = parseInt(changeBtn.dataset.slot!, 10);
-                this.handleChangeCustomization(slotId);
-                return;
-            }
-
-            const readyBtn = target.closest('.ready-btn') as HTMLElement | null;
-            if (readyBtn) 
-            {
-                const slotId = parseInt(readyBtn.dataset.slot!, 10);
-                this.toggleReady(slotId);
-                return;
-            }
-
-            const removeBtn = target.closest('.remove-btn') as HTMLElement | null;
-            if (removeBtn) 
-            {
-                const slotId = parseInt(removeBtn.dataset.slot!, 10);
-                this.handleRemovePlayer(slotId);
-                return;
-            }
-
-            const inviteBtn = target.closest('.invite-friend-btn') as HTMLElement | null;
-            if (inviteBtn) 
-            {
-                const username = inviteBtn.dataset.username!;
-                const userId = inviteBtn.dataset.userid!;
-                this.invitePlayer(username, userId);
-                return;
-            }
-
-            if (target.closest('#closeInviteModal')) 
-            {
-                this.closeInviteModal();
-                return;
-            }
-            if (target.closest('#refreshFriendsBtn'))
-            {
-                this.refreshFriendsList();
-                return;
-            }
-            if (target.closest('#addBotBtn'))
-            {
-                this.addAIPlayer('easy'); // Default to easy, or show AI modal if you want difficulty selection
-                return;
-            }
-                
-            
-            if (target.closest('#closePlayerTypeModal')) 
-            {
-                this.closePlayerTypeModal();
-                return;
-            }
-
-            if (target.closest('#selectEasyAI')) 
-            {
-                this.addAIPlayer('easy');
-                return;
-            }
-            
-            if (target.closest('#selectHardAI')) 
-            {
-                this.addAIPlayer('hard');
-                return;
-            }
-            
-            if (target.closest('#closeAIModal')) 
-            {
-                this.closeAIModal();
-                return;
-            }
-
-            const paddleBtn = target.closest('.select-paddle-btn') as HTMLElement | null;
-            if (paddleBtn) 
-            {
-                const paddleIndex = parseInt(paddleBtn.dataset.paddle!, 10);
-                this.selectPaddle(paddleIndex);
-                return;
-            }
-            
-            if (target.closest('#closePaddleModal')) 
-            {
-                this.closePaddleModal();
-                return;
-            }
-        });
-
+        // Chat input (Enter key)
         const chatInput = root.querySelector('#chatInput') as HTMLInputElement | null;
-        if (chatInput) 
+        if (chatInput)
         {
-            chatInput.addEventListener('keydown', (e: KeyboardEvent) => 
-            {
-                if (e.key === 'Enter') 
-                {
-                    this.sendChatMessage();
-                }
-            });
+            chatInput.addEventListener('keydown', this.boundChatKeydownHandler);
         }
-        
+
+        // Chat send button
         const sendBtn = root.querySelector('#sendChatBtn');
-        if (sendBtn) 
+        if (sendBtn)
         {
-            sendBtn.addEventListener('click', () => this.sendChatMessage());
+            sendBtn.addEventListener('click', this.boundChatSendClickHandler);
+        }
+
+        this.eventsAttached = true;
+    }
+
+    
+    private async refreshFriendsList(): Promise<void> 
+    {
+        try 
+        {
+            const friendsData = await FriendService.getFriends();
+            this.allFriends = friendsData.friends.map((friend: any) => ({
+                userId: friend.userId,
+                username: friend.username,
+                status: friend.status || 'OFFLINE',
+                avatarUrl: friend.avatarUrl || '/assets/images/default-avatar.jpeg'
+            }));
+            this.friends = this.allFriends.filter((f: any) => f.status === 'online' || f.status === 'ONLINE');
+            this.updateFriendsList();
+        } 
+        catch (err) 
+        {
+            console.error('Failed to refresh friends:', err);
         }
     }
-    
-                 private async refreshFriendsList(): Promise<void> 
-                 {
-                    try {
-                        const friendsData = await FriendService.getFriends();
-                        this.allFriends = friendsData.friends.map((friend: any) => ({
-                            userId: friend.userId,
-                            username: friend.username,
-                            status: friend.status || 'OFFLINE',
-                            avatarUrl: friend.avatarUrl || '/assets/images/default-avatar.jpeg'
-                        }));
-                        this.friends = this.allFriends.filter((f: any) => f.status === 'online' || f.status === 'ONLINE');
-                        this.updateFriendsList();
-                    } catch (err) {
-                        console.error('Failed to refresh friends:', err);
-                    }
-                }
+
     private sendChatMessage(): void 
     {
         const chatInput = document.getElementById('chatInput') as HTMLInputElement;
@@ -964,38 +991,58 @@ export class GameLobby extends BaseComponent
         this.currentCustomizingSlot = null;
     }
     
-    private invitePlayer(username: string, userId: string): void 
-    {
-        if (this.currentCustomizingSlot === null) 
-        {
-            return;
-        }
-        
-        const friend = this.friends.find(f => f.username === username);
-        if (!friend) 
-        {
-            return;
-        }
-        
 
-        // Send invite event to backend
-        const lobbyId = this.getLobbyIdFromUrl();
-        let gameType = this.urlGameType;
-        const allowedTypes = ['pong2d', 'pong3d', 'racer'];
-        if (!allowedTypes.includes(gameType || '')) {
-            
+    private invitePlayer(username: string, userId: string): void
+    {
+        if (this.inviteCheck)
+        {
+            return;
         }
-        if (lobbyId) {
+
+        if (this.currentCustomizingSlot === null)
+        {
+            return;
+        }
+
+        const friend = this.friends.find(f => f.username === username);
+        if (!friend)
+        {
+            return;
+        }
+
+        const lobbyId = this.getLobbyIdFromUrl();
+        const gameType = this.urlGameType;
+        const allowedTypes = ['pong2d', 'pong3d', 'racer'];
+
+        if (!lobbyId || !allowedTypes.includes(gameType || ''))
+        {
+            return;
+        }
+
+        this.inviteCheck = true;
+
+        try
+        {
+            // Send invite event to backend
             webSocketService.send('lobby:invite', {
                 gameType: gameType,
                 gameId: lobbyId,
-                invitedUserId: userId,
+                invitedUserId: userId
             });
+        }
+        finally
+        {
+            // Prevent double-invite spam
+            setTimeout(() =>
+            {
+                this.inviteCheck = false;
+            }, 800);
         }
 
         this.closeInviteModal();
         this.refresh();
     }
+
     
     
     private closeAIModal(): void 
@@ -1366,14 +1413,33 @@ export class GameLobby extends BaseComponent
         }
     }
     
-    public dispose(): void 
+    public dispose(): void
     {
-        if (this.podSelection) 
+        if (!this.mountSelector)
         {
-            this.podSelection.dispose();
-            this.podSelection = null;
+            return;
         }
-        
-        OnlineFriendsService.dispose();
+
+        const root = document.querySelector(this.mountSelector);
+        if (!root)
+        {
+            return;
+        }
+
+        root.removeEventListener('click', this.boundRootClickHandler);
+
+        const chatInput = root.querySelector('#chatInput') as HTMLInputElement | null;
+        if (chatInput)
+        {
+            chatInput.removeEventListener('keydown', this.boundChatKeydownHandler);
+        }
+
+        const sendBtn = root.querySelector('#sendChatBtn');
+        if (sendBtn)
+        {
+            sendBtn.removeEventListener('click', this.boundChatSendClickHandler);
+        }
+
+        this.eventsAttached = false;
     }
 }
