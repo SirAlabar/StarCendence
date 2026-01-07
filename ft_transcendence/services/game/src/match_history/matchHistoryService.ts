@@ -6,7 +6,7 @@ import { HttpError } from '../utils/HttpError';
 export async function getMatchHistory(userId: string) {
   const matchHistory = await matchHistoryRepository.getMatchHistoryByUserId(userId);
   if (!matchHistory) {
-    throw new HttpError(404, 'Match history not found');
+    throw new HttpError('Match history not found', 404);
   }
   return matchHistory;
 }

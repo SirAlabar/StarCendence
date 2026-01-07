@@ -1,10 +1,9 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import * as matchHistoryService from './matchHistoryService'
-import * as types from './matchHistory.types'
 
 // GET /match-history match history
 export async function getMatchHistory(req: FastifyRequest, reply: FastifyReply) {
-   const userId = req.user?.sub;
+  const userId = req.user?.sub;
   if (!userId) {
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
   }
@@ -21,7 +20,7 @@ export async function getMatchHistoryById(req: FastifyRequest, reply: FastifyRep
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
   }
 
-  const matchId = req.params.id as string;
+  const { matchId } = req.params as { matchId: string };
 
   const matchHistory = await matchHistoryService.getMatchHistoryById(matchId);
   if (!matchHistory) {

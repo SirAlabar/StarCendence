@@ -53,6 +53,7 @@ model GamePlayer {
   // Player state
   isReady       Boolean       @default(false)
   isConnected   Boolean       @default(true)
+  score         Int           @default(0)
 
   // Racer specific
   position      Int?
@@ -113,47 +114,6 @@ model MatchResult {
   @@unique([matchId, userId])
   @@index([userId])
   @@index([matchId])
-}
-
-// ============================================================================
-// PLAYER STATISTICS
-// ============================================================================
-
-model PlayerStats {
-  id                String    @id @default(cuid())
-  userId            String    @unique
-
-  // Overall stats
-  gamesPlayed       Int       @default(0)
-  gamesWon          Int       @default(0)
-  gamesLost         Int       @default(0)
-
-  // Pong stats
-  pongGamesPlayed   Int       @default(0)
-  pongGamesWon      Int       @default(0)
-  pongPointsScored  Int       @default(0)
-  pongBestScore     Int       @default(0)
-
-  // Racer stats
-  racerGamesPlayed  Int       @default(0)
-  racerGamesWon     Int       @default(0)
-  racerBestLapTime  Float?
-  racerBestPosition Int       @default(999)
-
-  // ELO ratings
-  pongElo           Int       @default(1000)
-  racerElo          Int       @default(1000)
-
-  // Streaks
-  currentWinStreak  Int       @default(0)
-  longestWinStreak  Int       @default(0)
-
-  // Timestamps
-  updatedAt         DateTime  @updatedAt
-
-  @@index([userId])
-  @@index([pongElo])
-  @@index([racerElo])
 }
 
 // ============================================================================
