@@ -53,7 +53,6 @@ model GamePlayer {
   // Player state
   isReady       Boolean       @default(false)
   isConnected   Boolean       @default(true)
-  score         Int           @default(0)
 
   // Racer specific
   position      Int?

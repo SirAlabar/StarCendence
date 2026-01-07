@@ -2,19 +2,36 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function getMatchHistory(userId: string) {
-  return prisma.game.findMany({
+export async function getMatchHistoryByUserId(userId: string) {
+  return await prisma.match.findMany({
     where: {
-      players: {
+      results: {
         some: {
-          userId: userId,
-        }
-      }
+          userId,
+        },
+      },
     },
-    include: {
-      players : {
-        where: { userId: userId },
-      }
-    }
+    select: {
+      id: true,
+      type: true,
+      mode: true,
+      winnerId: true,
+      duration: true,
+      totalPoints: true,
+      fastestLap: true,
+      playedAt: true,
+      results: {
+        select: {
+          userId: true,
+          score: true,
+          accuracy: true,
+          topSpeed: true,
+        },
+        orderBy: { score: 'desc' },
+      },
+    },
+    orderBy: { playedAt: 'desc' },
+    take: 50, // recent 50 matches
   });
 }
+

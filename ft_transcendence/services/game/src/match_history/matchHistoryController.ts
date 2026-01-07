@@ -28,10 +28,6 @@ export async function getMatchHistoryById(req: FastifyRequest, reply: FastifyRep
     return reply.status(404).send({ error: 'Match history not found' });
   }
 
-  // if (matchHistory.player1Id !== userId && matchHistory.player2Id !== userId) {
-  //   return reply.status(403).send({ error: 'Forbidden: you do not have access to this match history' });
-  // }
-
   return reply.status(200).send(matchHistory)
 }
 

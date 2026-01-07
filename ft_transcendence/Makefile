@@ -424,6 +424,11 @@ db_clean:
 	@printf "$(GREEN)✅ All tables cleaned!$(DEFAULT)\n"
 	@printf "$(CYAN)Reseeding database with default users...$(DEFAULT)\n"
 
+game_service_db_clean:
+	@printf "$(YELLOW)🧹 Cleaning all data in game-service...$(DEFAULT)\n"
+	@docker compose exec -it game-service sh -c "for tbl in \$$(sqlite3 /app/data/game.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/game.db \"DELETE FROM '\$$tbl'\"; fi; done;"
+	@printf "$(GREEN)✅ All tables cleaned!$(DEFAULT)\n"
+
 
 ################################################################################
 #                               MONITORING                                     #

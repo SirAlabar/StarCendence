@@ -4,7 +4,11 @@ import { HttpError } from '../utils/HttpError';
 
 // Get match history for a specific user
 export async function getMatchHistory(userId: string) {
-  return "Match history data for user " + userId;
+  const matchHistory = await matchHistoryRepository.getMatchHistoryByUserId(userId);
+  if (!matchHistory) {
+    throw new HttpError(404, 'Match history not found');
+  }
+  return matchHistory;
 }
 
 
