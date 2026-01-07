@@ -211,28 +211,6 @@ export async function deleteUserProfile(userId: string) {
       },
     });
 
-    await tx.matchHistory.deleteMany({
-      where: {
-        OR: [{ player1Id: userId }, { player2Id: userId }],
-      },
-    });
-
-    await tx.tournamentMatch.deleteMany({
-      where: {
-        OR: [{ player1Id: userId }, { player2Id: userId }],
-      },
-    });
-
-    await tx.tournamentParticipant.deleteMany({
-      where: { userId },
-    });
-
-    await tx.tournament.updateMany({
-      where: { winnerId: userId },
-      data: { winnerId: null },
-    });
-
-    // Use deleteMany to avoid throwing if the related rows do not exist
     await tx.userGameStatus.deleteMany({
       where: { userStatusId: userId },
     });

@@ -4,7 +4,6 @@ import * as matchHistoryController from './matchHistoryController';
 import * as matchHistorySchema from './matchHistorySchema';
 
 export async function matchHistoryRoutes(fastify: FastifyInstance) {
-
   fastify.get('/match-history',
   {
     preHandler: [verifyUserToken],
@@ -18,4 +17,3 @@ export async function matchHistoryRoutes(fastify: FastifyInstance) {
   },
   matchHistoryController.getMatchHistoryById)
 }
-

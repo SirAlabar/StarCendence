@@ -8,7 +8,7 @@ export async function getMatchHistory(req: FastifyRequest, reply: FastifyReply) 
     return reply.status(401).send({ error: 'Unauthorized: user id missing' });
   }
 
-  const matchHistory = await matchHistoryService.getMatchHistory(userId)
+  const matchHistory = await matchHistoryService.getMatchHistory(userId);
 
   return reply.status(200).send(matchHistory)
 }
@@ -29,4 +29,3 @@ export async function getMatchHistoryById(req: FastifyRequest, reply: FastifyRep
 
   return reply.status(200).send(matchHistory)
 }
-

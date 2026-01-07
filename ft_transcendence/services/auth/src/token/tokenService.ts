@@ -19,7 +19,7 @@ export async function generateTokens(userId: string, email: string, username: st
     },
     jwtSecret,
     { 
-      // expiresIn: '15m',
+      expiresIn: '10s',
       issuer: 'transcendence-auth'
     }
   );
