@@ -62,3 +62,9 @@ services/user/avatars/
 # Backup files
 *.bak
 *.backup
+
+# Windows Zone.Identifier (WSL / ADS)
+*Zone.Identifier
+*Zone.Identifier*
+*.Zone.Identifier
+*:*Zone.Identifier*
