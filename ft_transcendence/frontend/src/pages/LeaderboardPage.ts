@@ -139,7 +139,7 @@ export default class LeaderboardPage extends BaseComponent
     {
         try 
         {
-            const token = localStorage.getItem('access_token');
+            const token = localStorage.getItem('accessToken');
             if (!token) 
             {
                 return;
@@ -157,7 +157,7 @@ export default class LeaderboardPage extends BaseComponent
 
             if (response.status === 401) 
             {
-                localStorage.removeItem('access_token');
+                localStorage.removeItem('accessToken');
                 return;
             }
 
@@ -311,7 +311,7 @@ export default class LeaderboardPage extends BaseComponent
 
     private renderUserRank(): string 
     {
-        const token = localStorage.getItem('access_token');
+        const token = localStorage.getItem('accessToken');
         
         if (!token) 
         {

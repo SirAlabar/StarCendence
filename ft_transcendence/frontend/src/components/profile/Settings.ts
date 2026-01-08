@@ -767,7 +767,7 @@ export class Settings extends BaseComponent
                         method: 'PATCH',
                         headers: 
                         {
-                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ currentPassword, newPassword })
@@ -833,7 +833,7 @@ export class Settings extends BaseComponent
                 method: 'DELETE',
                 headers: 
                 {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({})
@@ -847,7 +847,7 @@ export class Settings extends BaseComponent
             }
             
             // Clear auth token
-            localStorage.removeItem('access_token');
+            localStorage.removeItem('accessToken');
             
             // Show success message
             this.showMessage('✓ Account deleted successfully', 'success');

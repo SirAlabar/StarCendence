@@ -12,7 +12,6 @@ export async function refreshAccessToken(req: FastifyRequest<{ Body: RefreshToke
   const newTokens = await tokenService.refreshAccessToken(refreshToken);
 
   return reply.send({ 
-    success: true,
     accessToken: newTokens.accessToken,
     refreshToken: newTokens.refreshToken
   });

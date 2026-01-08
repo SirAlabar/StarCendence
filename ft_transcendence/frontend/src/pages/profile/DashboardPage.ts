@@ -470,14 +470,14 @@ export default class DashboardPage extends BaseComponent
                 method: 'GET',
                 headers: 
                 {
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
                     'Content-Type': 'application/json'
                 }
             });
 
             if (profileResponse.status === 401) 
             {
-                localStorage.removeItem('access_token');
+                localStorage.removeItem('accessToken');
                 hideLoading();
                 (window as any).navigateTo('/login');
                 return;
@@ -499,7 +499,7 @@ export default class DashboardPage extends BaseComponent
                     method: 'GET',
                     headers: 
                     {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
                         'Content-Type': 'application/json'
                     }
                 });

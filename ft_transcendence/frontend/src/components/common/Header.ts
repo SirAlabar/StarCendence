@@ -18,7 +18,7 @@ export class Header extends BaseComponent
     private totalUnreadCount: number = 0;
     private updateNavItems(): void 
     {
-        const isLoggedIn = localStorage.getItem('access_token') !== null;
+        const isLoggedIn = localStorage.getItem('accessToken') !== null;
         
         if (isLoggedIn) 
         {

@@ -30,7 +30,7 @@ export class ChatModal extends BaseComponent
         this.props = props;
         
         // Get current user ID from JWT token
-        const token = localStorage.getItem('access_token');
+        const token = localStorage.getItem('accessToken');
         if (token) 
         {
             try 

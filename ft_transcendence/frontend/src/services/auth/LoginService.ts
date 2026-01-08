@@ -56,10 +56,10 @@ export class LoginService
     // Token management methods
     public static setTokens(accessToken: string, refreshToken?: string): void 
     {
-        localStorage.setItem('access_token', accessToken);
+        localStorage.setItem('accessToken', accessToken);
         if (refreshToken) 
         {
-            localStorage.setItem('refresh_token', refreshToken);
+            localStorage.setItem('refreshToken', refreshToken);
         }
         this.accessToken = accessToken;
     }
@@ -70,18 +70,18 @@ export class LoginService
         {
             return this.accessToken;
         }
-        return localStorage.getItem('access_token');
+        return localStorage.getItem('accessToken');
     }
 
     static getRefreshToken(): string | null 
     {
-        return localStorage.getItem('refresh_token');
+        return localStorage.getItem('refreshToken');
     }
 
     static clearTokens(): void 
     {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         this.accessToken = null;
     }
 
