@@ -2,7 +2,6 @@
 
 import { GameState } from './game.types';
 import { PongEventData } from './pong.types';
-import { RacerEventData } from './racer.types';
 
 /**
  * Game event (scored, finished, player joined, etc.)
@@ -51,7 +50,6 @@ export enum GameEventType
 export type GameEventData = 
   | PlayerEventData
   | PongEventData
-  | RacerEventData
   | GenericEventData;
 
 /**

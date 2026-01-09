@@ -1,5 +1,4 @@
 import { RedisClientType } from 'redis';
-import { ChatManager } from '../managers/chatManager';
 import { getRoomId } from '../chat/chatService';
 import { saveMessage } from '../internal/internalRepository';
 

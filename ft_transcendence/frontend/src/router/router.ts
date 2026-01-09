@@ -137,14 +137,14 @@ const routeConfig: Record<string, any> =
         headerType: 'default',
         requiresAuth: true
     },
-    '/tournament':
-    {
-        component: () => import('../pages/games/TournamentPage'),
-        title: 'Tournament - Transcendence',
-        layout: 'default',
-        headerType: 'default',
-        requiresAuth: true
-    },
+    // '/tournament':
+    // {
+    //     component: () => import('../pages/games/TournamentPage'),
+    //     title: 'Tournament - Transcendence',
+    //     layout: 'default',
+    //     headerType: 'default',
+    //     requiresAuth: true
+    // },
     '/leaderboard':
     {
         component: () => import('../pages/LeaderboardPage'),
