@@ -105,7 +105,6 @@ export default class ProfilePage extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to load profile:', err);
         }
     }
 
@@ -130,7 +129,6 @@ export default class ProfilePage extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to load friends:', err);
             this.friends = [];
         }
     }
@@ -144,7 +142,6 @@ export default class ProfilePage extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to load friend requests:', err);
             this.friendRequests = [];
         }
     }

@@ -77,7 +77,6 @@ export class GameLobby extends BaseComponent
     }
     catch (err) 
     {
-        console.error('Failed to load user profile:', err);
         this.currentUser = null;
     }
     
@@ -148,7 +147,6 @@ export class GameLobby extends BaseComponent
     }
     catch (err) 
     {
-        console.error('Failed to load friends:', err);
         this.friends = [];
         this.allFriends = [];
     }
@@ -877,7 +875,8 @@ export class GameLobby extends BaseComponent
     
                  private async refreshFriendsList(): Promise<void> 
                  {
-                    try {
+                    try 
+                    {
                         const friendsData = await FriendService.getFriends();
                         this.allFriends = friendsData.friends.map((friend: any) => ({
                             userId: friend.userId,
@@ -887,8 +886,10 @@ export class GameLobby extends BaseComponent
                         }));
                         this.friends = this.allFriends.filter((f: any) => f.status === 'online' || f.status === 'ONLINE');
                         this.updateFriendsList();
-                    } catch (err) {
-                        console.error('Failed to refresh friends:', err);
+                    } 
+                      catch (err) 
+                    {
+
                     }
                 }
     private sendChatMessage(): void 
@@ -1163,7 +1164,6 @@ export class GameLobby extends BaseComponent
             slot.paddleName = option.name;
             slot.paddleGradient = option.color;
             this.refreshPlayerCard(slot.id);
-            console.log(slot.paddleName)
             if (this.currentUser && slot.userId === this.currentUser.id) {
                 const lobbyId = this.getLobbyIdFromUrl();
                 if (lobbyId) {
@@ -1189,7 +1189,6 @@ export class GameLobby extends BaseComponent
        
         slot.paddleName = option.name;
         slot.paddleGradient = option.color;
-        console.log(userId, paddleName, slot.paddleName)
        
         this.refreshPlayerCard(slot.id);
     }

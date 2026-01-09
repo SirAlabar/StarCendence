@@ -54,20 +54,20 @@ export class Hero extends BaseComponent
   async mount(): Promise<void> 
   {
     const section = document.getElementById('hero-section');
-    if (!section) {
-      console.error('[Hero] Hero section not found');
+    if (!section) 
+    {
       return;
     }
 
     this.canvas = document.getElementById('hero-hover-canvas') as HTMLCanvasElement;
-    if (!this.canvas) {
-      console.error('[Hero] Canvas element not found');
+    if (!this.canvas) 
+    {
       return;
     }
 
     const gl = this.canvas.getContext('webgl');
-    if (!gl) {
-      console.error('[Hero] WebGL not supported');
+    if (!gl) 
+    {
       return;
     }
     this.gl = gl;

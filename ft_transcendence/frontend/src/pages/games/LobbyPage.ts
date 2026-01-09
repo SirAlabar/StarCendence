@@ -39,7 +39,6 @@ export default class LobbyPage extends BaseComponent
             await new Promise(resolve => setTimeout(resolve, delay));
         }
         
-        console.error(`[Lobby] ❌ gameLobby not fully ready after ${maxAttempts} attempts`);
         return false;
     }
 
@@ -66,20 +65,25 @@ export default class LobbyPage extends BaseComponent
         const backRoute = this.gameType === 'racer' ? '/pod-racer' : '/pong';
         
         // Connect to WebSocket if not already connected
-        if (!webSocketService.isConnected()) {
-            try {
+        if (!webSocketService.isConnected()) 
+        {
+            try 
+            {
                 await webSocketService.connect();
-            } catch (error) {
-                console.error('[Lobby] Failed to connect to WebSocket:', error);
-                
+            } 
+            catch (error) 
+            {                
                 // Check if it's an authentication error
-                if (error instanceof Error && error.message.includes('access token')) {
+                if (error instanceof Error && error.message.includes('access token')) 
+                {
                     await Modal.alert(
                         'Authentication Required', 
                         'You need to be logged in to access the game lobby. Please login first.'
                     );
                     navigateTo('/login');
-                } else {
+                } 
+                else 
+                {
                     await Modal.alert('Error', 'Failed to connect to game server');
                     navigateTo(backRoute);
                 }
@@ -104,8 +108,10 @@ export default class LobbyPage extends BaseComponent
         if (container) 
         {
             await this.gameLobby.mount('#lobbyContainer');
-        } else {
-            console.error('[Lobby] Container #lobbyContainer not found!');
+        } 
+        else 
+        {
+
         }
 
         // Check URL for lobby ID parameter
@@ -157,7 +163,6 @@ export default class LobbyPage extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to load profile:', err);
         }
     }
 
@@ -219,8 +224,8 @@ export default class LobbyPage extends BaseComponent
      */
     private async handleLobbyCreated(payload: any): Promise<void> {
         
-        if (!payload.success) {
-            console.error('[Lobby] Failed to create lobby:', payload.reason);
+        if (!payload.success) 
+        {
             await Modal.alert('Error', 'Failed to create lobby. Please try again.');
             navigateTo(this.gameType === 'racer' ? '/pod-racer' : '/pong');
             return;
@@ -248,8 +253,8 @@ export default class LobbyPage extends BaseComponent
         // Wait for lobby to be ready
         const isReady = await this.waitForLobbyReady();
         
-        if (!isReady || !this.gameLobby) {
-            console.error('[Lobby] ❌ gameLobby not ready after waiting!');
+        if (!isReady || !this.gameLobby) 
+        {
             return;
         }
 
@@ -293,9 +298,9 @@ export default class LobbyPage extends BaseComponent
      * Handle lobby joined acknowledgment
      */
     private async handleLobbyJoined(payload: any): Promise<void> {
-        if (!payload.success) {
-            console.error('[Lobby] Failed to join lobby:', payload.reason);
-            
+        if (!payload.success) 
+        {
+
             let errorMessage = 'Failed to join lobby.';
             if (payload.reason === 'lobby_not_found') {
                 errorMessage = 'Lobby not found. It may have been closed.';
@@ -312,8 +317,8 @@ export default class LobbyPage extends BaseComponent
 
         // Wait for lobby to be ready
         const isReady = await this.waitForLobbyReady();
-        if (!isReady || !this.gameLobby) {
-            console.error('[Lobby] ❌ gameLobby not ready after waiting!');
+        if (!isReady || !this.gameLobby) 
+        {
             return;
         }
 
@@ -435,8 +440,8 @@ export default class LobbyPage extends BaseComponent
         isReady: boolean;
         joinedAt?: number;
     }): Promise<void> {
-        if (!this.gameLobby) {
-            console.error('[Lobby] ❌ gameLobby is null in loadAndAddPlayer!');
+        if (!this.gameLobby) 
+        {
             return;
         }
 
@@ -451,16 +456,14 @@ export default class LobbyPage extends BaseComponent
                 if (this.userProfile && this.userProfile.username === playerData.username) {
                      finalAvatarUrl = this.userProfile.avatarUrl;
                 }
-            } catch (e) {
-                console.error("Could not load local profile match");
+            } 
+            catch (e) 
+            {
             }
         }
 
         
         finalAvatarUrl = finalAvatarUrl || '/assets/images/default-avatar.jpeg';
-
-        console.log(`[Lobby] Adding player ${playerData.username} with avatar:`, finalAvatarUrl);
-        
       
          this.gameLobby.addPlayer({
                 userId: playerData.userId,
@@ -483,8 +486,8 @@ export default class LobbyPage extends BaseComponent
      * Start game (called when host clicks Start Game)
      */
     private startGame(): void {
-        if (!this.lobbyId) {
-            console.error('[Lobby] Cannot start game: no lobby ID');
+        if (!this.lobbyId) 
+        {
             return;
         }
         webSocketService.send('lobby:start', { lobbyId: this.lobbyId });

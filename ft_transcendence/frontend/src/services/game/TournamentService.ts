@@ -11,8 +11,6 @@ class TournamentService
 
     async createTournament(data: CreateTournamentData): Promise<Tournament> 
     {
-        console.log('[TournamentService] 🏆 Creating tournament', data);
-
         try 
         {
             // const lobby = await LobbyService.createLobby('pong', 4);
@@ -45,12 +43,10 @@ class TournamentService
             this.currentTournament = tournament;
             this.subscribeTournamentUpdates();
 
-            console.log('[TournamentService] ✅ Tournament created:', tournament.id);
             return tournament;
         }
         catch (error) 
         {
-            console.error('[TournamentService] ❌ Failed to create tournament:', error);
             throw error;
         }
     }
@@ -66,8 +62,6 @@ class TournamentService
         {
             throw new Error('Tournament is full');
         }
-
-        console.log('[TournamentService] 🤖 Adding AI player');
 
         const aiPlayer: TournamentPlayer = {
             id: `ai_${Date.now()}`,
@@ -85,8 +79,6 @@ class TournamentService
         {
             this.tournamentUpdateCallback(this.currentTournament);
         }
-
-        console.log('[TournamentService] ✅ AI player added');
     }
 
     async kickPlayer(userId: string): Promise<void> 
@@ -107,8 +99,6 @@ class TournamentService
             throw new Error('Cannot kick the host');
         }
 
-        console.log('[TournamentService] 👢 Kicking player:', userId);
-
         this.currentTournament.players = this.currentTournament.players.filter(
             player => player.userId !== userId
         );
@@ -123,8 +113,6 @@ class TournamentService
         {
             this.tournamentUpdateCallback(this.currentTournament);
         }
-
-        console.log('[TournamentService] ✅ Player kicked');
     }
 
     async startTournament(): Promise<void> 
@@ -139,8 +127,6 @@ class TournamentService
             throw new Error('Tournament requires exactly 4 players');
         }
 
-        console.log('[TournamentService] 🎮 Starting tournament');
-
         this.currentTournament.status = 'in-progress';
         this.currentTournament.currentRound = 'semi-final';
         this.currentTournament.startedAt = new Date();
@@ -151,8 +137,6 @@ class TournamentService
         {
             this.tournamentUpdateCallback(this.currentTournament);
         }
-
-        console.log('[TournamentService] ✅ Tournament started');
     }
 
     async updateMatchResult(matchId: string, winner: TournamentPlayer, score: { player1: number; player2: number }): Promise<void> 
@@ -167,8 +151,6 @@ class TournamentService
         {
             throw new Error('Match not found');
         }
-
-        console.log('[TournamentService] 📊 Updating match result', { matchId, winner: winner.username });
 
         match.winner = winner;
         match.score = score;
@@ -188,8 +170,6 @@ class TournamentService
         {
             this.tournamentUpdateCallback(this.currentTournament);
         }
-
-        console.log('[TournamentService] ✅ Match result updated');
     }
 
     private initializeMatches(tournamentId: string): TournamentMatch[] 
@@ -263,8 +243,6 @@ class TournamentService
 
         if (allComplete) 
         {
-            console.log('[TournamentService] ⚡ Semi-finals complete, advancing to final');
-
             const finalMatch = this.currentTournament.matches.find(m => m.round === 'final');
             if (finalMatch) 
             {
@@ -284,8 +262,6 @@ class TournamentService
             return;
         }
 
-        console.log('[TournamentService] 🏆 Tournament completed, winner:', winner.username);
-
         this.currentTournament.status = 'completed';
         this.currentTournament.winner = winner;
         this.currentTournament.completedAt = new Date();
@@ -294,8 +270,6 @@ class TournamentService
 
     private subscribeTournamentUpdates(): void 
     {
-        console.log('[TournamentService] 👂 Subscribing to tournament updates');
-
         // LobbyService.onLobbyUpdate((lobby: Lobby) => 
         // {
         //     if (!this.currentTournament) 
@@ -371,13 +345,9 @@ class TournamentService
             return;
         }
 
-        console.log('[TournamentService] 🚪 Leaving tournament');
-
         // await LobbyService.leaveLobby();
         this.currentTournament = null;
         this.tournamentUpdateCallback = null;
-
-        console.log('[TournamentService] ✅ Left tournament');
     }
 
     canStartTournament(): boolean 
@@ -399,8 +369,6 @@ class TournamentService
 
     async joinTournament(tournamentId: string): Promise<Tournament> 
     {
-        console.log('[TournamentService] 🚪 Joining tournament:', tournamentId);
-
         try 
         {
             // In production, this would call backend API to join tournament
@@ -409,7 +377,6 @@ class TournamentService
         }
         catch (error) 
         {
-            console.error('[TournamentService] ❌ Failed to join tournament:', error);
             throw error;
         }
     }

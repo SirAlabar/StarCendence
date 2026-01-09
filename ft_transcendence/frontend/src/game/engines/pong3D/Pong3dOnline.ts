@@ -100,7 +100,6 @@ export class OnlinePong3D implements GameEngine
 
         // Handle resize
         window.addEventListener("resize", () => this.engine.resize());
-        console.log(this.paused)
     }
 
    
@@ -143,7 +142,6 @@ export class OnlinePong3D implements GameEngine
                     }
                 }
             } catch (err) {
-                console.log("failed to get update payload!")
             }
         });
     }
@@ -384,7 +382,8 @@ export class OnlinePong3D implements GameEngine
         Skybox.createFromGLB(this.scene, "assets/images/skybox2.glb");
 
         //Floating Platform Model
-        try {
+        try 
+        {
             this.platform = await loadModel(
                 this.scene, 
                 "assets/models/pong/", 
@@ -399,7 +398,10 @@ export class OnlinePong3D implements GameEngine
                 this.platform.forEach(mesh => mesh.isPickable = false);
             }
         } 
-        catch (error) { console.error("FAILED to load Game Platform:", error); }
+        catch (error) 
+        { 
+
+        }
 
         
         

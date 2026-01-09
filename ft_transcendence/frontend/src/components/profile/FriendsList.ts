@@ -414,7 +414,6 @@ export class FriendsList extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to accept friend request:', err);
             await Modal.alert('Error', 'Failed to accept friend request');
         }
     }
@@ -428,7 +427,6 @@ export class FriendsList extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to decline friend request:', err);
             await Modal.alert('Error', 'Failed to decline friend request');
         }
     }

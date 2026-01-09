@@ -264,7 +264,6 @@ export default class RegisterPage extends BaseComponent
         } 
         catch (error: any) 
         {
-            console.error('Registration error:', error);
             this.showMessage(error.message || 'Network error. Please try again.', 'error');
         } 
         finally 

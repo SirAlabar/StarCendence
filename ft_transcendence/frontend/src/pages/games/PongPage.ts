@@ -620,7 +620,6 @@ export default class PongPage extends BaseComponent
         
         if (!canvas) 
         {
-            console.error('❌ Canvas not found');
             return;
         }
         

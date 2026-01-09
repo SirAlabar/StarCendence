@@ -379,7 +379,6 @@ export default class TournamentPage extends BaseComponent
         }
         catch (error) 
         {
-            console.error('[TournamentPage] User not authenticated:', error);
             // Redirect to login page
             navigateTo('/login');
             return;
@@ -459,7 +458,6 @@ export default class TournamentPage extends BaseComponent
         }
         catch (error) 
         {
-            console.error('[TournamentPage] Authentication failed during tournament creation:', error);
             await Modal.alert('Session Expired', 'Your session has expired. Please login again.');
             navigateTo('/login');
             return;
@@ -494,7 +492,6 @@ export default class TournamentPage extends BaseComponent
         }
         catch (error: any) 
         {
-            console.error('Failed to create tournament:', error);
             await Modal.alert('Error', error.message || 'Failed to create tournament');
         }
         finally 
@@ -520,7 +517,6 @@ export default class TournamentPage extends BaseComponent
         }
         catch (error: any) 
         {
-            console.error('Failed to join tournament:', error);
             await Modal.alert('Error', error.message || 'Failed to join tournament');
         }
     }
@@ -534,7 +530,6 @@ export default class TournamentPage extends BaseComponent
         }
         catch (error: any) 
         {
-            console.error('Failed to add AI:', error);
             await Modal.alert('Error', error.message || 'Failed to add AI player');
         }
     }
@@ -552,7 +547,6 @@ export default class TournamentPage extends BaseComponent
             }
             catch (error: any) 
             {
-                console.error('Failed to kick player:', error);
                 await Modal.alert('Error', error.message || 'Failed to kick player');
             }
         }
@@ -568,7 +562,6 @@ export default class TournamentPage extends BaseComponent
         }
         catch (error: any) 
         {
-            console.error('Failed to start tournament:', error);
             await Modal.alert('Error', error.message || 'Failed to start tournament');
         }
     }
@@ -587,7 +580,6 @@ export default class TournamentPage extends BaseComponent
             }
             catch (error: any) 
             {
-                console.error('Failed to leave tournament:', error);
                 await Modal.alert('Error', error.message || 'Failed to leave tournament');
             }
         }

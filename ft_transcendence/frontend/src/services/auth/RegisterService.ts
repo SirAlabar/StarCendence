@@ -40,7 +40,6 @@ export class RegisterService
         } 
         catch (error) 
         {
-            console.error('Registration error:', error);
             throw error;
         }
     }

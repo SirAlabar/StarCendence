@@ -126,8 +126,6 @@ export class AvatarUpload extends BaseComponent
         catch (err) 
         {
             const errorMessage = (err as Error).message;
-            console.error('Failed to upload avatar:', err);
-            
             if (errorMessage.includes('Session expired')) 
             {
                 this.props.onError('⌠Session expired. Please login again.');

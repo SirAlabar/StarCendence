@@ -102,7 +102,6 @@ export class TwoFactorService
         } 
         catch (error) 
         {
-            console.error('2FA status check error:', error);
             // Return default for status check (non-critical)
             return { twoFactorEnabled: false };
         }
@@ -124,7 +123,6 @@ export class TwoFactorService
         } 
         catch (error) 
         {
-            console.error('2FA setup error:', error);
             throw error;
         }
     }
@@ -145,7 +143,6 @@ export class TwoFactorService
         } 
         catch (error) 
         {
-            console.error('2FA verification error:', error);
             throw error;
         }
     }
@@ -166,7 +163,6 @@ export class TwoFactorService
         } 
         catch (error) 
         {
-            console.error('2FA disable error:', error);
             throw error;
         }
     }
@@ -199,7 +195,6 @@ export class TwoFactorService
         } 
         catch (error) 
         {
-            console.error('2FA login verification error:', error);
             throw error;
         }
     }

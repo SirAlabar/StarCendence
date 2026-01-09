@@ -32,7 +32,6 @@ export class enemy
         this.targetY = this.y;
         this.difficulty = difficulty;
         this.settings = this.getDifficultySettings(difficulty);
-        console.log("AI Difficulty:", this.difficulty);
     }
 
     private getDifficultySettings(difficulty: AiDifficulty): DifficultySettings 
@@ -57,7 +56,6 @@ export class enemy
     {
         if (Math.random() < this.settings.missChance) 
         {
-            console.log("AI will miss", this.shouldMiss);
             this.shouldMiss = true;
             this.targetY = this.getRandomMissPosition(canvasHeight);
         }

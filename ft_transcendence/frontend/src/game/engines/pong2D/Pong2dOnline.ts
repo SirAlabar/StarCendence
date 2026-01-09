@@ -117,7 +117,7 @@ export class OnlinePongEngine implements GameEngine
                         this.paddleLeft.color = hex;
                 }
             } catch (err) {
-                console.log("failed to send payload");
+
             }
         });
     }

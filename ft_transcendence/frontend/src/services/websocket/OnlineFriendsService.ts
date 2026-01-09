@@ -97,7 +97,6 @@ class OnlineFriendsService
             }
             catch (error) 
             {
-                console.error('[OnlineFriendsService] Error in callback:', error);
             }
         });
     }

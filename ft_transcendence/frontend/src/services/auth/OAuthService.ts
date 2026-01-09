@@ -79,7 +79,6 @@ export class OAuthService
     } 
     catch (error) 
     {
-      console.error('Set username error:', error);
       throw error;
     }
   }

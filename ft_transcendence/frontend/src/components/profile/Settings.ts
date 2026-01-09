@@ -5,6 +5,7 @@ import { UserProfile } from '../../types/user.types';
 import UserService from '../../services/user/UserService';
 import { Modal } from '@/components/common/Modal';
 import { FormValidator } from '@services/user/FormValidator';
+import { getAuthApiUrl } from '@/types/api.types';
 
 interface SettingsProps 
 {
@@ -398,7 +399,6 @@ export class Settings extends BaseComponent
         } 
         catch (error) 
         {
-            console.error('Failed to load user profile:', error);
             this.showMessage('Failed to load profile data', 'error');
         }
     }
@@ -762,16 +762,28 @@ export class Settings extends BaseComponent
                 try 
                 {
                     // Call auth service to change password
-                    const response = await fetch('/api/auth/update-password', 
+                    const response = await fetch(getAuthApiUrl('/update-password'),
                     {
                         method: 'PATCH',
-                        headers: 
-                        {
+                        headers: {
                             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ currentPassword, newPassword })
                     });
+                    
+                    // Handle 401 silently
+                    if (response.status === 401) 
+                    {
+                        this.showMessage('Current password is incorrect', 'error');
+                        return;
+                    }
+                    
+                    if (response.status === 403) 
+                    {
+                        this.showMessage('Cannot change password for OAuth accounts', 'error');
+                        return;
+                    }
                     
                     if (!response.ok) 
                     {

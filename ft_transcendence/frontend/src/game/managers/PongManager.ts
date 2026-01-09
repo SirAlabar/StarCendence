@@ -162,7 +162,6 @@ export class GameManager {
         } 
         catch (error) 
         {
-            console.error(' Failed to initialize game:', error);
             this.currentState = 'menu';
             throw error;
         }
@@ -172,7 +171,6 @@ export class GameManager {
     {
         if (!this.currentEngine) 
         {
-            console.error('No game initialized');
             return;
         }
         this.currentState = 'playing';
@@ -215,14 +213,12 @@ export class GameManager {
     {
         if (!this.currentEngine) 
         {
-            console.warn('No game engine to resize');
             return;
         }
     
         if ('resize' in this.currentEngine && typeof this.currentEngine.resize === 'function') 
         {
             this.currentEngine.resize(newWidth, newHeight);
-            console.log("got here resize")
         }
     }
     
@@ -247,7 +243,6 @@ export class GameManager {
     {
         if (!this.canvas || !this.currentConfig || !this.currentDimension) 
         {
-            console.error('Cannot restart: missing config');
             return;
         }
         
@@ -302,7 +297,6 @@ export class GameManager {
                     });
                 }
             } catch (err) {
-                console.log("failed to set paddle color")
             }
         
     }

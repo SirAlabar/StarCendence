@@ -430,8 +430,6 @@ export class Header extends BaseComponent
         } 
         catch (error) 
         {
-            console.error('[Header] Logout error:', error);
-            
             webSocketService.disconnect();
             LoginService.clearTokens();
             this.refresh();

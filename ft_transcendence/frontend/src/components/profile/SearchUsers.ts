@@ -223,7 +223,6 @@ export class SearchUsers extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Search failed:', err);
             this.searchResults = [];
         } 
         finally 

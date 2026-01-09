@@ -73,7 +73,6 @@ export class RacerPod
           },
           onError: (errors) => 
           {
-            console.error('Pod loading failed:', errors);
             if (this.onLoadingError) 
             {
               this.onLoadingError(errors.join(', '));
@@ -86,7 +85,7 @@ export class RacerPod
     } 
     catch (error) 
     {
-      console.error('Pod model loading failed:', error);
+
     }
   }
 

@@ -19,8 +19,9 @@ export class Skybox {
             skyMesh.checkCollisions = false;
             skyMesh.material!.backFaceCulling = false;
         } 
-        catch (error) {
-            console.error("Failed to load GLB skybox:", error);
+        catch (error)
+        {
+
         }
     }
 }

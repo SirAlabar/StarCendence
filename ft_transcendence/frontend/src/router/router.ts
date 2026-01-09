@@ -346,7 +346,6 @@ export async function navigateTo(path: string): Promise<void>
     }
     catch (error)
     {
-        console.error('Error during navigation:', error);
         show404();
     }
     finally

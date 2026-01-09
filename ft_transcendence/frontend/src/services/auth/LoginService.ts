@@ -126,7 +126,6 @@ export class LoginService
         } 
         catch (error) 
         {
-            console.error('Login error:', error);
             throw error;
         }
     }
@@ -166,7 +165,6 @@ export class LoginService
         } 
         catch (error) 
         {
-            console.error('Token refresh error:', error);
             this.clearTokens(); // Clear invalid tokens
             throw error;
         }
@@ -202,7 +200,6 @@ export class LoginService
         } 
         catch (error) 
         {
-            console.error('Logout error:', error);
         } 
         finally 
         {
@@ -224,7 +221,6 @@ export class LoginService
         } 
         catch (error) 
         {
-            console.error('Logout all devices error:', error);
         } 
         finally 
         {
@@ -267,7 +263,6 @@ export class LoginService
         } 
         catch (error) 
         {
-            console.error('Token verification error:', error);
             throw error;
         }
     }
@@ -296,7 +291,6 @@ export class LoginService
         } 
         catch (error) 
         {
-            console.error('Error decoding token:', error);
             return null;
         }
     }
@@ -348,7 +342,6 @@ export class LoginService
         } 
         catch (error) 
         {
-            console.error('2FA verification error:', error);
             throw error;
         }
     }

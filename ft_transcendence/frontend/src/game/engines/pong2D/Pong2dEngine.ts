@@ -89,7 +89,6 @@ export class LocalPongEngine
         {
             await this.loadPlayerProfiles();
             this.profileLoaded = true;
-            console.log(this.profileLoaded);
         } 
         catch (error) 
         {
@@ -103,17 +102,14 @@ export class LocalPongEngine
             const profileLoaded = await this.player1.loadProfile();
             if (profileLoaded) 
             {
-                console.log('Player 1 profile loaded:', this.player1.getPlayerInfo());
             } 
             else 
             {
-                console.log('Playing as guest (not authenticated)');
             }
             
         } 
         catch (error) 
         {
-            console.error(' Failed to load player profiles:', error);
         }
     }
 

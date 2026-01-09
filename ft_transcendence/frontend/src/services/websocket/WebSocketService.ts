@@ -42,7 +42,7 @@ class WebSocketService {
   async connect(): Promise<void> {
     const token = LoginService.getAccessToken();
     if (!token) {
-      throw new Error('No access token available for WebSocket connection. Please login first.');
+      return;
     }
 
     if (this.status === ConnectionStatus.CONNECTED || this.status === ConnectionStatus.CONNECTING) {
@@ -64,15 +64,13 @@ class WebSocketService {
           resolve();
         };
 
-        this.socket.onerror = (error) => {
-          console.error('[WebSocketService] Connection error:', error);
+        this.socket.onerror = (_error) => {
           this.status = ConnectionStatus.ERROR;
-          reject(new Error(`WebSocket connection failed to ${this.wsUrl}`));
+
         };
 
         this.setupSocketEventHandlers();
       } catch (error) {
-        console.error('[WebSocketService] Failed to create WebSocket:', error);
         this.status = ConnectionStatus.DISCONNECTED;
         reject(error);
         this.handleReconnect();
@@ -175,7 +173,6 @@ class WebSocketService {
       return;
     }
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.warn('[WebSocketService] ⛔ Max reconnection attempts reached');
       this.reconnectAttempts = 0;
       return;
     }
@@ -183,8 +180,7 @@ class WebSocketService {
     this.reconnectAttempts++;
     const delay = this.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1);
     this.reconnectTimer = setTimeout(() => {
-      this.connect().catch((error) => {
-        console.warn('[WebSocketService] ⚠️ Reconnect failed:', error && error.message);
+      this.connect().catch((_error) => {
       });
     }, delay);
   }
@@ -202,8 +198,9 @@ class WebSocketService {
       try {
         // Use close code 1000 for normal closure
         this.socket.close(1000, 'Client disconnect');
-      } catch (error) {
-        console.error('[WebSocketService] ❌ Error closing socket:', error);
+      } 
+      catch (error)
+      {
       }
       this.socket = null;
     }
@@ -224,7 +221,6 @@ class WebSocketService {
         timestamp: Date.now(),
       };
       this.socket.send(JSON.stringify(message));
-      console.log(message);
       
       return true;
 

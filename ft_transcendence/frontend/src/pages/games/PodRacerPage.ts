@@ -328,9 +328,7 @@ export default class PodRacerPage extends BaseComponent
             }
         }
         catch (error)
-        {
-            console.error('Race start failed:', error);
-            
+        {          
             if (!this.isDisposed)
             {
                 await Modal.alert('Race Error','Failed to start race. Returning to game selection.');

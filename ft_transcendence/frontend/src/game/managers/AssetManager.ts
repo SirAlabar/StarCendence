@@ -124,7 +124,6 @@ export class AssetManager
           {
             const error = `${config.id}: ${message || exception}`;
             errors.push(error);
-            console.error(`❌ Failed to load mesh: ${error}`);
           };
         }
         else if (config.type === 'texture') 
@@ -146,7 +145,6 @@ export class AssetManager
           {
             const error = `${config.id}: ${message || exception}`;
             errors.push(error);
-            console.error(`❌ Failed to load texture: ${error}`);
           };
         }
       });

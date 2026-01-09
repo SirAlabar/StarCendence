@@ -5,8 +5,8 @@ export abstract class BaseComponent {
     
     mount(selector: string): void {
         this.container = document.querySelector(selector);
-        if (!this.container) {
-            console.error(`Element with selector "${selector}" not found`);
+        if (!this.container) 
+        {
             return;
         }
         
@@ -14,11 +14,13 @@ export abstract class BaseComponent {
         this.afterMount();
     }
     
-    protected afterMount(): void {
+    protected afterMount(): void 
+    {
         // Override in child components for post-render logic
     }
     
-    protected addClass(className: string): string {
+    protected addClass(className: string): string 
+    {
         // Helper method to build Tailwind classes programmatically
         return className;
     }

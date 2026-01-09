@@ -525,7 +525,6 @@ export default class DashboardPage extends BaseComponent
         catch (err) 
         {
             this.error = (err as Error).message;
-            console.error('Failed to load dashboard data:', err);
         } 
         finally 
         {

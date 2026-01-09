@@ -22,29 +22,42 @@ export interface SendMessageRequest
 class ChatService extends BaseService 
 {
     // GET /chat/history/:friendId - Get chat history with specific friend
-    async getChatHistory(friendId: string): Promise<ChatMessage[]> 
+    async getChatHistory(friendId: string): Promise<ChatMessage[]>
     {
         this.requireAuth();
-
-        if (!friendId) 
+        
+        if (!friendId)
         {
             throw new Error('Friend ID is required');
         }
-
-        const response = await this.fetchRequest(getChatApiUrl(`/history/${friendId}`), 
-        {
-            method: 'GET',
-            headers: this.getHeaders()
-        });
-
-        const data = await this.handleResponse<ChatHistoryResponse>(response);
         
-        // Convert timestamp strings to Date objects
-        return data.messages.map(msg => ({
-            ...msg,
-            timestamp: new Date(msg.createdAt),
-            createdAt: new Date(msg.createdAt)
-        }));
+        try 
+        {
+            const response = await this.fetchRequest(getChatApiUrl(`/history/${friendId}`),
+            {
+                method: 'GET',
+                headers: this.getHeaders()
+            });
+            
+            // Silently handle auth errors and not found
+            if (response.status === 401 || response.status === 403 || response.status === 404) 
+            {
+                return [];
+            }
+            
+            const data = await this.handleResponse<ChatHistoryResponse>(response);
+            
+            // Convert timestamp strings to Date objects
+            return data.messages.map(msg => ({
+                ...msg,
+                timestamp: new Date(msg.createdAt),
+                createdAt: new Date(msg.createdAt)
+            }));
+        } 
+        catch (error) 
+        {
+            return [];
+        }
     }
 
     // POST /chat/send - Send a message
@@ -72,7 +85,7 @@ class ChatService extends BaseService
             message: message.trim()
         };
 
-        const response = await this.fetchRequest(getChatApiUrl('/send'), { // ⬅️ CHANGE THIS
+        const response = await this.fetchRequest(getChatApiUrl('/send'), {
             method: 'POST',
             headers: this.getHeaders(),
             body: JSON.stringify(body)
@@ -91,7 +104,7 @@ class ChatService extends BaseService
             throw new Error('Friend ID is required');
         }
 
-        const response = await this.fetchRequest(getChatApiUrl(`/read/${friendId}`), { // ⬅️ CHANGE THIS
+        const response = await this.fetchRequest(getChatApiUrl(`/read/${friendId}`), {
             method: 'PATCH',
             headers: this.getHeaders(),
             body: JSON.stringify({})
@@ -105,7 +118,7 @@ class ChatService extends BaseService
     {
         this.requireAuth();
 
-        const response = await this.fetchRequest(getChatApiUrl('/unread-counts'), { // ⬅️ CHANGE THIS
+        const response = await this.fetchRequest(getChatApiUrl('/unread-counts'), {
             method: 'GET',
             headers: this.getHeaders()
         });

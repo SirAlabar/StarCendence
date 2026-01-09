@@ -1,6 +1,7 @@
 import { BaseComponent } from '../components/BaseComponent';
 import { getUserApiUrl, getBaseUrl } from '../types/api.types';
 import { showLoading, hideLoading } from '../router/LayoutManager';
+import { BaseService } from '../services/BaseService';
 
 // Leaderboard entry (flat structure from backend)
 export interface LeaderboardEntry 
@@ -92,21 +93,13 @@ export default class LeaderboardPage extends BaseComponent
     {
         try 
         {
-            const response = await fetch(getUserApiUrl('/leaderboard'), 
+            const baseService = new (class extends BaseService {})();
+            const response = await baseService['fetchRequest'](getUserApiUrl('/leaderboard'), 
             {
-                method: 'GET',
-                headers: 
-                {
-                    'Content-Type': 'application/json'
-                }
+                method: 'GET'
             });
             
-            if (!response.ok) 
-            {
-                throw new Error('Failed to load leaderboard');
-            }
-
-            const data: LeaderboardEntry[] = await response.json();
+            const data = await baseService['handleResponse']<LeaderboardEntry[]>(response);
 
             if (data && data.length > 0)
             {
@@ -126,14 +119,11 @@ export default class LeaderboardPage extends BaseComponent
         } 
         catch (error) 
         {
-            console.error('Failed to load leaderboard:', error);
-
             this.error = 'Unable to load live data';
             this.leaderboard = this.getPlaceholderLeaderboard();
             this.update();
         }
     }
-
 
     private async loadUserRank(): Promise<void> 
     {
@@ -145,31 +135,16 @@ export default class LeaderboardPage extends BaseComponent
                 return;
             }
 
-            const response = await fetch(getUserApiUrl('/rank'), 
+            const baseService = new (class extends BaseService {})();
+            const response = await baseService['fetchRequest'](getUserApiUrl('/rank'), 
             {
-                method: 'GET',
-                headers: 
-                {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+                method: 'GET'
             });
-
-            if (response.status === 401) 
-            {
-                localStorage.removeItem('accessToken');
-                return;
-            }
-
-            if (response.ok) 
-            {
-                this.userRank = await response.json();
-                this.update();
-            }
+            this.userRank = await baseService['handleResponse']<UserRankResponse>(response);
+            this.update();
         } 
         catch (error) 
         {
-            console.error('Failed to load user rank:', error);
         }
     }
 
