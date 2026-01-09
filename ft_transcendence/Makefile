@@ -421,6 +421,8 @@ db_clean:
 	@printf "$(YELLOW)🧹 Cleaning all data in user-service...$(DEFAULT)\n"
 	@docker compose exec -it user-service sh -c "for tbl in \$$(sqlite3 /app/data/user.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/user.db \"DELETE FROM '\$$tbl'\"; fi; done; sqlite3 /app/data/user.db 'DELETE FROM sqlite_sequence';"
 	@docker compose exec -it auth-service sh -c "for tbl in \$$(sqlite3 /app/data/auth.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/auth.db \"DELETE FROM '\$$tbl'\"; fi; done;"
+	@docker compose exec -it chat-service sh -c "for tbl in \$$(sqlite3 /app/data/chat.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/chat.db \"DELETE FROM '\$$tbl'\"; fi; done;"
+	@docker compose exec -it game-service sh -c "for tbl in \$$(sqlite3 /app/data/game.db '.tables'); do if [ \"\$$tbl\" != 'sqlite_sequence' ]; then sqlite3 /app/data/game.db \"DELETE FROM '\$$tbl'\"; fi; done;"
 	@printf "$(GREEN)✅ All tables cleaned!$(DEFAULT)\n"
 	@printf "$(CYAN)Reseeding database with default users...$(DEFAULT)\n"
 
