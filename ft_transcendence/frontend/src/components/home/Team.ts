@@ -13,33 +13,33 @@ export class Team extends BaseComponent
 {
     private teamMembers: TeamMember[] = [
         {
-            role: 'Full Stack Developer',
-            description: 'Architecture • 3D Game • Integration',
+            role: 'Hugo Marta - Full Stack Developer',
+            description: 'Architecture • 3D Game • Integration • Frontend',
             technologies: ['TypeScript', 'Node.js', 'Docker', 'Nginx', 'Redis', 'Babylon.js', 'Ammo.js'],
             accentColor: 'cyan',
             avatarUrl: 'https://avatars.githubusercontent.com/u/150078628?v=4',
             profileUrl: 'https://github.com/SirAlabar'
         },
         {
-            role: 'DEV 2',
-            description: 'm3irel3s - Developer',
-            technologies: ['Vue.js', 'CSS', 'JavaScript', 'Webpack'],
+            role: 'Miguel Meireles - Backend Developer ',
+            description: 'Backend Architecture • Authentication & Security using JWT, OAuth and 2FA',
+            technologies: ['Node.js', 'User Management', 'JWT', ' OAuth', 'Docker'],
             accentColor: 'purple',
             avatarUrl: 'https://avatars.githubusercontent.com/u/160427475?v=4',
             profileUrl: 'https://github.com/m3irel3s'
         },
         {
-            role: 'DEV 3',
-            description: 'therappha - Developer',
-            technologies: ['Babylon.js', '3D Graphics', 'WebGL', 'Physics'],
+            role: 'Rafael Castro - Developer',
+            description: 'Realtime Game Backend • Event-driven Architecture using WebSocket and Redis Pub/Sub',
+            technologies: ['Redis', 'Websocket', 'Node.js', 'Multiplayer Logic'],
             accentColor: 'pink',
             avatarUrl: 'https://avatars.githubusercontent.com/u/102710499?v=4',
             profileUrl: 'https://github.com/therappha'
         },
         {
-            role: 'DEV 4',
-            description: 'joaorema - Developer',
-            technologies: ['Fastify', 'PostgreSQL', 'Redis', 'Docker'],
+            role: 'Joao Rema - Developer',
+            description: 'Pong 2D & 3D • Online Multiplayer using Babylon.js, WebSocket and Redis Pub/Sub',
+            technologies: ['Babylon.js', 'WebSocket', 'Redis', 'Docker'],
             accentColor: 'cyan',
             avatarUrl: 'https://avatars.githubusercontent.com/u/175852784?v=4',
             profileUrl: 'https://github.com/joaorema'
