@@ -12,7 +12,7 @@ export class About extends BaseComponent {
     {
       title: 'Project Mission',
       description:
-        'Final milestone of the 42 Web Curriculum — building a complete real-time multiplayer gaming platform combining 3D graphics, secure user systems and distributed architecture.',
+        'Final milestone of the 42 Common Core Curriculum — building a complete real-time multiplayer gaming platform combining 3D graphics, secure user systems and distributed architecture.',
       imageUrl: '/assets/images/42_project.png',
       icon: '🎯'
     },

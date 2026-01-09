@@ -176,6 +176,20 @@ const routeConfig: Record<string, any> =
         headerType: 'default',
         requiresAuth: true
     },
+    '/privacy-policy':
+    {
+        component: () => import('../pages/legal/PrivacyPolicyPage'),
+        title: 'Privacy Policy - Transcendence',
+        layout: 'default',
+        headerType: 'default'
+    },
+    '/terms-of-service':
+    {
+        component: () => import('../pages/legal/TermsOfServicePage'),
+        title: 'Terms of Service - Transcendence',
+        layout: 'default',
+        headerType: 'default'
+    },
     '/oauth/callback':
     {
         component: () => import('../pages/auth/OAuthCallbackPage'),

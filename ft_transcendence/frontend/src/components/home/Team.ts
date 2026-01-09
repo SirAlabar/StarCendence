@@ -22,7 +22,7 @@ export class Team extends BaseComponent
         },
         {
             role: 'Miguel Meireles - Backend Developer ',
-            description: 'Backend Architecture • Authentication & Security using JWT, OAuth and 2FA',
+            description: 'Backend • Authentication & Security using JWT, OAuth and 2FA',
             technologies: ['Node.js', 'User Management', 'JWT', ' OAuth', 'Docker'],
             accentColor: 'purple',
             avatarUrl: 'https://avatars.githubusercontent.com/u/160427475?v=4',
@@ -30,7 +30,7 @@ export class Team extends BaseComponent
         },
         {
             role: 'Rafael Castro - Developer',
-            description: 'Realtime Game Backend • Event-driven Architecture using WebSocket and Redis Pub/Sub',
+            description: 'Realtime Game Backend • Event-driven using WebSocket and Redis Pub/Sub',
             technologies: ['Redis', 'Websocket', 'Node.js', 'Multiplayer Logic'],
             accentColor: 'pink',
             avatarUrl: 'https://avatars.githubusercontent.com/u/102710499?v=4',
