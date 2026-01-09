@@ -31,7 +31,7 @@ export class LocalPongEngine
 
     //Configs
     private config: GameConfig;
-    private profileLoaded?: boolean = false;
+    // private profileLoaded?: boolean = false;
     
     //Events
     private eventCallBack: Array<(event: GameEvent) => void> = [];
@@ -76,42 +76,33 @@ export class LocalPongEngine
             this.enemy = new enemy(canvas, config.difficulty || 'easy');
             this.enemy.score = 0;
         }
-        this.initializeAsync();
+        // this.initializeAsync();
 
         //input handling
         this.setupInputHandlers();
 
     }
 
-    private async initializeAsync(): Promise<void> 
-    {
-        try 
-        {
-            await this.loadPlayerProfiles();
-            this.profileLoaded = true;
-        } 
-        catch (error) 
-        {
-            this.profileLoaded = true; // Continue anyway
-        }
-    }
-    private async loadPlayerProfiles(): Promise<void> 
-    {
-        try 
-        {
-            const profileLoaded = await this.player1.loadProfile();
-            if (profileLoaded) 
-            {
-            } 
-            else 
-            {
-            }
+    // private async initializeAsync(): Promise<void> 
+    // {
+    //     try 
+    //     {
+    //         await this.loadPlayerProfiles();
+    //     } 
+    //     catch (error) 
+    //     {
+    //     }
+    // }
+    // private async loadPlayerProfiles(): Promise<void> 
+    // {
+    //     try 
+    //     {
             
-        } 
-        catch (error) 
-        {
-        }
-    }
+    //     } 
+    //     catch (error) 
+    //     {
+    //     }
+    // }
 
     start(): void
     {

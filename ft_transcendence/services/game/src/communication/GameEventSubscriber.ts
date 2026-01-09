@@ -128,6 +128,10 @@ export class GameEventSubscriber {
           await this.handleGameReady(event);
           break;
 
+        case 'lobby:quick-play':
+          await this.handleQuickPlay(event);
+          break;
+
         default:
           break;
       }
@@ -205,6 +209,62 @@ export class GameEventSubscriber {
     }
   }
 
+private async handleQuickPlay(event: GameEventMessage): Promise<void>
+{
+  const { gameType = 'pong' } = event.payload;
+  const { userId, username } = event;
+  
+  console.log(`[GameEventSubscriber] ⚡ Quick Play requested by ${username} for ${gameType}`);
+  
+  try
+  {
+    // 1. Try to find available lobby
+    const availableLobbies = await this.lobbyManager.getAvailableLobbies(gameType);
+    
+    if (availableLobbies.length > 0)
+    {
+      const lobby = availableLobbies[0];
+      console.log(`[GameEventSubscriber] ✅ Found open lobby ${lobby.id}, joining...`);
+      
+      const joinEvent: GameEventMessage = {
+        ...event,
+        payload: {
+          lobbyId: lobby.id,
+          avatarUrl: event.payload?.avatarUrl || ''
+        }
+      };
+      
+      await this.handleLobbyJoin(joinEvent);
+    }
+    else
+    {
+      console.log(`[GameEventSubscriber] 🆕 No open lobbies, creating new one...`);
+      
+      const createEvent: GameEventMessage = {
+        ...event,
+        payload: {
+          gameType,
+          maxPlayers: 2,
+          avatarUrl: event.payload?.avatarUrl || ''
+        }
+      };
+      
+      await this.handleLobbyCreate(createEvent);
+    }
+  }
+  catch (error)
+  {
+    console.error('[GameEventSubscriber] ❌ Quick Play error:', error);
+    
+    await this.broadcastToUser(userId, {
+      type: 'lobby:quick-play:response',
+      payload: {
+        success: false,
+        error: 'Failed to find or create lobby'
+      }
+    });
+  }
+}
 
   private async handleLobbyInvite(event: GameEventMessage): Promise<void>
   {

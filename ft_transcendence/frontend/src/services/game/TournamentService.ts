@@ -367,7 +367,7 @@ class TournamentService
         return [];
     }
 
-    async joinTournament(tournamentId: string): Promise<Tournament> 
+    async joinTournament(_tournamentId: string): Promise<Tournament> 
     {
         try 
         {

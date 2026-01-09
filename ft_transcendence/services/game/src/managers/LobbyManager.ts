@@ -57,6 +57,69 @@ export class LobbyManager {
     throw new Error('Failed to generate unique lobby ID after multiple attempts');
   }
 
+  /**
+ * Get all available lobbies (waiting status with open slots)
+ */
+  async getAvailableLobbies(gameType?: string): Promise<Array<{
+    id: string;
+    gameType: string;
+    hostId: string;
+    players: LobbyPlayer[];
+    maxPlayers: number;
+    status: string;
+    createdAt: number;
+  }>> {
+    try {
+      // Scan for all lobby data keys
+      const lobbies: any[] = [];
+      let cursor = 0;
+      
+      do {
+        const result = await this.redis.scan(cursor, {
+          MATCH: 'lobby:*:data',
+          COUNT: 100
+        });
+        
+        cursor = result.cursor;
+        const keys = result.keys;
+        
+        for (const key of keys) {
+          // Extract lobby ID from key (lobby:12345678:data -> 12345678)
+          const lobbyId = key.split(':')[1];
+          
+          const lobbyData = await this.getLobbyData(lobbyId);
+          if (!lobbyData) continue;
+          
+          // Filter by game type if specified
+          if (gameType && lobbyData.gameType !== gameType) continue;
+          
+          // Only include waiting lobbies
+          if (lobbyData.status !== 'waiting') continue;
+          
+          const players = await this.getLobbyPlayers(lobbyId);
+          
+          // Only include lobbies with open slots
+          if (players.length >= lobbyData.maxPlayers) continue;
+          
+          lobbies.push({
+            id: lobbyId,
+            gameType: lobbyData.gameType,
+            hostId: lobbyData.createdBy,
+            players: players,
+            maxPlayers: lobbyData.maxPlayers,
+            status: lobbyData.status,
+            createdAt: lobbyData.createdAt
+          });
+        }
+      } while (cursor !== 0);
+      
+      return lobbies;
+    } catch (error) {
+      console.error('[LobbyManager] Error getting available lobbies:', error);
+      return [];
+    }
+  }
+
   async createLobby(
     lobbyId: string,
     userId: string,

@@ -2,7 +2,8 @@ import { BaseComponent } from '../../components/BaseComponent';
 import { PodSelection, PodSelectionEvent } from './PodSelectionPage';
 import { RacerRenderer } from '../../game/engines/racer/RacerRenderer';
 import { PodConfig, AVAILABLE_PODS } from '../../game/utils/PodConfig';
-import { navigateTo, isAuthenticated } from '../../router/router';
+// import { navigateTo, isAuthenticated } from '../../router/router';
+import { navigateTo } from '../../router/router';
 import { Modal } from '@/components/common/Modal';
 
 export default class PodRacerPage extends BaseComponent 
@@ -114,7 +115,7 @@ export default class PodRacerPage extends BaseComponent
         }
     }
 
-    private selectMode(mode: 'training' | 'multiplayer'): void 
+    private async selectMode(mode: 'training' | 'multiplayer'): Promise<void>
     {
         if (mode === 'training') 
         {
@@ -123,78 +124,82 @@ export default class PodRacerPage extends BaseComponent
         }
         else if (mode === 'multiplayer') 
         {
-            // Check authentication for multiplayer
-            if (!isAuthenticated()) 
-            {
-                this.showMessage(
-                    'You need to be logged in to play online!\nRedirecting to login...',
-                    'error'
-                );
+            await Modal.alert(
+                'Coming Soon! 🚀',
+                'Multiplayer racing is currently under development.\n\nStay tuned for the next update where you\'ll be able to race against other players online!'
+            );
+            // // Check authentication for multiplayer
+            // if (!isAuthenticated()) 
+            // {
+            //     this.showMessage(
+            //         'You need to be logged in to play online!\nRedirecting to login...',
+            //         'error'
+            //     );
 
-                setTimeout(() => 
-                {
-                    localStorage.setItem('redirectAfterLogin', '/lobby?game=racer');
-                    navigateTo('/login');
-                }, 3000);
+            //     setTimeout(() => 
+            //     {
+            //         localStorage.setItem('redirectAfterLogin', '/lobby?game=racer');
+            //         navigateTo('/login');
+            //     }, 3000);
 
-                return;
-            }
+            //     return;
+            // }
             
-            // Navigate to racer lobby if authenticated
-            navigateTo('/lobby?game=racer');
+            // // Navigate to racer lobby if authenticated
+            // navigateTo('/lobby?game=racer');
         }
     }
 
-    private showMessage(message: string, type: 'success' | 'error'): void 
-    {
-        const container = document.getElementById('racerMessage');
-        if (!container) 
-        {
-            return;
-        }
+    // private showMessage(message: string, type: 'success' | 'error'): void 
+    // {
+    //     const container = document.getElementById('racerMessage');
+    //     if (!container) 
+    //     {
+    //         return;
+    //     }
 
-        const bgColor = type === 'success' ? 'bg-green-900/80' : 'bg-red-900/80';
-        const borderColor = type === 'success' ? 'border-green-500' : 'border-red-500';
-        const textColor = type === 'success' ? 'text-green-300' : 'text-red-300';
-        const icon = type === 'success' ? '✓' : '⚠';
+    //     const bgColor = type === 'success' ? 'bg-green-900/80' : 'bg-red-900/80';
+    //     const borderColor = type === 'success' ? 'border-green-500' : 'border-red-500';
+    //     const textColor = type === 'success' ? 'text-green-300' : 'text-red-300';
+    //     const icon = type === 'success' ? '✓' : '⚠';
 
-        container.innerHTML = `
-            <div class="${bgColor} ${borderColor} border-2 rounded-xl p-4 backdrop-blur-sm shadow-2xl animate-pulse-slow">
-                <div class="flex items-center gap-3">
-                    <div class="text-2xl">${icon}</div>
-                    <p class="${textColor} font-bold text-lg">
-                        ${this.escapeHtml(message)}
-                    </p>
-                </div>
-            </div>
-            <style>
-                @keyframes pulse-slow 
-                {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.8; }
-                }
-                .animate-pulse-slow 
-                {
-                    animation: pulse-slow 2s ease-in-out infinite;
-                }
-            </style>
-        `;
+    //     container.innerHTML = `
+    //         <div class="${bgColor} ${borderColor} border-2 rounded-xl p-4 backdrop-blur-sm shadow-2xl animate-pulse-slow">
+    //             <div class="flex items-center gap-3">
+    //                 <div class="text-2xl">${icon}</div>
+    //                 <p class="${textColor} font-bold text-lg">
+    //                     ${this.escapeHtml(message)}
+    //                 </p>
+    //             </div>
+    //         </div>
+    //         <style>
+    //             @keyframes pulse-slow 
+    //             {
+    //                 0%, 100% { opacity: 1; }
+    //                 50% { opacity: 0.8; }
+    //             }
+    //             .animate-pulse-slow 
+    //             {
+    //                 animation: pulse-slow 2s ease-in-out infinite;
+    //             }
+    //         </style>
+    //     `;
 
-        setTimeout(() => 
-        {
-            if (container) 
-            {
-                container.innerHTML = '';
-            }
-        }, 4000);
-    }
+    //     setTimeout(() => 
+    //     {
+    //         if (container) 
+    //         {
+    //             container.innerHTML = '';
+    //         }
+    //     }, 4000);
+    // }
 
-    private escapeHtml(text: string): string 
-    {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+    // private escapeHtml(text: string): string 
+    // {
+    //     const div = document.createElement('div');
+    //     div.textContent = text;
+    //     return div.innerHTML;
+    // }
 
     public showPodSelection(): void 
     {

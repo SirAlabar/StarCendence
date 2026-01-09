@@ -2,8 +2,10 @@ import { BaseComponent } from '../../components/BaseComponent';
 import { gameManager } from '../../game/managers/PongManager';
 import { navigateTo, isAuthenticated } from '../../router/router';
 import { Modal } from '@/components/common/Modal';
+import { webSocketService } from '../../services/websocket/WebSocketService';
+import { LoginService } from '../../services/auth/LoginService';
 
-type GameMode = 'local-multiplayer' | 'online-multiplayer' | 'ai' | 'tournament' | null;
+type GameMode = 'local-multiplayer' | 'online-multiplayer' | 'ai' /* | 'tournament' */ | null;
 type ViewType = '2d' | '3d' | null;
 type AiDifficulty = 'easy' | 'hard';
 
@@ -125,7 +127,7 @@ export default class PongPage extends BaseComponent
                 <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-2 md:mb-4 text-cyan-300 glow-text-cyan text-center">CHOOSE YOUR MODE</h1>
                 <p class="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 mb-4 md:mb-8 text-center">Pick How You Want to Play Pong</p>
                 
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 mb-4 md:mb-8">
                     <!-- LOCAL MULTIPLAYER -->
                     <div id="localCard" class="mode-card rounded-xl md:rounded-2xl p-6 md:p-10 border-2 border-blue-500/40 bg-gradient-to-br from-blue-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/50 relative">
                         <div class="flex flex-col items-center">
@@ -177,7 +179,7 @@ export default class PongPage extends BaseComponent
                         </div>
                     </div>
                     
-                    <!-- TOURNAMENT -->
+                    <!-- TOURNAMENT - COMMENTED OUT FOR FUTURE USE
                     <div id="tournamentCard" class="mode-card rounded-xl md:rounded-2xl p-6 md:p-10 border-2 border-orange-500/40 bg-gradient-to-br from-orange-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-500/50 relative">
                         <div class="flex flex-col items-center">
                             <img src="/assets/images/tournament.png" alt="Tournament" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 mb-2 md:mb-4 opacity-80">
@@ -193,6 +195,7 @@ export default class PongPage extends BaseComponent
                             </svg>
                         </div>
                     </div>
+                    -->
                 </div>
                 
                 <div class="mb-4 md:mb-6">
@@ -215,6 +218,25 @@ export default class PongPage extends BaseComponent
                             </div>
                         </button>
                     </div>
+                </div>
+                
+                <!-- Quick Play Button -->
+                <div class="mb-4 md:mb-6">
+                    <button 
+                        id="quickPlayBtn"
+                        class="w-full max-w-md mx-auto block px-8 py-4 rounded-xl font-bold text-xl
+                               bg-gradient-to-r from-yellow-500 to-orange-600 
+                               hover:from-yellow-600 hover:to-orange-700
+                               text-white shadow-2xl shadow-yellow-500/50
+                               transition-all duration-300 hover:scale-105
+                               border-2 border-yellow-400/50 hover:border-yellow-400">
+                        <div class="flex items-center justify-center gap-3">
+                            <span class="text-2xl">⚡</span>
+                            <span>QUICK PLAY</span>
+                            <span class="text-2xl">⚡</span>
+                        </div>
+                        <div class="text-xs mt-1 text-yellow-200">Find or create a match instantly</div>
+                    </button>
                 </div>
                 
                 <div class="flex gap-3 md:gap-4 justify-center">
@@ -344,7 +366,8 @@ export default class PongPage extends BaseComponent
         const localCard = document.getElementById('localCard');
         const onlineCard = document.getElementById('onlineCard');
         const aiCard = document.getElementById('aiCard');
-        const tournamentCard = document.getElementById('tournamentCard');
+        // TOURNAMENT - Commented out for future use
+        // const tournamentCard = document.getElementById('tournamentCard');
         
         if (localCard) 
         {
@@ -358,13 +381,15 @@ export default class PongPage extends BaseComponent
         {
             aiCard.addEventListener('click', () => this.selectMode('ai'));
         }
-        if (tournamentCard) 
-        {
-            tournamentCard.addEventListener('click', () => this.selectMode('tournament'));
-        }
+        // TOURNAMENT - Commented out for future use
+        // if (tournamentCard) 
+        // {
+        //     tournamentCard.addEventListener('click', () => this.selectMode('tournament'));
+        // }
         
         const view2DBtn = document.getElementById('view2DBtn');
         const view3DBtn = document.getElementById('view3DBtn');
+        const quickPlayBtn = document.getElementById('quickPlayBtn');
         
         if (view2DBtn) 
         {
@@ -373,6 +398,10 @@ export default class PongPage extends BaseComponent
         if (view3DBtn) 
         {
             view3DBtn.addEventListener('click', () => this.selectView('3d'));
+        }
+        if (quickPlayBtn)
+        {
+            quickPlayBtn.addEventListener('click', () => this.handleQuickPlay());
         }
         
         const continueBtn = document.getElementById('continueBtn');
@@ -438,7 +467,8 @@ export default class PongPage extends BaseComponent
             'local-multiplayer': 'localCard',
             'online-multiplayer': 'onlineCard',
             'ai': 'aiCard',
-            'tournament': 'tournamentCard'
+            // TOURNAMENT - Commented out for future use
+            // 'tournament': 'tournamentCard'
         };
         
         if (mode && cardMap[mode]) 
@@ -503,8 +533,9 @@ export default class PongPage extends BaseComponent
             return;
         }
         
-       
-        if (this.selectedMode === 'online-multiplayer' || this.selectedMode === 'tournament') 
+        // TOURNAMENT - Commented out for future use
+        // Check authentication for online modes (online multiplayer or tournament)
+        if (this.selectedMode === 'online-multiplayer' /* || this.selectedMode === 'tournament' */) 
         {
             if (!isAuthenticated()) 
             {
@@ -515,7 +546,9 @@ export default class PongPage extends BaseComponent
 
                 setTimeout(() => 
                 {
-                    const redirectPath = this.selectedMode === 'tournament' ? '/tournament' : '/lobby?game=pong';
+                    // TOURNAMENT - Commented out for future use
+                    // const redirectPath = this.selectedMode === 'tournament' ? '/tournament' : '/lobby?game=pong';
+                    const redirectPath = '/lobby?game=pong';
                     localStorage.setItem('redirectAfterLogin', redirectPath);
                     navigateTo('/login');
                 }, 3000);
@@ -536,15 +569,19 @@ export default class PongPage extends BaseComponent
         else if (this.selectedMode === 'online-multiplayer') 
         {
             if (this.selectedView === '2d')
+            {
                 navigateTo('/lobby?game=pong2d');
+            }
             else 
+            {
                 navigateTo('/lobby?game=pong3d');
-            
+            }
         }
-        else if (this.selectedMode === 'tournament') 
-        {
-            navigateTo('/tournament');
-        }
+        // TOURNAMENT - Commented out for future use
+        // else if (this.selectedMode === 'tournament') 
+        // {
+        //     navigateTo('/tournament');
+        // }
     }
 
     private showMessage(message: string, type: 'success' | 'error'): void 
@@ -839,6 +876,49 @@ export default class PongPage extends BaseComponent
             this.goBack();
         }
     }
+
+    private async handleQuickPlay(): Promise<void>
+    {
+    const user = LoginService.getCurrentUser();
+    if (!user) 
+    {
+        await Modal.alert('Login Required', 'Please log in');
+        navigateTo('/login');
+        return;
+    }
+
+    if (!webSocketService.isConnected()) 
+    {
+        await Modal.alert('Connection Error', 'WebSocket not connected');
+        return;
+    }
+
+    const handler = (message: any) => 
+    {
+        if (message.type === 'lobby:create:ack' && message.payload?.lobbyId) 
+        {
+            cleanup();
+            navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+        }
+
+        if (message.type === 'lobby:join:ack' && message.payload?.lobbyId) 
+        {
+            cleanup();
+            navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+        }
+    };
+
+    const cleanup = () => {
+        webSocketService.off('*', handler);
+    };
+
+    webSocketService.on('*', handler);
+
+    webSocketService.send('lobby:quick-play', {
+        gameType: 'pong'
+    });
+    }
+
 
     private showWinnerOverlay(winner: string): void 
     {
