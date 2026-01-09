@@ -497,135 +497,132 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
     }
   }
 
-  private async handleLobbyReady(event: GameEventMessage): Promise<void> {
-    const { lobbyId, isReady } = event.payload;
-    const { userId, username } = event;
+  private async handleLobbyReady(event: GameEventMessage): Promise<void> 
+  {
+      const { lobbyId, isReady } = event.payload;
+      const { userId, username } = event;
 
-    try {
-      console.log(`[GameEventSubscriber] 🎯 ${username} ready status: ${isReady} in lobby ${lobbyId}`);
+      try {
+        console.log(`[GameEventSubscriber] 🎯 ${username} ready status: ${isReady} in lobby ${lobbyId}`);
 
-      await this.lobbyManager.updatePlayerReady(lobbyId, userId, isReady);
+        await this.lobbyManager.updatePlayerReady(lobbyId, userId, isReady);
 
-      const userIds = await this.lobbyManager.getLobbyUserIds(lobbyId);
+        const userIds = await this.lobbyManager.getLobbyUserIds(lobbyId);
 
-      await this.broadcastToUsers(userIds, {
-        type: 'lobby:player:ready',
-        payload: {
-          lobbyId,
-          userId,
-          username,
-          isReady,
-        },
-      });
+        await this.broadcastToUsers(userIds, {
+          type: 'lobby:player:ready',
+          payload: {
+            lobbyId,
+            userId,
+            username,
+            isReady,
+          },
+        });
 
-      console.log(`[GameEventSubscriber] ✅ Ready status updated and broadcasted for ${username}`);
-    } catch (error) {
-      console.error(`[GameEventSubscriber] ❌ Failed to update ready status:`, error);
+        console.log(`[GameEventSubscriber] ✅ Ready status updated and broadcasted for ${username}`);
+      } catch (error) {
+        console.error(`[GameEventSubscriber] ❌ Failed to update ready status:`, error);
+      }
     }
-  }
 
-  private async handleLobbyStart(event: GameEventMessage): Promise<void> {
-    const { lobbyId } = event.payload;
-    const { userId } = event;
+    private async handleLobbyStart(event: GameEventMessage): Promise<void> 
+    {
+      const { lobbyId } = event.payload;
+      const { userId } = event;
 
-    console.log(`[GameEventSubscriber] 🚀 Starting game for lobby ${lobbyId} requested by user ${userId}`);
+      console.log(`[GameEventSubscriber] 🚀 Starting game for lobby ${lobbyId} requested by user ${userId}`);
 
-    try {
-      const players = await this.lobbyManager.getLobbyPlayers(lobbyId);
-      
-      if (players.length === 0) {
-        console.log(`[GameEventSubscriber] ❌ Cannot start game: lobby ${lobbyId} has no players`);
-        return;
-      }
-
-      const lobbyData = await this.lobbyManager.getLobbyData(lobbyId);
-      if (!lobbyData) {
-        console.log(`[GameEventSubscriber] ❌ Cannot start game: lobby ${lobbyId} not found`);
-        return;
-      }
-
-      const hostPlayer = players.find(p => p.isHost);
-      if (!hostPlayer || hostPlayer.userId !== userId) {
-        console.log(`[GameEventSubscriber] ❌ Cannot start game: user ${userId} is not the host`);
-        return;
-      }
-
-      const nonHostPlayers = players.filter(p => !p.isHost);
-      const allReady = nonHostPlayers.every(p => p.isReady);
-      if (!allReady) {
-        console.log(`[GameEventSubscriber] ❌ Cannot start game: not all players are ready`);
-        return;
-      }
-
-      if (players.length < 2) {
-        console.log(`[GameEventSubscriber] ❌ Cannot start game: need at least 2 players (current: ${players.length})`);
-        return;
-      }
-
-      console.log(`[GameEventSubscriber] ✅ Starting game for lobby ${lobbyId} with ${players.length} players`);
-    
-      // Map lobby game type to GameType enum
-      let gameType: GameType;
-      switch (lobbyData.gameType.toLowerCase()) {
-        case 'pong2d':
-        case 'pong3d':
-        case 'pong':
-          gameType = GameType.PONG;
-          break;
-        case 'racer':
-          gameType = GameType.RACER;
-          break;
-        default:
-          gameType = GameType.PONG;
-      }
-
-      // Create game session in database
-      const { game, gameId } = await createGameSession({
-        type: gameType,
-        mode: GameMode.MATCH,
-        maxPlayers: lobbyData.maxPlayers,
-        maxScore: 1, // Default score, could be configurable
-      });
-      if (!game)
+      try 
       {
-        //do nothing xd not checking here!!!!!11111
+        const lobbyData = await this.lobbyManager.getLobbyData(lobbyId);
+
+        if (!lobbyData || lobbyData.status !== 'waiting') 
+        {
+          console.log(`[LobbyStart] Ignored start for lobby ${lobbyId}, status=${lobbyData?.status}`);
+          return;
+        }
+
+        const players = await this.lobbyManager.getLobbyPlayers(lobbyId);
+
+        if (players.length < 2) 
+        {
+          console.log(`[GameEventSubscriber] ❌ Cannot start game: need at least 2 players`);
+          return;
+        }
+
+        const hostPlayer = players.find(p => p.isHost);
+        if (!hostPlayer || hostPlayer.userId !== userId) 
+        {
+          console.log(`[GameEventSubscriber] ❌ Cannot start game: user ${userId} is not the host`);
+          return;
+        }
+
+        const nonHostPlayers = players.filter(p => !p.isHost);
+        if (!nonHostPlayers.every(p => p.isReady)) 
+        {
+          console.log(`[GameEventSubscriber] ❌ Cannot start game: not all players are ready`);
+          return;
+        }
+
+        // 🔒 LOCK FINAL (ninguém mais passa daqui)
+        await this.lobbyManager.updateLobbyStatus(lobbyId, 'starting');
+
+        console.log(`[GameEventSubscriber] ✅ Starting game for lobby ${lobbyId} with ${players.length} players`);
+
+        let gameType: GameType;
+        switch (lobbyData.gameType.toLowerCase()) 
+        {
+          case 'pong2d':
+          case 'pong3d':
+          case 'pong':
+            gameType = GameType.PONG;
+            break;
+          case 'racer':
+            gameType = GameType.RACER;
+            break;
+          default:
+            gameType = GameType.PONG;
+        }
+
+        const { gameId } = await createGameSession({
+          type: gameType,
+          mode: GameMode.MATCH,
+          maxPlayers: lobbyData.maxPlayers,
+          maxScore: 1,
+        });
+
+        for (const player of players) 
+        {
+          await addLobbyPlayerToGame(gameId, player.userId, player.username);
+        }
+
+        await startGameSession(gameId);
+
+        await this.lobbyManager.updateLobbyStatus(lobbyId, 'in_game');
+
+        const userIds = players.map(p => p.userId);
+        await this.broadcastToUsers(userIds, {
+          type: 'lobby:game:starting',
+          payload: {
+            lobbyId,
+            gameId,
+            gameType,
+            players: players.map(p => ({
+              userId: p.userId,
+              username: p.username,
+              isHost: p.isHost,
+              paddle: p.paddle || null,
+            })),
+          },
+        });
+
+      } 
+      catch (error) 
+      {
+        console.error(`[GameEventSubscriber] ❌ Error starting game for lobby ${lobbyId}:`, error);
       }
-
-      // Add all players to the game session
-      for (const player of players) {
-        await addLobbyPlayerToGame(gameId, player.userId, player.username);
-      }
-
-      // Start the game session now that all players are added
-      await startGameSession(gameId);
-
-      console.log(`[GameEventSubscriber] 📝 Created game session ${gameId} for lobby ${lobbyId} with ${players.length} players`);
-
-      // Update lobby status to in_game
-      await this.lobbyManager.updateLobbyStatus(lobbyId, 'in_game');
-
-      // Broadcast game starting to all players
-      const userIds = players.map(p => p.userId);
-      await this.broadcastToUsers(userIds, {
-        type: 'lobby:game:starting',
-        payload: {
-          lobbyId,
-          gameId,
-          gameType,
-          players: players.map(p => ({
-            userId: p.userId,
-            username: p.username,
-            isHost: p.isHost,
-            paddle: p.paddle || null,
-          })),
-        },
-      });
-
-
-    } catch (error) {
-      console.error(`[GameEventSubscriber] ❌ Error starting game for lobby ${lobbyId}:`, error);
-    }
   }
+
 
   private async handleLobbyChat(event: GameEventMessage): Promise<void> {
     const { lobbyId, message } = event.payload;
