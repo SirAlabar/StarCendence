@@ -15,6 +15,7 @@ export default class LobbyPage extends BaseComponent
     private isGameStarting: boolean = false;
     private gameType: string = 'pong'; // Default to pong
     private userProfile: UserProfile | null = null;
+    private shouldLeaveLobby = false;
 
     /**
      * Wait for gameLobby to be fully mounted in DOM (with retry mechanism)
@@ -99,7 +100,10 @@ export default class LobbyPage extends BaseComponent
             gameType: this.gameType === 'racer' ? 'podracer' : 'pong',
             maxPlayers,
             onStartGame: () => this.startGame(),
-            onBack: () => navigateTo(backRoute)
+            onBack: () => {
+                this.shouldLeaveLobby = true;
+                navigateTo(backRoute);
+            }
         };
         
         this.gameLobby = new GameLobby(config);
@@ -499,7 +503,8 @@ export default class LobbyPage extends BaseComponent
         webSocketService.off('*', this.wsMessageHandler);
 
         // Leave lobby if we were in one
-        if (this.lobbyId && !this.isGameStarting) {
+        if (this.shouldLeaveLobby && this.lobbyId && !this.isGameStarting) 
+        {
             webSocketService.send('lobby:leave', { lobbyId: this.lobbyId });
         }
 

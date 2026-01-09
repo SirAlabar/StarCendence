@@ -211,21 +211,43 @@ export class GameEventSubscriber {
 
 private async handleQuickPlay(event: GameEventMessage): Promise<void>
 {
-  const { gameType = 'pong' } = event.payload;
+  const rawGameType = event.payload?.gameType;
+  const gameType = rawGameType ?? 'pong';
   const { userId, username } = event;
-  
-  console.log(`[GameEventSubscriber] ⚡ Quick Play requested by ${username} for ${gameType}`);
-  
+
+  console.log('[QuickPlay] ================================');
+  console.log('[QuickPlay] ⚡ Request received', {
+    userId,
+    username,
+    rawGameType,
+    resolvedGameType: gameType,
+    payload: event.payload
+  });
+
   try
   {
-    // 1. Try to find available lobby
+    console.log('[QuickPlay] 🔍 Fetching available lobbies for gameType:', gameType);
+
     const availableLobbies = await this.lobbyManager.getAvailableLobbies(gameType);
-    
+
+    console.log('[QuickPlay] 📊 getAvailableLobbies result', {
+      count: availableLobbies.length,
+      lobbyIds: availableLobbies.map(l => l.id)
+    });
+
     if (availableLobbies.length > 0)
     {
       const lobby = availableLobbies[0];
-      console.log(`[GameEventSubscriber] ✅ Found open lobby ${lobby.id}, joining...`);
-      
+
+      console.log('[QuickPlay] ✅ Selected lobby', {
+        lobbyId: lobby.id,
+        lobbyGameType: lobby.gameType,
+        players: lobby.players.length,
+        maxPlayers: lobby.maxPlayers,
+        status: lobby.status,
+        hostId: lobby.hostId
+      });
+
       const joinEvent: GameEventMessage = {
         ...event,
         payload: {
@@ -233,13 +255,23 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
           avatarUrl: event.payload?.avatarUrl || ''
         }
       };
-      
+
+      console.log('[QuickPlay] ➕ Forwarding to handleLobbyJoin', {
+        joinUserId: userId,
+        lobbyId: lobby.id
+      });
+
       await this.handleLobbyJoin(joinEvent);
     }
     else
     {
-      console.log(`[GameEventSubscriber] 🆕 No open lobbies, creating new one...`);
-      
+      console.log('[QuickPlay] 🆕 No available lobbies found');
+      console.log('[QuickPlay] 🧱 Creating new lobby with params', {
+        gameType,
+        maxPlayers: 2,
+        avatarUrl: event.payload?.avatarUrl || ''
+      });
+
       const createEvent: GameEventMessage = {
         ...event,
         payload: {
@@ -248,14 +280,21 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
           avatarUrl: event.payload?.avatarUrl || ''
         }
       };
-      
+
+      console.log('[QuickPlay] ➕ Forwarding to handleLobbyCreate');
+
       await this.handleLobbyCreate(createEvent);
     }
   }
   catch (error)
   {
-    console.error('[GameEventSubscriber] ❌ Quick Play error:', error);
-    
+    console.error('[QuickPlay] ❌ ERROR during Quick Play flow', {
+      userId,
+      username,
+      gameType,
+      error
+    });
+
     await this.broadcastToUser(userId, {
       type: 'lobby:quick-play:response',
       payload: {
@@ -264,7 +303,12 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
       }
     });
   }
+  finally
+  {
+    console.log('[QuickPlay] ================================');
+  }
 }
+
 
   private async handleLobbyInvite(event: GameEventMessage): Promise<void>
   {
