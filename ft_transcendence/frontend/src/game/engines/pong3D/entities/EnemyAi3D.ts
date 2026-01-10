@@ -26,9 +26,7 @@ export class Enemy3D
         this.ball = ball;
         this.difficulty = difficulty;
         this.setting = this.getSetting(difficulty);
-        console.log(this.difficulty);
-        console.log(this.shouldMiss);
-        console.log(this.setting);
+        
     }
 
     private getSetting(difficulty: AiDifficulty3D): DifficultySettings
@@ -52,5 +50,19 @@ export class Enemy3D
         
     }
 
+    public getDifficulty()
+    {
+        return this.difficulty;
+    }
+
+    public getshouldMiss()
+    {
+        return this.shouldMiss;
+    }
+
+    public getSettings()
+    {
+        return this.setting;
+    }
 
 }
