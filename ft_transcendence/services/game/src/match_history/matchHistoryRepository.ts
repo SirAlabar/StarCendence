@@ -31,7 +31,7 @@ export async function getMatchHistoryByUserId(userId: string) {
       },
     },
     orderBy: { playedAt: 'desc' },
-    take: 50, // recent 50 matches
+    take: 50,
   });
 }
 
