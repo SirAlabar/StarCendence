@@ -23,6 +23,7 @@ export async function getMatchHistoryByUserId(userId: string) {
       results: {
         select: {
           userId: true,
+          username: true,
           score: true,
           accuracy: true,
           topSpeed: true,

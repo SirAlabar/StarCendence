@@ -4,7 +4,6 @@ import { GameSession } from '../types/game.types';
 const prisma = new PrismaClient();
 
 export async function saveMatchToDb(session: GameSession) {
-  console.log('gameSession in saveMatchToDb:', session);
   const { id: gameId, type, mode } = session.game;
   const scores = session.state.scores;
   const players = Array.from(session.players.values());
@@ -26,6 +25,7 @@ export async function saveMatchToDb(session: GameSession) {
           createMany: {
             data: players.map((player, index) => ({
               userId: player.userId,
+              username: player.username,
               score: scores[index] || 0,
             })),
           },

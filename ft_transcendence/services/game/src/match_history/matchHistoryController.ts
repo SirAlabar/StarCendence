@@ -13,19 +13,3 @@ export async function getMatchHistory(req: FastifyRequest, reply: FastifyReply) 
   return reply.status(200).send(matchHistory)
 }
 
-// GET /match-history/:id match history by id
-export async function getMatchHistoryById(req: FastifyRequest, reply: FastifyReply) {
-  const userId = req.user?.sub;
-  if (!userId) {
-    return reply.status(401).send({ error: 'Unauthorized: user id missing' });
-  }
-
-  const { matchId } = req.params as { matchId: string };
-
-  const matchHistory = await matchHistoryService.getMatchHistoryById(matchId);
-  if (!matchHistory) {
-    return reply.status(404).send({ error: 'Match history not found' });
-  }
-
-  return reply.status(200).send(matchHistory)
-}
