@@ -2,20 +2,17 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import { fastifyErrorHandler } from './handlers/errorHandler'
+import { FastifyRequest } from 'fastify'
 import { internalEndpointProtection } from './middleware/securityMiddleware'
 import { initializeRedis, closeRedis, getRedisClient } from './communication/RedisPublisher';
 import { ChatEventSubscriber } from './communication/ChatEventSubscriber';
 import { internalRoutes } from './internal/internalRoutes'
 import { chatRoutes } from './chat/chatRoutes'
-import client from 'prom-client';
-import { metrics } from './metrics/metrics'
+import { httpRequestsTotal, metrics } from './metrics/metrics'
 
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
-
-  const register = new client.Registry();
-  client.collectDefaultMetrics({ register });
 
   // Register plugins
 await fastify.register(cors, {
@@ -30,8 +27,6 @@ await fastify.register(cors, {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
   })
-
-  
 
   await fastify.register(helmet)
 
@@ -60,11 +55,18 @@ await fastify.register(cors, {
   // Global error handler
   fastify.setErrorHandler(fastifyErrorHandler);
   fastify.addHook('preHandler', internalEndpointProtection);
+
+  fastify.addHook('onRequest', async (request: FastifyRequest) => {
+      if (request.url === '/metrics') {
+        return;
+      }
+      httpRequestsTotal.inc();
+    });
   
   fastify.get('/health', async () => ({ status: 'Health is Ok!' }))
   fastify.register(internalRoutes, { prefix: '/internal' });
   fastify.register(chatRoutes);
-  fastify.register(metrics, register);
+  fastify.register(metrics);
 
   return fastify; 
 }

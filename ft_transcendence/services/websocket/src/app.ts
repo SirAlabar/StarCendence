@@ -11,18 +11,21 @@ import './events/GameEvents';
 import './events/LobbyEvents';
 import './events/ChatEvents';
 import './events/TournamentEvents';
-import client from 'prom-client';
-import { metrics } from './metrics/metrics';
+import { httpRequestsTotal, metrics } from './metrics/metrics';
 
 
 export async function createApp(): Promise<FastifyInstance>
 {
   const app = Fastify({logger: {level: process.env.LOG_LEVEL || 'info',},});
 
-  const register = new client.Registry();
-  client.collectDefaultMetrics({ register });
+  app.register(metrics);
 
-  app.register(metrics, register);
+  app.addHook('onRequest', async (request: FastifyRequest) => {
+      if (request.url === '/metrics') {
+        return;
+      }
+      httpRequestsTotal.inc();
+    });
 
   // Initialize Redis and pub/sub
   try

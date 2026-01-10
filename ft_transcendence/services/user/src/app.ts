@@ -8,15 +8,11 @@ import { internalRoutes } from './internal/internalRoutes'
 import { userRoutes } from './profile/userRoutes'
 import { friendRoutes } from './friends/friendRoutes'
 import { leaderboardRoutes } from './leaderboard/leaderboardRoutes'
-import client from 'prom-client';
-import { metrics } from './metrics/metrics'
+import { httpRequestsTotal, metrics } from './metrics/metrics'
 
 export async function buildApp() 
 {
   const fastify = Fastify({ logger: true })
-  
-  const register = new client.Registry();
-  client.collectDefaultMetrics({ register });
 
   // Register CORS
   await fastify.register(cors, {
@@ -52,17 +48,25 @@ export async function buildApp()
     }
   })
 
+  fastify.addHook('onRequest', async (request: FastifyRequest) => {
+      if (request.url === '/metrics') {
+        return;
+      }
+      httpRequestsTotal.inc();
+      console.log(`Incremented httpRequestsTotal for ${request.url}`);
+    });
+
   // Global error handler and security hook
   fastify.setErrorHandler(fastifyErrorHandler);
   fastify.addHook('preHandler', internalEndpointProtection);
   
   fastify.get('/health', async () => ({ status: 'Health is ok!' }))
   
+  fastify.register(metrics);
   fastify.register(internalRoutes, { prefix: '/internal' });
   fastify.register(leaderboardRoutes);
   fastify.register(userRoutes);
   fastify.register(friendRoutes);
-  fastify.register(metrics, register);
 
   return fastify
 }

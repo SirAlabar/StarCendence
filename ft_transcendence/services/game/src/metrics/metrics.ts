@@ -1,11 +1,14 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { Registry } from 'prom-client';
 import { getMetricsUser, getMetricsPass } from '../utils/secretsUtils';
+import client from 'prom-client';
 
 const METRICS_USER = getMetricsUser();
 const METRICS_PASS = getMetricsPass();
 
-export async function metrics(fastify: FastifyInstance, register: Registry) {
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+export async function metrics(fastify: FastifyInstance) {
   fastify.get('/metrics', async (req: FastifyRequest, reply: FastifyReply) => {
     if (!METRICS_USER || !METRICS_PASS) {
       fastify.log.error('Metrics credentials are not configured');
@@ -36,3 +39,10 @@ export async function metrics(fastify: FastifyInstance, register: Registry) {
       .send(await register.metrics());
   });
 }
+
+export const httpRequestsTotal = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Total HTTP requests received by this service since start',
+  registers: [register],
+});
+

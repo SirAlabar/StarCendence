@@ -1,20 +1,20 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
+import { FastifyRequest } from 'fastify'
 import { fastifyErrorHandler } from './handlers/errorHandler'
 import { authRoutes } from './auth/authRoutes'
 import { twoFactorRoutes } from './twoFactor/twoFactorRoutes'
 import { tokenRoutes } from './token/tokenRoutes'
 import { internalEndpointProtection } from './middleware/securityMiddleware'
 import { oauthRoutes } from './oauth/oauthRoutes'
-import client from 'prom-client';
-import { metrics } from './metrics/metrics'
+
+import { httpRequestsTotal, metrics } from './metrics/metrics'
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
 
-  const register = new client.Registry();
-  client.collectDefaultMetrics({ register });
+
 
   await fastify.register(cors, {
     origin: [
@@ -29,10 +29,17 @@ export async function buildApp() {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
   })
 
-  await fastify.register(helmet)
+  await fastify.register(helmet);
 
   fastify.setErrorHandler(fastifyErrorHandler);
   fastify.addHook('preHandler', internalEndpointProtection);
+
+  fastify.addHook('onRequest', async (request: FastifyRequest) => {
+      if (request.url === '/metrics') {
+        return;
+      }
+      httpRequestsTotal.inc();
+    });
   
   fastify.get('/health', async () => ({ status: 'Health is Ok!' }))
 
@@ -40,7 +47,7 @@ export async function buildApp() {
   fastify.register(oauthRoutes);
   fastify.register(twoFactorRoutes, { prefix: '/2fa' });
   fastify.register(tokenRoutes);
-  fastify.register(metrics, register);
+  fastify.register(metrics);
 
   return fastify; 
 }
