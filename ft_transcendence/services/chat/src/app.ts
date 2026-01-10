@@ -7,13 +7,18 @@ import { initializeRedis, closeRedis, getRedisClient } from './communication/Red
 import { ChatEventSubscriber } from './communication/ChatEventSubscriber';
 import { internalRoutes } from './internal/internalRoutes'
 import { chatRoutes } from './chat/chatRoutes'
-//import { ChatManager } from './managers/chatManager'  
+import client from 'prom-client';
+import { metrics } from './metrics/metrics'
+
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
 
+  const register = new client.Registry();
+  client.collectDefaultMetrics({ register });
+
   // Register plugins
-  await fastify.register(cors, {
+await fastify.register(cors, {
     origin: [
       'https://starcendence.dev',
       'http://localhost:5173',
@@ -25,6 +30,8 @@ export async function buildApp() {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
   })
+
+  
 
   await fastify.register(helmet)
 
@@ -50,10 +57,6 @@ export async function buildApp() {
     console.log("could not initialize redis");
   }
 
-    
-
-  // fastify.register(fastifyMetrics, { endpoint: '/metrics' });
-
   // Global error handler
   fastify.setErrorHandler(fastifyErrorHandler);
   fastify.addHook('preHandler', internalEndpointProtection);
@@ -61,6 +64,7 @@ export async function buildApp() {
   fastify.get('/health', async () => ({ status: 'Health is Ok!' }))
   fastify.register(internalRoutes, { prefix: '/internal' });
   fastify.register(chatRoutes);
+  fastify.register(metrics, register);
 
   return fastify; 
 }

@@ -11,16 +11,18 @@ import './events/GameEvents';
 import './events/LobbyEvents';
 import './events/ChatEvents';
 import './events/TournamentEvents';
+import client from 'prom-client';
+import { metrics } from './metrics/metrics';
+
 
 export async function createApp(): Promise<FastifyInstance>
 {
-  const app = Fastify(
-  {
-    logger:
-    {
-      level: process.env.LOG_LEVEL || 'info',
-    },
-  });
+  const app = Fastify({logger: {level: process.env.LOG_LEVEL || 'info',},});
+
+  const register = new client.Registry();
+  client.collectDefaultMetrics({ register });
+
+  app.register(metrics, register);
 
   // Initialize Redis and pub/sub
   try

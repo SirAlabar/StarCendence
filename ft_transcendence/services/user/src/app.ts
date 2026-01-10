@@ -8,11 +8,16 @@ import { internalRoutes } from './internal/internalRoutes'
 import { userRoutes } from './profile/userRoutes'
 import { friendRoutes } from './friends/friendRoutes'
 import { leaderboardRoutes } from './leaderboard/leaderboardRoutes'
+import client from 'prom-client';
+import { metrics } from './metrics/metrics'
 
 export async function buildApp() 
 {
   const fastify = Fastify({ logger: true })
   
+  const register = new client.Registry();
+  client.collectDefaultMetrics({ register });
+
   // Register CORS
   await fastify.register(cors, {
     origin: (origin, cb) => {
@@ -57,6 +62,7 @@ export async function buildApp()
   fastify.register(leaderboardRoutes);
   fastify.register(userRoutes);
   fastify.register(friendRoutes);
+  fastify.register(metrics, register);
 
   return fastify
 }

@@ -9,6 +9,8 @@ import { GameEventSubscriber } from './communication/GameEventSubscriber';
 import { LobbyManager } from './managers/LobbyManager';
 import { PrismaClient } from '@prisma/client';
 import { matchHistoryRoutes } from './match_history/matchHistoryRoutes';
+import client from 'prom-client';
+import { metrics } from './metrics/metrics'
 
 const prisma = new PrismaClient();
 
@@ -33,6 +35,9 @@ export async function createApp(): Promise<FastifyInstance>
     },
   });
 
+  const register = new client.Registry();
+  client.collectDefaultMetrics({ register });
+
   // Register CORS
   await fastify.register(cors, {
     origin: true,
@@ -51,9 +56,9 @@ export async function createApp(): Promise<FastifyInstance>
   // Register routes
   registerGameRoutes(fastify);
   registerInputRoutes(fastify);
-
-  fastify.register(matchHistoryRoutes);
   
+  fastify.register(matchHistoryRoutes);
+  fastify.register(metrics, register);
 
   // Error handler
   fastify.setErrorHandler((error, _request, reply) => {

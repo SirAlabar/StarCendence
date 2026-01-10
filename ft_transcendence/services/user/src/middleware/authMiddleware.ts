@@ -1,15 +1,5 @@
-import {FastifyReply, FastifyRequest} from "fastify";
-import {readFileSync} from "fs";
-import {HttpError} from "../utils/HttpError";
-
-// Get internal API key from Docker secret
-function getInternalApiKey(): string {
-	const apiKey: string = readFileSync('/run/secrets/internal_api_key', 'utf8').trim();
-	if (!apiKey) {
-		throw new HttpError('Internal API key is not configured', 500);
-	}
-  return apiKey;
-}
+import { FastifyReply, FastifyRequest } from "fastify";
+import { getInternalApiKey } from "../utils/getSecrets";
 
 // user/src/middleware/authMiddleware.ts
 export async function verifyUserToken(req: FastifyRequest, reply: FastifyReply) {

@@ -62,3 +62,21 @@ export function getRedisPassword(): string
         throw new SecretError(`Failed to read Redis password: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 }
+
+// Get Metrics User from Docker secret
+export function getMetricsUser(): string {
+  const metricsUser: string = readFileSync('/run/secrets/metrics_user', 'utf8').trim();
+  if (!metricsUser) {
+    throw new SecretError('Metrics User is not configured');
+  }
+  return metricsUser;
+}
+
+// Get Metrics Password from Docker secret
+export function getMetricsPass(): string {
+  const metricsPass: string = readFileSync('/run/secrets/metrics_pass', 'utf8').trim();
+  if (!metricsPass) {
+    throw new SecretError('Metrics Password is not configured');
+  }
+  return metricsPass;
+}
