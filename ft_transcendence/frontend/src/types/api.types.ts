@@ -5,13 +5,15 @@ const API_CONFIG = {
         BASE_URL: 'https://starcendence.dev',
         AUTH_BASE_URL: 'https://starcendence.dev/api/auth',
         USERS_BASE_URL: 'https://starcendence.dev/api/users',
-        CHAT_BASE_URL: 'https://starcendence.dev/api/chat'
+        CHAT_BASE_URL: 'https://starcendence.dev/api/chat',
+        GAME_BASE_URL: 'https://starcendence.dev/api/game'
     },
     local: {
         BASE_URL: 'https://localhost:8443',
         AUTH_BASE_URL: 'https://localhost:8443/api/auth',
         USERS_BASE_URL: 'https://localhost:8443/api/users',
-        CHAT_BASE_URL: 'https://localhost:8443/api/chat'
+        CHAT_BASE_URL: 'https://localhost:8443/api/chat',
+        GAME_BASE_URL: 'https://localhost:8443/api/game'
     }
 };
 
@@ -59,4 +61,11 @@ export const getChatApiUrl = (endpoint: string): string =>
 {
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     return `${API.CHAT_BASE_URL}${normalizedEndpoint}`;
+};
+
+// Helper function to construct Game API endpoint URLs
+export const getGameApiUrl = (endpoint: string): string => 
+{
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${API.GAME_BASE_URL}${normalizedEndpoint}`;
 };
