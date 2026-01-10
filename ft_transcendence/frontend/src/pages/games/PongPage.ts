@@ -4,6 +4,9 @@ import { navigateTo, isAuthenticated } from '../../router/router';
 import { Modal } from '@/components/common/Modal';
 import { webSocketService } from '../../services/websocket/WebSocketService';
 import { LoginService } from '../../services/auth/LoginService';
+import { UserProfile } from '../../types/user.types';
+import UserService from '../../services/user/UserService';
+
 
 type GameMode = 'local-multiplayer' | 'online-multiplayer' | 'ai' /* | 'tournament' */ | null;
 type ViewType = '2d' | '3d' | null;
@@ -20,6 +23,7 @@ export default class PongPage extends BaseComponent
     private gameResumeHandler: ((event: Event) => void) | null = null;
     private selectedMode: GameMode = null;
     private selectedView: ViewType = null;
+    private userProfile: UserProfile | null = null;
 
     render(): string 
     {
@@ -877,46 +881,65 @@ export default class PongPage extends BaseComponent
         }
     }
 
+    private async loadProfile(): Promise<void>
+    {
+        try
+        {
+            this.userProfile = await UserService.getProfile();
+        }
+        catch (error)
+        {
+            console.warn('[PongPage] Failed to load user profile', error);
+            this.userProfile = null;
+        }
+    }
+
     private async handleQuickPlay(): Promise<void>
     {
-    const user = LoginService.getCurrentUser();
-    if (!user) 
-    {
-        await Modal.alert('Login Required', 'Please log in');
-        navigateTo('/login');
-        return;
-    }
-
-    if (!webSocketService.isConnected()) 
-    {
-        await Modal.alert('Connection Error', 'WebSocket not connected');
-        return;
-    }
-
-    const handler = (message: any) => 
-    {
-        if (message.type === 'lobby:create:ack' && message.payload?.lobbyId) 
+        const user = LoginService.getCurrentUser();
+        if (!user) 
         {
-            cleanup();
-            navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+            await Modal.alert('Login Required', 'Please log in');
+            navigateTo('/login');
+            return;
         }
 
-        if (message.type === 'lobby:join:ack' && message.payload?.lobbyId) 
+        if (!this.userProfile) 
         {
-            cleanup();
-            navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+            await this.loadProfile();
         }
-    };
 
-    const cleanup = () => {
-        webSocketService.off('*', handler);
-    };
+        if (!webSocketService.isConnected()) 
+        {
+            await Modal.alert('Connection Error', 'WebSocket not connected');
+            return;
+        }
 
-    webSocketService.on('*', handler);
+        const handler = (message: any) => 
+        {
+            if (message.type === 'lobby:create:ack' && message.payload?.lobbyId) 
+            {
+                cleanup();
+                navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+            }
 
-    webSocketService.send('lobby:quick-play', {
-        gameType: 'pong'
-    });
+            if (message.type === 'lobby:join:ack' && message.payload?.lobbyId) 
+            {
+                cleanup();
+                navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+            }
+        };
+
+        const cleanup = () => {
+            webSocketService.off('*', handler);
+        };
+
+        webSocketService.on('*', handler);
+
+        webSocketService.send('lobby:quick-play', {
+            gameType: 'pong',
+            avatarUrl: this.userProfile?.avatarUrl
+        });
     }
 
 

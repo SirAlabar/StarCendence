@@ -23,23 +23,23 @@ export class Team extends BaseComponent
         {
             role: 'Miguel Meireles - Backend Developer ',
             description: 'Backend • Authentication & Security using JWT, OAuth and 2FA',
-            technologies: ['Node.js', 'User Management', 'JWT', ' OAuth', 'Docker'],
+            technologies: ['TypeScript', 'Node.js', 'User Management', 'JWT', ' OAuth', 'Docker'],
             accentColor: 'purple',
             avatarUrl: 'https://avatars.githubusercontent.com/u/160427475?v=4',
             profileUrl: 'https://github.com/m3irel3s'
         },
         {
-            role: 'Rafael Castro - Developer',
+            role: 'Rafael Castro - Backend Developer',
             description: 'Realtime Game Backend • Event-driven using WebSocket and Redis Pub/Sub',
-            technologies: ['Redis', 'Websocket', 'Node.js', 'Multiplayer Logic'],
+            technologies: ['TypeScript', 'Redis', 'Websocket', 'Node.js', 'Multiplayer Logic'],
             accentColor: 'pink',
             avatarUrl: 'https://avatars.githubusercontent.com/u/102710499?v=4',
             profileUrl: 'https://github.com/therappha'
         },
         {
-            role: 'Joao Rema - Developer',
-            description: 'Pong 2D & 3D • Online Multiplayer using Babylon.js, WebSocket and Redis Pub/Sub',
-            technologies: ['Babylon.js', 'WebSocket', 'Redis', 'Docker'],
+            role: 'Joao Rema - Backend Developer',
+            description: 'Game Engine 2D & 3D • Online Multiplayer using Babylon.js, WebSocket and Redis Pub/Sub',
+            technologies: ['TypeScript', 'Babylon.js', 'WebSocket', 'Redis', 'Docker'],
             accentColor: 'cyan',
             avatarUrl: 'https://avatars.githubusercontent.com/u/175852784?v=4',
             profileUrl: 'https://github.com/joaorema'
