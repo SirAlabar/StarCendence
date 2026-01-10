@@ -22,8 +22,8 @@ export class Team extends BaseComponent
         },
         {
             role: 'Miguel Meireles - Backend Developer ',
-            description: 'Backend • Authentication & Security using JWT, OAuth and 2FA',
-            technologies: ['TypeScript', 'Node.js', 'User Management', 'JWT', ' OAuth', 'Docker'],
+            description: 'User Management • Authentication & Security using JWT, OAuth and 2FA',
+            technologies: ['TypeScript', 'Node.js', 'Prometeus & Grafana', 'JWT', ' OAuth', 'Docker'],
             accentColor: 'purple',
             avatarUrl: 'https://avatars.githubusercontent.com/u/160427475?v=4',
             profileUrl: 'https://github.com/m3irel3s'
