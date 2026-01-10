@@ -11,10 +11,3 @@ export async function getMatchHistory(userId: string) {
   return matchHistory;
 }
 
-
-// Get a specific match history entry by ID
-export async function getMatchHistoryById(matchId: string) {
-  return "Match history data for match ID " + matchId;
-}
-
-

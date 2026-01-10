@@ -23,6 +23,7 @@ export async function getMatchHistoryByUserId(userId: string) {
       results: {
         select: {
           userId: true,
+          username: true,
           score: true,
           accuracy: true,
           topSpeed: true,
@@ -31,7 +32,7 @@ export async function getMatchHistoryByUserId(userId: string) {
       },
     },
     orderBy: { playedAt: 'desc' },
-    take: 50, // recent 50 matches
+    take: 50,
   });
 }
 

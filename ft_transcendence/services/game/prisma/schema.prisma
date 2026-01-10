@@ -105,6 +105,7 @@ model MatchResult {
   match         Match         @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   userId        String
+  username      String
   score         Int
 
   // Additional stats
