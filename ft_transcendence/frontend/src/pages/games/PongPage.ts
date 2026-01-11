@@ -39,14 +39,14 @@ export default class PongPage extends BaseComponent
                         <div class="flex-1 flex justify-around items-center">
                             <div class="text-center">
                                 <p class="text-xs sm:text-sm text-gray-400 mb-1">PLAYER 1</p>
-                                <p id="score1" class="text-3xl sm:text-4xl md:text-5xl font-bold text-cyan-400 font-mono">0</p>
+                                <p id="score1" class="text-3xl sm:text-4xl md:text-5xl font-bold text-white font-mono">0</p>
                             </div>
                             <div class="text-center">
                                 <p class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-500">-</p>
                             </div>
                             <div class="text-center">
                                 <p class="text-xs sm:text-sm text-gray-400 mb-1"><span id="player2Label">PLAYER 2</span></p>
-                                <p id="score2" class="text-3xl sm:text-4xl md:text-5xl font-bold text-purple-400 font-mono">0</p>
+                                <p id="score2" class="text-3xl sm:text-4xl md:text-5xl font-bold text-white font-mono">0</p>
                             </div>
                         </div>
                         
