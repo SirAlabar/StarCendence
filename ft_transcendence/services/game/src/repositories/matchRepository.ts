@@ -1,10 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import { GameSession } from '../types/game.types';
+import { updateUserStats } from '../clients/userServiceClient';
 
 const prisma = new PrismaClient();
 
 export async function saveMatchToDb(session: GameSession) {
   const { id: gameId, type, mode } = session.game;
+  console.log('session:', session);
   const scores = session.state.scores;
   const players = Array.from(session.players.values());
   const duration = Math.floor(session.state.timeElapsed / 1000);
@@ -12,6 +14,8 @@ export async function saveMatchToDb(session: GameSession) {
   const maxScore = Math.max(...scores);
   const winnerIndex = scores.findIndex(s => s === maxScore);
   const winnerUserId = winnerIndex >= 0 ? players[winnerIndex]?.userId : null;
+
+  await updateUserStats(type, mode, players, winnerUserId);
 
   return await prisma.$transaction(async (tx) => {
     const match = await tx.match.create({
@@ -23,10 +27,10 @@ export async function saveMatchToDb(session: GameSession) {
         duration,
         results: {
           createMany: {
-            data: players.map((player, index) => ({
+            data: players.map((player) => ({
               userId: player.userId,
               username: player.username,
-              score: scores[index] || 0,
+              score: player.score || 0,
             })),
           },
         },

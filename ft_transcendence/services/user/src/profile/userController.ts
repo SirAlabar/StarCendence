@@ -134,18 +134,16 @@ export async function getUserRank(req: FastifyRequest, reply: FastifyReply) {
 }
 
 // PUT Update user stats after game
-export async function updateUserStats(
-  req: FastifyRequest<{ Body: { userId: string; won: boolean; pointsEarned: number } }>, 
-  reply: FastifyReply
-) {
-  const { userId, won, pointsEarned } = req.body;
-  
-  if (!userId || typeof won !== 'boolean' || typeof pointsEarned !== 'number') {
+export async function updateUserStats(req: FastifyRequest, reply: FastifyReply) {
+  const { type, mode, players, winnerUserId } = req.body as { type: any; mode: any; players: any[]; winnerUserId: string | null };
+
+  if (!type || !mode || !players || !Array.isArray(players)) {
     return reply.status(400).send({ error: 'Missing or invalid required fields' });
   }
 
-  const updatedUser = await userService.updateUserStats(userId, won, pointsEarned);
-  return reply.send(updatedUser);
+  await userService.updateUserStats(type, mode, players, winnerUserId);
+
+  return reply.send({ message: 'User stats updated successfully' });
 }
 
 // PATCH /internal/update-2fa-state - Update user's two-factor authentication state (internal)
