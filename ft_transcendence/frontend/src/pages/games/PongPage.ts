@@ -889,7 +889,6 @@ export default class PongPage extends BaseComponent
         }
         catch (error)
         {
-            console.warn('[PongPage] Failed to load user profile', error);
             this.userProfile = null;
         }
     }

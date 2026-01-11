@@ -103,10 +103,6 @@ export class RacerPod
         this.onLoaded(this);
       }
     } 
-    else 
-    {
-      console.warn('No mesh found in loaded assets');
-    }
   }
 
   public enablePhysics(racerPhysics: RacerPhysics, initialPosition?: Vector3): void

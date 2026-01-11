@@ -652,13 +652,11 @@ export default class DashboardPage extends BaseComponent
                 } 
                 else 
                 {
-                    console.warn('Match history endpoint returned error:', matchHistoryResponse.status);
                     this.matchHistory = [];
                 }
             }
             catch (matchError)
             {
-                console.warn('Match history not available:', matchError);
                 this.matchHistory = [];
             }
 
@@ -718,7 +716,6 @@ export default class DashboardPage extends BaseComponent
             }
             catch (error) 
             {
-                console.warn(`Failed to fetch user data for ${userId}:`, error);
                 this.userCache[userId] = { username: 'Unknown Player' };
             }
         });

@@ -76,7 +76,6 @@ export class GameManager {
     {
         if (this.currentState === 'playing') 
         {
-            console.warn('Game already running. Call cleanup() first.');
             return;
         }
         
