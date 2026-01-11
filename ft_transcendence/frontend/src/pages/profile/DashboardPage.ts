@@ -9,6 +9,7 @@ interface MatchResult
     id: string;
     matchId: string;
     userId: string;
+    username: string;
     score: number;
     accuracy?: number;
     topSpeed?: number;
@@ -31,7 +32,7 @@ interface Match
 // User data cache for avatars
 interface UserCache 
 {
-    [userId: string]: 
+    [username: string]: 
     {
         username: string;
         avatarUrl?: string;
@@ -434,16 +435,26 @@ export default class DashboardPage extends BaseComponent
             `;
         }
 
-        const recentMatches = this.matchHistory.slice(0, 10);
+        // Remove duplicates by matchId
+        const seen = new Set<string>();
+        const uniqueMatches: Match[] = [];
+        for (const match of this.matchHistory) {
+            if (!seen.has(match.id)) {
+                seen.add(match.id);
+                uniqueMatches.push(match);
+            }
+        }
+
+        const recentMatches = uniqueMatches.slice(0, 10);
 
         return `
             <div class="space-y-3">
                 ${recentMatches.map(match => this.renderMatchItem(match)).join('')}
             </div>
             
-            ${this.matchHistory.length > 10 ? `
+            ${uniqueMatches.length > 10 ? `
                 <div class="text-center mt-6">
-                    <p class="text-gray-500 text-sm">Showing 10 of ${this.matchHistory.length} matches</p>
+                    <p class="text-gray-500 text-sm">Showing 10 of ${uniqueMatches.length} matches</p>
                 </div>
             ` : ''}
         `;
@@ -491,7 +502,7 @@ export default class DashboardPage extends BaseComponent
         const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
         // Get opponent info from cache
-        const opponentInfo = this.userCache[opponentResult.userId] || { username: 'Unknown Player' };
+        const opponentInfo = this.userCache[opponentResult.username] 
         
         // Game type badge
         const gameTypeBadge = match.type === 'PONG' 
@@ -667,6 +678,7 @@ export default class DashboardPage extends BaseComponent
                 {
                     const matches: Match[] = await matchHistoryResponse.json();
                     this.matchHistory = matches;
+                    console.log(matches);
                     
                     // Fetch user info for all opponents
                     await this.cacheOpponentData(matches);
@@ -706,17 +718,17 @@ export default class DashboardPage extends BaseComponent
             {
                 if (result.userId !== this.currentUserId) 
                 {
-                    opponentIds.add(result.userId);
+                    opponentIds.add(result.username);
                 }
             });
         });
 
         // Fetch user data for each opponent
-        const fetchPromises = Array.from(opponentIds).map(async (userId) => 
+        const fetchPromises = Array.from(opponentIds).map(async (username) => 
         {
             try 
             {
-                const response = await fetch(getUserApiUrl(`/profile/${userId}`), 
+                const response = await fetch(getUserApiUrl(`/profile/${username}`), 
                 {
                     method: 'GET',
                     headers: 
@@ -729,16 +741,16 @@ export default class DashboardPage extends BaseComponent
                 if (response.ok) 
                 {
                     const userData = await response.json();
-                    this.userCache[userId] = 
+                    this.userCache[username] = 
                     {
-                        username: userData.username || 'Unknown Player',
+                        username: username,
                         avatarUrl: userData.avatarUrl
                     };
                 }
             }
             catch (error) 
             {
-                this.userCache[userId] = { username: 'Unknown Player' };
+                this.userCache[username] = { username: 'Unknown Player' };
             }
         });
 
