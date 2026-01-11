@@ -392,20 +392,22 @@ export class LocalPongEngine
     private keydownHandler = (e: KeyboardEvent) => 
     {
         const key = e.key.toLowerCase();
-        if (this.paused && !(key === ' ' || key === 'space')) {
+        if (key === ' ' || key === 'space') 
+        {
+            if (this.waitingForSpace && !this.ended) 
+            {
+                this.paused = false;
+                this.waitingForSpace = false;
+                this.start();
+                return; 
+            }
+        }
+    
+        if (this.paused) {
             return;
         }
         
         this.keys[key] = true;
-        
-        if (key === ' ' || key === 'space') 
-        {
-            if (this.waitingForSpace && !this.ended && !this.paused) 
-            {
-                this.waitingForSpace = false;
-                this.start();
-            }
-        }
     };
 
     
