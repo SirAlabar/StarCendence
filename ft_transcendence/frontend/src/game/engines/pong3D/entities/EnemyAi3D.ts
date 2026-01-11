@@ -18,12 +18,7 @@ export class Enemy3D
     speed: number = 5;
     score: number = 0;
 
-    constructor(
-        paddle: BABYLON.Mesh, 
-        ball: BABYLON.Mesh,
-        ballVelocity: BABYLON.Vector3,
-        difficulty: AiDifficulty3D,
-    )
+    constructor(paddle: BABYLON.Mesh, ball: BABYLON.Mesh,ballVelocity: BABYLON.Vector3,difficulty: AiDifficulty3D,)
     {
         this.paddle = paddle;
         this.ball = ball;
@@ -63,7 +58,7 @@ export class Enemy3D
         let predictedZ = this.ball.position.z + (this.ballVelocity.z * timeToReach);
         const wallBoundary = this.FIELD_LENGTH / 2 - 1;
         let bounceCount = 0;
-        while (Math.abs(predictedZ) > wallBoundary && bounceCount < 10) 
+        while (Math.abs(predictedZ) > wallBoundary && bounceCount < 5) 
         {
             if (predictedZ > wallBoundary) 
             {
@@ -125,7 +120,7 @@ export class Enemy3D
         
         const speed = baseSpeed * deltaTime;
         
-        // Move towards target with reduced deadzone for better accuracy
+        // Move towards target
         if (Math.abs(distance) > 0.2) 
         {
             const movement = Math.sign(distance) * Math.min(Math.abs(distance), speed);

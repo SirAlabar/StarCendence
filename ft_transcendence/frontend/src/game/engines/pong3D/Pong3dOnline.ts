@@ -18,6 +18,7 @@ export class OnlinePong3D implements GameEngine
     private scene: Scene;
     private camera!: FreeCamera;
     private topCamera!: FreeCamera;
+    private topCameratwo!: FreeCamera
     private light!: HemisphericLight;
     
     // Game Objects
@@ -357,6 +358,9 @@ export class OnlinePong3D implements GameEngine
         
         this.topCamera = new FreeCamera("topCamera", new Vector3(0, 102.50, 0), this.scene);
         this.topCamera.rotation = new Vector3(Math.PI / 2, 0, 0);
+
+        this.topCameratwo = new FreeCamera("topCameratwo", new Vector3(0, 102.50, 0), this.scene);
+        this.topCameratwo.rotation = new Vector3(Math.PI / 2, Math.PI, 0); 
         
         this.scene.activeCamera = this.camera;
     }
@@ -478,19 +482,25 @@ export class OnlinePong3D implements GameEngine
     }
 
     private changeCamera(): void {
-        const isTop = this.scene.activeCamera === this.topCamera;
-        this.scene.activeCamera = isTop ? this.camera : this.topCamera;
-        
-        if (!isTop) 
-        { 
-            this.keybinds.p1 = { left: "w", right: "s" };
-            this.keybinds.p2 = { left: "w", right: "s" };
-        } 
-        else 
-        { 
-            this.keybinds.p1 = { left: "a", right: "d" };
-            this.keybinds.p2 = { left: "a", right: "d" };
+        if(this.playerSide === "left")
+        {
+            const isTop = this.scene.activeCamera === this.topCamera;
+            this.scene.activeCamera = isTop ? this.camera : this.topCamera;
+            if (!isTop) 
+                this.keybinds.p1 = { left: "w", right: "s" };
+            else 
+                this.keybinds.p1 = { left: "a", right: "d" };
         }
+        else
+        {
+            const isTop = this.scene.activeCamera === this.topCameratwo;
+            this.scene.activeCamera = isTop ? this.camera : this.topCameratwo;
+            if (!isTop)  
+                this.keybinds.p2 = { left: "w", right: "s" };
+            else 
+                this.keybinds.p2 = { left: "a", right: "d" };
+        }
+        
     }
 
     getState(): GameState 
