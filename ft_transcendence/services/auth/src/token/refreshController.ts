@@ -1,13 +1,12 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import * as tokenService from './tokenService';
 
-interface RefreshTokenRequestBody {
-  refreshToken: string;
-}
-
 // Refresh access token using refresh token
-export async function refreshAccessToken(req: FastifyRequest<{ Body: RefreshTokenRequestBody }>, reply: FastifyReply) {
-  const { refreshToken } = req.body;
+export async function refreshAccessToken(req: FastifyRequest, reply: FastifyReply) {
+  const { refreshToken } = req.body as { refreshToken: string };
+  if (!refreshToken) {
+    return reply.status(400).send({ error: 'Refresh token is required' });
+  }
 
   const newTokens = await tokenService.refreshAccessToken(refreshToken);
 

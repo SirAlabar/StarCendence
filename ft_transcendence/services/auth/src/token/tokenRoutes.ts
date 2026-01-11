@@ -11,7 +11,7 @@ export async function tokenRoutes(fastify: FastifyInstance) {
 
   fastify.post('/token/refresh',
 	{
-    preHandler: [verifyUserToken],
+		preHandler: [verifyUserToken],
 		schema: authSchema.refreshTokenSchema
 	},
 	refreshController.refreshAccessToken);
