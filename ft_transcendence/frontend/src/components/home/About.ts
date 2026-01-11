@@ -27,7 +27,7 @@ export class About extends BaseComponent {
       title: 'Reliability & Monitoring',
       description:
         'Prometheus metrics, Grafana dashboards and an extensive test suite keep the platform observable, stable and production-ready.',
-      imageUrl: '',
+      imageUrl: '/assets/images/monitoring.png',
       icon: '📊'
     }
   ];
