@@ -8,18 +8,9 @@ import { OnlinePong3D } from '../engines/pong3D/Pong3dOnline';
 type GameStateStatus = 'menu' | 'matchmaking' | 'playing' | 'paused' | 'ended';
 type GameDimension = '2d' | '3d';
 
-export class GameManager {
-    
-    private play_sound() 
-    {
-        if (!this.playerPreferences.soundEnabled) 
-            return;
-        const audio = new Audio('/assets/sounds/sfx/hit.mp3');
-        audio.volume = this.playerPreferences.volume ?? 0.5;
-        audio.play().catch(err => {
-            console.debug('[PongManager] Audio autoplay blocked:', err.message);
-        });
-    }
+export class GameManager 
+{
+ 
     private static instance: GameManager;
     
     // Current game
@@ -214,7 +205,7 @@ export class GameManager {
         {
             return;
         }
-    
+        
         if ('resize' in this.currentEngine && typeof this.currentEngine.resize === 'function') 
         {
             this.currentEngine.resize(newWidth, newHeight);
@@ -416,7 +407,7 @@ export class GameManager {
     }
     private play_sound_goal() 
     {
-        const audio = new Audio('/assets/sounds/sfx/goal.mp3');
+        const audio = new Audio('/assets/sounds/sfx/point.mp3');
         audio.volume = 0.6;
         audio.play().catch(err => {
             console.debug('[PongManager] Audio autoplay blocked:', err.message);
@@ -433,8 +424,19 @@ export class GameManager {
 
     private play_paddle_hit()
     {
-        const audio = new Audio('/assets/sounds/sfx/paddlehit.mp3');
+        const audio = new Audio('/assets/sounds/sfx/hit.mp3');
         audio.volume = 0.6;
+        audio.play().catch(err => {
+            console.debug('[PongManager] Audio autoplay blocked:', err.message);
+        });
+    }
+
+    private play_sound() 
+    {
+        if (!this.playerPreferences.soundEnabled) 
+            return;
+        const audio = new Audio('/assets/sounds/sfx/hit.mp3');
+        audio.volume = this.playerPreferences.volume ?? 0.5;
         audio.play().catch(err => {
             console.debug('[PongManager] Audio autoplay blocked:', err.message);
         });

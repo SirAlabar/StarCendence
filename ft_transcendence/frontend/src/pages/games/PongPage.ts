@@ -806,14 +806,12 @@ export default class PongPage extends BaseComponent
             {
                 return;
             }
-            gameManager.pauseGame();
             
             const newWidth = container.clientWidth;
             const newHeight = container.clientHeight;
-            canvas.width = newWidth;
-            canvas.height = newHeight;
             
-            gameManager.resumeGame();
+            // Use the gameManager's resize method which calls engine.resize()
+            gameManager.resizeGame(newWidth, newHeight);
         };
         
         window.addEventListener('resize', this.resizeListener);
