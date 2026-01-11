@@ -45,9 +45,15 @@ export default class DashboardPage extends BaseComponent
     private userCache: UserCache = {};
     private error: string | null = null;
     private currentUserId: string = '';
+    private isLoading: boolean = true;
 
     render(): string 
     {
+        if (this.isLoading) 
+        {
+            return this.renderLoading();
+        }
+
         if (this.error) 
         {
             return this.renderError();
@@ -404,6 +410,17 @@ export default class DashboardPage extends BaseComponent
         `;
     }
 
+    private renderLoading(): string
+    {
+        return `
+            <div class="flex items-center justify-center min-h-[60vh]">
+                <div class="text-cyan-400 text-xl tracking-wider animate-pulse">
+                    LOADING DASHBOARD...
+                </div>
+            </div>
+        `;
+    }
+
     private renderMatchHistory(): string 
     {
         if (this.matchHistory.length === 0) 
@@ -597,7 +614,11 @@ export default class DashboardPage extends BaseComponent
     }
 
     private async loadDashboardData(): Promise<void> 
-    {
+    {    
+        this.isLoading = true;
+        this.error = null;
+        this.rerender();
+
         showLoading();
         
         try 
@@ -668,6 +689,7 @@ export default class DashboardPage extends BaseComponent
         } 
         finally 
         {
+            this.isLoading = false;
             hideLoading();
             this.rerender();
         }
