@@ -4,12 +4,18 @@
 
 ## 🎯 **Project Overview**
 
-**ft_transcendence** is a comprehensive web-based gaming platform featuring 3D Pong and Star Wars Pod Racing games with real-time multiplayer capabilities, live chat, tournaments, AI opponents, and advanced user management.
+**ft_transcendence** is a full-stack, real-time multiplayer gaming platform developed as part of the 42 curriculum.
+The project focuses on low-latency gameplay, microservices architecture, and modern web technologies.
 
-**Target Score**: 165 points (10 major modules + 7 minor modules)  
-**Architecture**: Microservices with TypeScript, Fastify, Babylon.js, SQLite, Redis  
-**Total Files**: ~702 files across 6 main sections  
+The platform includes:
+- A 3D Pong game built with Babylon.js
+- A Star Wars Pod Racing–inspired racing game
+- Real-time multiplayer using WebSockets
+- Live chat, tournaments, AI opponents, and user profiles
+- Secure authentication with OAuth and 2FA
+- A containerized microservices backend
 
+The system is designed to be scalable, modular, and fault-tolerant, mirroring real-world production architectures.
 
 ---
 
@@ -21,7 +27,6 @@
 - **👤 Standard User Management** - Auth + profiles + friends
 - **🔑 Google Sign-in** - OAuth integration
 - **🌐 Remote Players** - WebSocket multiplayer
-- **👥 Multiple Players** - 3+ players support
 - **🏎️ Star Wars Racer + Matchmaking** - Second game with pairing
 - **💬 Live Chat** - Real-time messaging
 - **🤖 AI Opponent** - Intelligent computer players
@@ -64,188 +69,12 @@ API Gateway (Nginx)
 
 ---
 
-## 📁 **Project Structure (702 files)**
+## 📁 Project Structure
 
-### **1. 🎨 Frontend Layer** - 125 files
-```
-frontend/                       # TypeScript + Vite + Babylon.js
-├── src/
-│   ├── components/             # UI Components
-│   │   ├── auth/               # Login, Register, 2FA, Google OAuth
-│   │   ├── game/               # Game Canvas, Controls, HUD, Settings
-│   │   ├── chat/               # Chat Window, Messages, User List
-│   │   ├── dashboard/          # Stats, Charts, Leaderboard
-│   │   ├── tournament/         # Bracket, Lobby, Creation
-│   │   └── profile/            # User Profile, Settings, Friends
-│   ├── game/                   # 3D Game Engine
-│   │   ├── engines/
-│   │   │   ├── pong/           # 3D Pong with 2D camera view
-│   │   │   └── racer/          # Star Wars Pod Racing
-│   │   ├── entities/           # Player, Ball, Paddle, PowerUps
-│   │   ├── systems/            # Physics, Render, Input, Audio
-│   │   ├── ai/                 # AI Opponent logic
-│   │   └── managers/           # Scene, Camera, Assets, Effects
-│   ├── services/               # API Clients
-│   │   ├── authService.ts      # Authentication API
-│   │   ├── gameService.ts      # Game API
-│   │   ├── chatService.ts      # Chat API
-│   │   ├── userService.ts      # User API
-│   │   └── websocketService.ts # Real-time communication
-│   ├── stores/                 # State Management
-│   │   ├── authStore.ts        # Auth state
-│   │   ├── gameStore.ts        # Game state
-│   │   └── chatStore.ts        # Chat state
-│   └── utils/                  # Helper Functions
-└── public/                     # Static Assets (3D models, sounds, images)
-```
-
-### **2. ⚡ Microservices Layer** - 190 files
-```
-services/                       # 5 Independent Microservices
-├── auth/                       # Authentication Service
-│   ├── src/
-│   │   ├── controllers/        # Auth endpoints (login, register, 2FA)
-│   │   ├── middleware/         # JWT validation, rate limiting
-│   │   ├── services/           # Auth business logic
-│   │   ├── repositories/       # User data access
-│   │   ├── oauth/              # Google OAuth integration
-│   │   ├── twofa/              # 2FA implementation (TOTP, QR codes)
-│   │   └── utils/              # Password hashing, tokens
-├── game/                       # Game Logic Service
-│   ├── src/
-│   │   ├── controllers/        # Game endpoints (create, join, move)
-│   │   ├── engines/            # Game engines (Pong, Racer)
-│   │   ├── ai/                 # AI opponent system
-│   │   ├── physics/            # Game physics calculations
-│   │   ├── tournament/         # Tournament system
-│   │   ├── matchmaking/        # Player pairing logic
-│   │   ├── customization/      # Power-ups, game variations
-│   │   └── repositories/       # Game data access
-├── chat/                       # Live Chat Service
-│   ├── src/
-│   │   ├── controllers/        # Chat endpoints
-│   │   ├── rooms/              # Chat rooms management
-│   │   ├── messaging/          # Real-time messaging logic
-│   │   ├── history/            # Message persistence
-│   │   ├── moderation/         # Chat moderation
-│   │   └── repositories/       # Chat data access
-├── user/                       # User Management Service
-│   ├── src/
-│   │   ├── controllers/        # User endpoints (profiles, friends)
-│   │   ├── profiles/           # User profiles + avatars
-│   │   ├── friends/            # Friends system
-│   │   ├── stats/              # Game statistics
-│   │   ├── history/            # Match history
-│   │   ├── dashboard/          # Stats dashboard logic
-│   │   └── repositories/       # User data access
-└── websocket/                  # Real-time Communication Service
-    ├── src/
-    │   ├── connections/        # Connection management
-    │   ├── events/             # Real-time events handling
-    │   ├── rooms/              # Game rooms + chat rooms
-    │   ├── broadcasting/       # Message broadcasting
-    │   └── middleware/         # WebSocket authentication
-```
-
-### **3. 🧪 Testing Layer** - 285 files
-```
-tests/                          # Centralized Testing
-├── unit/                       # Unit Tests (~200 files)
-│   ├── shared/                 # Shared library tests
-│   ├── services/               # All microservice tests
-│   └── frontend/               # Frontend component tests
-├── integration/                # Integration Tests (~25 files)
-│   ├── api/                    # API integration tests
-│   ├── database/               # Database integration tests
-│   ├── websocket/              # WebSocket integration tests
-│   └── services/               # Cross-service integration
-├── e2e/                        # End-to-End Tests (~30 files)
-│   ├── auth/                   # Authentication E2E tests
-│   ├── game/                   # Game E2E tests
-│   ├── chat/                   # Chat E2E tests
-│   └── scenarios/              # Complex user scenarios
-└── utils/                      # Test Utilities (~30 files)
-    ├── mocks/                  # Mock implementations
-    ├── fixtures/               # Test data fixtures
-    ├── helpers/                # Test helper functions
-    └── factories/              # Data factories
-```
-
-### **4. 📚 Shared Libraries** - 32 files
-```
-shared/                         # Common Code
-├── types/                      # TypeScript interfaces
-│   ├── auth.types.ts          # Auth-related types
-│   ├── game.types.ts          # Game-related types
-│   ├── chat.types.ts          # Chat-related types
-│   └── user.types.ts          # User-related types
-├── events/                     # Event definitions
-│   ├── gameEvents.ts          # Game event definitions
-│   ├── chatEvents.ts          # Chat event definitions
-│   └── userEvents.ts          # User event definitions
-├── utils/                      # Common utilities
-│   ├── validation.ts          # Input validation schemas
-│   ├── formatters.ts          # Data formatting utilities
-│   ├── cryptoUtils.ts         # Cryptographic utilities
-│   └── constants.ts           # Application constants
-└── config/                     # Shared configuration
-    ├── database.ts            # Database configuration
-    ├── redis.ts               # Redis configuration
-    └── security.ts            # Security configuration
-```
-
-### **5. 🔧 Infrastructure Layer** - 22 files
-```
-infrastructure/                 # Infrastructure Services
-├── redis/                      # Redis Cache + PubSub
-│   ├── redis.conf             # Redis configuration
-│   └── scripts/               # Redis setup scripts
-├── database/                   # SQLite Database
-│   ├── migrations/            # Database migrations (7 files)
-│   │   ├── 001_initial_schema.sql    # Users, auth tables
-│   │   ├── 002_add_tournaments.sql   # Tournament system
-│   │   ├── 003_add_chat.sql          # Chat messages, rooms
-│   │   ├── 004_add_friends.sql       # Friends, blocking
-│   │   ├── 005_add_stats.sql         # Game statistics
-│   │   ├── 006_add_achievements.sql  # Achievement system
-│   │   └── 007_add_indexes.sql       # Performance optimization
-│   ├── seeds/                 # Initial/test data
-│   ├── setup.sql              # Complete schema
-│   └── triggers.sql           # Database triggers
-└── monitoring/                 # Prometheus + Grafana
-    ├── prometheus/
-    │   ├── prometheus.yml     # Metrics collection config
-    │   └── alerts.yml         # Alert rules
-    └── grafana/
-        └── dashboards/        # Monitoring dashboards
-```
-
-### **6. 🛠️ Development Tools** - 40 files
-```
-├── scripts/                    # Development scripts
-│   ├── setup.sh              # Project setup
-│   ├── test.sh               # All tests
-│   ├── test-unit.sh          # Unit tests only
-│   ├── test-integration.sh   # Integration tests only
-│   ├── test-e2e.sh           # E2E tests only
-│   └── migrate.sh            # Database migrations
-├── docs/                       # Documentation
-│   ├── api/                   # API documentation
-│   ├── guides/                # Development guides
-│   └── diagrams/              # Architecture diagrams
-├── .github/                    # CI/CD
-│   └── workflows/             # GitHub Actions
-├── .vscode/                    # VS Code configuration
-│   ├── settings.json         # Workspace settings
-│   ├── launch.json           # Debug configurations
-│   └── snippets/             # Code snippets
-└── config/                     # Global configuration
-    ├── jest.config.js        # Testing framework
-    ├── eslint.config.js      # Code linting
-    └── prettier.config.js    # Code formatting
-```
-
----
+frontend/        UI and games  
+services/        Backend microservices  
+shared/          Shared types and utils  
+infrastructure/  Redis, database, monitoring  
 
 ## 🚀 **Technology Stack**
 
@@ -265,8 +94,6 @@ infrastructure/                 # Infrastructure Services
 - **Docker**: Containerized development and deployment
 - **Nginx**: Reverse proxy and SSL termination
 - **Prometheus + Grafana**: Monitoring and observability
-- **Jest + Playwright**: Comprehensive testing suite
-- **ESLint + Prettier**: Code quality and formatting
 
 ---
 
@@ -300,14 +127,32 @@ grafana:3010        → Monitoring dashboards
 
 ### **Event-Driven Communication (Redis PubSub)**
 ```
-Events Published:
-- user.registered    → auth-service → user-service
-- user.login         → auth-service → websocket-service
-- game.created       → game-service → chat-service, websocket-service
-- game.ended         → game-service → user-service (update stats)
-- message.sent       → chat-service → websocket-service
-- player.joined      → game-service → websocket-service
-- tournament.started → game-service → chat-service, websocket-service
+Redis Pub/Sub is used only between Game Service and WebSocket Service.
+
+Lobby Events:
+- lobby:create
+- lobby:invite
+- lobby:join
+- lobby:leave
+- lobby:kick
+- lobby:ready
+- lobby:start
+- lobby:chat
+- lobby:player:update
+- lobby:quick-play
+
+Game Events:
+- game:move
+- game:action
+- game:pause
+- game:resume
+- game:end
+- game:input
+- game:ready
+- game:start
+- game:leave
+- game:state
+- game:event
 ```
 
 ---
@@ -324,80 +169,6 @@ Frontend → game-service → auth-service (validate token)
 LOW LATENCY (Gameplay - 6-20ms):
 Frontend → websocket → game-service (cached validation)
                     → broadcast (local state)
-```
-
-### **Input Validation & Anti-Cheat**
-```
-Client Input → Server Validation Pipeline:
-
-1. Basic Validation (1ms)     → Speed limits, boundaries
-2. Physics Validation (5ms)   → Movement possibilities  
-3. Game Logic Validation (10ms) → Rule compliance
-4. State Update              → Server-authoritative
-5. Broadcast to Players      → Validated state only
-
-Security Features:
-✅ Server-authoritative game state
-✅ Input rate limiting (anti-spam)
-✅ Speed hack detection
-✅ Boundary violation prevention
-✅ Lag compensation algorithms
-```
-
-### **Caching Strategy for Real-time Performance**
-```
-Game Session Cache (loaded once):
-- Player profiles & permissions
-- Game configuration & rules
-- Friend lists & relationships
-- Chat room memberships
-
-Real-time Validation (< 1ms):
-- Paddle movement bounds
-- Ball physics calculations
-- Collision detection
-- Score validation
-
-Database Queries (only when needed):
-- Match history updates
-- Statistics calculations
-- Tournament progression
-```
-
----
-
-## 🚀 **Quick Start**
-
-### **Development Setup**
-```bash
-# Clone and start all microservices
-git clone https://github.com/SirAlabar/ft_transcendence.git
-cd ft_transcendence
-
-# Setup project (install dependencies, setup database)
-make setup
-
-# Start development environment
-make start
-
-# Access application
-open https://localhost
-```
-
-### **Testing Commands**
-```bash
-# Run all tests
-make test
-
-# Run specific test types
-make test-unit              # Unit tests only
-make test-integration       # Integration tests only
-make test-e2e              # E2E tests only
-
-# Test specific components
-npm run test:shared         # Shared library tests
-npm run test:services       # All services tests
-npm run test:frontend       # Frontend tests
 ```
 
 ---
@@ -422,7 +193,6 @@ npm run test:frontend       # Frontend tests
 - WebSocket connections for 60fps gameplay
 - Redis PubSub for event broadcasting  
 - Cached player data for instant validation
-- Server-side anti-cheat protection
 - Cross-service communication optimized for gaming
 
 ### **Advanced Features**
@@ -455,25 +225,6 @@ npm run test:frontend       # Frontend tests
    - Chat service: Optimized for high-throughput
    - User service: Optimized for complex queries
 ```
-
----
-
-## 📊 **Project Statistics**
-
-```
-File Distribution:
-├── Frontend:        125 files (18%)
-├── Services:        190 files (27%)
-├── Tests:          285 files (41%)
-├── Infrastructure:   22 files (3%)
-├── Shared:          32 files (5%)
-├── Tools:           40 files (6%)
-└── Root:             8 files (1%)
-
-Total: ~702 files
-```
-
-
 ---
 
 ## 🧑‍💻 **Team**
