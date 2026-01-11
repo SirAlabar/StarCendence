@@ -152,8 +152,8 @@ export class Pong3D implements GameEngine
 
         // Blue material for boundary lines
         const boundaryMat = new StandardMaterial("boundaryMat", this.scene);
-        boundaryMat.diffuseColor = new Color3(0.1, 0.8, 1);   // Luminous Cyan
-        boundaryMat.emissiveColor = new Color3(0, 0.4, 0.8);  // Deep Energy Blue
+        boundaryMat.diffuseColor = new Color3(0.1, 0.8, 1);   
+        boundaryMat.emissiveColor = new Color3(0, 0.4, 0.8);  
 
         // Top boundary line
         const topLine = MeshBuilder.CreateBox(

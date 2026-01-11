@@ -795,7 +795,6 @@ export default class PongPage extends BaseComponent
                 return;
             }
             
-            // Only handle resize for 2D games
             if (gameManager.getCurrentDimension() !== '2d') 
             {
                 return;
@@ -810,7 +809,7 @@ export default class PongPage extends BaseComponent
             const newWidth = container.clientWidth;
             const newHeight = container.clientHeight;
             
-            // Use the gameManager's resize method which calls engine.resize()
+            // gameManager's resize method calls engine.resize()
             gameManager.resizeGame(newWidth, newHeight);
         };
         

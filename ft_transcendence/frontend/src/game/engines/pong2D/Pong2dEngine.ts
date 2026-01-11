@@ -31,7 +31,6 @@ export class LocalPongEngine
 
     //Configs
     private config: GameConfig;
-    // private profileLoaded?: boolean = false;
     
     //Events
     private eventCallBack: Array<(event: GameEvent) => void> = [];
@@ -393,8 +392,6 @@ export class LocalPongEngine
     private keydownHandler = (e: KeyboardEvent) => 
     {
         const key = e.key.toLowerCase();
-        
-        // Don't process any keys if paused (except space for waitingForSpace)
         if (this.paused && !(key === ' ' || key === 'space')) {
             return;
         }
@@ -403,7 +400,6 @@ export class LocalPongEngine
         
         if (key === ' ' || key === 'space') 
         {
-            // Only allow space to start if waiting and not ended
             if (this.waitingForSpace && !this.ended && !this.paused) 
             {
                 this.waitingForSpace = false;
@@ -439,7 +435,7 @@ export class LocalPongEngine
     
     public resize(newWidth: number, newHeight: number): void 
     {
-        // Store the current game state
+    
         const wasWaitingForSpace = this.waitingForSpace;
         const wasEnded = this.ended;
         
@@ -459,7 +455,7 @@ export class LocalPongEngine
         this.canvas.width = newWidth;
         this.canvas.height = newHeight;
         
-        // Scale POSITIONS only
+        // Scale 
         this.ball.x *= widthRatio;
         this.ball.y *= heightRatio;
         
@@ -468,7 +464,7 @@ export class LocalPongEngine
         this.paddleright.x *= widthRatio;
         this.paddleright.y *= heightRatio;
         
-        // Scale paddle dimensions too
+        
         this.paddleleft.width *= widthRatio;
         this.paddleleft.height *= heightRatio;
         this.paddleright.width *= widthRatio;
@@ -488,7 +484,6 @@ export class LocalPongEngine
             this.waitingForSpace = false;
         }
         
-        // Render one frame to show current state
         this.clear();
         this.render();
     }
