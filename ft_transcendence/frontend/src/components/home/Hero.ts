@@ -73,7 +73,7 @@ export class Hero extends BaseComponent
     }
     this.gl = gl;
 
-    await this.setupCanvas(section);
+    this.setupCanvas(section);
     this.setupShaders();
     this.setupBuffers();
     await this.setupTextures();
