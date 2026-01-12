@@ -762,7 +762,12 @@ export class GameLobby extends BaseComponent
             this.handleChangeCustomization(slotId);
             return;
         }
-
+        if (target.closest('#sendChatBtn')) 
+        {
+            console.log("send clicked via delegation"); // This should now show up
+            this.sendChatMessage();
+            return;
+        }
         const readyBtn = target.closest('.ready-btn') as HTMLElement | null;
         if (readyBtn)
         {
