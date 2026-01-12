@@ -271,11 +271,10 @@ export default class NotFoundPage extends BaseComponent
             };
         };
         
-        const onImageError = (shipName: string, path: string) => 
+        const onImageError = (_shipName: string, _path: string) => 
         {
-            return (e: any) => 
+            return (_e: any) => 
             {
-                console.error(`✗ Failed to load ${shipName} from ${path}:`, e);
                 imagesLoaded++;
                 
                 if (imagesLoaded === totalImages) 
@@ -574,7 +573,6 @@ export default class NotFoundPage extends BaseComponent
             }
             catch (e) 
             {
-                console.warn('Failed to draw player image, using fallback:', e);
                 this.drawPlayerFallback();
             }
         }
@@ -655,7 +653,6 @@ export default class NotFoundPage extends BaseComponent
             }
             catch (e) 
             {
-                console.warn(`Failed to draw enemy type ${enemy.type}, using fallback:`, e);
                 this.drawEnemyFallback(enemy);
             }
         }

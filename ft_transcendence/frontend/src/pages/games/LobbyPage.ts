@@ -293,8 +293,6 @@ export default class LobbyPage extends BaseComponent
 
             // Update start button area after loading players (host detection)
             this.gameLobby.updateStartButtonArea();
-        } else {
-            console.warn('[Lobby] No players in payload!');
         }
     }
 

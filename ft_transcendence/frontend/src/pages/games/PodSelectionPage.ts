@@ -369,7 +369,7 @@ export class PodSelection extends BaseComponent
       const isVideo = videoPath.endsWith('.mp4');
       
       return `
-          <div class="pod-card rounded-lg cursor-pointer transition-all duration-300 transform hover:scale-[1.04] ${
+          <div class="pod-card rounded-lg cursor-pointer transition-all duration-300 transform hover:scale-105 ${
             this.selectedPodId === pod.id ? 'selected' : ''
           }" 
           onclick="podSelection.selectPod('${pod.id}')">

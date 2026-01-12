@@ -7,6 +7,7 @@ export class Hero extends BaseComponent
   private mouse = { x: 0.5, y: 0.5, active: false };
   private startTime = performance.now();
   private reveal = 0;
+  private texturesReady = false;
   private canvas!: HTMLCanvasElement;
   private raf?: number;
   private video!: HTMLVideoElement;
@@ -224,12 +225,48 @@ export class Hero extends BaseComponent
 
   private async setupTextures(): Promise<void>
   {
+    let loadedCount = 0;
+    const totalTextures = 2;
+    
+    const checkAllLoaded = () =>
+    {
+      loadedCount++;
+      if (loadedCount === totalTextures)
+      {
+        this.texturesReady = true;
+      }
+    };
+
     this.textures = {
-      space: this.loadTexture('/assets/images/backgrounds/space_background.jpg'),
-      neb1: this.loadTexture('/assets/images/backgrounds/nebula1.jpg'),
+      space: this.loadTexture('/assets/images/backgrounds/space_background.jpg', checkAllLoaded),
+      neb1: this.loadTexture('/assets/images/backgrounds/nebula1.jpg', checkAllLoaded),
       video: this.gl.createTexture()!,
       text: this.gl.createTexture()!
     };
+    
+    // Initialize video and text textures with 1x1 black pixel
+    this.initEmptyTexture(this.textures.video);
+    this.initEmptyTexture(this.textures.text);
+  }
+
+  private initEmptyTexture(tex: WebGLTexture): void
+  {
+    this.gl.bindTexture(this.gl.TEXTURE_2D, tex);
+    this.gl.texImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      this.gl.RGBA,
+      1,
+      1,
+      0,
+      this.gl.RGBA,
+      this.gl.UNSIGNED_BYTE,
+      new Uint8Array([0, 0, 0, 255])
+    );
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
   }
 
   private async setupVideo(): Promise<void>
@@ -476,6 +513,12 @@ export class Hero extends BaseComponent
 
   private render3D(): void
   {
+    // Only render if textures are ready
+    if (!this.texturesReady)
+    {
+      return;
+    }
+    
     this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
   }
 
@@ -496,13 +539,26 @@ export class Hero extends BaseComponent
     return p;
   }
 
-  private loadTexture(src: string): WebGLTexture
+  private loadTexture(src: string, onLoad?: () => void): WebGLTexture
   {
     const gl = this.gl;
     const tex = gl.createTexture()!;
-    const img = new Image();
-    img.src = src;
     
+    // Immediately bind with 1x1 black pixel
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      1,
+      1,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      new Uint8Array([0, 0, 0, 255])
+    );
+    
+    const img = new Image();
     img.onload = () =>
     {
       gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -511,8 +567,14 @@ export class Hero extends BaseComponent
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      
+      if (onLoad)
+      {
+        onLoad();
+      }
     };
     
+    img.src = src;
     return tex;
   }
 

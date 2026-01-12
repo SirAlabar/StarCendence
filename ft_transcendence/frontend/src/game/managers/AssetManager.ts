@@ -89,7 +89,6 @@ export class AssetManager
   {
     if (this.assetsToLoad.length === 0) 
     {
-      console.warn('No assets to load');
       return this.loadedAssets;
     }
     

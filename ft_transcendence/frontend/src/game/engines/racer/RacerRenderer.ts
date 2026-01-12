@@ -331,7 +331,6 @@ private async getUserAvatarUrl(): Promise<string | null>
     } 
     catch (error) 
     {
-      console.warn('Could not fetch user avatar, using default:', error);
       return null;
     }
 }

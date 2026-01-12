@@ -1,28 +1,60 @@
 import { BaseComponent } from '../../components/BaseComponent';
-import { getUserApiUrl} from '../../types/api.types';
+import { getUserApiUrl, getGameApiUrl } from '../../types/api.types';
 import { UserProfile } from '../../types/user.types';
 import { showLoading, hideLoading } from '../../router/LayoutManager';
 
-interface MatchHistoryEntry 
+// Match the backend schema
+interface MatchResult 
 {
-    id: number;
-    player1Id: string;
-    player2Id: string;
-    result: string;
-    player1Score: number;
-    player2Score: number;
+    id: string;
+    matchId: string;
+    userId: string;
+    username: string;
+    score: number;
+    accuracy?: number;
+    topSpeed?: number;
+}
+
+interface Match 
+{
+    id: string;
+    gameId: string;
+    type: string; // "PONG" | "RACER"
+    mode: string;
+    winnerId?: string;
+    duration: number;
+    results: MatchResult[];
+    totalPoints?: number;
+    fastestLap?: number;
     playedAt: string;
+}
+
+// User data cache for avatars
+interface UserCache 
+{
+    [username: string]: 
+    {
+        username: string;
+        avatarUrl?: string;
+    };
 }
 
 export default class DashboardPage extends BaseComponent 
 {
     private userProfile: UserProfile | null = null;
-    private matchHistory: MatchHistoryEntry[] = [];
+    private matchHistory: Match[] = [];
+    private userCache: UserCache = {};
     private error: string | null = null;
     private currentUserId: string = '';
+    private isLoading: boolean = true;
 
     render(): string 
     {
+        if (this.isLoading) 
+        {
+            return this.renderLoading();
+        }
+
         if (this.error) 
         {
             return this.renderError();
@@ -112,6 +144,35 @@ export default class DashboardPage extends BaseComponent
                     stroke-dasharray: 314;
                     stroke-dashoffset: 314;
                     transition: stroke-dashoffset 1s ease-in-out;
+                }
+
+                .avatar-small {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    border: 2px solid rgba(0, 255, 255, 0.5);
+                    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+                }
+
+                .game-type-badge {
+                    display: inline-block;
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 9999px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+
+                .badge-pong {
+                    background: linear-gradient(135deg, #00ffff 0%, #0080ff 100%);
+                    color: #ffffff;
+                }
+
+                .badge-racer {
+                    background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+                    color: #ffffff;
                 }
             </style>
 
@@ -225,12 +286,12 @@ export default class DashboardPage extends BaseComponent
                             <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
                         </linearGradient>
                     </defs>
-                    <text x="80" y="85" text-anchor="middle" class="text-3xl font-bold" fill="#00ffff">
-                        ${winRate.toFixed(1)}%
-                    </text>
                 </svg>
-                <div class="text-center text-gray-400 text-sm">
-                    <p>${this.userProfile?.gameStatus?.totalWins || 0} Wins / ${this.userProfile?.gameStatus?.totalGames || 0} Games</p>
+                <div class="text-center">
+                    <p class="text-4xl font-bold text-cyan-400 mb-2">${winRate.toFixed(1)}%</p>
+                    <p class="text-gray-400 text-sm tracking-wider">
+                        ${this.userProfile?.gameStatus?.totalWins || 0} WINS / ${this.userProfile?.gameStatus?.totalGames || 0} GAMES
+                    </p>
                 </div>
             </div>
         `;
@@ -238,52 +299,56 @@ export default class DashboardPage extends BaseComponent
 
     private renderGameModesChart(): string 
     {
-        if (!this.userProfile) 
-        {
-            return '';
-        }
+        // Calculate stats by game type from match history
+        const pongMatches = this.matchHistory.filter(m => m.type === 'PONG');
+        const racerMatches = this.matchHistory.filter(m => m.type === 'RACER');
+        
+        const pongWins = pongMatches.filter(m => m.winnerId === this.currentUserId).length;
+        const racerWins = racerMatches.filter(m => m.winnerId === this.currentUserId).length;
 
-        const pongWins = this.userProfile.gameStatus?.totalPongWins || 0;
-        const pongLosses = this.userProfile.gameStatus?.totalPongLoss || 0;
-        const racerWins = this.userProfile.gameStatus?.totalRacerWins || 0;
-        const racerLosses = this.userProfile.gameStatus?.totalRacerLoss || 0;
+        const pongWinRate = pongMatches.length > 0 ? (pongWins / pongMatches.length) * 100 : 0;
+        const racerWinRate = racerMatches.length > 0 ? (racerWins / racerMatches.length) * 100 : 0;
 
-        const pongRate = pongWins + pongLosses > 0 ? (pongWins / (pongWins + pongLosses)) * 100 : 0;
-        const racerRate = racerWins + racerLosses > 0 ? (racerWins / (racerWins + racerLosses)) * 100 : 0;
+        // Count tournament matches
+        const tournamentMatches = this.matchHistory.filter(m => 
+            m.mode && m.mode.includes('TOURNAMENT')
+        ).length;
+        
+        const tournamentWins = this.matchHistory.filter(m => 
+            m.mode && m.mode.includes('TOURNAMENT') && m.winnerId === this.currentUserId
+        ).length;
 
         return `
-            <div class="space-y-6">
-                <!-- Pong -->
+            <div class="space-y-4">
+                <!-- Pong Stats -->
                 <div>
-                    <div class="flex justify-between mb-2">
-                        <span class="text-cyan-300 font-bold text-sm">PONG</span>
-                        <span class="text-gray-400 text-sm">${pongWins}W / ${pongLosses}L</span>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-cyan-400 font-bold text-sm tracking-wider">PONG</span>
+                        <span class="text-gray-400 text-xs">${pongWins}W / ${pongMatches.length}L</span>
                     </div>
-                    <div class="h-8 bg-gray-700/50 rounded-lg overflow-hidden">
-                        <div class="chart-bar h-full rounded-lg" style="width: ${pongRate.toFixed(1)}%"></div>
+                    <div class="h-3 bg-gray-700 rounded-full overflow-hidden">
+                        <div class="chart-bar h-full rounded-full" style="width: ${pongWinRate}%;"></div>
                     </div>
                 </div>
 
-                <!-- Pod Racer -->
+                <!-- Pod Racer Stats -->
                 <div>
-                    <div class="flex justify-between mb-2">
-                        <span class="text-purple-300 font-bold text-sm">POD RACER</span>
-                        <span class="text-gray-400 text-sm">${racerWins}W / ${racerLosses}L</span>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-purple-400 font-bold text-sm tracking-wider">POD RACER</span>
+                        <span class="text-gray-400 text-xs">${racerWins}W / ${racerMatches.length}L</span>
                     </div>
-                    <div class="h-8 bg-gray-700/50 rounded-lg overflow-hidden">
-                        <div class="chart-bar h-full rounded-lg" style="width: ${racerRate.toFixed(1)}%"></div>
+                    <div class="h-3 bg-gray-700 rounded-full overflow-hidden">
+                        <div class="chart-bar h-full rounded-full" style="width: ${racerWinRate}%;"></div>
                     </div>
                 </div>
 
-                <!-- Tournament Stats -->
-                <div class="pt-4 border-t border-gray-700/50">
+                <!-- Tournaments -->
+                <div class="pt-4 border-t border-gray-700">
                     <div class="flex justify-between items-center">
-                        <span class="text-yellow-300 font-bold text-sm">TOURNAMENTS</span>
-                        <span class="text-gray-400 text-sm">${this.userProfile.gameStatus?.tournamentWins || 0} Wins</span>
+                        <span class="text-yellow-400 font-bold text-sm tracking-wider">TOURNAMENTS</span>
+                        <span class="text-yellow-400 font-bold text-lg">${tournamentWins} WINS</span>
                     </div>
-                    <p class="text-gray-500 text-xs mt-1">
-                        ${this.userProfile.gameStatus?.tournamentParticipations || 0} Total Participations
-                    </p>
+                    <p class="text-gray-500 text-xs mt-1">${tournamentMatches} TOTAL PARTICIPATIONS</p>
                 </div>
             </div>
         `;
@@ -296,58 +361,62 @@ export default class DashboardPage extends BaseComponent
             return '';
         }
 
-        const totalGames = this.userProfile.gameStatus?.totalGames || 0;
         const totalWins = this.userProfile.gameStatus?.totalWins || 0;
         const totalLosses = this.userProfile.gameStatus?.totalLosses || 0;
         const totalDraws = this.userProfile.gameStatus?.totalDraws || 0;
-
-        const winPercentage = totalGames > 0 ? (totalWins / totalGames * 100) : 0;
-        const lossPercentage = totalGames > 0 ? (totalLosses / totalGames * 100) : 0;
-        const drawPercentage = totalGames > 0 ? (totalDraws / totalGames * 100) : 0;
+        const totalPoints = (totalWins * 3) + (totalDraws * 1); // Example point system
+        const winRate = this.calculateWinRate();
 
         return `
             <div class="space-y-4">
-                <!-- Win/Loss/Draw Distribution -->
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="text-green-400 text-sm font-bold">WINS</span>
-                        <span class="text-gray-300 text-lg font-bold">${totalWins}</span>
-                    </div>
-                    <div class="h-2 bg-gray-700/50 rounded-full overflow-hidden">
-                        <div class="h-full bg-green-500" style="width: ${winPercentage.toFixed(1)}%"></div>
-                    </div>
+                <!-- Wins -->
+                <div class="flex justify-between items-center">
+                    <span class="text-green-400 font-bold text-sm tracking-wider">WINS</span>
+                    <span class="text-green-400 font-bold text-2xl">${totalWins}</span>
+                </div>
+                <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div class="h-full bg-green-500 rounded-full" style="width: ${totalWins > 0 ? 100 : 0}%;"></div>
                 </div>
 
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="text-red-400 text-sm font-bold">LOSSES</span>
-                        <span class="text-gray-300 text-lg font-bold">${totalLosses}</span>
-                    </div>
-                    <div class="h-2 bg-gray-700/50 rounded-full overflow-hidden">
-                        <div class="h-full bg-red-500" style="width: ${lossPercentage.toFixed(1)}%"></div>
-                    </div>
+                <!-- Losses -->
+                <div class="flex justify-between items-center">
+                    <span class="text-red-400 font-bold text-sm tracking-wider">LOSSES</span>
+                    <span class="text-red-400 font-bold text-2xl">${totalLosses}</span>
+                </div>
+                <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div class="h-full bg-red-500 rounded-full" style="width: ${totalLosses > 0 ? (totalLosses / (totalWins + totalLosses)) * 100 : 0}%;"></div>
                 </div>
 
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="text-yellow-400 text-sm font-bold">DRAWS</span>
-                        <span class="text-gray-300 text-lg font-bold">${totalDraws}</span>
-                    </div>
-                    <div class="h-2 bg-gray-700/50 rounded-full overflow-hidden">
-                        <div class="h-full bg-yellow-500" style="width: ${drawPercentage.toFixed(1)}%"></div>
-                    </div>
+                <!-- Draws -->
+                <div class="flex justify-between items-center">
+                    <span class="text-yellow-400 font-bold text-sm tracking-wider">DRAWS</span>
+                    <span class="text-yellow-400 font-bold text-2xl">${totalDraws}</span>
+                </div>
+                <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div class="h-full bg-yellow-500 rounded-full" style="width: ${totalDraws > 0 ? 10 : 0}%;"></div>
                 </div>
 
                 <!-- Additional Stats -->
-                <div class="pt-4 border-t border-gray-700/50 space-y-2">
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-400">Total Points:</span>
-                        <span class="text-cyan-400 font-bold">${this.userProfile.gameStatus?.points || 0}</span>
+                <div class="pt-4 border-t border-gray-700 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-cyan-400 text-sm tracking-wider">TOTAL POINTS:</span>
+                        <span class="text-cyan-400 font-bold text-xl">${totalPoints}</span>
                     </div>
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-400">Win Percentage:</span>
-                        <span class="text-cyan-400 font-bold">${this.userProfile.gameStatus?.totalWinPercent?.toFixed(1) || '0.0'}%</span>
+                    <div class="flex justify-between items-center">
+                        <span class="text-cyan-400 text-sm tracking-wider">WIN PERCENTAGE:</span>
+                        <span class="text-cyan-400 font-bold text-xl">${winRate.toFixed(1)}%</span>
                     </div>
+                </div>
+            </div>
+        `;
+    }
+
+    private renderLoading(): string
+    {
+        return `
+            <div class="flex items-center justify-center min-h-[60vh]">
+                <div class="text-cyan-400 text-xl tracking-wider animate-pulse">
+                    LOADING DASHBOARD...
                 </div>
             </div>
         `;
@@ -359,45 +428,63 @@ export default class DashboardPage extends BaseComponent
         {
             return `
                 <div class="text-center py-12">
-                    <div class="text-6xl mb-4 opacity-50">🎮</div>
-                    <p class="text-gray-400 text-lg">No match history available yet</p>
-                    <p class="text-gray-500 text-sm mt-2">Start playing to see your match history here</p>
+                    <div class="text-6xl mb-4">🎮</div>
+                    <h3 class="text-xl font-bold text-gray-400 mb-2 tracking-wider">NO MATCH HISTORY AVAILABLE YET</h3>
+                    <p class="text-gray-500 tracking-wide">START PLAYING TO SEE YOUR MATCH HISTORY HERE</p>
                 </div>
             `;
         }
 
-        const recentMatches = this.matchHistory.slice(0, 10);
+        // Remove duplicates by matchId
+        const seen = new Set<string>();
+        const uniqueMatches: Match[] = [];
+        for (const match of this.matchHistory) {
+            if (!seen.has(match.id)) {
+                seen.add(match.id);
+                uniqueMatches.push(match);
+            }
+        }
+
+        const recentMatches = uniqueMatches.slice(0, 10);
 
         return `
             <div class="space-y-3">
                 ${recentMatches.map(match => this.renderMatchItem(match)).join('')}
             </div>
             
-            ${this.matchHistory.length > 10 ? `
+            ${uniqueMatches.length > 10 ? `
                 <div class="text-center mt-6">
-                    <p class="text-gray-500 text-sm">Showing 10 of ${this.matchHistory.length} matches</p>
+                    <p class="text-gray-500 text-sm">Showing 10 of ${uniqueMatches.length} matches</p>
                 </div>
             ` : ''}
         `;
     }
 
-    private renderMatchItem(match: MatchHistoryEntry): string 
+    private renderMatchItem(match: Match): string 
     {
-        const isPlayer1 = match.player1Id === this.currentUserId;
-        const playerScore = isPlayer1 ? match.player1Score : match.player2Score;
-        const opponentScore = isPlayer1 ? match.player2Score : match.player1Score;
+        // Find current user's result
+        const myResult = match.results.find(r => r.userId === this.currentUserId);
+        const opponentResult = match.results.find(r => r.userId !== this.currentUserId);
+        
+        if (!myResult || !opponentResult) 
+        {
+            return '';
+        }
+
+        const isWin = match.winnerId === this.currentUserId;
+        const isDraw = !match.winnerId;
         
         let resultClass = '';
         let resultText = '';
         let resultColor = '';
 
-        if (match.result === 'DRAW') 
+        if (isDraw) 
         {
             resultClass = 'draw';
             resultText = 'DRAW';
             resultColor = 'text-yellow-400';
         } 
-        else if ((match.result === 'PLAYER1_WIN' && isPlayer1) || (match.result === 'PLAYER2_WIN' && !isPlayer1)) 
+        else if (isWin) 
         {
             resultClass = 'win';
             resultText = 'VICTORY';
@@ -414,22 +501,101 @@ export default class DashboardPage extends BaseComponent
         const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
+        // Get opponent info from cache
+        const opponentInfo = this.userCache[opponentResult.username] 
+        
+        // Game type badge
+        const gameTypeBadge = match.type === 'PONG' 
+            ? '<span class="game-type-badge badge-pong">🏓 PONG</span>'
+            : '<span class="game-type-badge badge-racer">🏎️ POD RACER</span>';
+
+        // Avatar fallback
+        const avatarUrl = opponentInfo.avatarUrl || '/assets/images/default-avatar.jpeg';
+
         return `
             <div class="match-item ${resultClass} rounded-lg p-4">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div class="flex-1">
-                        <div class="flex items-center gap-3 mb-2">
+                        <div class="flex items-center gap-3 mb-2 flex-wrap">
+                            ${gameTypeBadge}
                             <span class="${resultColor} font-bold text-lg tracking-wide">${resultText}</span>
                             <span class="text-gray-500 text-sm">•</span>
                             <span class="text-gray-400 text-sm">${dateStr} at ${timeStr}</span>
                         </div>
-                        <div class="flex items-center gap-2 text-cyan-300">
-                            <span class="font-mono text-2xl font-bold">${playerScore}</span>
-                            <span class="text-gray-500">-</span>
-                            <span class="font-mono text-2xl font-bold text-gray-400">${opponentScore}</span>
+                        
+                        <!-- Players Info -->
+                        <div class="flex items-center gap-4 mb-2">
+                            <!-- Current User -->
+                            <div class="flex items-center gap-2">
+                                <img src="${this.userProfile?.avatarUrl || '/assets/images/default-avatar.jpeg'}" 
+                                     alt="You" 
+                                     class="avatar-small"
+                                     onerror="this.src='/assets/images/default-avatar.jpeg'">
+                                <span class="text-cyan-300 font-semibold">You</span>
+                            </div>
+                            
+                            <span class="text-gray-500 font-bold text-xl">VS</span>
+                            
+                            <!-- Opponent -->
+                            <div class="flex items-center gap-2">
+                                <img src="${avatarUrl}" 
+                                     alt="${this.escapeHtml(opponentInfo.username)}" 
+                                     class="avatar-small"
+                                     onerror="this.src='/assets/images/default-avatar.jpeg'">
+                                <span class="text-gray-300 font-semibold">${this.escapeHtml(opponentInfo.username)}</span>
+                            </div>
                         </div>
+                        
+                        <!-- Score -->
+                        <div class="flex items-center gap-2 text-cyan-300">
+                            <span class="font-mono text-2xl font-bold">${myResult.score}</span>
+                            <span class="text-gray-500">-</span>
+                            <span class="font-mono text-2xl font-bold text-gray-400">${opponentResult.score}</span>
+                        </div>
+                        
+                        <!-- Additional Stats -->
+                        ${this.renderAdditionalStats(match, myResult)}
                     </div>
                 </div>
+            </div>
+        `;
+    }
+
+    private renderAdditionalStats(match: Match, myResult: MatchResult): string 
+    {
+        const stats: string[] = [];
+
+        // Duration
+        const minutes = Math.floor(match.duration / 60);
+        const seconds = match.duration % 60;
+        stats.push(`⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`);
+
+        // Accuracy (if available)
+        if (myResult.accuracy !== null && myResult.accuracy !== undefined) 
+        {
+            stats.push(`🎯 ${myResult.accuracy.toFixed(1)}% accuracy`);
+        }
+
+        // Top Speed (if racer game)
+        if (match.type === 'RACER' && myResult.topSpeed) 
+        {
+            stats.push(`⚡ ${myResult.topSpeed.toFixed(0)} km/h`);
+        }
+
+        // Fastest Lap (if available)
+        if (match.fastestLap) 
+        {
+            stats.push(`🏁 ${match.fastestLap.toFixed(2)}s fastest lap`);
+        }
+
+        if (stats.length === 0) 
+        {
+            return '';
+        }
+
+        return `
+            <div class="flex flex-wrap gap-3 mt-2 text-xs text-gray-400">
+                ${stats.map(stat => `<span>${stat}</span>`).join('')}
             </div>
         `;
     }
@@ -459,7 +625,11 @@ export default class DashboardPage extends BaseComponent
     }
 
     private async loadDashboardData(): Promise<void> 
-    {
+    {    
+        this.isLoading = true;
+        this.error = null;
+        this.rerender();
+
         showLoading();
         
         try 
@@ -491,10 +661,10 @@ export default class DashboardPage extends BaseComponent
             this.userProfile = await profileResponse.json();
             this.currentUserId = this.userProfile?.id || '';
 
-            // Fetch match history
+            // Fetch match history from game service
             try 
             {
-                const matchHistoryResponse = await fetch(getUserApiUrl('/match-history'), 
+                const matchHistoryResponse = await fetch(getGameApiUrl('/match-history'), 
                 {
                     method: 'GET',
                     headers: 
@@ -506,17 +676,19 @@ export default class DashboardPage extends BaseComponent
 
                 if (matchHistoryResponse.ok) 
                 {
-                    this.matchHistory = await matchHistoryResponse.json();
+                    const matches: Match[] = await matchHistoryResponse.json();
+                    this.matchHistory = matches;
+                    
+                    // Fetch user info for all opponents
+                    await this.cacheOpponentData(matches);
                 } 
                 else 
                 {
-                    console.warn('Match history endpoint not available yet');
                     this.matchHistory = [];
                 }
             }
             catch (matchError)
             {
-                console.warn('Match history not available:', matchError);
                 this.matchHistory = [];
             }
 
@@ -528,9 +700,60 @@ export default class DashboardPage extends BaseComponent
         } 
         finally 
         {
+            this.isLoading = false;
             hideLoading();
             this.rerender();
         }
+    }
+
+    private async cacheOpponentData(matches: Match[]): Promise<void> 
+    {
+        // Get unique opponent user IDs
+        const opponentIds = new Set<string>();
+        
+        matches.forEach(match => 
+        {
+            match.results.forEach(result => 
+            {
+                if (result.userId !== this.currentUserId) 
+                {
+                    opponentIds.add(result.username);
+                }
+            });
+        });
+
+        // Fetch user data for each opponent
+        const fetchPromises = Array.from(opponentIds).map(async (username) => 
+        {
+            try 
+            {
+                const response = await fetch(getUserApiUrl(`/profile/${username}`), 
+                {
+                    method: 'GET',
+                    headers: 
+                    {
+                        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) 
+                {
+                    const userData = await response.json();
+                    this.userCache[username] = 
+                    {
+                        username: username,
+                        avatarUrl: userData.avatarUrl
+                    };
+                }
+            }
+            catch (error) 
+            {
+                this.userCache[username] = { username: 'Unknown Player' };
+            }
+        });
+
+        await Promise.all(fetchPromises);
     }
 
     private rerender(): void 

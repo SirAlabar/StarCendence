@@ -31,7 +31,6 @@ export class LocalPongEngine
 
     //Configs
     private config: GameConfig;
-    // private profileLoaded?: boolean = false;
     
     //Events
     private eventCallBack: Array<(event: GameEvent) => void> = [];
@@ -76,33 +75,10 @@ export class LocalPongEngine
             this.enemy = new enemy(canvas, config.difficulty || 'easy');
             this.enemy.score = 0;
         }
-        // this.initializeAsync();
-
         //input handling
         this.setupInputHandlers();
 
     }
-
-    // private async initializeAsync(): Promise<void> 
-    // {
-    //     try 
-    //     {
-    //         await this.loadPlayerProfiles();
-    //     } 
-    //     catch (error) 
-    //     {
-    //     }
-    // }
-    // private async loadPlayerProfiles(): Promise<void> 
-    // {
-    //     try 
-    //     {
-            
-    //     } 
-    //     catch (error) 
-    //     {
-    //     }
-    // }
 
     start(): void
     {
@@ -179,13 +155,9 @@ export class LocalPongEngine
 
     private update = (): void =>
     {
-        if (this.ended || this.paused)
+        if (this.ended || this.paused || this.waitingForSpace)
             return;
 
-        if(this.waitingForSpace == true)
-        {
-            this.stop()
-        }
         // Check countdown
         if (!this.gameStarted) 
         {
@@ -420,16 +392,22 @@ export class LocalPongEngine
     private keydownHandler = (e: KeyboardEvent) => 
     {
         const key = e.key.toLowerCase();
-        this.keys[key] = true;
-
         if (key === ' ' || key === 'space') 
         {
             if (this.waitingForSpace && !this.ended) 
-                {
-                    this.waitingForSpace = false;
-                    this.start();
-                }
+            {
+                this.paused = false;
+                this.waitingForSpace = false;
+                this.start();
+                return; 
+            }
         }
+    
+        if (this.paused) {
+            return;
+        }
+        
+        this.keys[key] = true;
     };
 
     
@@ -459,6 +437,17 @@ export class LocalPongEngine
     
     public resize(newWidth: number, newHeight: number): void 
     {
+    
+        const wasWaitingForSpace = this.waitingForSpace;
+        const wasEnded = this.ended;
+        
+        // Stop the animation loop completely
+        if (this.animationFrameId) 
+        {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+        
         const oldWidth = this.canvas.width;
         const oldHeight = this.canvas.height;
         
@@ -468,20 +457,38 @@ export class LocalPongEngine
         this.canvas.width = newWidth;
         this.canvas.height = newHeight;
         
-        // Scale all positions
+        // Scale 
         this.ball.x *= widthRatio;
         this.ball.y *= heightRatio;
         
         this.paddleleft.x *= widthRatio;
         this.paddleleft.y *= heightRatio;
-        
         this.paddleright.x *= widthRatio;
         this.paddleright.y *= heightRatio;
         
-        this.ball.dx *= widthRatio;
-        this.ball.dy *= heightRatio;
+        
+        this.paddleleft.width *= widthRatio;
+        this.paddleleft.height *= heightRatio;
+        this.paddleright.width *= widthRatio;
+        this.paddleright.height *= heightRatio;
+        
+        if (this.enemy) {
+            this.enemy.x *= widthRatio;
+            this.enemy.y *= heightRatio;
+            this.enemy.width *= widthRatio;
+            this.enemy.height *= heightRatio;
+        }
+        
+        // Scale ball radius
+        this.ball.radius *= Math.min(widthRatio, heightRatio);
+        this.paused = true;
+        if (!wasWaitingForSpace && !wasEnded) {
+            this.waitingForSpace = false;
+        }
+        
+        this.clear();
+        this.render();
     }
-    
 
 
 }

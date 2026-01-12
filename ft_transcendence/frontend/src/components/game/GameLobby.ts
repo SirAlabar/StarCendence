@@ -142,8 +142,10 @@ export class GameLobby extends BaseComponent
                 // Update UI
                 this.updateFriendsList();
             });
-        } catch (err) {
-            console.warn('[GameLobby] OnlineFriendsService not available:', err);
+        } 
+        catch (err) 
+        {
+
         }
     }
     catch (err) 
@@ -636,15 +638,15 @@ export class GameLobby extends BaseComponent
     public updateStartButtonArea(): void {
         // Find the flex-1 div that contains the button area
         const contentDiv = document.querySelector('.flex-1.flex.flex-col.px-8');
-        if (!contentDiv) {
-            console.warn('[GameLobby] Could not find content div for start button update');
+        if (!contentDiv)
+        {
             return;
         }
 
         // Find the start button area (first child of content div)
         const buttonArea = contentDiv.firstElementChild;
-        if (!buttonArea) {
-            console.warn('[GameLobby] Could not find button area');
+        if (!buttonArea) 
+        {
             return;
         }
 
@@ -895,7 +897,6 @@ export class GameLobby extends BaseComponent
         this.eventsAttached = true;
     }
 
-    
     private async refreshFriendsList(): Promise<void> 
     {
         try 
@@ -910,9 +911,8 @@ export class GameLobby extends BaseComponent
             this.friends = this.allFriends.filter((f: any) => f.status === 'online' || f.status === 'ONLINE');
             this.updateFriendsList();
         } 
-        catch (err) 
+            catch (err) 
         {
-            console.error('Failed to refresh friends:', err);
         }
     }
 

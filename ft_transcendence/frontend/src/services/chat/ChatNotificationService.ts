@@ -1,6 +1,7 @@
 // Centralized notification badge management
 import ChatService from './ChatService';
 import { webSocketService } from '../websocket/WebSocketService';
+import { UserProfile } from '../../types/user.types';
 
 class ChatNotificationService 
 {
@@ -10,6 +11,13 @@ class ChatNotificationService
     private isInitialized: boolean = false;
     private wsMessageHandler: ((data: any) => void) | null = null;
     private wsLobbyInviteHandler: ((data: any) => void) | null = null;
+    private currentUserSettings: UserProfile['settings'] | null = null;
+    
+    // Set current user settings (called from ProfilePage after loading profile)
+    setUserSettings(settings: UserProfile['settings']): void 
+    {
+        this.currentUserSettings = settings;
+    }
     
     // Initialize and load unread counts from backend
     async initialize(): Promise<void> 
@@ -73,6 +81,13 @@ class ChatNotificationService
             
             if (senderId) 
             {
+                // Check if user has message notifications enabled
+                if (this.currentUserSettings?.notifyMessages === false) 
+                {
+                    // User has disabled message notifications - don't show badge
+                    return;
+                }
+                
                 // Increment unread for this sender
                 this.incrementUnread(senderId);
             }
@@ -114,12 +129,24 @@ class ChatNotificationService
     // Get unread count for a specific friend
     getUnreadCount(friendId: string): number 
     {
+        // If user has disabled message notifications, return 0
+        if (this.currentUserSettings?.notifyMessages === false) 
+        {
+            return 0;
+        }
+        
         return this.unreadMessages.get(friendId) || 0;
     }
     
     // Get total unread count across all friends
     getTotalUnread(): number 
     {
+        // If user has disabled message notifications, return 0
+        if (this.currentUserSettings?.notifyMessages === false) 
+        {
+            return 0;
+        }
+        
         let total = 0;
         
         this.unreadMessages.forEach((count) => 
@@ -198,7 +225,8 @@ class ChatNotificationService
         }
 
         // Remove lobby invite listener
-        if (this.wsLobbyInviteHandler) {
+        if (this.wsLobbyInviteHandler) 
+        {
             webSocketService.off('lobby:invite', this.wsLobbyInviteHandler);
             this.wsLobbyInviteHandler = null;
         }
@@ -207,6 +235,7 @@ class ChatNotificationService
         this.totalUnreadCallbacks = [];
         this.friendUnreadCallbacks = [];
         this.isInitialized = false;
+        this.currentUserSettings = null;
     }
 }
 

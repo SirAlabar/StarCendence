@@ -54,7 +54,6 @@ export class player
             
         } catch (error) 
         {
-            console.warn('[Player] ⚠️ Failed to load profile (user might not be logged in):', error);
             this.isAuthenticated = false;
             return false;
         }
