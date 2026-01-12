@@ -636,6 +636,11 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
         return;
       }
 
+      if (message.length > 100) {
+        console.log(`[GameEventSubscriber] ❌ Message too long from ${username} in lobby ${lobbyId}`);
+        return;
+      }
+
       const userIds = players.map(p => p.userId);
 
       await this.broadcastToUsers(userIds, {
