@@ -8,6 +8,7 @@ import OnlineFriendsService, { FriendWithStatus } from '../../services/websocket
 import { webSocketService } from '../../services/websocket/WebSocketService';
 import { UserProfile } from '../../types/user.types';
 import { AiDifficulty } from '../../game/engines/pong2D/entities/EnemyAi';
+import { Modal } from '../common/Modal';
 
 export type GameType = 'pong' | 'podracer';
 
@@ -728,6 +729,7 @@ export class GameLobby extends BaseComponent
         }
 
         this.attachEventListeners();
+        this.focusLobbyChatInput(false);
     }
 
     private readonly boundRootClickHandler = (e: Event) =>
@@ -834,6 +836,12 @@ export class GameLobby extends BaseComponent
             return;
         }
 
+        if (target.closest('#sendChatBtn')) 
+        {
+            this.sendChatMessage();
+            return;
+        }
+
         const paddleBtn = target.closest('.select-paddle-btn') as HTMLElement | null;
         if (paddleBtn)
         {
@@ -853,6 +861,7 @@ export class GameLobby extends BaseComponent
     {
         if (e.key === 'Enter')
         {
+            e.preventDefault();
             this.sendChatMessage();
         }
     }
@@ -862,44 +871,34 @@ export class GameLobby extends BaseComponent
         this.sendChatMessage();
     }
 
-
     private attachEventListeners(): void
     {
-        if (this.eventsAttached)
-        {
-            return;
-        }
+      if (!this.mountSelector) return;
 
-        if (!this.mountSelector)
-        {
-            return;
-        }
+      const root = document.querySelector(this.mountSelector);
+      if (!root) return;
 
-        const root = document.querySelector(this.mountSelector);
-        if (!root)
-        {
-            return;
-        }
-
-        // Main delegated click handler
+      if (!this.eventsAttached)
+      {
         root.addEventListener('click', this.boundRootClickHandler);
-
-        // Chat input (Enter key)
-        const chatInput = root.querySelector('#chatInput') as HTMLInputElement | null;
-        if (chatInput)
-        {
-            chatInput.addEventListener('keydown', this.boundChatKeydownHandler);
-        }
-
-        // Chat send button
-        const sendBtn = root.querySelector('#sendChatBtn');
-        if (sendBtn)
-        {
-            sendBtn.addEventListener('click', this.boundChatSendClickHandler);
-        }
-
         this.eventsAttached = true;
+      }
+
+      const chatInput = root.querySelector('#chatInput') as HTMLInputElement | null;
+      if (chatInput)
+      {
+        chatInput.onkeydown = null;
+        chatInput.addEventListener('keydown', this.boundChatKeydownHandler);
+      }
+
+      const sendBtn = root.querySelector('#sendChatBtn') as HTMLButtonElement | null;
+      if (sendBtn)
+      {
+        sendBtn.onclick = null;
+        sendBtn.addEventListener('click', this.boundChatSendClickHandler);
+      }
     }
+
 
     private async refreshFriendsList(): Promise<void> 
     {
@@ -922,13 +921,26 @@ export class GameLobby extends BaseComponent
 
     private sendChatMessage(): void 
     {
-        const chatInput = document.getElementById('chatInput') as HTMLInputElement;
+        const chatInput = document.getElementById('chatInput') as HTMLInputElement | null;
         if (!chatInput || !chatInput.value.trim()) 
         {
             return;
         }
         
         const message = chatInput.value.trim();
+        if (!message)
+        {
+            chatInput.focus();
+            return;
+        }
+
+        if (message.length > 100)
+        {
+            Modal.alert('Error', 'Message exceeds maximum length of 100 characters.');
+            chatInput.focus();
+            return;
+        }
+
         const lobbyId = this.getLobbyIdFromUrl();
         
         // Send message via WebSocket to backend
@@ -938,6 +950,7 @@ export class GameLobby extends BaseComponent
         });
         
         chatInput.value = '';
+        chatInput.focus();
     }
     
     private handleStartGame(): void 
@@ -992,6 +1005,22 @@ export class GameLobby extends BaseComponent
         }
         this.currentCustomizingSlot = null;
     }
+
+    private focusLobbyChatInput(moveCaretToEnd: boolean = true): void
+    {
+      requestAnimationFrame(() => {
+        const input = document.getElementById('chatInput') as HTMLInputElement | null;
+        if (!input) return;
+
+        input.focus();
+        if (moveCaretToEnd)
+        {
+          const len = input.value.length;
+          input.setSelectionRange(len, len);
+        }
+      });
+    }
+
     
 
     private invitePlayer(username: string, userId: string): void
@@ -1286,6 +1315,7 @@ export class GameLobby extends BaseComponent
 
         container.innerHTML = this.render();
         this.attachEventListeners();
+        this.focusLobbyChatInput(false);
     }
     
     /**
