@@ -379,7 +379,6 @@ export default class LoginPage extends BaseComponent
         
         if (!this.emailInput || !this.passwordInput) 
         {
-            console.error('LoginPage: Inputs not found');
             return;
         }
 
@@ -446,13 +445,11 @@ export default class LoginPage extends BaseComponent
             } 
             else 
             {
-                console.error('LoginPage: No tokens received');
                 this.showMessage('Login failed. Please try again.', 'error');
             }
         } 
         catch (error: any) 
         {
-            console.error('LoginPage: Error:', error);
             this.showMessage(error.message || 'Network error. Please try again.', 'error');
         } 
         finally 
@@ -471,7 +468,6 @@ export default class LoginPage extends BaseComponent
         
         if (!this.twofaCodeInput)
         {
-            console.error('LoginPage: 2FA code input not found');
             return;
         }
 
@@ -530,7 +526,6 @@ export default class LoginPage extends BaseComponent
         } 
         catch (error: any) 
         {
-            console.error('LoginPage: 2FA Error:', error);
             this.showMessage(error.message || 'Invalid code. Please try again.', 'error');
             this.twofaCodeInput.value = '';
             this.twofaCodeInput.focus();
@@ -551,7 +546,6 @@ export default class LoginPage extends BaseComponent
         
         if (!this.usernameInput) 
         {
-            console.error('LoginPage: Username input not found');
             return;
         }
 
@@ -599,7 +593,6 @@ export default class LoginPage extends BaseComponent
         } 
         catch (error: any) 
         {
-            console.error('LoginPage: Error:', error);
             this.showMessage(error.message || 'Failed to create account. Please try again.', 'error');
         } 
         finally 

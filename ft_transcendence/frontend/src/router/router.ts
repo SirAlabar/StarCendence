@@ -137,14 +137,14 @@ const routeConfig: Record<string, any> =
         headerType: 'default',
         requiresAuth: true
     },
-    '/tournament':
-    {
-        component: () => import('../pages/games/TournamentPage'),
-        title: 'Tournament - Transcendence',
-        layout: 'default',
-        headerType: 'default',
-        requiresAuth: true
-    },
+    // '/tournament':
+    // {
+    //     component: () => import('../pages/games/TournamentPage'),
+    //     title: 'Tournament - Transcendence',
+    //     layout: 'default',
+    //     headerType: 'default',
+    //     requiresAuth: true
+    // },
     '/leaderboard':
     {
         component: () => import('../pages/LeaderboardPage'),
@@ -175,6 +175,20 @@ const routeConfig: Record<string, any> =
         layout: 'default',
         headerType: 'default',
         requiresAuth: true
+    },
+    '/privacy-policy':
+    {
+        component: () => import('../pages/legal/PrivacyPolicyPage'),
+        title: 'Privacy Policy - Transcendence',
+        layout: 'default',
+        headerType: 'default'
+    },
+    '/terms-of-service':
+    {
+        component: () => import('../pages/legal/TermsOfServicePage'),
+        title: 'Terms of Service - Transcendence',
+        layout: 'default',
+        headerType: 'default'
     },
     '/oauth/callback':
     {
@@ -264,7 +278,7 @@ function matchDynamicRoute(path: string): any
 // Check if user is authenticated
 export function isAuthenticated(): boolean
 {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('accessToken');
     return token !== null;
 }
 
@@ -346,7 +360,6 @@ export async function navigateTo(path: string): Promise<void>
     }
     catch (error)
     {
-        console.error('Error during navigation:', error);
         show404();
     }
     finally

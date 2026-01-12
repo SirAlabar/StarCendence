@@ -47,7 +47,7 @@ export class OnlinePong3D implements GameEngine
     private readonly BALL_DIAMETER = 1.0; 
 
     // State
-    private paused: boolean = false;
+
     private ended: boolean = false;
     private keys: Record<string, boolean> = {};
     private canChangeCamera: boolean = true;
@@ -100,7 +100,6 @@ export class OnlinePong3D implements GameEngine
 
         // Handle resize
         window.addEventListener("resize", () => this.engine.resize());
-        console.log(this.paused)
     }
 
    
@@ -143,7 +142,6 @@ export class OnlinePong3D implements GameEngine
                     }
                 }
             } catch (err) {
-                console.log("failed to get update payload!")
             }
         });
     }
@@ -325,7 +323,7 @@ export class OnlinePong3D implements GameEngine
 
     start(): void 
     {
-        this.paused = false;
+        // this.paused = false;
         this.connection.send('game:ready', { gameId: this.gameId, playerId: this.playerId });
         
         this.engine.runRenderLoop(() => 
@@ -342,11 +340,11 @@ export class OnlinePong3D implements GameEngine
 
     stop(): void {
         this.engine.stopRenderLoop();
-        this.paused = true;
+        // this.paused = true;
     }
 
-    pause(): void { this.paused = true; }
-    resume(): void { this.paused = false; }
+    pause(): void {  }
+    resume(): void {  }
 
     // Babylon Setup
     private createCamera(): void 
@@ -384,7 +382,8 @@ export class OnlinePong3D implements GameEngine
         Skybox.createFromGLB(this.scene, "assets/images/skybox2.glb");
 
         //Floating Platform Model
-        try {
+        try 
+        {
             this.platform = await loadModel(
                 this.scene, 
                 "assets/models/pong/", 
@@ -399,7 +398,10 @@ export class OnlinePong3D implements GameEngine
                 this.platform.forEach(mesh => mesh.isPickable = false);
             }
         } 
-        catch (error) { console.error("FAILED to load Game Platform:", error); }
+        catch (error) 
+        { 
+
+        }
 
         
         

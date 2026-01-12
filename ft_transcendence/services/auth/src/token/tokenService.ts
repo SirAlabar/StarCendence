@@ -19,7 +19,7 @@ export async function generateTokens(userId: string, email: string, username: st
     },
     jwtSecret,
     { 
-      expiresIn: '15m',
+      // expiresIn: '15m',
       issuer: 'transcendence-auth'
     }
   );
@@ -34,14 +34,14 @@ export async function generateTokens(userId: string, email: string, username: st
   return { accessToken, refreshToken, type: TokenType.ACCESS };
 }
 
-// Verify access token (for protected routes)
+// Verify access token
 export async function verifyAccessToken(token: string) {
   const jwtSecret = getJwtSecret();
 
   return jwt.verify(token, jwtSecret) as jwt.JwtPayload;
 }
 
-// Verify refresh token (for token rotation)
+// Verify refresh token
 export async function verifyRefreshToken(token: string) {
   const refreshToken = await refreshTokenRepository.findByToken(token);
 

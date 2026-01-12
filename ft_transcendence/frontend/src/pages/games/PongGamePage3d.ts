@@ -68,12 +68,9 @@ export default class Pong3DGamePage extends BaseComponent
         this.side = (params.get('side') as 'left' | 'right') || 'left';
         const userobj = LoginService.getCurrentUser();
         const userId = userobj?.sub || userobj?.id;
-        
-        console.log('[Pong3DGamePage] 🎮 Mounting with gameId:', this.gameId, 'side:', this.side, 'userId:', userId);
 
         if (!this.gameId || !userId) 
         {
-            console.error('[Pong3DGamePage] ❌ Missing game parameters');
             await Modal.alert('Error', 'Missing game parameters (gameId required)');
             navigateTo('/pong');
             return;
@@ -82,14 +79,12 @@ export default class Pong3DGamePage extends BaseComponent
         // Ensure WebSocket is connected
         if (!webSocketService.isConnected()) 
         {
-            console.warn('[Pong3DGamePage] WebSocket not connected, attempting to connect...');
             try 
             {
                 await webSocketService.connect();
             } 
             catch (error) 
             {
-                console.error('[Pong3DGamePage] Failed to connect WebSocket:', error);
                 await Modal.alert('Connection Error', 'Failed to connect to game server. Please try again.');
                 navigateTo('/pong');
                 return;
@@ -97,7 +92,7 @@ export default class Pong3DGamePage extends BaseComponent
         } 
         else 
         {
-            console.log('[Pong3DGamePage] WebSocket already connected');
+
         }
 
         const canvas = document.getElementById('pong3DCanvas') as HTMLCanvasElement;
@@ -127,17 +122,12 @@ export default class Pong3DGamePage extends BaseComponent
 
         try 
         {
-            console.log('[Pong3DGamePage] Initializing 3D game with config:', gameConfig);
-            
             await gameManager.init3DGame(canvas, gameConfig, 
             {
                 matchId: this.gameId,
                 side: this.side,
                 userId: userId
             });
-
-            console.log('[Pong3DGamePage] Game initialized, starting game loop');
-            
             this.setupUIListeners();
             gameManager.startGame();
             
@@ -151,12 +141,7 @@ export default class Pong3DGamePage extends BaseComponent
 
             this.resizeObserver = new ResizeObserver(() => 
             {
-                const oldWidth = canvas.width;
-                const oldHeight = canvas.height;
                 this.fitCanvasToWrapper(canvas, wrapper);
-                if (oldWidth !== canvas.width || oldHeight !== canvas.height) {
-                    console.log('[Pong3DGamePage] Canvas resized:', canvas.width, 'x', canvas.height);
-                }
             });
             this.resizeObserver.observe(wrapper);
 
@@ -206,7 +191,6 @@ export default class Pong3DGamePage extends BaseComponent
         
         gameManager.on('game:score-update', (e: any) => 
         {
-            console.log('[Pong3DGamePage] Score update received:', e.detail);
             const p1 = document.getElementById('score-p1');
             const p2 = document.getElementById('score-p2');
             if (p1) 

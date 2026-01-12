@@ -57,6 +57,102 @@ export class LobbyManager {
     throw new Error('Failed to generate unique lobby ID after multiple attempts');
   }
 
+  /**
+ * Get all available lobbies (waiting status with open slots)
+ */
+async getAvailableLobbies(gameType?: string) {
+  try {
+    const lobbies: any[] = [];
+    let cursor = 0;
+
+    console.log('[LobbyManager] 🔍 Scanning for lobbies...', { gameType });
+
+    do {
+      const result = await this.redis.scan(cursor, {
+        MATCH: 'lobby:*:data',
+        COUNT: 100
+      });
+
+      cursor = result.cursor;
+      const keys = result.keys;
+
+      console.log('[LobbyManager] 🧩 Found keys:', keys);
+
+      for (const key of keys) {
+        const lobbyId = key.split(':')[1];
+
+        const lobbyData = await this.getLobbyData(lobbyId);
+
+        if (!lobbyData) {
+          console.log(`[LobbyManager] ❌ Lobby ${lobbyId} skipped: no lobbyData`);
+          continue;
+        }
+
+        console.log(`[LobbyManager] 📦 Lobby ${lobbyId} data:`, lobbyData);
+
+      if (gameType) 
+      {
+        const lobbyType = lobbyData.gameType.toLowerCase();
+
+        if (
+          gameType === 'pong' &&
+          !['pong', 'pong2d', 'pong3d'].includes(lobbyType)
+        ) continue;
+
+        if (
+          gameType !== 'pong' &&
+          lobbyType !== gameType
+        ) continue;
+      }
+
+
+        if (lobbyData.status !== 'waiting') {
+          console.log(
+            `[LobbyManager] ❌ Lobby ${lobbyId} skipped: status is ${lobbyData.status}`
+          );
+          continue;
+        }
+
+        const players = await this.getLobbyPlayers(lobbyId);
+
+        console.log(
+          `[LobbyManager] 👥 Lobby ${lobbyId} players:`,
+          players.length,
+          '/',
+          lobbyData.maxPlayers
+        );
+
+        if (players.length >= lobbyData.maxPlayers) {
+          console.log(
+            `[LobbyManager] ❌ Lobby ${lobbyId} skipped: lobby full`
+          );
+          continue;
+        }
+
+        console.log(`[LobbyManager] ✅ Lobby ${lobbyId} is AVAILABLE`);
+
+        lobbies.push({
+          id: lobbyId,
+          gameType: lobbyData.gameType,
+          hostId: lobbyData.createdBy,
+          players,
+          maxPlayers: lobbyData.maxPlayers,
+          status: lobbyData.status,
+          createdAt: lobbyData.createdAt
+        });
+      }
+    } while (cursor !== 0);
+
+    console.log('[LobbyManager] 🎯 Available lobbies:', lobbies.map(l => l.id));
+
+    return lobbies;
+  } catch (error) {
+    console.error('[LobbyManager] ❌ Error getting available lobbies:', error);
+    return [];
+  }
+}
+
+
   async createLobby(
     lobbyId: string,
     userId: string,

@@ -124,7 +124,6 @@ export class GameCanvas
     } 
     catch (error) 
     {
-      console.error('Failed to initialize Babylon.js:', error);
       throw error;
     }
   }
@@ -133,7 +132,6 @@ export class GameCanvas
   {
     if (!this.scene) 
     {
-      console.error('Scene not available for physics');
       return;
     }
 
@@ -144,7 +142,6 @@ export class GameCanvas
     } 
     catch (error) 
     {
-      console.error('Failed to initialize physics:', error);
       throw error;
     }
   }
@@ -262,7 +259,6 @@ export class GameCanvas
   {
     if (!this.scene || !this.canvas) 
     {
-      console.error('Cannot initialize managers: scene or canvas not ready');
       return;
     }
 

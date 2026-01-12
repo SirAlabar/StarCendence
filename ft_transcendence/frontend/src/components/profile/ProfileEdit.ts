@@ -141,7 +141,6 @@ export class ProfileEdit extends BaseComponent
         catch (err) 
         {
             this.props.onError((err as Error).message);
-            console.error('Failed to update bio:', err);
         }
     }
 

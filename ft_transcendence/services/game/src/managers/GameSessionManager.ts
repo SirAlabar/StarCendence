@@ -10,6 +10,7 @@ import * as gameRepository from '../repositories/gameRepository';
 import { notFound } from '../utils/HttpError';
 import { PongEngine, PongEvent } from '../engines/PongEngine';
 import { determineWinner } from '../utils/scoreUtils';
+import { saveMatchToDb } from '@/repositories/matchRepository';
 
 const { GAME_LOOP } = GAME_CONFIG;
 
@@ -60,8 +61,6 @@ export async function createGameSession(data:
 
   return { game, gameId: game.id };
 }
-
-
 
 /**
  * Add player from lobby to game session
@@ -211,6 +210,19 @@ async function broadcastGameState(gameId: string): Promise<void> {
   if (!session || !engine) return;
 
   const state = engine.getState();
+
+  session.state.scores = [state.scores.player1, state.scores.player2];
+  
+  const player1Id = engine['player1Id'];
+  const player2Id = engine['player2Id'];
+  const player1 = session.players.get(player1Id);
+  const player2 = session.players.get(player2Id);
+  if (player1) player1.score = state.scores.player1;
+  if (player2) player2.score = state.scores.player2;
+  
+  session.state.timestamp = Date.now();
+  session.tickCount++;
+
   const redis = await getRedisClient();
   
   if (redis) {
@@ -366,6 +378,10 @@ export async function endGameSession(gameId: string): Promise<void>
       },
     }));
   }
+
+  // Save match data to database
+  await saveMatchToDb(session);
+  
 
   // Remove session from store
   sessionStore.delete(gameId);

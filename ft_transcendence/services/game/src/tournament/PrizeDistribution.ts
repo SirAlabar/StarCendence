@@ -1,1 +1,0 @@
-// Prize/points distribution

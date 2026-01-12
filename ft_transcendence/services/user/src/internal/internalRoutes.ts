@@ -34,4 +34,10 @@ export async function internalRoutes(fastify: FastifyInstance) {
     schema: userSchema.getFriendsIdsSchema
   },
   friendController.getFriendsIds);
+
+  fastify.patch('/update-user-stats',
+  {
+    schema: userSchema.updateUserStatsSchema
+  },
+  userController.updateUserStats);
 }

@@ -369,10 +369,6 @@ export class RacerHUD
     {
       (window as any).podRacerPage.goBack();
     } 
-    else 
-    {
-      console.warn('PodRacerPage not found for goBack');
-    }
   }
   
   public dispose(): void 

@@ -5,6 +5,7 @@ import { getBaseUrl } from '@/types/api.types';
 import { Modal } from '@/components/common/Modal';
 import ChatNotificationService from '../../services/chat/ChatNotificationService';
 import { ChatModal } from './ChatWindow';
+import { UserProfile } from '../../types/user.types';
 
 interface Friend 
 {
@@ -27,6 +28,7 @@ interface FriendsListProps
     friends: Friend[];
     friendRequests: FriendRequest[];
     onRequestHandled: () => void;
+    currentUserSettings?: UserProfile['settings']; // Add user settings
 }
 
 export class FriendsList extends BaseComponent 
@@ -42,14 +44,17 @@ export class FriendsList extends BaseComponent
 
     render(): string 
     {
+        // Check if user wants to see friend request notifications
+        const showFriendRequests = this.props.currentUserSettings?.notifyFriendRequests !== false;
+        
         return `
             <div class="bg-gray-800/20 backdrop-blur-md rounded-lg p-4 sm:p-6 md:p-8 border border-gray-700/50 flex flex-col h-full">
                 <h3 class="text-xl sm:text-2xl font-bold text-cyan-400 mb-4 sm:mb-6 tracking-wider" style="text-shadow: 0 0 10px #00ffff;">
                     FRIENDS
                 </h3>
                 
-                <!-- Friend Requests Section -->
-                ${this.props.friendRequests.length > 0 ? this.renderFriendRequests() : ''}
+                <!-- Friend Requests Section - Only show if user has notifications enabled -->
+                ${showFriendRequests && this.props.friendRequests.length > 0 ? this.renderFriendRequests() : ''}
                 
                 <!-- Friends List -->
                 ${this.props.friends.length > 0 
@@ -213,20 +218,20 @@ export class FriendsList extends BaseComponent
 
         const avatarContent = avatarUrl
             ? `<img src="${avatarUrl}" alt="${friend.username}" class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full object-cover">`
-            : `<div class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-lg sm:text-xl font-bold text-white">
+            : `<div class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-xl sm:text-2xl font-bold text-white">
                 ${friend.username.charAt(0).toUpperCase()}
             </div>`;
 
         return `
-            <div class="flex items-center justify-between p-3 sm:p-4 md:p-5 bg-gray-900/30 rounded-lg border border-gray-700/30 hover:border-cyan-500/50 transition-all gap-2 sm:gap-3">
-                <div class="flex items-center gap-2 sm:gap-3 md:gap-4 cursor-pointer min-w-0 flex-1" data-friend-username="${this.escapeHtml(friend.username)}">
-                    <div class="relative flex-shrink-0">
-                        ${avatarContent}
-                        <span class="absolute bottom-0 right-0 w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${statusInfo.color} rounded-full border-2 border-gray-900"></span>
-                    </div>
+            <div class="flex items-center justify-between p-2 sm:p-3 bg-gray-900/40 rounded-lg hover:bg-gray-900/60 transition-colors gap-2 cursor-pointer" data-friend-username="${friend.username}">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    ${avatarContent}
                     <div class="min-w-0 flex-1">
-                        <h4 class="text-base sm:text-lg font-bold text-cyan-400 truncate">${this.escapeHtml(friend.username)}</h4>
-                        <p class="text-xs sm:text-sm text-gray-400">${statusInfo.text}</p>
+                        <h4 class="text-sm sm:text-base md:text-lg font-bold text-cyan-400 truncate">${this.escapeHtml(friend.username)}</h4>
+                        <div class="flex items-center gap-1 sm:gap-2 mt-1">
+                            <span class="w-2 h-2 sm:w-3 sm:h-3 rounded-full ${statusInfo.color}"></span>
+                            <span class="text-xs sm:text-sm text-gray-400">${statusInfo.text}</span>
+                        </div>
                     </div>
                 </div>
                 <button class="neon-border-small px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-lg font-bold text-cyan-400 text-xs sm:text-sm flex-shrink-0 relative" data-friend-id="${friend.id}" data-friend-username="${this.escapeHtml(friend.username)}" data-friend-avatar="${friend.avatarUrl || ''}">
@@ -237,30 +242,33 @@ export class FriendsList extends BaseComponent
         `;
     }
 
-    private getStatusInfo(status: Friend['status']): { color: string; text: string } 
+    private getStatusInfo(status: string): { color: string; text: string } 
     {
         switch (status) 
         {
             case 'ONLINE':
-                return { color: 'bg-green-500', text: 'Online' };
+                return { color: 'bg-green-500', text: 'ONLINE' };
+            case 'AWAY':
+                return { color: 'bg-yellow-500', text: 'AWAY' };
             case 'IN_GAME':
-                return { color: 'bg-blue-500', text: 'In Match' };
+                return { color: 'bg-blue-500', text: 'IN GAME' };
             case 'OFFLINE':
             default:
-                return { color: 'bg-gray-500', text: 'Offline' };
+                return { color: 'bg-gray-500', text: 'OFFLINE' };
         }
     }
 
     protected afterMount(): void 
     {
         this.setupEventListeners();
-        this.subscribeToNotifications();
+        this.subscribeToUnreadUpdates();
         this.loadInitialUnreadCounts();
     }
-    
-    private subscribeToNotifications(): void 
+
+    private subscribeToUnreadUpdates(): void 
     {
-        ChatNotificationService.onFriendUnreadChange((friendId: string, count: number) => 
+        // Subscribe to friend unread count changes
+        ChatNotificationService.onFriendUnreadChange((friendId, count) => 
         {
             this.friendUnreadCounts.set(friendId, count);
             this.updateFriendBadge(friendId, count);
@@ -414,7 +422,6 @@ export class FriendsList extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to accept friend request:', err);
             await Modal.alert('Error', 'Failed to accept friend request');
         }
     }
@@ -428,7 +435,6 @@ export class FriendsList extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to decline friend request:', err);
             await Modal.alert('Error', 'Failed to decline friend request');
         }
     }

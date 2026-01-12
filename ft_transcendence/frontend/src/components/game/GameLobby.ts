@@ -79,7 +79,6 @@ export class GameLobby extends BaseComponent
     }
     catch (err) 
     {
-        console.error('Failed to load user profile:', err);
         this.currentUser = null;
     }
     
@@ -143,13 +142,14 @@ export class GameLobby extends BaseComponent
                 // Update UI
                 this.updateFriendsList();
             });
-        } catch (err) {
-            console.warn('[GameLobby] OnlineFriendsService not available:', err);
+        } 
+        catch (err) 
+        {
+
         }
     }
     catch (err) 
     {
-        console.error('Failed to load friends:', err);
         this.friends = [];
         this.allFriends = [];
     }
@@ -638,15 +638,15 @@ export class GameLobby extends BaseComponent
     public updateStartButtonArea(): void {
         // Find the flex-1 div that contains the button area
         const contentDiv = document.querySelector('.flex-1.flex.flex-col.px-8');
-        if (!contentDiv) {
-            console.warn('[GameLobby] Could not find content div for start button update');
+        if (!contentDiv)
+        {
             return;
         }
 
         // Find the start button area (first child of content div)
         const buttonArea = contentDiv.firstElementChild;
-        if (!buttonArea) {
-            console.warn('[GameLobby] Could not find button area');
+        if (!buttonArea) 
+        {
             return;
         }
 
@@ -897,7 +897,6 @@ export class GameLobby extends BaseComponent
         this.eventsAttached = true;
     }
 
-    
     private async refreshFriendsList(): Promise<void> 
     {
         try 
@@ -912,9 +911,8 @@ export class GameLobby extends BaseComponent
             this.friends = this.allFriends.filter((f: any) => f.status === 'online' || f.status === 'ONLINE');
             this.updateFriendsList();
         } 
-        catch (err) 
+            catch (err) 
         {
-            console.error('Failed to refresh friends:', err);
         }
     }
 
@@ -1210,7 +1208,6 @@ export class GameLobby extends BaseComponent
             slot.paddleName = option.name;
             slot.paddleGradient = option.color;
             this.refreshPlayerCard(slot.id);
-            console.log(slot.paddleName)
             if (this.currentUser && slot.userId === this.currentUser.id) {
                 const lobbyId = this.getLobbyIdFromUrl();
                 if (lobbyId) {
@@ -1236,7 +1233,6 @@ export class GameLobby extends BaseComponent
        
         slot.paddleName = option.name;
         slot.paddleGradient = option.color;
-        console.log(userId, paddleName, slot.paddleName)
        
         this.refreshPlayerCard(slot.id);
     }

@@ -423,7 +423,6 @@ export default class UserPublicPage extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to get current user:', err);
             this.isOwnProfile = false;
         }
         
@@ -452,7 +451,6 @@ export default class UserPublicPage extends BaseComponent
         catch (err) 
         {
             this.error = (err as Error).message;
-            console.error('Failed to load user profile:', err);
         } 
         finally 
         {
@@ -484,7 +482,6 @@ export default class UserPublicPage extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to check friendship:', err);
             this.isFriend = false;
             this.hasPendingRequest = false;
         } 
@@ -618,8 +615,6 @@ export default class UserPublicPage extends BaseComponent
             {
                 this.showMessage(error.message || 'Failed to send friend request', 'error');
             }
-            
-            console.error('Failed to send friend request:', err);
         }
     }
 
@@ -671,7 +666,6 @@ export default class UserPublicPage extends BaseComponent
         catch (err) 
         {
             this.showMessage((err as Error).message, 'error');
-            console.error('Failed to unfriend:', err);
         }
     }
 }

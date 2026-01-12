@@ -72,7 +72,6 @@ export default class PongGamePage extends BaseComponent {
 
         if (!this.gameId || !userId) 
         {
-            console.error('[PongGamePage] ❌ Missing game parameters');
             await Modal.alert('Error', 'Missing game parameters (gameId required)');
             navigateTo('/pong');
             return;
@@ -80,14 +79,12 @@ export default class PongGamePage extends BaseComponent {
 
         // Ensure WebSocket is connected
         if (!webSocketService.isConnected()) {
-            console.warn('[PongGamePage] ⚠️ WebSocket not connected, attempting to connect...');
             try {
                 await webSocketService.connect();
 
             } 
             catch (error) 
             {
-                console.error('[PongGamePage] ❌ Failed to connect WebSocket:', error);
                 await Modal.alert('Connection Error', 'Failed to connect to game server. Please try again.');
                 navigateTo('/pong');
                 return;
@@ -95,7 +92,6 @@ export default class PongGamePage extends BaseComponent {
         } 
         else 
         {
-            console.log('[PongGamePage] WebSocket already connected');
         }
 
         const canvas = document.getElementById('pongCanvas') as HTMLCanvasElement;
@@ -103,7 +99,6 @@ export default class PongGamePage extends BaseComponent {
         
         if (!canvas || !wrapper) 
         {
-            console.error('[PongGamePage] ❌ Canvas or wrapper not found in DOM');
             await Modal.alert('Error', 'Game canvas not found');
             navigateTo('/pong');
             return;
@@ -152,8 +147,9 @@ export default class PongGamePage extends BaseComponent {
             });
             this.resizeObserver.observe(wrapper);
 
-        } catch (error) {
-            console.error('Failed to start game:', error);
+        } 
+        catch (error) 
+        {
             await Modal.alert('Error', 'Failed to initialize game engine');
             navigateTo('/pong');
         }

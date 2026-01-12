@@ -35,9 +35,9 @@ export default {
       
       // Gaming fonts
       fontFamily: {
-        'mono': ['Fira Code', 'Monaco', 'Cascadia Code', 'Roboto Mono', 'monospace'],
-        'game': ['Rebellion', 'Orbitron', 'Exo 2', 'sans-serif'],
-        'sans': ['Rebellion', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        'mono': ['"Fira Code"', 'Monaco', '"Roboto Mono"', 'monospace'],
+        'game': ['Rebellion', 'Orbitron', '"Exo 2"', 'sans-serif'],
+        'sans': ['Rebellion', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
         'constellation': ['Trattorian', 'Orbitron', 'sans-serif']
       },
       

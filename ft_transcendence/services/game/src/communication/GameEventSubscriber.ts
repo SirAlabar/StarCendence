@@ -128,6 +128,10 @@ export class GameEventSubscriber {
           await this.handleGameReady(event);
           break;
 
+        case 'lobby:quick-play':
+          await this.handleQuickPlay(event);
+          break;
+
         default:
           break;
       }
@@ -204,6 +208,106 @@ export class GameEventSubscriber {
       });
     }
   }
+
+private async handleQuickPlay(event: GameEventMessage): Promise<void>
+{
+  const rawGameType = event.payload?.gameType;
+  const gameType = rawGameType ?? 'pong';
+  const { userId, username } = event;
+
+  console.log('[QuickPlay] ================================');
+  console.log('[QuickPlay] ⚡ Request received', {
+    userId,
+    username,
+    rawGameType,
+    resolvedGameType: gameType,
+    payload: event.payload
+  });
+
+  try
+  {
+    console.log('[QuickPlay] 🔍 Fetching available lobbies for gameType:', gameType);
+
+    const availableLobbies = await this.lobbyManager.getAvailableLobbies(gameType);
+
+    console.log('[QuickPlay] 📊 getAvailableLobbies result', {
+      count: availableLobbies.length,
+      lobbyIds: availableLobbies.map(l => l.id)
+    });
+
+    if (availableLobbies.length > 0)
+    {
+      const lobby = availableLobbies[0];
+
+      console.log('[QuickPlay] ✅ Selected lobby', {
+        lobbyId: lobby.id,
+        lobbyGameType: lobby.gameType,
+        players: lobby.players.length,
+        maxPlayers: lobby.maxPlayers,
+        status: lobby.status,
+        hostId: lobby.hostId
+      });
+
+      const joinEvent: GameEventMessage = {
+        ...event,
+        payload: {
+          lobbyId: lobby.id,
+          avatarUrl: event.payload?.avatarUrl || ''
+        }
+      };
+
+      console.log('[QuickPlay] ➕ Forwarding to handleLobbyJoin', {
+        joinUserId: userId,
+        lobbyId: lobby.id
+      });
+
+      await this.handleLobbyJoin(joinEvent);
+    }
+    else
+    {
+      console.log('[QuickPlay] 🆕 No available lobbies found');
+      console.log('[QuickPlay] 🧱 Creating new lobby with params', {
+        gameType,
+        maxPlayers: 2,
+        avatarUrl: event.payload?.avatarUrl || ''
+      });
+
+      const createEvent: GameEventMessage = {
+        ...event,
+        payload: {
+          gameType,
+          maxPlayers: 2,
+          avatarUrl: event.payload?.avatarUrl || ''
+        }
+      };
+
+      console.log('[QuickPlay] ➕ Forwarding to handleLobbyCreate');
+
+      await this.handleLobbyCreate(createEvent);
+    }
+  }
+  catch (error)
+  {
+    console.error('[QuickPlay] ❌ ERROR during Quick Play flow', {
+      userId,
+      username,
+      gameType,
+      error
+    });
+
+    await this.broadcastToUser(userId, {
+      type: 'lobby:quick-play:response',
+      payload: {
+        success: false,
+        error: 'Failed to find or create lobby'
+      }
+    });
+  }
+  finally
+  {
+    console.log('[QuickPlay] ================================');
+  }
+}
 
 
   private async handleLobbyInvite(event: GameEventMessage): Promise<void>
@@ -393,135 +497,132 @@ export class GameEventSubscriber {
     }
   }
 
-  private async handleLobbyReady(event: GameEventMessage): Promise<void> {
-    const { lobbyId, isReady } = event.payload;
-    const { userId, username } = event;
+  private async handleLobbyReady(event: GameEventMessage): Promise<void> 
+  {
+      const { lobbyId, isReady } = event.payload;
+      const { userId, username } = event;
 
-    try {
-      console.log(`[GameEventSubscriber] 🎯 ${username} ready status: ${isReady} in lobby ${lobbyId}`);
+      try {
+        console.log(`[GameEventSubscriber] 🎯 ${username} ready status: ${isReady} in lobby ${lobbyId}`);
 
-      await this.lobbyManager.updatePlayerReady(lobbyId, userId, isReady);
+        await this.lobbyManager.updatePlayerReady(lobbyId, userId, isReady);
 
-      const userIds = await this.lobbyManager.getLobbyUserIds(lobbyId);
+        const userIds = await this.lobbyManager.getLobbyUserIds(lobbyId);
 
-      await this.broadcastToUsers(userIds, {
-        type: 'lobby:player:ready',
-        payload: {
-          lobbyId,
-          userId,
-          username,
-          isReady,
-        },
-      });
+        await this.broadcastToUsers(userIds, {
+          type: 'lobby:player:ready',
+          payload: {
+            lobbyId,
+            userId,
+            username,
+            isReady,
+          },
+        });
 
-      console.log(`[GameEventSubscriber] ✅ Ready status updated and broadcasted for ${username}`);
-    } catch (error) {
-      console.error(`[GameEventSubscriber] ❌ Failed to update ready status:`, error);
+        console.log(`[GameEventSubscriber] ✅ Ready status updated and broadcasted for ${username}`);
+      } catch (error) {
+        console.error(`[GameEventSubscriber] ❌ Failed to update ready status:`, error);
+      }
     }
-  }
 
-  private async handleLobbyStart(event: GameEventMessage): Promise<void> {
-    const { lobbyId } = event.payload;
-    const { userId } = event;
+    private async handleLobbyStart(event: GameEventMessage): Promise<void> 
+    {
+      const { lobbyId } = event.payload;
+      const { userId } = event;
 
-    console.log(`[GameEventSubscriber] 🚀 Starting game for lobby ${lobbyId} requested by user ${userId}`);
+      console.log(`[GameEventSubscriber] 🚀 Starting game for lobby ${lobbyId} requested by user ${userId}`);
 
-    try {
-      const players = await this.lobbyManager.getLobbyPlayers(lobbyId);
-      
-      if (players.length === 0) {
-        console.log(`[GameEventSubscriber] ❌ Cannot start game: lobby ${lobbyId} has no players`);
-        return;
-      }
-
-      const lobbyData = await this.lobbyManager.getLobbyData(lobbyId);
-      if (!lobbyData) {
-        console.log(`[GameEventSubscriber] ❌ Cannot start game: lobby ${lobbyId} not found`);
-        return;
-      }
-
-      const hostPlayer = players.find(p => p.isHost);
-      if (!hostPlayer || hostPlayer.userId !== userId) {
-        console.log(`[GameEventSubscriber] ❌ Cannot start game: user ${userId} is not the host`);
-        return;
-      }
-
-      const nonHostPlayers = players.filter(p => !p.isHost);
-      const allReady = nonHostPlayers.every(p => p.isReady);
-      if (!allReady) {
-        console.log(`[GameEventSubscriber] ❌ Cannot start game: not all players are ready`);
-        return;
-      }
-
-      if (players.length < 2) {
-        console.log(`[GameEventSubscriber] ❌ Cannot start game: need at least 2 players (current: ${players.length})`);
-        return;
-      }
-
-      console.log(`[GameEventSubscriber] ✅ Starting game for lobby ${lobbyId} with ${players.length} players`);
-    
-      // Map lobby game type to GameType enum
-      let gameType: GameType;
-      switch (lobbyData.gameType.toLowerCase()) {
-        case 'pong2d':
-        case 'pong3d':
-        case 'pong':
-          gameType = GameType.PONG;
-          break;
-        case 'racer':
-          gameType = GameType.RACER;
-          break;
-        default:
-          gameType = GameType.PONG;
-      }
-
-      // Create game session in database
-      const { game, gameId } = await createGameSession({
-        type: gameType,
-        mode: GameMode.MATCH,
-        maxPlayers: lobbyData.maxPlayers,
-        maxScore: 5, // Default score, could be configurable
-      });
-      if (!game)
+      try 
       {
-        //do nothing xd not checking here!!!!!11111
+        const lobbyData = await this.lobbyManager.getLobbyData(lobbyId);
+
+        if (!lobbyData || lobbyData.status !== 'waiting') 
+        {
+          console.log(`[LobbyStart] Ignored start for lobby ${lobbyId}, status=${lobbyData?.status}`);
+          return;
+        }
+
+        const players = await this.lobbyManager.getLobbyPlayers(lobbyId);
+
+        if (players.length < 2) 
+        {
+          console.log(`[GameEventSubscriber] ❌ Cannot start game: need at least 2 players`);
+          return;
+        }
+
+        const hostPlayer = players.find(p => p.isHost);
+        if (!hostPlayer || hostPlayer.userId !== userId) 
+        {
+          console.log(`[GameEventSubscriber] ❌ Cannot start game: user ${userId} is not the host`);
+          return;
+        }
+
+        const nonHostPlayers = players.filter(p => !p.isHost);
+        if (!nonHostPlayers.every(p => p.isReady)) 
+        {
+          console.log(`[GameEventSubscriber] ❌ Cannot start game: not all players are ready`);
+          return;
+        }
+
+        // 🔒 LOCK FINAL (ninguém mais passa daqui)
+        await this.lobbyManager.updateLobbyStatus(lobbyId, 'starting');
+
+        console.log(`[GameEventSubscriber] ✅ Starting game for lobby ${lobbyId} with ${players.length} players`);
+
+        let gameType: GameType;
+        switch (lobbyData.gameType.toLowerCase()) 
+        {
+          case 'pong2d':
+          case 'pong3d':
+          case 'pong':
+            gameType = GameType.PONG;
+            break;
+          case 'racer':
+            gameType = GameType.RACER;
+            break;
+          default:
+            gameType = GameType.PONG;
+        }
+
+        const { gameId } = await createGameSession({
+          type: gameType,
+          mode: GameMode.MATCH,
+          maxPlayers: lobbyData.maxPlayers,
+          maxScore: 1,
+        });
+
+        for (const player of players) 
+        {
+          await addLobbyPlayerToGame(gameId, player.userId, player.username);
+        }
+
+        await startGameSession(gameId);
+
+        await this.lobbyManager.updateLobbyStatus(lobbyId, 'in_game');
+
+        const userIds = players.map(p => p.userId);
+        await this.broadcastToUsers(userIds, {
+          type: 'lobby:game:starting',
+          payload: {
+            lobbyId,
+            gameId,
+            gameType,
+            players: players.map(p => ({
+              userId: p.userId,
+              username: p.username,
+              isHost: p.isHost,
+              paddle: p.paddle || null,
+            })),
+          },
+        });
+
+      } 
+      catch (error) 
+      {
+        console.error(`[GameEventSubscriber] ❌ Error starting game for lobby ${lobbyId}:`, error);
       }
-
-      // Add all players to the game session
-      for (const player of players) {
-        await addLobbyPlayerToGame(gameId, player.userId, player.username);
-      }
-
-      // Start the game session now that all players are added
-      await startGameSession(gameId);
-
-      console.log(`[GameEventSubscriber] 📝 Created game session ${gameId} for lobby ${lobbyId} with ${players.length} players`);
-
-      // Update lobby status to in_game
-      await this.lobbyManager.updateLobbyStatus(lobbyId, 'in_game');
-
-      // Broadcast game starting to all players
-      const userIds = players.map(p => p.userId);
-      await this.broadcastToUsers(userIds, {
-        type: 'lobby:game:starting',
-        payload: {
-          lobbyId,
-          gameId,
-          gameType,
-          players: players.map(p => ({
-            userId: p.userId,
-            username: p.username,
-            isHost: p.isHost,
-            paddle: p.paddle || null,
-          })),
-        },
-      });
-
-
-    } catch (error) {
-      console.error(`[GameEventSubscriber] ❌ Error starting game for lobby ${lobbyId}:`, error);
-    }
   }
+
 
   private async handleLobbyChat(event: GameEventMessage): Promise<void> {
     const { lobbyId, message } = event.payload;

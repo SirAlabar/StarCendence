@@ -75,20 +75,40 @@ export class Layout extends BaseComponent
     }
 
 
+
     private renderFooter(): string 
     {
         return `
             <footer class="relative z-20 bg-gray-900/90 border-t border-purple-500/20">
-                <div class="mx-auto max-w-4xl p-6">
-                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <div class="text-gray-400 text-sm">
+                <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 py-4 sm:py-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 text-center sm:text-left">
+                        <!-- Copyright Text -->
+                        <div class="text-gray-400 text-xs sm:text-sm order-2 sm:order-1">
                             © 2025 42 Transcendence. Built with ❤️ at 42 School.
                         </div>
-                        <div class="flex gap-4 text-sm">
-                            <a href="#" class="text-cyan-400 hover:text-purple-400 transition-colors">Privacy</a>
-                            <a href="#" class="text-cyan-400 hover:text-purple-400 transition-colors">Terms</a>
-                            <a href="#" class="text-cyan-400 hover:text-purple-400 transition-colors">Support</a>
-                        </div>
+                        
+                        <!-- Footer Links -->
+                        <nav class="flex flex-wrap justify-center items-center gap-3 sm:gap-4 text-xs sm:text-sm order-1 sm:order-2">
+                            <a href="/privacy-policy" 
+                               class="text-cyan-400 hover:text-purple-400 transition-colors duration-200 whitespace-nowrap" 
+                               data-link
+                               aria-label="Privacy Policy">
+                                Privacy Policy
+                            </a>
+                            <span class="text-gray-600 hidden sm:inline">•</span>
+                            <a href="/terms-of-service" 
+                               class="text-cyan-400 hover:text-purple-400 transition-colors duration-200 whitespace-nowrap" 
+                               data-link
+                               aria-label="Terms of Service">
+                                Terms of Service
+                            </a>
+                            <span class="text-gray-600 hidden sm:inline">•</span>
+                            <a href="mailto:support@starcendence.dev" 
+                               class="text-cyan-400 hover:text-purple-400 transition-colors duration-200 whitespace-nowrap"
+                               aria-label="Contact Support">
+                                Support
+                            </a>
+                        </nav>
                     </div>
                 </div>
             </footer>

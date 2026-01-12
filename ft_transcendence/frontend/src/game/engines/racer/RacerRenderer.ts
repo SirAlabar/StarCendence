@@ -87,7 +87,6 @@ export class RacerRenderer
     } 
     catch (error) 
     {
-      console.error('Initialization failed:', error);
       this.hideLoading();
       this.showLoadingError(`Initialization failed: ${error}`);
       
@@ -165,7 +164,6 @@ export class RacerRenderer
     }
     catch (error) 
     {
-      console.error('Failed to start visual race:', error);
       throw error;
     }
   }
@@ -333,7 +331,6 @@ private async getUserAvatarUrl(): Promise<string | null>
     } 
     catch (error) 
     {
-      console.warn('Could not fetch user avatar, using default:', error);
       return null;
     }
 }
@@ -412,7 +409,6 @@ private async getUserAvatarUrl(): Promise<string | null>
       
       this.playerPod.onLoadingError = (error) => 
       {
-        console.error('Pod loading error:', error);
         if (this.onError) 
         {
           this.onError(`Failed to load pod: ${error}`);
@@ -424,7 +420,6 @@ private async getUserAvatarUrl(): Promise<string | null>
     } 
     catch (error) 
     {
-      console.error('Pod loading failed:', error);
       throw error;
     }
   }

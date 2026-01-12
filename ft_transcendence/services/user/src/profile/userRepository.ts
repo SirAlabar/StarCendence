@@ -120,31 +120,40 @@ export async function getUserRank(userId: string)
   };
 }
 
-// Update user stats after a game (for Game Service to call)
-export async function updateUserStats(userId: string, won: boolean, pointsEarned: number)
-{
+// Update user stats after a game
+export async function updateUserStats(userId: string, type: string, mode: string, place: number) {
   const user = await prisma.userProfile.findUnique({
     where: { id: userId },
-    include: { gameStatus: true }
+    select: {
+      gameStatus: {
+        select: { userStatusId: true }
+      }
+    }
   });
 
-  if (!user || !user.gameStatus) {
-    return null;
-  }
+  if (!user?.gameStatus) return null;
+
+  const isWin = place === 1;
+  const isLoss = place !== 1;
 
   return prisma.userProfile.update({
     where: { id: userId },
     data: {
       gameStatus: {
         update: {
-          totalGames: (user.gameStatus.totalGames || 0) + 1,
-          totalWins: won ? (user.gameStatus.totalWins || 0) + 1 : user.gameStatus.totalWins,
-          totalLosses: !won ? (user.gameStatus.totalLosses || 0) + 1 : user.gameStatus.totalLosses,
-          points: (user.gameStatus.points || 0) + pointsEarned
-        }
-    }
-  }});
+          totalGames: { increment: 1 },
+          totalWins: isWin ? { increment: 1 } : undefined,
+          totalLosses: isLoss ? { increment: 1 } : undefined,
+          totalPongWins: type === 'PONG' && isWin ? { increment: 1 } : undefined,
+          totalPongLoss: type === 'PONG' && isLoss ? { increment: 1 } : undefined,
+          totalRacerWins: type === 'RACER' && isWin ? { increment: 1 } : undefined,
+          totalRacerLoss: type === 'RACER' && isLoss ? { increment: 1 } : undefined,
+        },
+      },
+    },
+  });
 }
+
 
 
 // Update two-factor authentication state
@@ -211,28 +220,6 @@ export async function deleteUserProfile(userId: string) {
       },
     });
 
-    await tx.matchHistory.deleteMany({
-      where: {
-        OR: [{ player1Id: userId }, { player2Id: userId }],
-      },
-    });
-
-    await tx.tournamentMatch.deleteMany({
-      where: {
-        OR: [{ player1Id: userId }, { player2Id: userId }],
-      },
-    });
-
-    await tx.tournamentParticipant.deleteMany({
-      where: { userId },
-    });
-
-    await tx.tournament.updateMany({
-      where: { winnerId: userId },
-      data: { winnerId: null },
-    });
-
-    // Use deleteMany to avoid throwing if the related rows do not exist
     await tx.userGameStatus.deleteMany({
       where: { userStatusId: userId },
     });

@@ -248,7 +248,6 @@ export class RacerScene
     } 
     catch (error) 
     {
-      console.error('Failed to load skybox:', error);
     }
   }
   
@@ -268,7 +267,6 @@ export class RacerScene
 
     if (checkpointMeshes.length === 0) 
     {
-      console.warn('No checkpoint meshes found in GLB file');
       return;
     }
 

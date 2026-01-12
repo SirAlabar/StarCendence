@@ -2,7 +2,8 @@ import { BaseComponent } from '../../components/BaseComponent';
 import { PodSelection, PodSelectionEvent } from './PodSelectionPage';
 import { RacerRenderer } from '../../game/engines/racer/RacerRenderer';
 import { PodConfig, AVAILABLE_PODS } from '../../game/utils/PodConfig';
-import { navigateTo, isAuthenticated } from '../../router/router';
+// import { navigateTo, isAuthenticated } from '../../router/router';
+import { navigateTo } from '../../router/router';
 import { Modal } from '@/components/common/Modal';
 
 export default class PodRacerPage extends BaseComponent 
@@ -45,7 +46,7 @@ export default class PodRacerPage extends BaseComponent
                 
                 <div class="grid grid-cols-2 gap-8 mb-12">
                     <!-- Training Mode Card -->
-                    <div id="trainingCard" class="mode-card rounded-2xl p-12 border-2 border-blue-500/40 bg-gradient-to-br from-blue-900/40 to-gray-900/60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/50">
+                    <div id="trainingCard" class="mode-card rounded-2xl p-12 border-2 border-blue-500 border-opacity-40 bg-gradient-to-br from-blue-900 from-opacity-40 to-gray-900 to-opacity-60 backdrop-blur-sm cursor-pointer transition-all hover:scale-105 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/50">
                         <div class="flex flex-col items-center">
                             <img src="/assets/images/training_racer.png" alt="Training" class="w-32 h-32 mb-6 opacity-80">
                             <h3 class="text-3xl font-bold text-blue-400 mb-4">TRAINING</h3>
@@ -114,7 +115,7 @@ export default class PodRacerPage extends BaseComponent
         }
     }
 
-    private selectMode(mode: 'training' | 'multiplayer'): void 
+    private async selectMode(mode: 'training' | 'multiplayer'): Promise<void>
     {
         if (mode === 'training') 
         {
@@ -123,78 +124,82 @@ export default class PodRacerPage extends BaseComponent
         }
         else if (mode === 'multiplayer') 
         {
-            // Check authentication for multiplayer
-            if (!isAuthenticated()) 
-            {
-                this.showMessage(
-                    'You need to be logged in to play online!\nRedirecting to login...',
-                    'error'
-                );
+            await Modal.alert(
+                'Coming Soon! 🚀',
+                'Multiplayer racing is currently under development.\n\nStay tuned for the next update where you\'ll be able to race against other players online!'
+            );
+            // // Check authentication for multiplayer
+            // if (!isAuthenticated()) 
+            // {
+            //     this.showMessage(
+            //         'You need to be logged in to play online!\nRedirecting to login...',
+            //         'error'
+            //     );
 
-                setTimeout(() => 
-                {
-                    localStorage.setItem('redirectAfterLogin', '/lobby?game=racer');
-                    navigateTo('/login');
-                }, 3000);
+            //     setTimeout(() => 
+            //     {
+            //         localStorage.setItem('redirectAfterLogin', '/lobby?game=racer');
+            //         navigateTo('/login');
+            //     }, 3000);
 
-                return;
-            }
+            //     return;
+            // }
             
-            // Navigate to racer lobby if authenticated
-            navigateTo('/lobby?game=racer');
+            // // Navigate to racer lobby if authenticated
+            // navigateTo('/lobby?game=racer');
         }
     }
 
-    private showMessage(message: string, type: 'success' | 'error'): void 
-    {
-        const container = document.getElementById('racerMessage');
-        if (!container) 
-        {
-            return;
-        }
+    // private showMessage(message: string, type: 'success' | 'error'): void 
+    // {
+    //     const container = document.getElementById('racerMessage');
+    //     if (!container) 
+    //     {
+    //         return;
+    //     }
 
-        const bgColor = type === 'success' ? 'bg-green-900/80' : 'bg-red-900/80';
-        const borderColor = type === 'success' ? 'border-green-500' : 'border-red-500';
-        const textColor = type === 'success' ? 'text-green-300' : 'text-red-300';
-        const icon = type === 'success' ? '✓' : '⚠';
+    //     const bgColor = type === 'success' ? 'bg-green-900/80' : 'bg-red-900/80';
+    //     const borderColor = type === 'success' ? 'border-green-500' : 'border-red-500';
+    //     const textColor = type === 'success' ? 'text-green-300' : 'text-red-300';
+    //     const icon = type === 'success' ? '✓' : '⚠';
 
-        container.innerHTML = `
-            <div class="${bgColor} ${borderColor} border-2 rounded-xl p-4 backdrop-blur-sm shadow-2xl animate-pulse-slow">
-                <div class="flex items-center gap-3">
-                    <div class="text-2xl">${icon}</div>
-                    <p class="${textColor} font-bold text-lg">
-                        ${this.escapeHtml(message)}
-                    </p>
-                </div>
-            </div>
-            <style>
-                @keyframes pulse-slow 
-                {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.8; }
-                }
-                .animate-pulse-slow 
-                {
-                    animation: pulse-slow 2s ease-in-out infinite;
-                }
-            </style>
-        `;
+    //     container.innerHTML = `
+    //         <div class="${bgColor} ${borderColor} border-2 rounded-xl p-4 backdrop-blur-sm shadow-2xl animate-pulse-slow">
+    //             <div class="flex items-center gap-3">
+    //                 <div class="text-2xl">${icon}</div>
+    //                 <p class="${textColor} font-bold text-lg">
+    //                     ${this.escapeHtml(message)}
+    //                 </p>
+    //             </div>
+    //         </div>
+    //         <style>
+    //             @keyframes pulse-slow 
+    //             {
+    //                 0%, 100% { opacity: 1; }
+    //                 50% { opacity: 0.8; }
+    //             }
+    //             .animate-pulse-slow 
+    //             {
+    //                 animation: pulse-slow 2s ease-in-out infinite;
+    //             }
+    //         </style>
+    //     `;
 
-        setTimeout(() => 
-        {
-            if (container) 
-            {
-                container.innerHTML = '';
-            }
-        }, 4000);
-    }
+    //     setTimeout(() => 
+    //     {
+    //         if (container) 
+    //         {
+    //             container.innerHTML = '';
+    //         }
+    //     }, 4000);
+    // }
 
-    private escapeHtml(text: string): string 
-    {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+    // private escapeHtml(text: string): string 
+    // {
+    //     const div = document.createElement('div');
+    //     div.textContent = text;
+    //     return div.innerHTML;
+    // }
 
     public showPodSelection(): void 
     {
@@ -328,9 +333,7 @@ export default class PodRacerPage extends BaseComponent
             }
         }
         catch (error)
-        {
-            console.error('Race start failed:', error);
-            
+        {          
             if (!this.isDisposed)
             {
                 await Modal.alert('Race Error','Failed to start race. Returning to game selection.');

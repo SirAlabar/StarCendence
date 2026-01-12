@@ -27,6 +27,9 @@ export class UserProfileComponent extends BaseComponent
     {
         const statusColor = this.getStatusColor(this.props.userProfile.status);
         const statusText = this.getStatusText(this.props.userProfile.status);
+        
+        // Check if user wants to show their online status
+        const showStatus = this.props.userProfile.settings?.showOnlineStatus !== false;
 
         return `
             <div class="bg-gray-800/20 backdrop-blur-md rounded-lg p-4 sm:p-6 md:p-8 border border-gray-700/50">
@@ -37,10 +40,16 @@ export class UserProfileComponent extends BaseComponent
                     ${this.escapeHtml(this.props.userProfile.username).toUpperCase()}
                 </h2>
                 
-                <div class="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                    <span class="inline-block w-3 h-3 sm:w-4 sm:h-4 rounded-full ${statusColor}"></span>
-                    <span class="text-gray-300 text-xs sm:text-sm font-bold tracking-wide">${statusText}</span>
-                </div>
+                ${showStatus ? `
+                    <div class="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                        <span class="inline-block w-3 h-3 sm:w-4 sm:h-4 rounded-full ${statusColor}"></span>
+                        <span class="text-gray-300 text-xs sm:text-sm font-bold tracking-wide">${statusText}</span>
+                    </div>
+                ` : `
+                    <div class="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                        <span class="text-gray-500 text-xs sm:text-sm font-bold tracking-wide">STATUS HIDDEN</span>
+                    </div>
+                `}
                 
                 <div class="space-y-2 sm:space-y-3 text-xs sm:text-sm mb-6 sm:mb-8">
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-gray-700/50 gap-1">

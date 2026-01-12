@@ -2,7 +2,6 @@
 
 import { GameType, GameMode, GameStatus } from '../utils/constants';
 import { PongState } from './pong.types';
-import { RacerState } from './racer.types';
 import { GamePlayer } from './player.types';
 
 /**
@@ -67,9 +66,6 @@ export interface GameState
   
   // Pong-specific state
   pong?: PongState;
-  
-  // Racer-specific state
-  racer?: RacerState;
 }
 
 /**

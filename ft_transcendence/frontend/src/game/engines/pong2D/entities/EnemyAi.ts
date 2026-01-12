@@ -32,7 +32,7 @@ export class enemy
         this.targetY = this.y;
         this.difficulty = difficulty;
         this.settings = this.getDifficultySettings(difficulty);
-        console.log("AI Difficulty:", this.difficulty);
+        this.getDifficulty();
     }
 
     private getDifficultySettings(difficulty: AiDifficulty): DifficultySettings 
@@ -57,7 +57,7 @@ export class enemy
     {
         if (Math.random() < this.settings.missChance) 
         {
-            console.log("AI will miss", this.shouldMiss);
+            
             this.shouldMiss = true;
             this.targetY = this.getRandomMissPosition(canvasHeight);
         }
@@ -72,7 +72,15 @@ export class enemy
         return this.getMovementDirection();
     }
 
-    
+    public getDifficulty()
+    {
+        return this.difficulty;
+    }
+
+    public getshouldMiss()
+    {
+        return this.shouldMiss
+    }
 
     private predictBallPosition(ball: Ball, canvasHeight: number): number {
         

@@ -112,15 +112,14 @@ export async function getUserRank(userId: string) {
   return userWithRank;
 }
 
-// Update user stats (internal - called after game)
-export async function updateUserStats(userId: string, won: boolean, pointsEarned: number) {
-  const user = await userRepository.updateUserStats(userId, won, pointsEarned);
+// Update user stats
+export async function updateUserStats(type: any, mode: any, players: any, winnerUserId: string | null) {
+  await Promise.all(players.map(async (player: any) => {
+    const place = player.userId === winnerUserId ? 1 : 2;
+    await userRepository.updateUserStats(player.userId, type, mode, place);
+  }));
 
-  if (!user) {
-    throw new HttpError('User not found', 404);
-  }
-
-  return user;
+  return ;
 }
 
 // Update two-factor authentication state (internal)

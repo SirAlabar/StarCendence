@@ -44,7 +44,6 @@ export class RaceManager
     
     if (this.racers.has(podId)) 
     {
-      console.warn(`Racer ${podId} already registered`);
       return;
     }
 

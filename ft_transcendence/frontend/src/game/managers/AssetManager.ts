@@ -89,7 +89,6 @@ export class AssetManager
   {
     if (this.assetsToLoad.length === 0) 
     {
-      console.warn('No assets to load');
       return this.loadedAssets;
     }
     
@@ -124,7 +123,6 @@ export class AssetManager
           {
             const error = `${config.id}: ${message || exception}`;
             errors.push(error);
-            console.error(`❌ Failed to load mesh: ${error}`);
           };
         }
         else if (config.type === 'texture') 
@@ -146,7 +144,6 @@ export class AssetManager
           {
             const error = `${config.id}: ${message || exception}`;
             errors.push(error);
-            console.error(`❌ Failed to load texture: ${error}`);
           };
         }
       });

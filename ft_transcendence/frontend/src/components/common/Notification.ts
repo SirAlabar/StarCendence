@@ -214,18 +214,20 @@ class Notifications extends BaseComponent
                     </button>
                 </div>
             `;
+
             // Join button
             const joinBtn = el.querySelector('.join-btn');
-            if (!joinBtn) {
-                console.warn('Join button not found in notification element:', el.innerHTML);
-            } else {
+            if (!joinBtn) 
+            {
+
+            } 
+            else 
+            {
                 joinBtn.addEventListener('click', () => {
-                    if (notification.gameType && notification.gameId) {
-    
+                    if (notification.gameType && notification.gameId) 
+                    {
                          navigateTo(`/lobby?game=${encodeURIComponent(notification.gameType)}&id=${encodeURIComponent(notification.gameId)}`) 
-                    } else {
-                        console.warn('Missing gameType or gameId in notification:', notification);
-                    }
+                    } 
                     this.remove(el);
                 });
             }
@@ -238,7 +240,9 @@ class Notifications extends BaseComponent
                 e.stopPropagation();
                 this.remove(el);
             });
-        } else {
+        } 
+        else 
+        {
             // Default layout for other notifications
             el.innerHTML = `
                 <div class="flex items-start gap-3">

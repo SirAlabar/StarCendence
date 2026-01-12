@@ -18,7 +18,7 @@ export class Header extends BaseComponent
     private totalUnreadCount: number = 0;
     private updateNavItems(): void 
     {
-        const isLoggedIn = localStorage.getItem('access_token') !== null;
+        const isLoggedIn = localStorage.getItem('accessToken') !== null;
         
         if (isLoggedIn) 
         {
@@ -430,8 +430,6 @@ export class Header extends BaseComponent
         } 
         catch (error) 
         {
-            console.error('[Header] Logout error:', error);
-            
             webSocketService.disconnect();
             LoginService.clearTokens();
             this.refresh();

@@ -30,7 +30,7 @@ export class ChatModal extends BaseComponent
         this.props = props;
         
         // Get current user ID from JWT token
-        const token = localStorage.getItem('access_token');
+        const token = localStorage.getItem('accessToken');
         if (token) 
         {
             try 
@@ -45,7 +45,6 @@ export class ChatModal extends BaseComponent
         }
         else
         {
-            console.error('[ChatModal] ❌ No access token found');
             this.currentUserId = '';
         }
     }
@@ -305,7 +304,6 @@ export class ChatModal extends BaseComponent
         } 
         catch (error) 
         {
-            console.error('[ChatModal] ❌ Failed to load messages:', error);
             this.isLoading = false;
             this.messages = [];
             this.updateMessagesDisplay();
@@ -403,7 +401,7 @@ export class ChatModal extends BaseComponent
             } 
             catch (error) 
             {
-                console.error('[ChatModal] ❌ Error handling WebSocket message:', error);
+
             }
         };
         
@@ -463,7 +461,6 @@ export class ChatModal extends BaseComponent
         } 
         catch (error) 
         {
-            console.error('[ChatModal] ❌ Failed to send message:', error);
             this.isSending = false;
             this.updateInputArea();
             await Modal.alert('Error', 'Failed to send message. Please try again.');
@@ -479,7 +476,7 @@ export class ChatModal extends BaseComponent
         } 
         catch (error) 
         {
-            console.error('[ChatModal] ❌ Failed to mark as read:', error);
+
         }
     }
     

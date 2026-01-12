@@ -8,18 +8,9 @@ import { OnlinePong3D } from '../engines/pong3D/Pong3dOnline';
 type GameStateStatus = 'menu' | 'matchmaking' | 'playing' | 'paused' | 'ended';
 type GameDimension = '2d' | '3d';
 
-export class GameManager {
-    
-    private play_sound() 
-    {
-        if (!this.playerPreferences.soundEnabled) 
-            return;
-        const audio = new Audio('/assets/sounds/sfx/hit.mp3');
-        audio.volume = this.playerPreferences.volume ?? 0.5;
-        audio.play().catch(err => {
-            console.debug('[PongManager] Audio autoplay blocked:', err.message);
-        });
-    }
+export class GameManager 
+{
+ 
     private static instance: GameManager;
     
     // Current game
@@ -76,7 +67,6 @@ export class GameManager {
     {
         if (this.currentState === 'playing') 
         {
-            console.warn('Game already running. Call cleanup() first.');
             return;
         }
         
@@ -162,7 +152,6 @@ export class GameManager {
         } 
         catch (error) 
         {
-            console.error(' Failed to initialize game:', error);
             this.currentState = 'menu';
             throw error;
         }
@@ -172,7 +161,6 @@ export class GameManager {
     {
         if (!this.currentEngine) 
         {
-            console.error('No game initialized');
             return;
         }
         this.currentState = 'playing';
@@ -215,14 +203,12 @@ export class GameManager {
     {
         if (!this.currentEngine) 
         {
-            console.warn('No game engine to resize');
             return;
         }
-    
+        
         if ('resize' in this.currentEngine && typeof this.currentEngine.resize === 'function') 
         {
             this.currentEngine.resize(newWidth, newHeight);
-            console.log("got here resize")
         }
     }
     
@@ -247,7 +233,6 @@ export class GameManager {
     {
         if (!this.canvas || !this.currentConfig || !this.currentDimension) 
         {
-            console.error('Cannot restart: missing config');
             return;
         }
         
@@ -302,7 +287,6 @@ export class GameManager {
                     });
                 }
             } catch (err) {
-                console.log("failed to set paddle color")
             }
         
     }
@@ -423,7 +407,7 @@ export class GameManager {
     }
     private play_sound_goal() 
     {
-        const audio = new Audio('/assets/sounds/sfx/goal.mp3');
+        const audio = new Audio('/assets/sounds/sfx/point.mp3');
         audio.volume = 0.6;
         audio.play().catch(err => {
             console.debug('[PongManager] Audio autoplay blocked:', err.message);
@@ -440,8 +424,19 @@ export class GameManager {
 
     private play_paddle_hit()
     {
-        const audio = new Audio('/assets/sounds/sfx/paddlehit.mp3');
+        const audio = new Audio('/assets/sounds/sfx/hit.mp3');
         audio.volume = 0.6;
+        audio.play().catch(err => {
+            console.debug('[PongManager] Audio autoplay blocked:', err.message);
+        });
+    }
+
+    private play_sound() 
+    {
+        if (!this.playerPreferences.soundEnabled) 
+            return;
+        const audio = new Audio('/assets/sounds/sfx/hit.mp3');
+        audio.volume = this.playerPreferences.volume ?? 0.5;
         audio.play().catch(err => {
             console.debug('[PongManager] Audio autoplay blocked:', err.message);
         });

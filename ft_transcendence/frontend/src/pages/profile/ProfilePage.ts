@@ -6,6 +6,7 @@ import { UserProfileComponent } from '../../components/profile/UserProfile';
 import { FriendsList } from '../../components/profile/FriendsList';
 import { Settings } from '../../components/profile/Settings';
 import { SearchUsers } from '../../components/profile/SearchUsers';
+import ChatNotificationService from '../../services/chat/ChatNotificationService';
 
 export default class ProfilePage extends BaseComponent 
 {
@@ -92,6 +93,12 @@ export default class ProfilePage extends BaseComponent
         await this.loadFriends();
         await this.loadFriendRequests();
         
+        // Pass user settings to ChatNotificationService
+        if (this.userProfile?.settings) 
+        {
+            ChatNotificationService.setUserSettings(this.userProfile.settings);
+        }
+        
         this.mountComponents();
         this.setupActionButtons();
         this.setupGlobalEventListeners();
@@ -105,7 +112,6 @@ export default class ProfilePage extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to load profile:', err);
         }
     }
 
@@ -130,7 +136,6 @@ export default class ProfilePage extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to load friends:', err);
             this.friends = [];
         }
     }
@@ -144,7 +149,6 @@ export default class ProfilePage extends BaseComponent
         } 
         catch (err) 
         {
-            console.error('Failed to load friend requests:', err);
             this.friendRequests = [];
         }
     }
@@ -161,6 +165,13 @@ export default class ProfilePage extends BaseComponent
             onProfileUpdated: async (updatedProfile: UserProfile) => 
             {
                 this.userProfile = updatedProfile;
+                
+                // Update ChatNotificationService with new settings
+                if (updatedProfile.settings) 
+                {
+                    ChatNotificationService.setUserSettings(updatedProfile.settings);
+                }
+                
                 this.remountUserProfile();
             },
             onError: (message: string) => this.showMessage(message, 'error'),
@@ -171,6 +182,7 @@ export default class ProfilePage extends BaseComponent
         this.friendsListComponent = new FriendsList({
             friends: this.friends,
             friendRequests: this.friendRequests,
+            currentUserSettings: this.userProfile.settings, // Pass user settings
             onRequestHandled: async () => 
             {
                 await this.loadFriends();
@@ -193,6 +205,13 @@ export default class ProfilePage extends BaseComponent
             onProfileUpdated: async (updatedProfile: UserProfile) => 
             {
                 this.userProfile = updatedProfile;
+                
+                // Update ChatNotificationService with new settings
+                if (updatedProfile.settings) 
+                {
+                    ChatNotificationService.setUserSettings(updatedProfile.settings);
+                }
+                
                 this.remountUserProfile();
             },
             onError: (message: string) => this.showMessage(message, 'error'),
@@ -206,6 +225,7 @@ export default class ProfilePage extends BaseComponent
         this.friendsListComponent = new FriendsList({
             friends: this.friends,
             friendRequests: this.friendRequests,
+            currentUserSettings: this.userProfile?.settings, // Pass user settings
             onRequestHandled: async () => 
             {
                 await this.loadFriends();
@@ -285,7 +305,18 @@ export default class ProfilePage extends BaseComponent
             onSettingsUpdated: async (updatedProfile: UserProfile) => 
             {
                 this.userProfile = updatedProfile;
+                
+                // Update ChatNotificationService with new settings
+                if (updatedProfile.settings) 
+                {
+                    ChatNotificationService.setUserSettings(updatedProfile.settings);
+                }
+                
                 this.showMessage('Settings updated successfully!', 'success');
+                
+                // Remount components to reflect new settings
+                this.remountUserProfile();
+                this.remountFriendsList();
             }
         });
 

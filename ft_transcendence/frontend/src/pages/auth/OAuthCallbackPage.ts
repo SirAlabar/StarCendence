@@ -55,7 +55,6 @@ export default class OAuthCallbackPage extends BaseComponent
         } 
         catch (error) 
         {
-            console.error('OAuth callback error:', error);
             window.location.replace('/login');
         }
     }

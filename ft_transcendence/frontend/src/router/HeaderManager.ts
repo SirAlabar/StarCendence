@@ -24,7 +24,6 @@ export function mountHeader(type: string, selector: string = '#header'): void
     const container = document.querySelector(selector);
     if (!container) 
     {
-        console.error(`Header container "${selector}" not found`);
         return;
     }
 
@@ -52,7 +51,6 @@ function mountDefault(selector: string): void
 {
     if (!header) 
     {
-        console.error('Header not initialized');
         return;
     }
     
