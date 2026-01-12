@@ -90,7 +90,7 @@ help:
 	@printf "  $(GREEN)make ps$(DEFAULT)           - Show running containers\n\n"
 	@printf "$(YELLOW)🧹 Maintenance:$(DEFAULT)\n"
 	@printf "  $(GREEN)make clean$(DEFAULT)        - Clean containers and images\n"
-	@printf "  $(GREEN)make fclean$(DEFAULT)       - Nuclear clean (removes data)\n"
+	@printf "  $(GREEN)make fclean$(DEFAULT)       - Nuclear clean (rems data)\n"
 	@printf "  $(GREEN)make prune$(DEFAULT)        - Docker system cleanup\n\n"
 	@printf "$(YELLOW)🔧 Utilities:$(DEFAULT)\n"
 	@printf "  $(GREEN)make shell-nginx$(DEFAULT)  - Enter nginx container\n"
