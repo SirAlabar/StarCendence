@@ -79,6 +79,10 @@ export class ChatEventSubscriber
     {
         try 
         {
+            if (event.payload.message.length > 500) {
+                throw new Error('Message exceeds maximum length');
+            }
+
             // Save to database first
             const roomId = await getRoomId(event.userId, event.payload.targetUserId);
             const savedMessage = await saveMessage(event.userId, roomId, event.payload.message);
