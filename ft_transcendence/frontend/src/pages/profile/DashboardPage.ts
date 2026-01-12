@@ -324,7 +324,7 @@ export default class DashboardPage extends BaseComponent
                 <div>
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-cyan-400 font-bold text-sm tracking-wider">PONG</span>
-                        <span class="text-gray-400 text-xs">${pongWins}W / ${pongMatches.length}L</span>
+                        <span class="text-gray-400 text-xs">${pongWins}W / ${pongMatches.length}T</span>
                     </div>
                     <div class="h-3 bg-gray-700 rounded-full overflow-hidden">
                         <div class="chart-bar h-full rounded-full" style="width: ${pongWinRate}%;"></div>
@@ -335,7 +335,7 @@ export default class DashboardPage extends BaseComponent
                 <div>
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-purple-400 font-bold text-sm tracking-wider">POD RACER</span>
-                        <span class="text-gray-400 text-xs">${racerWins}W / ${racerMatches.length}L</span>
+                        <span class="text-gray-400 text-xs">${racerWins}W / ${racerMatches.length}T</span>
                     </div>
                     <div class="h-3 bg-gray-700 rounded-full overflow-hidden">
                         <div class="chart-bar h-full rounded-full" style="width: ${racerWinRate}%;"></div>
