@@ -141,3 +141,27 @@ export const getFriendsIdsSchema = {
     }
   }
 };
+
+// Update user stats schema for internal PATCH /internal/update-user-stats
+export const updateUserStatsSchema = {
+  body: {
+    type: 'object',
+    required: ['type', 'mode', 'players', 'winnerUserId'],
+    properties: {
+      type: { type: 'string' },
+      mode: { type: 'string' },
+      players: { 
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+            score: { type: 'number' }
+          }
+        }
+      },
+      winnerUserId: { type: 'string' }
+    }
+  }
+};
+

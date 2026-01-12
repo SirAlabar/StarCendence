@@ -379,10 +379,9 @@ export async function endGameSession(gameId: string): Promise<void>
     }));
   }
 
-  console.log('engine:', engine);
-
   // Save match data to database
   await saveMatchToDb(session);
+  
 
   // Remove session from store
   sessionStore.delete(gameId);
