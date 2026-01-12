@@ -5,6 +5,7 @@ import { Modal } from '@/components/common/Modal';
 import { webSocketService } from '../../services/websocket/WebSocketService';
 import { LoginService } from '../../services/auth/LoginService';
 import { UserProfile } from '../../types/user.types';
+
 import UserService from '../../services/user/UserService';
 
 
@@ -911,18 +912,30 @@ export default class PongPage extends BaseComponent
             return;
         }
 
-        const handler = (message: any) => 
+        const handler = async (message: any) => 
         {
+
             if (message.type === 'lobby:create:ack' && message.payload?.lobbyId) 
             {
                 cleanup();
-                navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+                if(this.selectedView === "2d")
+                    navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+                else if(this.selectedView === "3d")
+                    navigateTo(`/lobby?game=pong3d&id=${message.payload.lobbyId}`);
+                else
+                    navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
             }
 
             if (message.type === 'lobby:join:ack' && message.payload?.lobbyId) 
             {
                 cleanup();
-                navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+                
+                if(this.selectedView === '2d')
+                    navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+                else if(this.selectedView === "3d")
+                    navigateTo(`/lobby?game=pong3d&id=${message.payload.lobbyId}`);
+                else
+                    navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
             }
         };
 

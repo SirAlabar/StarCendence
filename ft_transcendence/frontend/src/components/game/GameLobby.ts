@@ -764,7 +764,6 @@ export class GameLobby extends BaseComponent
         }
         if (target.closest('#sendChatBtn')) 
         {
-            console.log("send clicked via delegation"); // This should now show up
             this.sendChatMessage();
             return;
         }
