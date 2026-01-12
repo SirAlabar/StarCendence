@@ -34,7 +34,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD redis-cli -a "$(cat /run/secrets/redis_password 2>/dev/null || echo '')" ping || exit 1
 
 # Switch to redis user
-USER redis
+USER root
 
 # Use custom entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

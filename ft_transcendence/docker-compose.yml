@@ -98,6 +98,7 @@ services:
     build:
       context: ./services/game
       dockerfile: Dockerfile
+    user: root
     ports:
       - "3002:3002"
     volumes:
