@@ -144,6 +144,7 @@ export async function updateUserStats(userId: string, type: string, mode: string
           totalGames: { increment: 1 },
           totalWins: isWin ? { increment: 1 } : undefined,
           totalLosses: isLoss ? { increment: 1 } : undefined,
+          points: isWin ? { increment: 20 } : undefined,
           totalPongWins: type === 'PONG' && isWin ? { increment: 1 } : undefined,
           totalPongLoss: type === 'PONG' && isLoss ? { increment: 1 } : undefined,
           totalRacerWins: type === 'RACER' && isWin ? { increment: 1 } : undefined,
