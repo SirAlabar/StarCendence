@@ -890,77 +890,74 @@ export default class PongPage extends BaseComponent
         }
     }
 
-private async handleQuickPlay(): Promise<void>
-{
-    const user = LoginService.getCurrentUser();
-    if (!user) 
+    private async handleQuickPlay(): Promise<void>
     {
-        await Modal.alert('Login Required', 'Please log in');
-        navigateTo('/login');
-        return;
-    }
-    
-    if (!this.userProfile) 
-    {
-        await this.loadProfile();
-    }
-    
-    if (!webSocketService.isConnected()) 
-    {
-        await Modal.alert('Connection Error', 'WebSocket not connected');
-        return;
-    }
-    
-    const handler = (message: any) => 
-    {
-        if (message.type === 'lobby:create:ack' && message.payload?.lobbyId) 
+        const user = LoginService.getCurrentUser();
+        if (!user) 
         {
-            cleanup();
-            const gameParam = this.normalizeGameType(message.payload.gameType || 'pong');
-            navigateTo(`/lobby?game=${gameParam}&id=${message.payload.lobbyId}`);
+            await Modal.alert('Login Required', 'Please log in');
+            navigateTo('/login');
+            return;
         }
         
-        if (message.type === 'lobby:join:ack' && message.payload?.lobbyId) 
+        if (!this.userProfile) 
         {
-            cleanup();
-            const gameParam = this.normalizeGameType(message.payload.gameType || 'pong');
-            navigateTo(`/lobby?game=${gameParam}&id=${message.payload.lobbyId}`);
+            await this.loadProfile();
         }
-    };
-    
-    const cleanup = () => 
-    {
-        webSocketService.off('*', handler);
-    };
-    
-    webSocketService.on('*', handler);
-    
-    webSocketService.send('lobby:quick-play', {
-        gameType: 'pong',
-        avatarUrl: this.userProfile?.avatarUrl
-    });
-}
+        
+        if (!webSocketService.isConnected()) 
+        {
+            await Modal.alert('Connection Error', 'WebSocket not connected');
+            return;
+        }
+        
+        const handler = (message: any) => 
+        {
+            if (message.type === 'lobby:create:ack' && message.payload?.lobbyId) 
+            {
+                cleanup();
+                const gameParam = this.normalizeGameType(message.payload.gameType || 'pong');
+                navigateTo(`/lobby?game=${gameParam}&id=${message.payload.lobbyId}`);
+            }
+            
+            if (message.type === 'lobby:join:ack' && message.payload?.lobbyId) 
+            {
+                cleanup();
+                const gameParam = this.normalizeGameType(message.payload.gameType || 'pong');
+                navigateTo(`/lobby?game=${gameParam}&id=${message.payload.lobbyId}`);
+            }
+        };
+        
+        const cleanup = () => 
+        {
+            webSocketService.off('*', handler);
+        };
+        
+        webSocketService.on('*', handler);
+        
+        webSocketService.send('lobby:quick-play', {
+            gameType: 'pong',
+            avatarUrl: this.userProfile?.avatarUrl
+        });
+    }
 
-/**
- * Helper method to normalize game type to URL parameter format
- */
-private normalizeGameType(gameType: string): string 
-{
-    const normalized = gameType.toLowerCase();
-    
-    if (normalized === 'pong2d' || normalized === '2d') 
+    private normalizeGameType(gameType: string): string 
     {
+        const normalized = gameType.toLowerCase();
+        
+        if (normalized === 'pong2d' || normalized === '2d') 
+        {
+            return 'pong2d';
+        }
+        
+        if (normalized === 'pong3d' || normalized === '3d') 
+        {
+            return 'pong3d';
+        }
+        
+        // Default fallback to pong2d
         return 'pong2d';
     }
-    
-    if (normalized === 'pong3d' || normalized === '3d') 
-    {
-        return 'pong3d';
-    }
-    
-    // Default fallback to pong2d
-    return 'pong2d';
-}
 
 
     private showWinnerOverlay(winner: string): void 
