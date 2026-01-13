@@ -4,11 +4,6 @@ import { omit } from 'lodash';
 
 const prisma = new PrismaClient();
 
-// Find all user profiles -- DEBUG PURPOSES
-export async function findAllUserProfiles() {
-  return prisma.userProfile.findMany();
-}
-
 // Create a new user profile
 export async function createUserProfile(authId: string, email: string, username: string, oauthEnabled: boolean) {
   return prisma.userProfile.create({
