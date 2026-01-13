@@ -37,7 +37,8 @@
     "dotenv": "^16.3.1",
     "nanoid": "^5.0.4",
     "pino": "^8.17.2",
-    "pino-pretty": "^10.3.1"
+    "pino-pretty": "^10.3.1",
+    "prom-client": "^15.1.3"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",

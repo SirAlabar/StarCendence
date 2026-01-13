@@ -18,13 +18,13 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 12,
+  "id": 3,
   "links": [],
   "panels": [
     {
       "datasource": {
-        "uid": "PBFA97CFB590B2093",
-        "type": "prometheus"
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -61,16 +61,16 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 5,
-        "w": 6,
+        "h": 4,
+        "w": 12,
         "x": 0,
         "y": 0
       },
-      "id": 1,
+      "id": 8,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
@@ -84,12 +84,15 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
-          "editorMode": "builder",
-          "expr": "up{instance=\"auth-service:3001\", job=\"auth-service\"}",
-          "legendFormat": "__auto",
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "up{job=\"http-metrics\"}",
+          "format": "time_series",
+          "instant": false,
+          "legendFormat": "{{display}}",
           "range": true,
           "refId": "A"
         }
@@ -99,13 +102,13 @@
     },
     {
       "datasource": {
-        "uid": "PBFA97CFB590B2093",
-        "type": "prometheus"
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
           "custom": {
             "axisBorderShow": false,
@@ -113,16 +116,29 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
-            "fillOpacity": 70,
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
-            "lineWidth": 0,
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -141,66 +157,58 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
-        "w": 18,
-        "x": 6,
+        "h": 8,
+        "w": 12,
+        "x": 12,
         "y": 0
       },
-      "id": 2,
-      "interval": "10m",
-      "maxDataPoints": 500,
+      "id": 12,
       "options": {
-        "barRadius": 0,
-        "barWidth": 0.75,
-        "colorByField": "sum(http_request_duration_seconds_count{job=\"auth-service\", instance=\"auth-service:3001\"})",
-        "fullHighlight": false,
-        "groupWidth": 0.7,
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
-        "orientation": "auto",
-        "showValue": "auto",
-        "stacking": "none",
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
           "sort": "none"
-        },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": -200
+        }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
-          "editorMode": "builder",
-          "expr": "sum(http_request_duration_seconds_count{job=\"auth-service\", instance=\"auth-service:3001\"})",
-          "legendFormat": "__auto",
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(process_cpu_seconds_total{job=\"http-metrics\"}[5m]) * 100",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{display}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Total Requests",
-      "type": "barchart"
+      "title": "CPU Usage",
+      "type": "timeseries"
     },
     {
       "datasource": {
-        "uid": "PBFA97CFB590B2093",
-        "type": "prometheus"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "decimals": 2,
+          "decimals": 1,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -208,24 +216,28 @@
               {
                 "color": "green",
                 "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
               }
             ]
           },
-          "unit": "hours"
+          "unit": "h"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
+        "w": 12,
         "x": 0,
-        "y": 5
+        "y": 4
       },
       "id": 7,
       "options": {
         "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
+        "graphMode": "area",
+        "justifyMode": "center",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
@@ -236,15 +248,18 @@
           "values": false
         },
         "showPercentChange": false,
+        "text": {
+          "titleSize": 25
+        },
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "editorMode": "code",
-          "expr": "(time() - process_start_time_seconds{job=\"auth-service\", instance=\"auth-service:3001\"}) / 3600",
-          "legendFormat": "__auto",
+          "expr": "(time() - process_start_time_seconds{job=\"http-metrics\"}) / 3600",
+          "legendFormat": "{{display}}",
           "range": true,
           "refId": "A"
         }
@@ -254,8 +269,8 @@
     },
     {
       "datasource": {
-        "uid": "PBFA97CFB590B2093",
-        "type": "prometheus"
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -309,23 +324,24 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "s"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 8,
+        "w": 12,
         "x": 0,
-        "y": 9
+        "y": 8
       },
-      "id": 6,
+      "id": 16,
       "options": {
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -333,26 +349,94 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "editorMode": "code",
-          "exemplar": false,
-          "expr": "rate(nodejs_gc_duration_seconds_sum{job=\"auth-service\"}[5m])",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "__auto",
+          "expr": "nodejs_eventloop_lag_p99_seconds{job=\"http-metrics\"}",
+          "legendFormat": "{{display}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Garbage collection time",
+      "title": "Event Loop Lag",
       "type": "timeseries"
     },
     {
       "datasource": {
-        "uid": "PBFA97CFB590B2093",
-        "type": "prometheus"
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 13,
+      "options": {
+        "displayMode": "gradient",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "process_open_fds{job=\"http-metrics\"}",
+          "legendFormat": "{{display}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Open File Descriptors",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -406,23 +490,24 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "bytes"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 9
+        "w": 12,
+        "x": 0,
+        "y": 16
       },
-      "id": 4,
+      "id": 15,
       "options": {
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -430,63 +515,28 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(http_request_duration_seconds_sum{job=\"auth-service\"}[5m]))/sum(rate(http_request_duration_seconds_count{job=\"auth-service\"}[5m]))\r\n",
-          "legendFormat": "__auto",
+          "expr": "process_resident_memory_bytes{job=\"http-metrics\"}",
+          "legendFormat": "{{display}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Average request duration",
+      "title": "Phisical RAM Memory Usage",
       "type": "timeseries"
     },
     {
       "datasource": {
-        "uid": "PBFA97CFB590B2093",
-        "type": "prometheus"
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -507,37 +557,47 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 9
+        "w": 12,
+        "x": 12,
+        "y": 16
       },
-      "id": 3,
+      "id": 14,
       "options": {
+        "displayMode": "gradient",
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": false
         },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
       },
-      "pluginVersion": "12.2.1",
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum(rate(http_request_duration_seconds_count{job=\"auth-service\"}[1m]))",
-          "hide": false,
-          "legendFormat": "__auto",
+          "expr": "http_requests_total{job=\"http-metrics\"}",
+          "legendFormat": "{{display}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Request Rate",
-      "type": "timeseries"
+      "title": "Total Http Requests",
+      "type": "bargauge"
     }
   ],
   "preload": false,
@@ -649,7 +709,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Auth Service Dashboard",
+  "title": "Starcendence - Services - Dashboard",
   "uid": "ad8kxj7",
-  "version": 31
+  "version": 1
 }

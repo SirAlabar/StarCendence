@@ -2,18 +2,20 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import { fastifyErrorHandler } from './handlers/errorHandler'
+import { FastifyRequest } from 'fastify'
 import { internalEndpointProtection } from './middleware/securityMiddleware'
 import { initializeRedis, closeRedis, getRedisClient } from './communication/RedisPublisher';
 import { ChatEventSubscriber } from './communication/ChatEventSubscriber';
 import { internalRoutes } from './internal/internalRoutes'
 import { chatRoutes } from './chat/chatRoutes'
-//import { ChatManager } from './managers/chatManager'  
+import { httpRequestsTotal, metrics } from './metrics/metrics'
+
 
 export async function buildApp() {
   const fastify = Fastify({ logger: true })
 
   // Register plugins
-  await fastify.register(cors, {
+await fastify.register(cors, {
     origin: [
       'https://starcendence.dev',
       'http://localhost:5173',
@@ -53,9 +55,17 @@ export async function buildApp() {
   // Global error handler
   fastify.setErrorHandler(fastifyErrorHandler);
   fastify.addHook('preHandler', internalEndpointProtection);
+
+  fastify.addHook('onRequest', async (request: FastifyRequest) => {
+      if (request.url === '/metrics') {
+        return;
+      }
+      httpRequestsTotal.inc();
+    });
   
   fastify.register(internalRoutes, { prefix: '/internal' });
   fastify.register(chatRoutes);
+  fastify.register(metrics);
 
   return fastify; 
 }

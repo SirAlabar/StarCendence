@@ -1,6 +1,7 @@
 // app.ts - Just export the functions, don't try to run
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import { FastifyRequest } from 'fastify';
 import { GAME_CONFIG } from './utils/constants';
 import { registerGameRoutes } from './controllers/gameController';
 import { registerInputRoutes } from './controllers/inputController';
@@ -9,6 +10,7 @@ import { GameEventSubscriber } from './communication/GameEventSubscriber';
 import { LobbyManager } from './managers/LobbyManager';
 import { PrismaClient } from '@prisma/client';
 import { matchHistoryRoutes } from './match_history/matchHistoryRoutes';
+import { httpRequestsTotal, metrics } from './metrics/metrics'
 
 const prisma = new PrismaClient();
 
@@ -48,12 +50,20 @@ export async function createApp(): Promise<FastifyInstance>
     };
   });
 
+  fastify.addHook('onRequest', async (request: FastifyRequest) => {
+      if (request.url === '/metrics') {
+        return;
+      }
+      httpRequestsTotal.inc();
+    });
+  
+
   // Register routes
   registerGameRoutes(fastify);
   registerInputRoutes(fastify);
-
-  fastify.register(matchHistoryRoutes);
   
+  fastify.register(matchHistoryRoutes);
+  fastify.register(metrics);
 
   // Error handler
   fastify.setErrorHandler((error, _request, reply) => {

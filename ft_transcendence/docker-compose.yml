@@ -88,6 +88,8 @@ services:
       - jwt_secret
       - google_client_id
       - google_client_secret
+      - metrics_user
+      - metrics_pass
     env_file:
       - .env
     environment:
@@ -118,6 +120,8 @@ services:
     secrets:
       - redis_password
       - internal_api_key
+      - metrics_user
+      - metrics_pass
     ports:
       - "127.0.0.1:3002:3002"
       - "127.0.0.1:5003:5003"
@@ -145,6 +149,8 @@ services:
     secrets:
       - internal_api_key
       - redis_password
+      - metrics_user
+      - metrics_pass
     networks:
       - transcendence_network
     environment:
@@ -185,6 +191,8 @@ services:
       - "3004"
     secrets:
       - internal_api_key
+      - metrics_user
+      - metrics_pass
     env_file:
       - .env
     depends_on:
@@ -206,6 +214,8 @@ services:
       - internal_api_key
       - redis_password
       - jwt_secret
+      - metrics_user
+      - metrics_pass
     ports:
       - "127.0.0.1:3005:3005"
     expose:
@@ -233,20 +243,25 @@ services:
       - redis_password
     restart: unless-stopped
 
-  # Prometheus Monitoring
+  # Prometheus
   prometheus:
     container_name: transcendence_prometheus
     image: prom/prometheus:latest
     volumes:
       - prometheus_data:/prometheus
-      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/monitoring/prometheus/prometheus.yml.tpl:/etc/prometheus/prometheus.yml.tpl:ro
+      - ./infrastructure/monitoring/prometheus/entrypoint.sh:/etc/prometheus/entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/etc/prometheus/entrypoint.sh"]
     ports:
       - "127.0.0.1:9090:9090"
     networks:
       - transcendence_network
+    secrets:
+      - metrics_user
+      - metrics_pass
     restart: always
 
-  # Grafana Monitoring
+  # Grafana
   grafana:
     image: grafana/grafana:latest
     container_name: transcendence_grafana
@@ -355,3 +370,7 @@ secrets:
     file: ../secrets/cloudflare_tunnel_credentials.json
   cloudflare_origin_cert:
     file: ../secrets/cloudflare_origin_cert.pem
+  metrics_user:
+    file: ../secrets/metrics_user.txt
+  metrics_pass:
+    file: ../secrets/metrics_pass.txt
