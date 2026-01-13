@@ -4,17 +4,7 @@ import * as userController from './userController';
 import * as userSchema from './userSchema';
 import * as userRepository from './userRepository';
 
-export async function userRoutes(fastify: FastifyInstance) 
-{
-  // Find all user profiles -- DEBUG PURPOSES
-  fastify.get('/profiles',
-    async (request: any, reply: any) => 
-    {
-      const profiles = await userRepository.findAllUserProfiles();
-      return profiles;
-    }
-  );
-
+export async function userRoutes(fastify: FastifyInstance) {
   fastify.get('/profile',
   {
     preHandler: [verifyUserToken]

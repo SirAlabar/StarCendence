@@ -3,11 +3,6 @@ import { FriendshipStatus } from './friend.types';
 
 const prisma = new PrismaClient();
 
-// Get all friendships
-export async function findAllFriendships() {
-  return prisma.friendship.findMany();
-}
-
 // Get friends for a user
 export async function findFriendsByUserId(userId: string) {
   return prisma.friendship.findMany({

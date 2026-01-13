@@ -34,13 +34,10 @@ export async function buildApp() {
 
   fastify.register(fastifyMetrics, { endpoint: '/metrics' });
   
-  fastify.get('/health', async () => ({ status: 'Health is Ok!' }))
-
   fastify.register(authRoutes);
   fastify.register(oauthRoutes);
   fastify.register(twoFactorRoutes, { prefix: '/2fa' });
   fastify.register(tokenRoutes);
-  // fastify.register(internalRoutes, { prefix: '/internal' });
 
   return fastify; 
 }
