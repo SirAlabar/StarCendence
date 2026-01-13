@@ -595,7 +595,7 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
           type: gameType,
           mode: GameMode.MATCH,
           maxPlayers: lobbyData.maxPlayers,
-          maxScore: 1,
+          maxScore: 5,
         });
 
         for (const player of players) 

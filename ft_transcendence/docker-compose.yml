@@ -109,8 +109,6 @@ services:
       context: ./services/game
       dockerfile: Dockerfile
     user: root
-    ports:
-      - "3002:3002"
     volumes:
       - game_data:/app/data
       - ./services/game:/app
