@@ -83,6 +83,10 @@ services:
       - ./services/auth:/app
       - /app/node_modules
       - auth_data:/app/data
+    volumes:
+      - ./services/auth:/app
+      - /app/node_modules
+      - auth_data:/app/data
     secrets:
       - internal_api_key
       - jwt_secret
@@ -110,7 +114,6 @@ services:
     build:
       context: ./services/game
       dockerfile: Dockerfile
-    user: root
     volumes:
       - game_data:/app/data
       - ./services/game:/app
@@ -120,6 +123,11 @@ services:
     secrets:
       - redis_password
       - internal_api_key
+    ports:
+      - "127.0.0.1:3002:3002"
+      - "127.0.0.1:5003:5003"
+    expose:
+      - "3002"
       - metrics_user
       - metrics_pass
     ports:
@@ -214,6 +222,10 @@ services:
       - internal_api_key
       - redis_password
       - jwt_secret
+    ports:
+      - "127.0.0.1:3005:3005"
+    expose:
+      - "3005"
       - metrics_user
       - metrics_pass
     ports:
@@ -243,7 +255,7 @@ services:
       - redis_password
     restart: unless-stopped
 
-  # Prometheus
+  # Prometheus Monitoring
   prometheus:
     container_name: transcendence_prometheus
     image: prom/prometheus:latest
@@ -261,7 +273,7 @@ services:
       - metrics_pass
     restart: always
 
-  # Grafana
+  # Grafana Monitoring
   grafana:
     image: grafana/grafana:latest
     container_name: transcendence_grafana
