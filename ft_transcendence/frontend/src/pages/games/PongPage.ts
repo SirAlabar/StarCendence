@@ -891,6 +891,7 @@ export default class PongPage extends BaseComponent
         }
     }
 
+   
     private async handleQuickPlay(): Promise<void>
     {
         const user = LoginService.getCurrentUser();
@@ -900,53 +901,69 @@ export default class PongPage extends BaseComponent
             navigateTo('/login');
             return;
         }
-
+        
         if (!this.userProfile) 
         {
             await this.loadProfile();
         }
-
+        
         if (!webSocketService.isConnected()) 
         {
             await Modal.alert('Connection Error', 'WebSocket not connected');
             return;
         }
 
+        
+        if (!this.selectedView) 
+        {
+            this.showMessage('Please select 2D or 3D view first!', 'error');
+            return;
+        }
+        
         const handler = async (message: any) => 
         {
-
             if (message.type === 'lobby:create:ack' && message.payload?.lobbyId) 
             {
                 cleanup();
-                if(this.selectedView === "2d")
-                    navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
-                else if(this.selectedView === "3d")
-                    navigateTo(`/lobby?game=pong3d&id=${message.payload.lobbyId}`);
-                else
-                    navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+                const gameType = message.payload.gameType || 'pong';
+                
+                
+                let gameParam = 'pong';
+                if (gameType === 'pong2d' || gameType === '2d') {
+                    gameParam = 'pong2d';
+                } else if (gameType === 'pong3d' || gameType === '3d') {
+                    gameParam = 'pong3d';
+                }
+                
+                navigateTo(`/lobby?game=${gameParam}&id=${message.payload.lobbyId}`);
             }
-
+            
             if (message.type === 'lobby:join:ack' && message.payload?.lobbyId) 
             {
                 cleanup();
+                const gameType = message.payload.gameType || 'pong';
                 
-                if(this.selectedView === '2d')
-                    navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
-                else if(this.selectedView === "3d")
-                    navigateTo(`/lobby?game=pong3d&id=${message.payload.lobbyId}`);
-                else
-                    navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+                
+                let gameParam = 'pong';
+                if (gameType === 'pong2d' || gameType === '2d') {
+                    gameParam = 'pong2d';
+                } else if (gameType === 'pong3d' || gameType === '3d') {
+                    gameParam = 'pong3d';
+                }
+                
+                navigateTo(`/lobby?game=${gameParam}&id=${message.payload.lobbyId}`);
             }
         };
-
+        
         const cleanup = () => {
             webSocketService.off('*', handler);
         };
-
+        
         webSocketService.on('*', handler);
-
+        
+        // Send the selected view type (2d or 3d) to the backend
         webSocketService.send('lobby:quick-play', {
-            gameType: 'pong',
+            gameType: this.selectedView, // This will be either '2d' or '3d'
             avatarUrl: this.userProfile?.avatarUrl
         });
     }
