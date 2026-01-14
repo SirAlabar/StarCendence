@@ -245,19 +245,24 @@ services:
   # Prometheus Monitoring
   prometheus:
     container_name: transcendence_prometheus
-    image: prom/prometheus:latest
+    build:
+      context: ./infrastructure/monitoring/prometheus
+      dockerfile: Dockerfile
     volumes:
       - prometheus_data:/prometheus
+      # Mount the template (the generated file stays inside the container's /etc/prometheus/gen)
       - ./infrastructure/monitoring/prometheus/prometheus.yml.tpl:/etc/prometheus/prometheus.yml.tpl:ro
-      - ./infrastructure/monitoring/prometheus/entrypoint.sh:/etc/prometheus/entrypoint.sh:ro
-    entrypoint: ["/bin/sh", "/etc/prometheus/entrypoint.sh"]
     ports:
       - "127.0.0.1:9090:9090"
     networks:
       - transcendence_network
     secrets:
-      - metrics_user
-      - metrics_pass
+      - source: metrics_user
+        uid: "65534"
+        mode: 0444
+      - source: metrics_pass
+        uid: "65534"
+        mode: 0444
     restart: always
 
   # Grafana Monitoring
