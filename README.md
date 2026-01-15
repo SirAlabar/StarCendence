@@ -185,9 +185,7 @@ Frontend → websocket → game-service (cached validation)
 ### **Star Wars Racer**
 - Complex physics simulation (vehicle dynamics)
 - Track boundary enforcement
-- Power-ups system with server validation
-- Multiplayer racing with position synchronization
-- Advanced collision detection (5-10ms validation)
+- Advanced collision detection
 
 ### **Real-time Architecture**
 - WebSocket connections for 60fps gameplay
