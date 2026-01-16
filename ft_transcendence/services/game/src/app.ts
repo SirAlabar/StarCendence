@@ -3,8 +3,6 @@ import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import { FastifyRequest } from 'fastify';
 import { GAME_CONFIG } from './utils/constants';
-import { registerGameRoutes } from './controllers/gameController';
-import { registerInputRoutes } from './controllers/inputController';
 import { initializeRedis, closeRedis, getRedisClient } from './communication/RedisPublisher';
 import { GameEventSubscriber } from './communication/GameEventSubscriber';
 import { LobbyManager } from './managers/LobbyManager';
@@ -56,12 +54,7 @@ export async function createApp(): Promise<FastifyInstance>
       }
       httpRequestsTotal.inc();
     });
-  
 
-  // Register routes
-  registerGameRoutes(fastify);
-  registerInputRoutes(fastify);
-  
   fastify.register(matchHistoryRoutes);
   fastify.register(metrics);
 
