@@ -11,16 +11,21 @@ import './events/GameEvents';
 import './events/LobbyEvents';
 import './events/ChatEvents';
 import './events/TournamentEvents';
+import { httpRequestsTotal, metrics } from './metrics/metrics';
+
 
 export async function createApp(): Promise<FastifyInstance>
 {
-  const app = Fastify(
-  {
-    logger:
-    {
-      level: process.env.LOG_LEVEL || 'info',
-    },
-  });
+  const app = Fastify({logger: {level: process.env.LOG_LEVEL || 'info',},});
+
+  app.register(metrics);
+
+  app.addHook('onRequest', async (request: FastifyRequest) => {
+      if (request.url === '/metrics') {
+        return;
+      }
+      httpRequestsTotal.inc();
+    });
 
   // Initialize Redis and pub/sub
   try

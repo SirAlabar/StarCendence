@@ -19,6 +19,7 @@ export class OnlinePong3D implements GameEngine
     private camera!: FreeCamera;
     private topCamera!: FreeCamera;
     private light!: HemisphericLight;
+    private finalCamera!: FreeCamera
     
     // Game Objects
     private ball!: Mesh;
@@ -358,7 +359,10 @@ export class OnlinePong3D implements GameEngine
         this.topCamera = new FreeCamera("topCamera", new Vector3(0, 102.50, 0), this.scene);
         this.topCamera.rotation = new Vector3(Math.PI / 2, 0, 0);
         
+        this.finalCamera = new FreeCamera("finalCamera", new Vector3(0, 102.50, 0), this.scene);
+        this.finalCamera.rotation = new Vector3(Math.PI / 2, Math.PI, 0);
         this.scene.activeCamera = this.camera;
+
     }
 
     private createLight(): void {
@@ -478,18 +482,34 @@ export class OnlinePong3D implements GameEngine
     }
 
     private changeCamera(): void {
-        const isTop = this.scene.activeCamera === this.topCamera;
-        this.scene.activeCamera = isTop ? this.camera : this.topCamera;
-        
-        if (!isTop) 
-        { 
-            this.keybinds.p1 = { left: "w", right: "s" };
-            this.keybinds.p2 = { left: "w", right: "s" };
-        } 
-        else 
-        { 
-            this.keybinds.p1 = { left: "a", right: "d" };
-            this.keybinds.p2 = { left: "a", right: "d" };
+
+        if(this.playerSide === "left")
+        {
+            const isTop = this.scene.activeCamera === this.topCamera;
+            this.scene.activeCamera = isTop ? this.camera : this.topCamera;
+            
+            if (!isTop) 
+            { 
+                this.keybinds.p1 = { left: "w", right: "s" };
+            } 
+            else 
+            { 
+                this.keybinds.p1 = { left: "a", right: "d" };
+            }
+        }
+        else
+        {
+            const isTop = this.scene.activeCamera === this.finalCamera;
+            this.scene.activeCamera = isTop ? this.camera : this.finalCamera;
+            
+            if (!isTop) 
+            { 
+                this.keybinds.p2 = { left: "w", right: "s" };
+            } 
+            else 
+            { 
+                this.keybinds.p2 = { left: "a", right: "d" };
+            }
         }
     }
 

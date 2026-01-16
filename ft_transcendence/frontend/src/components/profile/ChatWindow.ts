@@ -287,6 +287,8 @@ export class ChatModal extends BaseComponent
         
         // Scroll to bottom
         this.scrollToBottom();
+
+        this.focusInput(false);
     }
 
     private async loadMessages(): Promise<void> 
@@ -409,64 +411,66 @@ export class ChatModal extends BaseComponent
         webSocketService.on('chat:message', this.wsMessageHandler);
     }
     
-    private async handleSend(): Promise<void> 
+    private async handleSend(): Promise<void>
     {
-        const input = document.getElementById('chat-input') as HTMLTextAreaElement;
-        if (!input) 
-        {
-            return;
-        }
-        
-        const message = input.value.trim();
-        
-        if (!message || this.isSending) 
-        {
-            return;
-        }
-        
-        try 
-        {
-            this.isSending = true;
-            this.updateInputArea();
+      const input = document.getElementById('chat-input') as HTMLTextAreaElement;
+      if (!input) return;
 
-            // Try WebSocket first (for real-time delivery)
-            const wsSent = webSocketService.send('chat:message', {
-                targetUserId: this.props.friendId,
-                message: message
-            });
-            
-            if (!wsSent) 
-            {
-                // Fallback to HTTP if WebSocket is not available
-                await ChatService.sendMessage(this.props.friendId, message);
-            }
-            
-            // Add to local messages (optimistic update)
-            const newMessage: ChatMessage = {
-                id: `temp_${Date.now()}`,
-                senderId: this.currentUserId,
-                content: message,
-                timestamp: new Date(),
-                createdAt: new Date(),
-                isRead: false
-            };
-            
-            this.messages.push(newMessage);
- 
-            input.value = '';
-            this.isSending = false;
-            this.updateInputArea();
-            this.updateMessagesDisplay();
-            this.scrollToBottom();
-        } 
-        catch (error) 
+      const message = input.value.trim();
+      if (!message || this.isSending)
+      {
+        this.focusInput();
+        return;
+      }
+
+      if (message.length > 500)
+      {
+        await Modal.alert('Error', 'Message exceeds maximum length of 500 characters.');
+        this.focusInput(false);
+        return;
+      }
+
+      try
+      {
+        this.isSending = true;
+        this.updateInputState();
+
+        const wsSent = webSocketService.send('chat:message', {
+          targetUserId: this.props.friendId,
+          message
+        });
+
+        if (!wsSent)
         {
-            this.isSending = false;
-            this.updateInputArea();
-            await Modal.alert('Error', 'Failed to send message. Please try again.');
+          await ChatService.sendMessage(this.props.friendId, message);
         }
+
+        this.messages.push({
+          id: `temp_${Date.now()}`,
+          senderId: this.currentUserId,
+          content: message,
+          timestamp: new Date(),
+          createdAt: new Date(),
+          isRead: false
+        });
+
+        input.value = '';
+
+        this.isSending = false;
+        this.updateInputState();
+        this.updateMessagesDisplay();
+        this.scrollToBottom();
+
+        this.focusInput();
+      } catch (error)
+      {
+        this.isSending = false;
+        this.updateInputState();
+        await Modal.alert('Error', 'Failed to send message. Please try again.');
+        this.focusInput(false);
+      }
     }
-    
+
     private async markAsRead(): Promise<void> 
     {
         try 
@@ -513,43 +517,39 @@ export class ChatModal extends BaseComponent
             });
         }
     }
-    
-    private updateInputArea(): void 
+
+    private updateInputState(): void
     {
-        const modal = document.getElementById('chat-modal-overlay');
-        if (!modal) 
-        {
-            return;
-        }
-        
-        const inputArea = modal.querySelector('.border-t');
-        if (!inputArea) 
-        {
-            return;
-        }
-        
-        inputArea.innerHTML = this.renderInputArea().match(/<div class="flex gap-3">[\s\S]*?<\/div>\s*<p class="text-xs[\s\S]*?<\/p>/)?.[0] || '';
-        
-        // Re-attach event listeners to new elements
-        const sendBtn = document.getElementById('send-btn');
-        if (sendBtn) 
-        {
-            sendBtn.addEventListener('click', () => this.handleSend());
-        }
-        
-        const input = document.getElementById('chat-input') as HTMLTextAreaElement;
-        if (input) 
-        {
-            input.addEventListener('keydown', (e) => 
-            {
-                if (e.key === 'Enter' && !e.shiftKey) 
-                {
-                    e.preventDefault();
-                    this.handleSend();
-                }
-            });
-        }
-    }
+      const input = document.getElementById('chat-input') as HTMLTextAreaElement | null;
+      const sendBtn = document.getElementById('send-btn') as HTMLButtonElement | null;
+
+      if (input)
+      {
+          input.disabled = this.isSending;
+      }
+
+      if (sendBtn)
+      {
+          sendBtn.disabled = this.isSending;
+          sendBtn.textContent = this.isSending ? 'Sending...' : 'Send';
+      }
+  }
+
+  private focusInput(moveCaretToEnd: boolean = true): void
+  {
+    requestAnimationFrame(() => {
+      const input = document.getElementById('chat-input') as HTMLTextAreaElement | null;
+      if (!input) return;
+
+      input.focus();
+      if (moveCaretToEnd)
+      {
+        const len = input.value.length;
+        input.setSelectionRange(len, len);
+      }
+    });
+  }
+
     
     private scrollToBottom(): void 
     {

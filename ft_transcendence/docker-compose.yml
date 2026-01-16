@@ -77,17 +77,29 @@ services:
     build:
       context: ./services/auth
       dockerfile: Dockerfile
-    # volumes:
-    #   - auth_data:/app/data
     networks:
       - transcendence_network
+    volumes:
+      - ./services/auth:/app
+      - /app/node_modules
+      - auth_data:/app/data
     secrets:
       - internal_api_key
       - jwt_secret
       - google_client_id
       - google_client_secret
+      - metrics_user
+      - metrics_pass
     env_file:
       - .env
+    environment:
+      - PRISMA_STUDIO=1
+      - PRISMA_STUDIO_PORT=5001
+    ports:
+      - "127.0.0.1:3001:3001"
+      - "127.0.0.1:5001:5001"
+    expose:
+      - "3001"
     depends_on:
       - redis
     restart: always
@@ -98,18 +110,27 @@ services:
     build:
       context: ./services/game
       dockerfile: Dockerfile
-    ports:
-      - "3002:3002"
     volumes:
       - game_data:/app/data
+      - ./services/game:/app
+      - /app/node_modules
     networks:
       - transcendence_network
     secrets:
       - redis_password
       - internal_api_key
+      - metrics_user
+      - metrics_pass
+    ports:
+      - "127.0.0.1:3002:3002"
+      - "127.0.0.1:5003:5003"
+    expose:
+      - "3002"
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=23111
+      - PRISMA_STUDIO=1
+      - PRISMA_STUDIO_PORT=5003
     depends_on:
       - redis
     restart: always
@@ -120,14 +141,27 @@ services:
     build:
       context: ./services/chat
       dockerfile: Dockerfile
+    volumes:
+      - ./services/chat:/app
+      - /app/node_modules
+      - chat_data:/app/data
     secrets:
       - internal_api_key
       - redis_password
+      - metrics_user
+      - metrics_pass
     networks:
       - transcendence_network
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=23111
+      - PRISMA_STUDIO=1
+      - PRISMA_STUDIO_PORT=5002
+    ports:
+      - "127.0.0.1:3003:3003"
+      - "127.0.0.1:5002:5002"
+    expose:
+      - "3003"
     depends_on:
       - redis
     restart: always
@@ -141,10 +175,23 @@ services:
     volumes:
       - user_data:/app/data
       - ${HOME}/data/frontend/assets/images:/app/seed-images:ro
+      - ./services/user:/app
+      - /app/node_modules
+      - user_avatars:/app/avatars
     networks:
       - transcendence_network
+    environment:
+      - PRISMA_STUDIO=1
+      - PRISMA_STUDIO_PORT=5004
+    ports:
+      - "127.0.0.1:3004:3004"
+      - "127.0.0.1:5004:5004"
+    expose:
+      - "3004"
     secrets:
       - internal_api_key
+      - metrics_user
+      - metrics_pass
     env_file:
       - .env
     depends_on:
@@ -157,12 +204,21 @@ services:
     build:
       context: ./services/websocket
       dockerfile: Dockerfile
+    volumes:
+      - ./services/websocket:/app
+      - /app/node_modules
     networks:
       - transcendence_network
     secrets:
       - internal_api_key
       - redis_password
       - jwt_secret
+      - metrics_user
+      - metrics_pass
+    ports:
+      - "127.0.0.1:3005:3005"
+    expose:
+      - "3005"
     env_file:
       - .env
     depends_on:
@@ -186,23 +242,30 @@ services:
       - redis_password
     restart: unless-stopped
 
+  # Prometheus Monitoring
   prometheus:
     container_name: transcendence_prometheus
     image: prom/prometheus:latest
     volumes:
       - prometheus_data:/prometheus
-      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/monitoring/prometheus/prometheus.yml.tpl:/etc/prometheus/prometheus.yml.tpl:ro
+      - ./infrastructure/monitoring/prometheus/entrypoint.sh:/etc/prometheus/entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/etc/prometheus/entrypoint.sh"]
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     networks:
       - transcendence_network
+    secrets:
+      - metrics_user
+      - metrics_pass
     restart: always
-  
+
+  # Grafana Monitoring
   grafana:
     image: grafana/grafana:latest
     container_name: transcendence_grafana
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     volumes:
       - ./infrastructure/monitoring/grafana/custom.ini:/etc/grafana/grafana.ini:ro
       - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -306,3 +369,7 @@ secrets:
     file: ../secrets/cloudflare_tunnel_credentials.json
   cloudflare_origin_cert:
     file: ../secrets/cloudflare_origin_cert.pem
+  metrics_user:
+    file: ../secrets/metrics_user.txt
+  metrics_pass:
+    file: ../secrets/metrics_pass.txt

@@ -59,3 +59,21 @@ export function validateSecrets(): void
   
   console.log('✅ All required secrets validated');
 }
+
+// Get Metrics User from Docker secret
+export function getMetricsUser(): string {
+  const metricsUser: string = readFileSync('/run/secrets/metrics_user', 'utf8').trim();
+  if (!metricsUser) {
+    throw new HttpError('Metrics User is not configured', 500);
+  }
+  return metricsUser;
+}
+
+// Get Metrics Password from Docker secret
+export function getMetricsPass(): string {
+  const metricsPass: string = readFileSync('/run/secrets/metrics_pass', 'utf8').trim();
+  if (!metricsPass) {
+    throw new HttpError('Metrics Password is not configured', 500);
+  }
+  return metricsPass;
+}

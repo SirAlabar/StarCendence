@@ -1,16 +1,17 @@
 #!/bin/sh
 set -e
 
-# Load Redis password from Docker secret
-if [ -f /run/secrets/redis_password ]; then
-    REDIS_PASSWORD=$(cat /run/secrets/redis_password)
-    echo "Redis password loaded from secret"
+# Try to read from secret file or environment variable
+if [ -f "${REDIS_PASSWORD_FILE:-/run/secrets/redis_password}" ]; then
+    REDIS_PASSWORD=$(cat "${REDIS_PASSWORD_FILE:-/run/secrets/redis_password}" 2>/dev/null || echo "")
+elif [ -n "${REDIS_PASSWORD}" ]; then
+    # Password already in environment
+    echo "Using Redis password from environment"
 else
-    echo "Warning: No Redis password secret found!"
+    echo "Warning: No Redis password found!"
     REDIS_PASSWORD=""
 fi
 
-# Start Redis with password from secret
 if [ -n "$REDIS_PASSWORD" ]; then
     exec redis-server /usr/local/etc/redis/redis.conf --requirepass "$REDIS_PASSWORD"
 else

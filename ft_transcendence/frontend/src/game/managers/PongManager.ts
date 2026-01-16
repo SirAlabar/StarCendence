@@ -409,26 +409,20 @@ export class GameManager
     {
         const audio = new Audio('/assets/sounds/sfx/point.mp3');
         audio.volume = 0.6;
-        audio.play().catch(err => {
-            console.debug('[PongManager] Audio autoplay blocked:', err.message);
-        });
+        audio.play();
     }
     private play_sound_end() 
     {
         const audio = new Audio('/assets/sounds/sfx/gameend.mp3');
         audio.volume = 0.6;
-        audio.play().catch(err => {
-            console.debug('[PongManager] Audio autoplay blocked:', err.message);
-        });
+        audio.play();
     }
 
     private play_paddle_hit()
     {
         const audio = new Audio('/assets/sounds/sfx/hit.mp3');
         audio.volume = 0.6;
-        audio.play().catch(err => {
-            console.debug('[PongManager] Audio autoplay blocked:', err.message);
-        });
+        audio.play();
     }
 
     private play_sound() 
@@ -437,9 +431,7 @@ export class GameManager
             return;
         const audio = new Audio('/assets/sounds/sfx/hit.mp3');
         audio.volume = this.playerPreferences.volume ?? 0.5;
-        audio.play().catch(err => {
-            console.debug('[PongManager] Audio autoplay blocked:', err.message);
-        });
+        audio.play();
     }
 }
 // Export singleton instance

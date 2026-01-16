@@ -23,7 +23,7 @@ export const sendMessageSchema = {
       message: {
         type: 'string',
         minLength: 1,
-        maxLength: 1000,
+        maxLength: 500,
       },
     },
   },

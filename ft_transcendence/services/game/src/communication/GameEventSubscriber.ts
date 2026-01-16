@@ -177,6 +177,7 @@ export class GameEventSubscriber {
         payload: {
           success: true,
           lobbyId,
+          gameType, // Include gameType in response
           players: players.map(p => ({
             userId: p.userId,
             username: p.username,
@@ -212,7 +213,7 @@ export class GameEventSubscriber {
 private async handleQuickPlay(event: GameEventMessage): Promise<void>
 {
   const rawGameType = event.payload?.gameType;
-  const gameType = rawGameType ?? 'pong';
+  const gameType = rawGameType === '2d' ? 'pong2d' : rawGameType === '3d' ? 'pong3d' : rawGameType || 'pong';
   const { userId, username } = event;
 
   console.log('[QuickPlay] ================================');
@@ -252,13 +253,15 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
         ...event,
         payload: {
           lobbyId: lobby.id,
-          avatarUrl: event.payload?.avatarUrl || ''
+          avatarUrl: event.payload?.avatarUrl || '',
+          gameType: lobby.gameType // Pass the lobby's game type so joiner knows what they're joining
         }
       };
 
       console.log('[QuickPlay] ➕ Forwarding to handleLobbyJoin', {
         joinUserId: userId,
-        lobbyId: lobby.id
+        lobbyId: lobby.id,
+        gameType: lobby.gameType
       });
 
       await this.handleLobbyJoin(joinEvent);
@@ -329,7 +332,7 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
   }
 
   private async handleLobbyJoin(event: GameEventMessage): Promise<void> {
-    const { lobbyId, avatarUrl } = event.payload;
+    const { lobbyId, avatarUrl, gameType } = event.payload;
     const { userId, username, } = event;
 
     try {
@@ -350,11 +353,13 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
 
       const userIds = await this.lobbyManager.getLobbyUserIds(lobbyId);
       const players = await this.lobbyManager.getLobbyPlayers(lobbyId);
+      const lobbyData = await this.lobbyManager.getLobbyData(lobbyId);
       
       console.log(`[GameEventSubscriber] 🔍 LOBBY JOIN DEBUG:`, {
         joiningUserId: userId,
         joiningUsername: username,
         joinerIsHost: players.find(p => p.userId === userId)?.isHost,
+        lobbyGameType: lobbyData?.gameType,
         allPlayers: players.map(p => ({ 
           userId: p.userId, 
           username: p.username, 
@@ -370,6 +375,7 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
         payload: {
           success: true,
           lobbyId,
+          gameType: lobbyData?.gameType || gameType, // Include gameType so client knows 2d vs 3d
           players: players.map(p => ({
             userId: p.userId,
             username: p.username,
@@ -408,6 +414,7 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
 
       console.log(`[GameEventSubscriber] 🎮 Lobby ${lobbyId} state:`, {
         playerCount: players.length,
+        gameType: lobbyData?.gameType,
         players: players.map(p => ({ username: p.username, isHost: p.isHost, isReady: p.isReady })),
         reconnect: result.reason === 'already_joined',
       });
@@ -588,7 +595,7 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
           type: gameType,
           mode: GameMode.MATCH,
           maxPlayers: lobbyData.maxPlayers,
-          maxScore: 1,
+          maxScore: 5,
         });
 
         for (const player of players) 
@@ -633,6 +640,11 @@ private async handleQuickPlay(event: GameEventMessage): Promise<void>
       
       if (players.length === 0) {
         console.log(`[GameEventSubscriber] ⚠️  No players found in lobby ${lobbyId}`);
+        return;
+      }
+
+      if (message.length > 100) {
+        console.log(`[GameEventSubscriber] ❌ Message too long from ${username} in lobby ${lobbyId}`);
         return;
       }
 

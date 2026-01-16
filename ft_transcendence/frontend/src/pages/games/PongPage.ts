@@ -899,43 +899,64 @@ export default class PongPage extends BaseComponent
             navigateTo('/login');
             return;
         }
-
+        
         if (!this.userProfile) 
         {
             await this.loadProfile();
         }
-
+        
         if (!webSocketService.isConnected()) 
         {
             await Modal.alert('Connection Error', 'WebSocket not connected');
             return;
         }
-
+        
         const handler = (message: any) => 
         {
             if (message.type === 'lobby:create:ack' && message.payload?.lobbyId) 
             {
                 cleanup();
-                navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+                const gameParam = this.normalizeGameType(message.payload.gameType || 'pong');
+                navigateTo(`/lobby?game=${gameParam}&id=${message.payload.lobbyId}`);
             }
-
+            
             if (message.type === 'lobby:join:ack' && message.payload?.lobbyId) 
             {
                 cleanup();
-                navigateTo(`/lobby?game=pong&id=${message.payload.lobbyId}`);
+                const gameParam = this.normalizeGameType(message.payload.gameType || 'pong');
+                navigateTo(`/lobby?game=${gameParam}&id=${message.payload.lobbyId}`);
             }
         };
-
-        const cleanup = () => {
+        
+        const cleanup = () => 
+        {
             webSocketService.off('*', handler);
         };
-
+        
         webSocketService.on('*', handler);
-
+        
         webSocketService.send('lobby:quick-play', {
             gameType: 'pong',
             avatarUrl: this.userProfile?.avatarUrl
         });
+    }
+
+    private normalizeGameType(gameType: string): string 
+    {
+        const normalized = gameType.toLowerCase();
+        
+        if (normalized === 'pong2d' || normalized === '2d') 
+        {
+            return 'pong2d';
+        }
+        
+        if (normalized === 'pong3d' || normalized === '3d') 
+        {
+            return 'pong3d';
+        }
+        
+        // Default fallback to pong2d
+        return 'pong2d';
     }
 
 
