@@ -57,7 +57,7 @@ export async function getUserProfileByUsername(req: FastifyRequest, reply: Fasti
   return reply.send(user);
 }
 
-// PATCH /profile - Update user's profile
+// PUT /profile - Update user's profile
 export async function updateUserProfile( req: FastifyRequest, reply: FastifyReply ) {
   const userId = req.user?.sub;
   if (!userId) {

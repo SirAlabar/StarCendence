@@ -25,7 +25,7 @@ export async function userRoutes(fastify: FastifyInstance) {
   },
   userController.searchUsers);
 
-  fastify.patch('/profile',
+  fastify.put('/profile',
   {
     preHandler: [verifyUserToken],
     schema: userSchema.updateUserProfileSchema
