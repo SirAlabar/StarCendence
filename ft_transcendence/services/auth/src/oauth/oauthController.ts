@@ -8,7 +8,7 @@ import * as oauthRepository from './oauthRepository';
 
 // Handler to initiate Google OAuth flow
 export async function googleOAuthHandler( req: FastifyRequest, reply: FastifyReply ) {
-  const redirectUri = `https://localhost:8443/api/auth/oauth/google/callback`
+  const redirectUri = `https://starcendence.dev/api/auth/oauth/google/callback`
 
   const params = new URLSearchParams({
     client_id: getGoogleClientId(),
@@ -25,7 +25,7 @@ export async function googleOAuthHandler( req: FastifyRequest, reply: FastifyRep
 export async function googleOAuthCallbackHandler( req: FastifyRequest, reply: FastifyReply ) 
 {
   const { code, state } = req.query as { code: string; state: string }
-  const redirectUri = `https://localhost:8443/api/auth/oauth/google/callback`
+  const redirectUri = `https://starcendence.dev/api/auth/oauth/google/callback`
 
   if (!code) {
     throw new HttpError('Authorization code is required', 400)
@@ -37,7 +37,7 @@ export async function googleOAuthCallbackHandler( req: FastifyRequest, reply: Fa
   const result = await oauthService.handleOauthLogin(userInfo)
 
   if (result.needsUsername) {
-    return reply.redirect(`https://localhost:8443/oauth/callback?token=${result.tempToken}`)
+    return reply.redirect(`https://starcendence.dev/oauth/callback?token=${result.tempToken}`)
   }
 
   if (!result.tokens) {
@@ -51,7 +51,7 @@ export async function googleOAuthCallbackHandler( req: FastifyRequest, reply: Fa
 
   await updateUserStatus(user.id, 'ONLINE')
 
-  return reply.redirect(`https://localhost:8443/oauth/callback?accessToken=${result.tokens.accessToken}&refreshToken=${result.tokens.refreshToken}`)
+  return reply.redirect(`https://starcendence.dev/oauth/callback?accessToken=${result.tokens.accessToken}&refreshToken=${result.tokens.refreshToken}`)
 }
 
 // Handler to set username for OAuth user
